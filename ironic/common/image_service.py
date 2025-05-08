@@ -36,6 +36,11 @@ from ironic.common import utils
 from ironic.conf import CONF
 
 IMAGE_CHUNK_SIZE = 1024 * 1024  # 1mb
+# NOTE(JayF): This is the check-of-last-resort; we also have an allowlist
+# enabled by default. These represent paths that under no circumstances should
+# we access for file:// URLs
+BLOCKED_FILE_URL_PATHS = {'/dev', '/sys', '/proc', '/boot', '/etc', '/run'}
+
 LOG = log.getLogger(__name__)
 
 
@@ -813,14 +818,39 @@ class FileImageService(BaseImageService):
 
         :param image_href: Image reference.
         :raises: exception.ImageRefValidationFailed if source image file
-            doesn't exist.
-        :returns: Path to image file if it exists.
+            doesn't exist, is in a blocked path, or is not in an allowed path.
+        :returns: Path to image file if it exists and is allowed.
         """
         image_path = urlparse.urlparse(image_href).path
+
+        # Check if the path is in the blocklist
+        rpath = os.path.abspath(image_path)
+        for bad in BLOCKED_FILE_URL_PATHS:
+            if rpath == bad or rpath.startswith(bad + os.sep):
+                raise exception.ImageRefValidationFailed(
+                    image_href=image_href,
+                    reason=_("Security: The path %s is not permitted in file "
+                             "URLs" % bad)
+                )
+
+        # Check if the path is in the allowlist
+        for allowed in CONF.conductor.file_url_allowed_paths:
+            if rpath == allowed or rpath.startswith(allowed + os.sep):
+                break
+        else:
+            raise exception.ImageRefValidationFailed(
+                image_href=image_href,
+                reason=_(
+                    "Security: Path %s is not allowed for image source "
+                    "file URLs" % image_path)
+            )
+
+        # Check if the file exists
         if not os.path.isfile(image_path):
             raise exception.ImageRefValidationFailed(
                 image_href=image_href,
                 reason=_("Specified image file not found."))
+
         return image_path
 
     def download(self, image_href, image_file):

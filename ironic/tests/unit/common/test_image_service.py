@@ -615,19 +615,74 @@ class FileImageServiceTestCase(base.TestCase):
     def setUp(self):
         super(FileImageServiceTestCase, self).setUp()
         self.service = image_service.FileImageService()
-        self.href = 'file:///home/user/image.qcow2'
-        self.href_path = '/home/user/image.qcow2'
+        self.href = 'file:///var/lib/ironic/images/image.qcow2'
+        self.href_path = '/var/lib/ironic/images/image.qcow2'
 
     @mock.patch.object(os.path, 'isfile', return_value=True, autospec=True)
     def test_validate_href(self, path_exists_mock):
         self.service.validate_href(self.href)
         path_exists_mock.assert_called_once_with(self.href_path)
 
-    @mock.patch.object(os.path, 'isfile', return_value=False, autospec=True)
+    @mock.patch.object(os.path, 'isfile', return_value=False,
+                       autospec=True)
     def test_validate_href_path_not_found_or_not_file(self, path_exists_mock):
         self.assertRaises(exception.ImageRefValidationFailed,
                           self.service.validate_href, self.href)
         path_exists_mock.assert_called_once_with(self.href_path)
+
+    @mock.patch.object(os.path, 'abspath', autospec=True)
+    def test_validate_href_blocked_path(self, abspath_mock):
+        href = 'file:///dev/sda1'
+        href_path = '/dev/sda1'
+        href_dir = '/dev'
+        abspath_mock.side_effect = [href_dir, href_path]
+        # Explicitly allow the bad path
+        cfg.CONF.set_override('file_url_allowed_paths', [href_dir],
+                              'conductor')
+
+        # Still raises an error because /dev is expressly forbidden
+        self.assertRaisesRegex(exception.ImageRefValidationFailed,
+                               "is not permitted in file URLs",
+                               self.service.validate_href, href)
+        abspath_mock.assert_has_calls(
+            [mock.call(href_dir), mock.call(href_path)])
+
+    @mock.patch.object(os.path, 'abspath', autospec=True)
+    def test_validate_href_empty_allowlist(self, abspath_mock):
+        abspath_mock.return_value = self.href_path
+        cfg.CONF.set_override('file_url_allowed_paths', [], 'conductor')
+        self.assertRaisesRegex(exception.ImageRefValidationFailed,
+                               "is not allowed for image source file URLs",
+                               self.service.validate_href, self.href)
+
+    @mock.patch.object(os.path, 'abspath', autospec=True)
+    def test_validate_href_not_in_allowlist(self, abspath_mock):
+        href = "file:///var/is/allowed/not/this/path/image.qcow2"
+        href_path = "/var/is/allowed/not/this/path/image.qcow2"
+        abspath_mock.side_effect = ['/var/lib/ironic', href_path]
+        cfg.CONF.set_override('file_url_allowed_paths', ['/var/lib/ironic'],
+                              'conductor')
+        self.assertRaisesRegex(exception.ImageRefValidationFailed,
+                               "is not allowed for image source file URLs",
+                               self.service.validate_href, href)
+
+    @mock.patch.object(os.path, 'abspath', autospec=True)
+    @mock.patch.object(os.path, 'isfile',
+                       return_value=True, autospec=True)
+    def test_validate_href_in_allowlist(self,
+                                        path_exists_mock,
+                                        abspath_mock):
+        href_dir = '/var/lib'  # self.href_path is in /var/lib/ironic/images/
+        # First call is ironic.conf.types.ExplicitAbsolutePath
+        # Second call is in validate_href()
+        abspath_mock.side_effect = [href_dir, self.href_path]
+        cfg.CONF.set_override('file_url_allowed_paths', [href_dir],
+                              'conductor')
+        result = self.service.validate_href(self.href)
+        self.assertEqual(self.href_path, result)
+        path_exists_mock.assert_called_once_with(self.href_path)
+        abspath_mock.assert_has_calls(
+            [mock.call(href_dir), mock.call(self.href_path)])
 
     @mock.patch.object(os.path, 'getmtime', return_value=1431087909.1641912,
                        autospec=True)

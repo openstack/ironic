@@ -32,13 +32,19 @@ There are however some limitations for different hardware interfaces:
    $ sha256sum image.qcow2
    9f6c942ad81690a9926ff530629fb69a82db8b8ab267e2cbd59df417c1a28060  image.qcow2
 
-* :ref:`direct-deploy` started supporting ``file://`` images in the Victoria
-  release cycle, before that only HTTP(s) had been supported.
+* If you're using :ref:`direct-deploy` with ``file://`` URLs, you have to
+  ensure the images meet all requirements:
+
+  * File images must be accessible to every conductor
+  * File images must not be located in ``/dev``, ``/sys``, ``/proc``,
+    ``/etc``, ``/boot``, ``/run`` or other system paths.
+  * File images must be located in a path listed in
+    :oslo_config:option:`conductor.file_url_allowed_paths`
 
   .. warning::
-     File images must be accessible to every conductor! Use a shared file
-     system if you have more than one conductor. The ironic CLI tool will not
-     transfer the file from a local machine to the conductor(s).
+    The Ironic CLI tool will not transfer the file from a local machine to the
+    conductor(s). Operators should use shared file systems or configuration
+    management to ensure consistent availability of images.
 
 .. note::
    The Bare Metal service tracks content changes for non-Glance images by

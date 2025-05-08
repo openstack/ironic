@@ -21,6 +21,7 @@ from oslo_config import types
 from ironic.common import boot_modes
 from ironic.common.i18n import _
 from ironic.common import lessee_sources
+from ironic.conf import types as ir_types
 
 
 opts = [
@@ -531,6 +532,20 @@ opts = [
                        'wish to disable this functionality, otherwise it is '
                        'automatically applied by the conductor should a '
                        'compressed artifact be detected.')),
+    cfg.ListOpt('file_url_allowed_paths',
+                default=['/var/lib/ironic', '/shared/html', '/templates',
+                         '/opt/cache/files', '/vagrant'],
+                item_type=ir_types.ExplicitAbsolutePath(),
+                help=_(
+                    'List of paths that are allowed to be used as file:// '
+                    'URLs. Files in /boot, /dev, /etc, /proc, /sys and other'
+                    'system paths are always disallowed for security reasons. '
+                    'Any files in this path readable by ironic may be used as '
+                    'an image source when deploying. Setting this value to '
+                    '"" (empty) disables file:// URL support. Paths listed '
+                    'here are validated as absolute paths and will be rejected'
+                    'if they contain path traversal mechanisms, such as "..".'
+                )),
 ]
 
 
