@@ -395,6 +395,19 @@ class RedfishInspectTestCase(db_base.DbTestCase):
             self.assertNotIn('interfaces', inventory['inventory'])
 
     @mock.patch.object(redfish_utils, 'get_system', autospec=True)
+    def test_inspect_hardware_ignore_missing_cpus(
+            self, mock_get_system):
+        system_mock = self.init_system_mock(mock_get_system.return_value)
+        system_mock.processors = []
+
+        with task_manager.acquire(self.context, self.node.uuid,
+                                  shared=True) as task:
+            task.driver.inspect.inspect_hardware(task)
+            inventory = inspect_utils.get_inspection_data(task.node,
+                                                          self.context)
+            self.assertNotIn('cpu', inventory['inventory'])
+
+    @mock.patch.object(redfish_utils, 'get_system', autospec=True)
     def test_inspect_hardware_preserve_boot_mode(self, mock_get_system):
         self.init_system_mock(mock_get_system.return_value)
 
