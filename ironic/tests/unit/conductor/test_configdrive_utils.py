@@ -49,10 +49,24 @@ class MetadataUtilsTestCase(db_base.DbTestCase):
         self.assertTrue(cd_utils.is_invalid_network_metadata([]))
 
     def test_is_invalid_network_metadata_valid(self):
-        valid = {'links': [{'foo': 'bar'}],
+        valid = {'links': [{'foo': 'bar', 'mtu': 1500}],
                  'services': [],
                  'networks': [{'bar': 'baz'}]}
         self.assertFalse(cd_utils.is_invalid_network_metadata(valid))
+
+    def test_invalid_network_metadata_null_mtu(self):
+        invalid = {'links': [{'mtu': None}],
+                   'servies': [],
+                   'networks': [{'foo': 'bar'}]}
+        self.assertTrue(cd_utils.is_invalid_network_metadata(invalid))
+
+    def test_invalid_network_metadata_null_mtu_disables(self):
+        CONF.set_override('disable_metadata_mtu_check', True,
+                          group='conductor')
+        invalid = {'links': [{'mtu': None}],
+                   'servies': [],
+                   'networks': [{'foo': 'bar'}]}
+        self.assertFalse(cd_utils.is_invalid_network_metadata(invalid))
 
     @mock.patch.object(cd_utils, 'is_invalid_network_metadata',
                        autospec=True)

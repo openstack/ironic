@@ -35,7 +35,9 @@ def is_invalid_network_metadata(network_data):
     :param network_data: A dictionary object containing network_metadata,
                          with three sub-fields, 'links', 'networks',
                          and 'services'. Returns True if the document is
-                         invalid and missing network metadata.
+                         invalid and missing network metadata, or when
+                         specific other issues such as null MTU values
+                         are detected.
     :returns: True when the data supplied is invalid.
     """
     try:
@@ -45,14 +47,20 @@ def is_invalid_network_metadata(network_data):
         # likely just declare missing MTU as a qualifier to rebuild, but
         # that is likely to then trigger far more often. Maybe that means
         # it is an even better idea...
-        return (not network_data.get('links', [])
-                and not network_data.get('networks', [])
-                and not network_data.get('services', []))
+        if (not network_data.get('links', [])
+            and not network_data.get('networks', [])
+            and not network_data.get('services', [])):
+            return True
+        if not CONF.conductor.disable_metadata_mtu_check:
+            for link in network_data.get('links', []):
+                if link.get('mtu') is None:
+                    return True
     except AttributeError:
         # Got called with None or something else lacking the attribute.
         # NOTE(TheJulia): If we ever want to inject metadata if missing
         # here is where we would add it.
         return True
+    return False
 
 
 def check_and_patch_configdrive(task, configdrive):

@@ -627,6 +627,12 @@ opts = [
                        'the data, Ironic will do so transparently. Setting '
                        'this option to True will disable this '
                        'functionality.')),
+    cfg.BoolOpt('disable_metadata_mtu_check',
+                default=False,
+                mutable=True,
+                help=_('Option to disable consideration of supplied '
+                       'network_data.json link MTU values as basis to '
+                       'regenerate the supplied metadata.'))
 ]
 
 
