@@ -36,6 +36,7 @@ from ironic.conf import CONF
 from ironic.drivers.modules import boot_mode_utils
 from ironic.drivers.modules import deploy_utils
 from ironic.drivers.modules import image_cache
+from ironic.drivers.modules import inspect_utils
 from ironic.drivers import utils as driver_utils
 
 LOG = log.getLogger(__name__)
@@ -186,8 +187,19 @@ def override_api_url(params):
         return params
 
     params = params or {}
-    params[deploy_utils.IPA_URL_PARAM_NAME] = \
-        CONF.deploy.external_callback_url.rstrip('/')
+    override_callback_url = CONF.deploy.external_callback_url.rstrip('/')
+    params[deploy_utils.IPA_URL_PARAM_NAME] = override_callback_url
+
+    inspection_callback = params.pop(inspect_utils.IPA_CALLBACK_PARAM, None)
+    # FIXME(dtantsur): it's much better to stop providing the inspection
+    # callback for built-in inspection, but such a change will require somewhat
+    # newer IPA and thus won't be backportable.
+    if inspection_callback:
+        if inspection_callback.endswith(inspect_utils.CALLBACK_API_ENDPOINT):
+            inspection_callback = inspect_utils.get_inspection_callback(
+                override_callback_url)
+        params[inspect_utils.IPA_CALLBACK_PARAM] = inspection_callback
+
     return params
 
 
