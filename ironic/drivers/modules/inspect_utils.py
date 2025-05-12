@@ -37,6 +37,16 @@ LOG = logging.getLogger(__name__)
 _HOOKS_MGR = {}
 _OBJECT_NAME_PREFIX = 'inspector_data'
 AUTO_DISCOVERED_FLAG = 'auto_discovered'
+CALLBACK_API_ENDPOINT = '/continue_inspection'
+IPA_CALLBACK_PARAM = 'ipa-inspection-callback-url'
+
+
+def get_inspection_callback(ironic_url):
+    ironic_url = ironic_url.rstrip('/')
+    if ironic_url.endswith('/v1'):
+        return ironic_url + CALLBACK_API_ENDPOINT
+    else:
+        return f'{ironic_url}/v1{CALLBACK_API_ENDPOINT}'
 
 
 def create_ports_if_not_exist(task, macs=None):

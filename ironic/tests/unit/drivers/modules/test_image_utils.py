@@ -222,6 +222,38 @@ class RedfishImageUtilsTestCase(db_base.DbTestCase):
     @mock.patch.object(image_utils.ImageHandler, 'publish_image',
                        autospec=True)
     @mock.patch.object(images, 'create_vfat_image', autospec=True)
+    def test_prepare_floppy_image_with_external_ip_and_inspection(
+            self, mock_create_vfat_image, mock_publish_image):
+        self.config(external_callback_url='http://callback/', group='deploy')
+        with task_manager.acquire(self.context, self.node.uuid,
+                                  shared=True) as task:
+            expected_url = 'https://a.b/c.f?e=f'
+
+            mock_publish_image.return_value = expected_url
+
+            params = {
+                'ipa-api-url': 'http://orig',
+                'ipa-inspection-callback-url':
+                'http://orig/v1/continue_inspection'
+            }
+            url = image_utils.prepare_floppy_image(task, params)
+
+            object_name = 'image-%s.img' % task.node.uuid
+
+            mock_publish_image.assert_called_once_with(mock.ANY, mock.ANY,
+                                                       object_name, None)
+
+            mock_create_vfat_image.assert_called_once_with(
+                mock.ANY, fs_size_kib=1440,
+                parameters={"ipa-api-url": "http://callback",
+                            "ipa-inspection-callback-url":
+                            "http://callback/v1/continue_inspection"})
+
+            self.assertEqual(expected_url, url)
+
+    @mock.patch.object(image_utils.ImageHandler, 'publish_image',
+                       autospec=True)
+    @mock.patch.object(images, 'create_vfat_image', autospec=True)
     def test_prepare_floppy_image_publish_with_config_external_http_url(
             self, mock_create_vfat_image, mock_publish_image):
         self.config(external_callback_url='http://callback/',
@@ -993,6 +1025,37 @@ cafile = /etc/ironic-python-agent/ironic.crt
             mock__prepare_iso_image.assert_called_once_with(
                 task, 'kernel', 'ramdisk', 'bootloader',
                 params={'ipa-api-url': 'http://callback'},
+                inject_files={}, base_iso=None)
+
+    @mock.patch.object(image_utils, '_prepare_iso_image', autospec=True)
+    def test_prepare_deploy_iso_external_ip_with_inspection(
+            self, mock__prepare_iso_image):
+        self.config(external_callback_url='http://callback/', group='deploy')
+        with task_manager.acquire(self.context, self.node.uuid,
+                                  shared=True) as task:
+
+            d_info = {
+                'deploy_kernel': 'kernel',
+                'deploy_ramdisk': 'ramdisk',
+                'bootloader': 'bootloader'
+            }
+            task.node.driver_info.update(d_info)
+
+            task.node.instance_info.update(deploy_boot_mode='uefi')
+
+            params = {
+                'ipa-api-url': 'http://orig',
+                'ipa-inspection-callback-url':
+                'http://orig/v1/continue_inspection'
+            }
+
+            image_utils.prepare_deploy_iso(task, params, 'deploy', d_info)
+
+            mock__prepare_iso_image.assert_called_once_with(
+                task, 'kernel', 'ramdisk', 'bootloader',
+                params={'ipa-api-url': 'http://callback',
+                        'ipa-inspection-callback-url':
+                        'http://callback/v1/continue_inspection'},
                 inject_files={}, base_iso=None)
 
     @mock.patch.object(image_utils, '_find_param', autospec=True)

@@ -1,0 +1,8 @@
+---
+fixes:
+  - |
+    The ``ipa-inspection-callback-url`` kernel parameter now uses the
+    ``external_callback_url`` configuration when set. Previously, this
+    URL used the internal address even when ``external_callback_url``
+    was configured, creating inconsistency with ``ipa-api-url`` which
+    correctly used the external address.
