@@ -1824,6 +1824,9 @@ cgroup_device_acl = [
 EOF
             restart_libvirt
         fi
+        # Standalone jobs may use some different paths, that is okay
+        iniset $IRONIC_CONF_FILE conductor file_url_allowed_paths /var/lib/ironic,/shared/html,/templates,/opt/cache/files,/vagrant,/opt/stack/ironic
+
     fi
 
     if [[ "$IRONIC_IS_HARDWARE" == "False" ]]; then
