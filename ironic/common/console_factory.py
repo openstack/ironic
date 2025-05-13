@@ -31,8 +31,6 @@ class ConsoleContainerFactory(object):
         if not ConsoleContainerFactory._provider:
             ConsoleContainerFactory._set_provider(**kwargs)
 
-    # Use lockutils to avoid a potential race in eventlet
-    # that might try to create two factories.
     @classmethod
     @lockutils.synchronized(EM_SEMAPHORE)
     def _set_provider(cls, **kwargs):

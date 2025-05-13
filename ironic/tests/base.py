@@ -28,8 +28,6 @@ import sys
 import tempfile
 import warnings
 
-import eventlet
-eventlet.monkey_patch(os=False)
 import fixtures
 from oslo_concurrency import processutils
 from oslo_config import fixture as config_fixture

@@ -816,7 +816,7 @@ class SNMPDeviceDriverTestCase(db_base.DbTestCase):
         mock_client.get.assert_called_once_with(driver._snmp_oid())
         self.assertEqual(states.POWER_OFF, pstate)
 
-    @mock.patch("oslo_utils.eventletutils.EventletEvent.wait", autospec=True)
+    @mock.patch.object(time, 'sleep', autospec=True)
     def test_power_on_delay(self, mock_sleep, mock_get_client):
         # Ensure driver waits for the state to change following a power on
         mock_client = mock_get_client.return_value
@@ -830,7 +830,7 @@ class SNMPDeviceDriverTestCase(db_base.DbTestCase):
         mock_client.get.assert_has_calls(calls)
         self.assertEqual(states.POWER_ON, pstate)
 
-    @mock.patch("oslo_utils.eventletutils.EventletEvent.wait", autospec=True)
+    @mock.patch.object(time, 'sleep', autospec=True)
     def test_power_off_delay(self, mock_sleep, mock_get_client):
         # Ensure driver waits for the state to change following a power off
         mock_client = mock_get_client.return_value
@@ -838,14 +838,14 @@ class SNMPDeviceDriverTestCase(db_base.DbTestCase):
         mock_client.get.side_effect = [driver.value_power_on,
                                        driver.value_power_off]
         pstate = driver.power_off()
+        self.assertTrue(mock_sleep.called)
         mock_client.set.assert_called_once_with(driver._snmp_oid(),
                                                 driver.value_power_off)
         calls = [mock.call(driver._snmp_oid())] * 2
         mock_client.get.assert_has_calls(calls)
         self.assertEqual(states.POWER_OFF, pstate)
 
-    @mock.patch("oslo_utils.eventletutils.EventletEvent.wait", autospec=True)
-    def test_power_on_invalid_state(self, mock_sleep, mock_get_client):
+    def test_power_on_invalid_state(self, mock_get_client):
         # Ensure driver retries when querying unexpected states following a
         # power on
         mock_client = mock_get_client.return_value
@@ -859,8 +859,7 @@ class SNMPDeviceDriverTestCase(db_base.DbTestCase):
         mock_client.get.assert_has_calls(calls)
         self.assertEqual(states.ERROR, pstate)
 
-    @mock.patch("oslo_utils.eventletutils.EventletEvent.wait", autospec=True)
-    def test_power_off_invalid_state(self, mock_sleep, mock_get_client):
+    def test_power_off_invalid_state(self, mock_get_client):
         # Ensure driver retries when querying unexpected states following a
         # power off
         mock_client = mock_get_client.return_value
@@ -920,8 +919,7 @@ class SNMPDeviceDriverTestCase(db_base.DbTestCase):
                                                 driver.value_power_off)
         mock_client.get.assert_called_once_with(driver._snmp_oid())
 
-    @mock.patch("oslo_utils.eventletutils.EventletEvent.wait", autospec=True)
-    def test_power_on_timeout(self, mock_sleep, mock_get_client):
+    def test_power_on_timeout(self, mock_get_client):
         # Ensure that a power on consistency poll timeout causes an error
         mock_client = mock_get_client.return_value
         driver = snmp._get_driver(self.node)
@@ -934,11 +932,10 @@ class SNMPDeviceDriverTestCase(db_base.DbTestCase):
         mock_client.get.assert_has_calls(calls)
         self.assertEqual(states.ERROR, pstate)
 
-    @mock.patch("oslo_utils.eventletutils.EventletEvent.wait", autospec=True)
-    def test_power_off_timeout(self, mock_sleep, mock_get_client):
+    def test_power_off_timeout(self, mock_get_client):
         # Ensure that a power off consistency poll timeout causes an error
         mock_client = mock_get_client.return_value
-        CONF.set_override('power_timeout', 5, 'snmp')
+        CONF.set_override('power_timeout', 1, 'snmp')
         driver = snmp._get_driver(self.node)
         mock_client.get.return_value = driver.value_power_on
         pstate = driver.power_off()
@@ -963,8 +960,7 @@ class SNMPDeviceDriverTestCase(db_base.DbTestCase):
         mock_client.get.assert_has_calls(calls)
         self.assertEqual(states.POWER_ON, pstate)
 
-    @mock.patch("oslo_utils.eventletutils.EventletEvent.wait", autospec=True)
-    def test_power_reset_off_delay(self, mock_sleep, mock_get_client):
+    def test_power_reset_off_delay(self, mock_get_client):
         # Ensure driver waits for the power off state change following a power
         # reset
         mock_client = mock_get_client.return_value
@@ -980,7 +976,7 @@ class SNMPDeviceDriverTestCase(db_base.DbTestCase):
         mock_client.get.assert_has_calls(calls)
         self.assertEqual(states.POWER_ON, pstate)
 
-    @mock.patch("oslo_utils.eventletutils.EventletEvent.wait", autospec=True)
+    @mock.patch.object(time, 'sleep', autospec=True)
     def test_power_reset_on_delay(self, mock_sleep, mock_get_client):
         # Ensure driver waits for the power on state change following a power
         # reset
@@ -990,6 +986,7 @@ class SNMPDeviceDriverTestCase(db_base.DbTestCase):
                                        driver.value_power_off,
                                        driver.value_power_on]
         pstate = driver.power_reset()
+        self.assertTrue(mock_sleep.called)
         calls = [mock.call(driver._snmp_oid(), driver.value_power_off),
                  mock.call(driver._snmp_oid(), driver.value_power_on)]
         mock_client.set.assert_has_calls(calls)
@@ -997,7 +994,7 @@ class SNMPDeviceDriverTestCase(db_base.DbTestCase):
         mock_client.get.assert_has_calls(calls)
         self.assertEqual(states.POWER_ON, pstate)
 
-    @mock.patch("oslo_utils.eventletutils.EventletEvent.wait", autospec=True)
+    @mock.patch.object(time, 'sleep', autospec=True)
     def test_power_reset_off_delay_on_delay(self, mock_sleep, mock_get_client):
         # Ensure driver waits for both state changes following a power reset
         mock_client = mock_get_client.return_value
@@ -1007,6 +1004,7 @@ class SNMPDeviceDriverTestCase(db_base.DbTestCase):
                                        driver.value_power_off,
                                        driver.value_power_on]
         pstate = driver.power_reset()
+        self.assertTrue(mock_sleep.called)
         calls = [mock.call(driver._snmp_oid(), driver.value_power_off),
                  mock.call(driver._snmp_oid(), driver.value_power_on)]
         mock_client.set.assert_has_calls(calls)
@@ -1014,8 +1012,7 @@ class SNMPDeviceDriverTestCase(db_base.DbTestCase):
         mock_client.get.assert_has_calls(calls)
         self.assertEqual(states.POWER_ON, pstate)
 
-    @mock.patch("oslo_utils.eventletutils.EventletEvent.wait", autospec=True)
-    def test_power_reset_off_invalid_state(self, mock_sleep, mock_get_client):
+    def test_power_reset_off_invalid_state(self, mock_get_client):
         # Ensure driver retries when querying unexpected states following a
         # power off during a reset
         mock_client = mock_get_client.return_value
@@ -1029,8 +1026,7 @@ class SNMPDeviceDriverTestCase(db_base.DbTestCase):
         mock_client.get.assert_has_calls(calls)
         self.assertEqual(states.ERROR, pstate)
 
-    @mock.patch("oslo_utils.eventletutils.EventletEvent.wait", autospec=True)
-    def test_power_reset_on_invalid_state(self, mock_sleep, mock_get_client):
+    def test_power_reset_on_invalid_state(self, mock_get_client):
         # Ensure driver retries when querying unexpected states following a
         # power on during a reset
         mock_client = mock_get_client.return_value
@@ -1046,8 +1042,7 @@ class SNMPDeviceDriverTestCase(db_base.DbTestCase):
         mock_client.get.assert_has_calls(calls)
         self.assertEqual(states.ERROR, pstate)
 
-    @mock.patch("oslo_utils.eventletutils.EventletEvent.wait", autospec=True)
-    def test_power_reset_off_timeout(self, mock_sleep, mock_get_client):
+    def test_power_reset_off_timeout(self, mock_get_client):
         # Ensure that a power off consistency poll timeout during a reset
         # causes an error
         mock_client = mock_get_client.return_value
@@ -1061,8 +1056,7 @@ class SNMPDeviceDriverTestCase(db_base.DbTestCase):
         mock_client.get.assert_has_calls(calls)
         self.assertEqual(states.ERROR, pstate)
 
-    @mock.patch("oslo_utils.eventletutils.EventletEvent.wait", autospec=True)
-    def test_power_reset_on_timeout(self, mock_sleep, mock_get_client):
+    def test_power_reset_on_timeout(self, mock_get_client):
         # Ensure that a power on consistency poll timeout during a reset
         # causes an error
         mock_client = mock_get_client.return_value

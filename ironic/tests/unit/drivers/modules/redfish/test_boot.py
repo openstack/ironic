@@ -34,8 +34,6 @@ from ironic.tests.unit.objects import utils as obj_utils
 INFO_DICT = db_utils.get_test_redfish_info()
 
 
-@mock.patch('oslo_utils.eventletutils.EventletEvent.wait',
-            lambda *args, **kwargs: None)
 class RedfishVirtualMediaBootTestCase(db_base.DbTestCase):
 
     def setUp(self):
@@ -1713,8 +1711,6 @@ class RedfishVirtualMediaBootTestCase(db_base.DbTestCase):
                 [mock_manager], sushy.VIRTUAL_MEDIA_FLOPPY, inserted=True))
 
 
-@mock.patch('oslo_utils.eventletutils.EventletEvent.wait',
-            lambda *args, **kwargs: None)
 class RedfishHTTPBootTestCase(db_base.DbTestCase):
 
     def setUp(self):
@@ -2563,8 +2559,6 @@ class RedfishHTTPBootTestCase(db_base.DbTestCase):
             mock_cleanup_disk_image.assert_not_called()
 
 
-@mock.patch('oslo_utils.eventletutils.EventletEvent.wait',
-            lambda *args, **kwargs: None)
 class RedfishVirtualMediaBootViaSystemTestCase(db_base.DbTestCase):
 
     def setUp(self):

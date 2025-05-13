@@ -40,8 +40,6 @@ class NoBiosSystem(object):
                                                      resource=self)
 
 
-@mock.patch('oslo_utils.eventletutils.EventletEvent.wait',
-            lambda *args, **kwargs: None)
 class RedfishBiosTestCase(db_base.DbTestCase):
 
     def setUp(self):
@@ -546,8 +544,6 @@ class RedfishBiosTestCase(db_base.DbTestCase):
                 apply_time=None)
 
 
-@mock.patch('oslo_utils.eventletutils.EventletEvent.wait',
-            lambda *args, **kwargs: None)
 class RedfishBiosRegistryTestCase(db_base.DbTestCase):
 
     def setUp(self):

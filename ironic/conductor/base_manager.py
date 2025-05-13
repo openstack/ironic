@@ -15,8 +15,8 @@
 import copy
 import inspect
 import threading
+import time
 
-import eventlet
 import futurist
 from futurist import periodics
 from futurist import rejection
@@ -662,7 +662,7 @@ class BaseConductorManager(object):
                 continue
             finally:
                 # Yield on every iteration
-                eventlet.sleep(0)
+                time.sleep(0)
 
     def _resume_allocations(self, context):
         """Resume unfinished allocations on restart."""
