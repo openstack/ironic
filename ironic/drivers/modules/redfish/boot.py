@@ -122,6 +122,9 @@ def _parse_driver_info(node):
         {option: d_info.get(option, getattr(CONF.conductor, option, None))
          for option in OPTIONAL_PROPERTIES})
 
+    deploy_info['bootloader'] = driver_utils.get_field(
+        node, 'bootloader', use_conf=True)
+
     if (d_info.get('config_via_removable') is None
             and d_info.get('config_via_floppy') is not None):
         LOG.warning('The config_via_floppy driver_info option is deprecated, '

@@ -221,6 +221,28 @@ class UtilsTestCase(db_base.DbTestCase):
         mac_clean = driver_utils.normalize_mac(mac_raw)
         self.assertEqual("0a1b2c3d4f", mac_clean)
 
+    def test_get_field_bootloader(self):
+        driver_info = self.node.driver_info
+        driver_info['bootloader'] = 'custom.efi'
+        self.node.driver_info = driver_info
+        result = driver_utils.get_field(self.node, 'bootloader', use_conf=True)
+        self.assertEqual('custom.efi', result)
+
+        self.config(bootloader='global.efi', group='conductor')
+        del self.node.driver_info['bootloader']
+        result = driver_utils.get_field(self.node, 'bootloader', use_conf=True)
+        self.assertEqual('global.efi', result)
+
+    def test_get_field_bootloader_by_arch(self):
+        self.config(bootloader_by_arch={'aarch64': 'grubaa64.efi'},
+                    group='conductor')
+        properties = self.node.properties
+        properties['cpu_arch'] = 'aarch64'
+        self.node.properties = properties
+
+        result = driver_utils.get_field(self.node, 'bootloader', use_conf=True)
+        self.assertEqual('grubaa64.efi', result)
+
 
 class UtilsRamdiskLogsTestCase(tests_base.TestCase):
 

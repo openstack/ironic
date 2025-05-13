@@ -451,18 +451,27 @@ def get_field(node, name, deprecated_prefix=None, use_conf=False,
     """Get a driver_info field with deprecated prefix."""
     node_coll = getattr(node, collection)
     value = node_coll.get(name)
-    if value or not deprecated_prefix:
+    if value:
         return value
 
-    deprecated_name = f'{deprecated_prefix}_{name}'
-    value = node_coll.get(deprecated_name)
-    if value:
-        LOG.warning("The %s field %s of node %s is deprecated, "
-                    "please use %s instead",
-                    collection, deprecated_name, node.uuid, name)
-        return value
+    if deprecated_prefix:
+        deprecated_name = f'{deprecated_prefix}_{name}'
+        value = node_coll.get(deprecated_name)
+        if value:
+            LOG.warning("The %s field %s of node %s is deprecated, "
+                        "please use %s instead",
+                        collection, deprecated_name, node.uuid, name)
+            return value
 
     if use_conf:
+        if name == 'bootloader':
+            cpu_arch = node.properties.get('cpu_arch')
+            if cpu_arch:
+                bootloader_by_arch = getattr(
+                    CONF.conductor, 'bootloader_by_arch', {})
+                bootloader_href = bootloader_by_arch.get(cpu_arch)
+                if bootloader_href:
+                    return bootloader_href
         return getattr(CONF.conductor, name)
 
 
