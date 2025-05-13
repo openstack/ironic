@@ -134,7 +134,6 @@ def get_server(target, endpoints, serializer=None):
     return messaging.get_rpc_server(TRANSPORT,
                                     target,
                                     endpoints,
-                                    executor='eventlet',
                                     serializer=serializer,
                                     access_policy=access_policy)
 
