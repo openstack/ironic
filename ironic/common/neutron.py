@@ -141,16 +141,61 @@ def unbind_neutron_port(port_id, client=None, context=None, reset_mac=True):
         raise exception.NetworkError(msg)
 
 
-def update_port_address(port_id, address, context=None):
+def unbind_neutron_port_if_bound(port_id, client=None, context=None):
+    """Check and if bound, unbind a neutron port.
+
+    A wrapper around unbind_neutron_port which checks if the port is already
+    bound, and if so then triggers the port to be unbound. This is critical
+    early on if a user has pre-bound the port.
+
+    If the port is missing from Neutron, then a NetworkError exception will
+    also be raised because in this code path, we explicitly expect the port
+    to already exist and be accessible.
+
+    :param port_id: Neutron Port ID
+    :param client: Optional Neutron client.
+    :param context: request context
+    :type context: ironic.common.context.RequestContext
+    :raises: NetworkError
+    """
+    is_bound = None
+    if not client:
+        client = get_client(context=context)
+    try:
+        port = client.get_port(port_id)
+        if not (port.binding_host_id is None or port.binding_host_id == ''):
+            is_bound = True
+    except openstack_exc.ResourceNotFound:
+        msg = (_('The neutron port %(port_id)s was not found when we expect '
+                 'it to exist. We cannot proceed.') % {'port_id': port_id})
+        raise exception.NetworkError(msg)
+    except openstack_exc.OpenStackCloudException as e:
+        msg = (_('An unknown error was encountered while attempting '
+                 'to retrieve neutron port %(port_id)s. Error: '
+                 '%(err)s') % {'port_id': port_id, 'err': e})
+        raise exception.NetworkError(msg)
+    if is_bound:
+        # If bound, then trigger an unbind using the already created
+        # context and client.
+        LOG.debug('Attempting to unbind port %s because it is already '
+                  'bound in Neutron.', port_id)
+        # Don't use a client or overall context
+        unbind_neutron_port(port_id)
+
+
+def update_port_address(port_id, address, context=None, client=None):
     """Update a port's mac address.
 
     :param port_id: Neutron port id.
     :param address: new MAC address.
     :param context: request context
     :type context: ironic.common.context.RequestContext
+    :param client: A neutron client object.
     :raises: FailedToUpdateMacOnPort
     """
-    client = get_client(context=context)
+    if not client:
+        client = get_client(context=context)
+
     port_attrs = {'mac_address': address}
 
     try:

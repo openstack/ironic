@@ -1,0 +1,16 @@
+---
+fixes:
+  - |
+    Fixes interface binding logic as it relates to Neutron VIF attachments,
+    such that an initial neutron port update occurs to ensure Neutron performs
+    any necessary address assignments, which will now result in the port
+    entering an ``ACTIVE`` state. The state may change later on as the port
+    is updated as part of any workflow actions with supplied port configuration
+    information to allow ML2 plugins to finalize any port binding actions, when
+    appropriate. The base bug which identified this issue is
+    `bug 2106073 <https://bugs.launchpad.net/nova/+bug/2106073>`_, which will
+    require additional work to completely fix.
+
+    Related, this logic *also* detaches any previously bound VIF which might
+    have been supplied to Ironic. To have done so in advance of attachment is
+    erroneous, yet understandable behavior.

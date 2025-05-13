@@ -304,6 +304,65 @@ def plug_port_to_tenant_network(task, port_like_obj, client=None):
         raise exception.NetworkError(msg)
 
 
+def update_port_host_id(task, vif_id, client=None):
+    """Send an initial host_id value to Neutron to enable allocation.
+
+    :param task: A TaskManager instance.
+    :param vif_id: The VIF ID to "attach" to the host.
+    :param client: A neutron client object
+    :raises: NetworkError if failed to update Neutron port.
+    :raises: VifNotAttached if tenant VIF is not associated with port_like_obj.
+    """
+
+    node = task.node
+
+    if not vif_id:
+        # Nothing to do here, there *is* no VIF to update.
+        return
+
+    if not client:
+        client = neutron.get_client(task.context)
+
+    LOG.debug('Seeding network configuration for VIF %(vif_id)s to node '
+              '%(node_id)s',
+              {'vif_id': vif_id, 'node_id': node.uuid})
+    # We cannot perform an initial/early bind if the port is already
+    # bound. For example, Metalsmith users pre-pass the host_id to
+    # neutron, but then causes this patch to fail in such a case.
+    neutron.unbind_neutron_port_if_bound(vif_id, context=task.context,
+                                         client=client)
+
+    # NOTE(TheJulia): Just provide enough data through to neutron
+    # to start initial binding, but ultimately this entire binding
+    # sequence won't succeed because it cannot succeed. No binding
+    # profile is included, so an ML2 plugin cannot act on the change
+    # and effectively neutron should treat the port update as a NOOP,
+    # except if deferred addressing is the case, then that should
+    # trigger.
+    port_attrs = {'binding:vnic_type': neutron.VNIC_BAREMETAL,
+                  'binding:host_id': node.uuid,
+                  'binding:profile': {}}
+    try:
+        # This cannot be done with the prior/existing client, because they
+        # bring a different context and thus API rights. In other words,
+        # we, as an adminy service need to do this.
+        neutron.update_neutron_port(task.context, vif_id, port_attrs,
+                                    client=None)
+    except openstack_exc.OpenStackCloudException as e:
+        # If his action has failed, the possibility exists that the port
+        # was previously bound *and* allocated to another network, and thus
+        # cannot be properly bound later *either*. This exception should
+        # cause the deployment flow to never be triggered if there is an
+        # underlying issue which only neutron can see like wrong segment
+        # for the vif.
+        msg = (_('Could not seed network configuration for VIF %(vif)s'
+                 'to node %(node)s, possible network, state, or access '
+                 'permission issue. %(exc)s') %
+               {'vif': vif_id, 'node': node.uuid, 'exc': e})
+        LOG.error(msg)
+        raise exception.NetworkError(msg)
+
+
 class VIFPortIDMixin(object):
     """VIF port ID mixin class for non-neutron network interfaces.
 
@@ -576,6 +635,10 @@ class NeutronVIFPortIDMixin(VIFPortIDMixin):
         # NOTE(vsaienko) allow to attach VIF to active instance.
         if task.node.provision_state == states.ACTIVE:
             plug_port_to_tenant_network(task, port_like_obj, client=client)
+        else:
+            # Sends *just* a host_id to trigger neutron to do the initial
+            # address work (if needed...)
+            update_port_host_id(task, vif_id, client=client)
 
     def vif_detach(self, task, vif_id):
         """Detach a virtual network interface from a node
