@@ -1,0 +1,11 @@
+---
+fixes:
+  - |
+    Fixes an issue with agent startup where the workflow from the first
+    agent heartbeat interaction could fail due to a transient networking
+    issue leaving the Agent and Ironic in a state where the node cannot be
+    deployed and continues to record errors upon each additional heartbeat
+    operation. Logic to check the state of the agent has been adjusted to
+    ignore retry operations which were recorded by the agent.
+    More information on this issue can be found in
+    `bug 2110698 <https://bugs.launchpad.net/ironic/+bug/2110698>`_.
