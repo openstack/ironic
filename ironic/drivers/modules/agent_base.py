@@ -545,6 +545,7 @@ class HeartbeatMixin(object):
             LOG.exception('Asynchronous exception for node %(node)s: %(err)s',
                           {'node': task.node.uuid, 'err': last_error})
             # Do not call the error handler is the node is already DEPLOYFAIL
+            # or DEPLOYWAIT
             if node.provision_state in (states.DEPLOYING, states.DEPLOYWAIT):
                 deploy_utils.set_failed_state(
                     task, last_error, collect_logs=self.collect_deploy_logs)

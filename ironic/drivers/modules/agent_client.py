@@ -183,6 +183,8 @@ class AgentClient(object):
         :raises: AgentAPIError when agent failed to execute specified command.
         :raises: AgentInProgress when the command fails to execute as the agent
                  is presently executing the prior command.
+        :raises: AgentConnectionFailed when connectivity has failed and there
+                 is no prior command to determine the status of.
         :returns: A dict containing command result from agent, see
                   get_commands_status for a sample.
         """
@@ -577,6 +579,8 @@ class AgentClient(object):
         :raises: IronicException when failed to issue the request or there was
                  a malformed response from the agent.
         :raises: AgentAPIError when agent failed to execute specified command.
+        :raises: AgentConnectionFailed when an a transient connection failure
+                 breaks the connection while the request is being processed.
         :returns: A dict containing command response from agent.
             See :func:`get_commands_status` for a command result sample.
             The value of key command_result is in the form of:
