@@ -1689,3 +1689,41 @@ class StepMethodsTestCase(db_base.DbTestCase):
             response = agent_base.execute_step(
                 task, self.clean_steps['deploy'][0], 'clean')
             self.assertEqual(states.CLEANWAIT, response)
+
+
+class FreshlyBootedTestCase(db_base.DbTestCase):
+
+    def setUp(self):
+        super(FreshlyBootedTestCase, self).setUp()
+
+    def test__freshly_booted_empty_result(self):
+        commands = []
+        self.assertTrue(agent_base._freshly_booted(commands, 'deploy'))
+
+    def test__freshly_booted_single_command(self):
+        commands = [{'command_name': 'get_deploy_steps'}]
+        self.assertTrue(agent_base._freshly_booted(commands, 'deploy'))
+
+    def test__freshly_booted_single_command_mismatch(self):
+        commands = [{'command_name': 'get_service_steps'}]
+        self.assertFalse(agent_base._freshly_booted(commands, 'deploy'))
+
+    def test__freshly_booted_has_retries(self):
+        # NOTE(TheJulia): this is just an arbitrary number
+        # of retires to account for lossy/problematic networks
+        commands = [
+            {'command_name': 'get_deploy_steps'},
+            {'command_name': 'get_deploy_steps'},
+            {'command_name': 'get_deploy_steps'},
+            {'command_name': 'get_deploy_steps'},
+            {'command_name': 'get_deploy_steps'}]
+        self.assertTrue(agent_base._freshly_booted(commands, 'deploy'))
+
+    def test__freshly_booted_multi_command(self):
+        commands = [
+            {'command_name': 'get_deploy_steps'},
+            {'command_name': 'get_deploy_steps'},
+            {'command_name': 'get_deploy_steps'},
+            {'command_name': 'get_deploy_steps'},
+            {'command_name': 'get_service_steps'}]
+        self.assertFalse(agent_base._freshly_booted(commands, 'deploy'))
