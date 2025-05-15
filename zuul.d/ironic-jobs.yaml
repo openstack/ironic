@@ -275,7 +275,6 @@
         IRONIC_VM_VOLUME_COUNT: 2
         IRONIC_VM_SPECS_RAM: 1024
         IRONIC_VM_SPECS_CPU: 1
-        IRONIC_ENFORCE_SCOPE: True
         # We're using a lot of disk space in this job. Some testing nodes have
         # a small root partition, so use /opt which is mounted from a bigger
         # ephemeral partition on such nodes
@@ -313,7 +312,6 @@
         IRONIC_VM_VOLUME_COUNT: 1
         IRONIC_VM_SPECS_RAM: 3192
         IRONIC_VM_SPECS_CPU: 3
-        IRONIC_ENFORCE_SCOPE: True
         # We're using a lot of disk space in this job. Some testing nodes have
         # a small root partition, so use /opt which is mounted from a bigger
         # ephemeral partition on such nodes
@@ -556,7 +554,6 @@
         IRONIC_AUTOMATED_CLEAN_ENABLED: False
         SWIFT_ENABLE_TEMPURLS: True
         SWIFT_TEMPURL_KEY: secretkey
-        IRONIC_ENFORCE_SCOPE: True
       devstack_services:
         atop: True
         c-api: True
@@ -609,17 +606,6 @@
         s-proxy: True
 
 - job:
-    name: ironic-inspector-tempest-rbac-scope-enforced
-    description: ironic-inspector-tempest-rbac-scope-enforced
-    parent: ironic-inspector-tempest
-    required-projects:
-      - openstack/ironic-inspector
-    vars:
-      devstack_localrc:
-        IRONIC_ENFORCE_SCOPE: True
-        IRONIC_INSPECTOR_ENFORCE_SCOPE: True
-
-- job:
     name: ironic-tempest-functional-python3
     description: ironic-tempest-functional-python3
     parent: ironic-base
@@ -647,13 +633,6 @@
         placement-api: False
         # NOTE(TheJulia): This job runs neutron so neutron dependent
         # tests can also exercised as part of CI.
-- job:
-    name: ironic-tempest-functional-rbac-scope-enforced
-    description: ironic-tempest-funcitonal-rbac-scope-enforced
-    parent: ironic-tempest-functional-python3
-    vars:
-      devstack_localrc:
-        IRONIC_ENFORCE_SCOPE: True
 
 - job:
     name: ironic-tempest-ipa-wholedisk-direct-tinyipa-multinode
@@ -1148,7 +1127,6 @@
           CIRROS_VERSION: 0.6.1
           # Required as different access rights are used by default
           # and the classic devstack config which is defaulted doesn't work.
-          IRONIC_ENFORCE_SCOPE: True
           NEUTRON_ENDPOINT_SERVICE_NAME: networking
           # This option is being removed in 2025.2 devstack,
           # but is applicable for 2025.1.
