@@ -1158,7 +1158,20 @@ class ConductorManager(base_manager.BaseConductorManager):
                 # Remove lessee, as it was automatically added
                 node.lessee = None
                 node.del_driver_internal_info('automatic_lessee')
-            network.remove_vifs_from_node(task)
+            try:
+                network.remove_vifs_from_node(task)
+            except Exception as e:
+                with excutils.save_and_reraise_exception():
+                    LOG.exception('Error in tear_down of node '
+                                  '%(node)s: %(err)s',
+                                  {'node': node.uuid, 'err': e})
+                    error = _("Failed to tear down: %s") % e
+                    utils.node_history_record(task.node, event=error,
+                                              event_type=states.UNPROVISION,
+                                              error=True,
+                                              user=task.context.user_id)
+                    task.process_event('fail')
+
             node.save()
             if node.allocation_id:
                 allocation = objects.Allocation.get_by_id(task.context,
