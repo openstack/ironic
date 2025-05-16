@@ -198,7 +198,7 @@ class _CallContext(object):
                           or uuidutils.generate_uuid())
 
         scheme = 'http'
-        if CONF.json_rpc.use_ssl:
+        if CONF.json_rpc.client_use_ssl or CONF.json_rpc.use_ssl:
             scheme = 'https'
         url = '%s://%s:%d' % (scheme,
                               netutils.escape_ipv6(self.host),
