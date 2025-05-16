@@ -10,6 +10,7 @@
           sudo cp ~root/.ssh/id_rsa.pub ~root/.ssh/id_rsa ~stack/.ssh
           sudo chmod 700 ~stack/.ssh
           sudo chown -R stack ~stack
+          echo {{inventory_hostname}} | sudo tee /etc/devstack-host
         executable: /bin/bash
   roles:
     - multi-node-bridge
