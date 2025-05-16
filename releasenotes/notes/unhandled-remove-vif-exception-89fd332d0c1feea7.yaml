@@ -1,0 +1,5 @@
+---
+fixes:
+  - |
+    Fixes an error that node does not move to failed state when
+    removing vif failed due to unexpected errors during tear down.

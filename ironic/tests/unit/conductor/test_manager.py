@@ -2657,6 +2657,36 @@ class DoNodeTearDownTestCase(mgr_utils.ServiceSetUpMixin, db_base.DbTestCase):
         # Verify reservation has been cleared.
         self.assertIsNone(node.reservation)
 
+    @mock.patch('ironic.common.network.remove_vifs_from_node',
+                autospec=True)
+    @mock.patch('ironic.drivers.modules.fake.FakeDeploy.tear_down',
+                autospec=True)
+    def test__do_node_tear_remove_vif_failed(self, mock_tear_down,
+                                             mock_remove):
+        node = obj_utils.create_test_node(
+            self.context, driver='fake-hardware',
+            provision_state=states.DELETING,
+            target_provision_state=states.AVAILABLE,
+            instance_uuid=uuidutils.generate_uuid(),
+            instance_info={'foo': 'bar'},
+            driver_internal_info={'is_whole_disk_image': False,
+                                  'deploy_steps': {},
+                                  'instance': {'ephemeral_gb': 10}})
+        port = obj_utils.create_test_port(
+            self.context, node_id=node.id,
+            internal_info={'tenant_vif_port_id': 'foo'})
+
+        mock_remove.side_effect = exception.IronicException('Oops')
+        task = task_manager.TaskManager(self.context, node.uuid)
+        self._start_service()
+        self.assertRaises(exception.IronicException,
+                          self.service._do_node_tear_down,
+                          task, node.provision_state)
+        node.refresh()
+        port.refresh()
+        self.assertEqual(states.ERROR, node.provision_state)
+        mock_tear_down.assert_called_once_with(task.driver.deploy, task)
+
 
 @mgr_utils.mock_record_keepalive
 class DoProvisioningActionTestCase(mgr_utils.ServiceSetUpMixin,
