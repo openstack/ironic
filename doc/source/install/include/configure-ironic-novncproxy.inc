@@ -36,7 +36,7 @@ Configuring ironic-novncproxy service
 
 #. Restart the ironic-novncproxy service:
 
-   RHEL/CentOS/SUSE::
+   RHEL/CentOS::
 
        sudo systemctl restart openstack-ironic-novncproxy
 

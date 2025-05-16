@@ -124,7 +124,7 @@ Configuring ironic-api service
 
 #. Restart the ironic-api service:
 
-   RHEL/CentOS/SUSE::
+   RHEL/CentOS::
 
        sudo systemctl restart openstack-ironic-api
 

@@ -27,7 +27,7 @@ resources and low number of nodes to handle.
 
 #. Stop existing services if they are already started:
 
-   RHEL/CentOS/SUSE::
+   RHEL/CentOS::
 
        sudo systemctl stop openstack-ironic-api
        sudo systemctl stop openstack-ironic-conductor
@@ -41,7 +41,7 @@ resources and low number of nodes to handle.
 
 #. Start or restart the ironic service:
 
-   RHEL/CentOS/SUSE::
+   RHEL/CentOS::
 
        sudo systemctl restart openstack-ironic
 
