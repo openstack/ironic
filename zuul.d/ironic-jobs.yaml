@@ -1,4 +1,19 @@
 ---
+# NOTE(TheJulia): Based upon openstack-single-node-noble's nodeset definition,
+# but copied and the base label changed to match what we need for higher mem
+# jobs.
+- nodeset:
+    # Base tenant node for high memory ironic jobs.
+    name: ironic-single-node-noble
+    nodes:
+      - name: controller
+        label: ubuntu-noble-32GB
+    groups:
+      - name: tempest
+        nodes:
+          - controller
+
+
 - job:
     name: ironic-base
     abstract: true
@@ -180,6 +195,7 @@
       Test ironic standalone configured with ipmi hardware type, ramdisk and
       direct deploy interfaces, rescue enabled.
     parent: ironic-base
+    nodeset: ironic-single-node-noble
     irrelevant-files:
       - ^.*\.rst$
       - ^api-ref/.*$
@@ -196,7 +212,7 @@
       - ^tox.ini$
     vars:
       tempest_test_regex: ironic_standalone
-      tempest_concurrency: 2
+      tempest_concurrency: 3
       devstack_localrc:
         FORCE_CONFIG_DRIVE: False
         IRONIC_AGENT_IMAGE_DOWNLOAD_SOURCE: http
@@ -206,11 +222,9 @@
         IRONIC_ENABLED_DEPLOY_INTERFACES: "direct,ramdisk"
         IRONIC_ENABLED_RESCUE_INTERFACES: "agent,no-rescue"
         IRONIC_JSON_RPC_AUTH_STRATEGY: 'http_basic'
-        IRONIC_RAMDISK_TYPE: tinyipa
         IRONIC_RPC_TRANSPORT: json-rpc
-        IRONIC_VM_SPECS_RAM: 1024
         IRONIC_VM_SPECS_CPU: 1
-        IRONIC_VM_COUNT: 4
+        IRONIC_VM_COUNT: 5
         IRONIC_VM_VOLUME_COUNT: 2
         # We're using a lot of disk space in this job. Some testing nodes have
         # a small root partition, so use /opt which is mounted from a bigger
@@ -246,14 +260,16 @@
 - job:
     name: ironic-standalone-redfish
     parent: ironic-base
+    nodeset: ironic-single-node-noble
     description:
       Test ironic standalone configured with redfish hardware type, ansible and
       direct and ansible deploy interfaces, rescue it's not enabled.
     required-projects:
       - opendev.org/openstack/sushy-tools
+      - opendev.org/openstack/ironic-python-agent-builder
     vars:
       tempest_test_regex: ironic_standalone
-      tempest_concurrency: 2
+      tempest_concurrency: 3
       devstack_localrc:
         FORCE_CONFIG_DRIVE: False
         IRONIC_AGENT_IMAGE_DOWNLOAD_SOURCE: http
@@ -270,15 +286,16 @@
         IRONIC_ENABLED_MANAGEMENT_INTERFACES: redfish
         IRONIC_ENABLED_DEPLOY_INTERFACES: "direct,ansible,ramdisk"
         IRONIC_RPC_TRANSPORT: json-rpc
-        IRONIC_RAMDISK_TYPE: tinyipa
-        IRONIC_VM_COUNT: 4
+        IRONIC_VM_COUNT: 5
         IRONIC_VM_VOLUME_COUNT: 2
-        IRONIC_VM_SPECS_RAM: 1024
         IRONIC_VM_SPECS_CPU: 1
         # We're using a lot of disk space in this job. Some testing nodes have
         # a small root partition, so use /opt which is mounted from a bigger
         # ephemeral partition on such nodes
         LIBVIRT_STORAGE_POOL_PATH: /opt/libvirt/images
+        # Always build IPA ramdisks, to enable key injection for ansible
+        # deploy interface testing.
+        IRONIC_BUILD_DEPLOY_RAMDISK: True
       devstack_services:
         atop: True
         n-api: False
@@ -295,8 +312,11 @@
         s-proxy: False
 
 - job:
+    # NOTE(TheJulia): While a standalone job, this really only runs 1 test.
+    # Or at least, should only run one test.
     name: ironic-standalone-anaconda
     parent: ironic-standalone-redfish
+    nodeset: openstack-single-node-noble
     description:
       Test ironic with the anaconda deployment interface.
       Test also uses Redfish.
@@ -305,7 +325,7 @@
     vars:
       tempest_test_regex: BaremetalRedfishIPxeAnacondaNoGlance
       tempest_test_timeout: 4800
-      tempest_concurrency: 2
+      tempest_concurrency: 1
       devstack_localrc:
         IRONIC_ENABLED_DEPLOY_INTERFACES: "anaconda"
         IRONIC_VM_COUNT: 2
@@ -322,6 +342,35 @@
         IRONIC_ANACONDA_INSECURE_HEARTBEAT: True
         IRONIC_DEPLOY_CALLBACK_WAIT_TIMEOUT: 3600
         IRONIC_PXE_BOOT_RETRY_TIMEOUT: 3600
+        FORCE_CONFIG_DRIVE: False
+        IRONIC_AGENT_IMAGE_DOWNLOAD_SOURCE: http
+        IRONIC_AUTOMATED_CLEAN_ENABLED: False
+        IRONIC_DEPLOY_DRIVER: redfish
+        # NOTE(TheJulia): We test numerous boot interfaces here, but "http"
+        # with "grub2" is functionally unstable. Basically high odds of failure
+        # with VMs in EFI request handling with VMs.
+        # FIXME(dtantsur): add back the pxe interface once it actually works
+        # and the boot interface handling in the tempest plugin is fixed.
+        IRONIC_ENABLED_BOOT_INTERFACES: "ipxe,redfish-virtual-media,http-ipxe"
+        IRONIC_ENABLED_HARDWARE_TYPES: redfish
+        IRONIC_ENABLED_POWER_INTERFACES: redfish
+        IRONIC_ENABLED_MANAGEMENT_INTERFACES: redfish
+        IRONIC_RPC_TRANSPORT: json-rpc
+      devstack_services:
+        atop: True
+        n-api: False
+        n-api-meta: False
+        n-cond: False
+        n-cpu: False
+        n-novnc: False
+        n-sch: False
+        nova: False
+        placement-api: False
+        s-account: False
+        s-container: False
+        s-object: False
+        s-proxy: False
+
 
 # NOTE(TheJulia): This job should likely be phased out as the standalone
 # job mostly checks the related code paths, the overlap pertinant here is
@@ -862,7 +911,6 @@
         IRONIC_ENABLED_HARDWARE_TYPES: ipmi
         IRONIC_ENABLED_BOOT_INTERFACES: pxe
         IRONIC_IPXE_ENABLED: False
-        IRONIC_RAMDISK_TYPE: tinyipa
         IRONIC_AUTOMATED_CLEAN_ENABLED: False
 
 - job:
@@ -936,7 +984,6 @@
         IRONIC_TEMPEST_WHOLE_DISK_IMAGE: True
         IRONIC_VM_EPHEMERAL_DISK: 0
         IRONIC_VM_INTERFACE_COUNT: 1
-        # This will swap and needs to get to tinycore soon.
         IRONIC_VM_SPECS_CPU: 2
         Q_PLUGIN: ml2
         ENABLE_TENANT_VLANS: True
@@ -1016,21 +1063,20 @@
 
 # Used by devstack/ironic/nova/neutron
 - job:
-    name: ironic-tempest-bios-ipmi-direct-tinyipa
-    description: ironic-tempest-wholedisk-bios-ipmi-direct-tinyipa that also tests cleaning.
+    name: ironic-tempest-bios-ipmi-direct
+    description: ironic-tempest-wholedisk-bios-ipmi-direct that also tests cleaning.
     parent: ironic-base
     vars:
       tempest_test_regex: test_baremetal_server_ops_wholedisk_image
       devstack_localrc:
         IRONIC_DEFAULT_RESCUE_INTERFACE: agent
         IRONIC_ENABLED_RESCUE_INTERFACES: "fake,agent,no-rescue"
-        IRONIC_RAMDISK_TYPE: tinyipa
-        IRONIC_VM_SPECS_RAM: 1024
         IRONIC_TEMPEST_WHOLE_DISK_IMAGE: True
         IRONIC_VM_EPHEMERAL_DISK: 0
         SWIFT_ENABLE_TEMPURLS: True
         SWIFT_TEMPURL_KEY: secretkey
         IRONIC_BOOT_MODE: bios
+        IRONIC_VM_COUNT: 1
       devstack_services:
         atop: True
         s-account: True
@@ -1038,10 +1084,11 @@
         s-object: True
         s-proxy: True
 
+# FIXME(TheJulia): We need to fix this name.....
 - job:
     name: ironic-tempest-ipa-wholedisk-bios-agent_ipmitool-tinyipa
     description: Alias for ironic-tempest-wholedisk-bios-ipmi-direct-tinyipa
-    parent: ironic-tempest-bios-ipmi-direct-tinyipa
+    parent: ironic-tempest-bios-ipmi-direct
 
 - job:
     name: ironic-tempest-uefi-redfish-vmedia-4k
@@ -1109,11 +1156,10 @@
           IRONIC_CALLBACK_TIMEOUT: 600
           IRONIC_DEPLOY_DRIVER: ipmi
           IRONIC_INSPECTOR_BUILD_RAMDISK: False
-          IRONIC_RAMDISK_TYPE: tinyipa
           IRONIC_TEMPEST_WHOLE_DISK_IMAGE: True
-          IRONIC_VM_COUNT: 4
+          IRONIC_VM_COUNT: 2
           IRONIC_VM_EPHEMERAL_DISK: 0
-          IRONIC_VM_SPECS_RAM: 1024
+          IRONIC_VM_SPECS_RAM: 2600
           IRONIC_AUTOMATED_CLEAN_ENABLED: False
           Q_AGENT: openvswitch
           Q_ML2_TENANT_NETWORK_TYPE: vxlan
@@ -1167,6 +1213,7 @@
       zuul_copy_output:
         '{{ devstack_bases.old }}/ironic-bm-logs': logs
 
+# FIXME(TheJulia): This job should be removd, it is no longer used.
 - job:
     name: ironic-grenade-multinode-multitenant
     parent: grenade-multinode

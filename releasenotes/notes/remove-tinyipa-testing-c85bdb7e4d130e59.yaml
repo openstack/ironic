@@ -1,0 +1,15 @@
+---
+deprecations:
+  - |
+    While never supported outside of the Ironic project's CI testing, use of
+    the TinyIPA ramdisk image is in the process of being discontinued. Any
+    users who chose to utilize TinyIPA for any reasons should leverage
+    ironic-python-agent-builder images.
+other:
+  - |
+    Ironic is in the process of removing testing and use of TinyIPA, which was
+    originally developed as a lightweight low memory IPA image to simplify
+    upstream testing and had no use outside of that context. Due to the
+    OpenStack move away from Python3.9, TinyIPA cannot continue
+    to be maintained, and as such all testing and use of images will be
+    discontinued by the Ironic community.
