@@ -224,11 +224,16 @@ def _freshly_booted(commands, step_type):
     agent executed will be get_XXX_steps. For later reboots the list of
     commands will be empty.
     """
-    return (
-        not commands
-        or (len(commands) == 1
-            and commands[0]['command_name'] == 'get_%s_steps' % step_type)
-    )
+    if not commands:
+        # Empty list, most likely unit testing or immediately after a reboot.
+        return True
+    step_name = 'get_%s_steps' % step_type
+    # Make a list of resulting commands which do not match the expected
+    # get_XXX_steps command.
+    result = [x for x in commands if not x['command_name'] == step_name]
+    # If the length of the result is greater than 0, then this is not a freshly
+    # booted agent.
+    return not len(result) > 0
 
 
 def _get_completed_command(task, commands, step_type):
