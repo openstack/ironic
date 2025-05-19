@@ -4237,6 +4237,7 @@ function ironic_configure_tempest {
         die_if_not_set $LINENO bm_flavor_id "Failed to get id of baremetal flavor"
         iniset $TEMPEST_CONFIG compute flavor_ref $bm_flavor_id
         iniset $TEMPEST_CONFIG compute flavor_ref_alt $bm_flavor_id
+        iniset $TEMPEST_CONFIG compute build_interval 10
         iniset $TEMPEST_CONFIG compute-feature-enabled disk_config False
         if [[ "$IRONIC_NETWORK_INTERFACE" == "neutron" && $IRONIC_VM_INTERFACE_COUNT -gt 1 ]]; then
             iniset $TEMPEST_CONFIG compute-feature-enabled interface_attach True
