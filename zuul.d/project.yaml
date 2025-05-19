@@ -52,7 +52,9 @@
         # NOTE(TheJulia): At present, metal3 doesn't leverage
         # stable branches, and as far as we are aware these jobs
         # can be removed once this branch is made stable.
-        - metal3-integration
+        # NOTE(rpittau): back to non-voting for investigation
+        - metal3-integration:
+            voting: false
         # Non-voting jobs
         - ironic-inspector-tempest:
             voting: false
@@ -95,7 +97,8 @@
         # NOTE(TheJulia): At present, metal3 doesn't leverage
         # stable branches, and as far as we are aware these jobs
         # can be removed once this branch is made stable.
-        - metal3-integration
+        # NOTE(rpittau): back to non voting for investigation
+        # - metal3-integration
     experimental:
       jobs:
         # NOTE(dtantsur): this job is rarely used, no need to run it always.
