@@ -297,7 +297,10 @@ class RedfishInspect(base.InspectInterface):
 
     def _get_processor_info(self, task, system, inspected_properties,
                             inventory):
-        if system.processors is None:
+        # NOTE(JayF): Checking truthiness here is better than checking for None
+        #             because if we have an empty list, we'll raise a
+        #             ValueError.
+        if not system.processors:
             return
 
         cpu = {}
