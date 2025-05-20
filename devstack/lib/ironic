@@ -1570,25 +1570,7 @@ function configure_ironic_provision_network {
             sudo ip -6 addr add $IRONIC_HOST_IPV6/64 dev magicv6
         fi
     fi
-    if is_service_enabled neutron-api; then
-        if [[ "$IRONIC_IP_VERSION" == "6" ]]; then
-            sudo sysctl -w net.ipv6.conf.all.proxy_ndp=1
-            configure_neutron_l3_lower_v6_ra
-        fi
-        # Neutron agent needs to be pre-configured before proceeding down the
-        # path of configuring the provision network. This was done for us in
-        # the legacy neutron code.
-        neutron_plugin_configure_plugin_agent
-        # This prior step updates configuration related to physnet mappings,
-        # and we must restart neutron as a result
-        stop_neutron
-        sleep 15
-        # By default, upon start, neutron tries to create the networks...
-        NEUTRON_CREATE_INITIAL_NETWORKS=False
-        start_neutron_api
-        start_neutron
-    fi
-    # This is only called if IRONIC_PROVISION_NETWORK_NAME has been set and
+   # This is only called if IRONIC_PROVISION_NETWORK_NAME has been set and
     # means we are using multi-tenant networking.
     local net_id
     local ironic_provision_network_ip
