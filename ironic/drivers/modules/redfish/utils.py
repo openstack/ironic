@@ -135,11 +135,7 @@ def parse_driver_info(node):
 
     # Obtain the Redfish root prefix from the address path
     # If not specified, default to '/redfish/v1/'
-    root_prefix = '/redfish/v1'
-    if parsed.path:
-        normalized_path = parsed.path.rstrip('/')
-        if normalized_path:
-            root_prefix = normalized_path
+    root_prefix = parsed.path
 
     redfish_system_id = driver_info.get('redfish_system_id')
     if redfish_system_id is not None:

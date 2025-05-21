@@ -52,8 +52,7 @@ class RedfishUtilsTestCase(db_base.DbTestCase):
             'password': 'password',
             'verify_ca': True,
             'auth_type': 'auto',
-            'node_uuid': self.node.uuid,
-            'root_prefix': '/redfish/v1',
+            'node_uuid': self.node.uuid
         }
 
     def test_parse_driver_info(self):
@@ -62,16 +61,6 @@ class RedfishUtilsTestCase(db_base.DbTestCase):
 
     def test_parse_driver_info_default_scheme(self):
         self.node.driver_info['redfish_address'] = 'example.com'
-        response = redfish_utils.parse_driver_info(self.node)
-        self.assertEqual(self.parsed_driver_info, response)
-
-    def test_parse_driver_info_default_scheme_with_trailing_slash(self):
-        self.node.driver_info['redfish_address'] = 'example.com/'
-        response = redfish_utils.parse_driver_info(self.node)
-        self.assertEqual(self.parsed_driver_info, response)
-
-    def test_parse_driver_info_default_scheme_with_trailing_slashes(self):
-        self.node.driver_info['redfish_address'] = 'example.com///'
         response = redfish_utils.parse_driver_info(self.node)
         self.assertEqual(self.parsed_driver_info, response)
 
@@ -173,7 +162,7 @@ class RedfishUtilsTestCase(db_base.DbTestCase):
     def test_parse_driver_info_with_root_prefix(self):
         test_redfish_address = 'https://example.com/test/redfish/v0/'
         self.node.driver_info['redfish_address'] = test_redfish_address
-        self.parsed_driver_info['root_prefix'] = '/test/redfish/v0'
+        self.parsed_driver_info['root_prefix'] = '/test/redfish/v0/'
         response = redfish_utils.parse_driver_info(self.node)
         self.assertEqual(self.parsed_driver_info, response)
 
@@ -333,7 +322,6 @@ class RedfishUtilsAuthTestCase(db_base.DbTestCase):
         mock_sushy.assert_called_with(
             mock.ANY, verify=mock.ANY,
             auth=mock_session_or_basic_auth.return_value,
-            root_prefix='/redfish/v1'
         )
         self.assertEqual(len(redfish_utils.SessionCache._sessions), 1)
 
@@ -374,7 +362,7 @@ class RedfishUtilsAuthTestCase(db_base.DbTestCase):
         mock_sushy.assert_called_with(
             self.parsed_driver_info['address'],
             auth=mock_session_or_basic_auth.return_value,
-            verify=True, root_prefix='/redfish/v1')
+            verify=True)
 
     @mock.patch.object(sushy, 'Sushy', autospec=True)
     @mock.patch('ironic.drivers.modules.redfish.utils.'
@@ -391,8 +379,7 @@ class RedfishUtilsAuthTestCase(db_base.DbTestCase):
         )
         mock_sushy.assert_called_with(
             mock.ANY, verify=mock.ANY,
-            auth=mock_session_auth.return_value,
-            root_prefix='/redfish/v1'
+            auth=mock_session_auth.return_value
         )
 
     @mock.patch.object(sushy, 'Sushy', autospec=True)
@@ -410,8 +397,7 @@ class RedfishUtilsAuthTestCase(db_base.DbTestCase):
         )
         sushy.Sushy.assert_called_with(
             mock.ANY, verify=mock.ANY,
-            auth=mock_basic_auth.return_value,
-            root_prefix='/redfish/v1'
+            auth=mock_basic_auth.return_value
         )
 
 
