@@ -35,7 +35,7 @@
             voting: false
         - ironic-tempest-ipa-wholedisk-direct-tinyipa-multinode-shard:
             voting: false
-        - ironic-tempest-bios-ipmi-direct-tinyipa
+        - ironic-tempest-bios-ipmi-direct
         - ironic-tempest-bfv
         - ironic-tempest-ipa-partition-uefi-pxe-grub2
         - ironic-tempest-uefi-redfish-vmedia-4k

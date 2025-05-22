@@ -1004,15 +1004,6 @@ if is_deployed_by_redfish && [[ "$IRONIC_ENABLED_HARDWARE_TYPES" != *"redfish"* 
         "for DevStack"
 fi
 
-# Assert that for non-TynyIPA ramdisks and Ansible, the private SSH key file to use exists.
-if is_ansible_deploy_enabled && [[ "$IRONIC_RAMDISK_TYPE" != "tinyipa" ]]; then
-    if [[ ! -f $IRONIC_ANSIBLE_SSH_KEY ]]; then
-        die $LINENO "Using non-TinyIPA ramdisks with ansible deploy interface" \
-            "requires setting IRONIC_ANSIBLE_SSH_KEY to existing"\
-            "private SSH key file to be used by Ansible."
-    fi
-fi
-
 # Syslinux >= 5.00 pxelinux.0 binary is not "stand-alone" anymore,
 # it depends on some c32 modules to work correctly.
 # More info: http://www.syslinux.org/wiki/index.php/Library_modules
@@ -1927,7 +1918,7 @@ function configure_ironic_conductor {
             fi
             if [[ -z $IRONIC_ANSIBLE_SSH_USER ]]; then
                 # we definitely know the default username to use for TinyIPA image
-                IRONIC_ANSIBLE_SSH_USER='tc'
+                IRONIC_ANSIBLE_SSH_USER='devuser'
             fi
             # (rpittau) most recent tinyipa uses python3 natively so we need to change
             # the default ansible python interpreter.
@@ -3824,6 +3815,9 @@ function build_ipa_dib_ramdisk {
     if is_deploy_iso_required; then
         IRONIC_DIB_RAMDISK_OPTIONS+=" iso"
     fi
+    if is_ansible_deploy_enabled; then
+        IRONIC_DIB_RAMDISK_OPTIONS+=" devuser"
+    fi
     git_clone $IRONIC_PYTHON_AGENT_BUILDER_REPO $IRONIC_PYTHON_AGENT_BUILDER_DIR $IRONIC_PYTHON_AGENT_BUILDER_BRANCH
     ELEMENTS_PATH="$IRONIC_PYTHON_AGENT_BUILDER_DIR/dib" \
         DIB_DHCP_TIMEOUT=$IRONIC_DIB_DHCP_TIMEOUT \
@@ -3832,6 +3826,8 @@ function build_ipa_dib_ramdisk {
         DIB_REPOREF_ironic_python_agent=$TARGET_BRANCH \
         DIB_REPOLOCATION_requirements="$DEST/requirements" \
         DIB_REPOREF_requirements=$TARGET_BRANCH \
+        DIB_DEVUSER_PWDLESS_SUDO=yes \
+        DIB_DEVUSER_AUTHORIZED_KEYS=$IRONIC_ANSIBLE_SSH_KEY.pub \
         disk-image-create "$IRONIC_DIB_RAMDISK_OPTIONS" \
         -x -o  "$tempdir/ironic-agent" \
         ironic-python-agent-ramdisk
