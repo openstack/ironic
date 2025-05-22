@@ -62,8 +62,6 @@ def _mock_volume(identity, raid_type=None,
     return volume
 
 
-@mock.patch('oslo_utils.eventletutils.EventletEvent.wait',
-            lambda *args, **kwargs: None)
 @mock.patch.object(redfish_utils, 'get_system', autospec=True)
 class RedfishRAIDTestCase(db_base.DbTestCase):
 

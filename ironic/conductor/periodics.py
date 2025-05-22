@@ -15,8 +15,8 @@
 import collections
 import functools
 import inspect
+import time
 
-import eventlet
 from futurist import periodics
 from oslo_log import log
 
@@ -159,7 +159,7 @@ def node_periodic(purpose, spacing, enabled=True, filters=None,
                     break
                 finally:
                     # Yield on every iteration
-                    eventlet.sleep(0)
+                    time.sleep(0)
 
                 if (local_limit is not None
                         and (result is None or result)):

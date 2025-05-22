@@ -42,8 +42,8 @@ notifying Neutron of a change, etc.
 
 import collections
 import queue
+import time
 
-import eventlet
 from futurist import waiters
 from oslo_log import log
 import oslo_messaging as messaging
@@ -1581,7 +1581,7 @@ class ConductorManager(base_manager.BaseConductorManager):
                          {'node': node_uuid})
             finally:
                 # Yield on every iteration
-                eventlet.sleep(0)
+                time.sleep(0)
 
     @METRICS.timer('ConductorManager._power_failure_recovery')
     @periodics.node_periodic(
@@ -2747,7 +2747,7 @@ class ConductorManager(base_manager.BaseConductorManager):
                         context, ev_type, message)
             finally:
                 # Yield on every iteration
-                eventlet.sleep(0)
+                time.sleep(0)
 
     def _sensors_conductor(self, context):
         """Called to collect and send metrics "sensors" for the conductor."""
@@ -3733,7 +3733,7 @@ class ConductorManager(base_manager.BaseConductorManager):
             # Yield to other threads, since we also don't want to be
             # looping tightly deleting rows as that will negatively
             # impact DB access if done in excess.
-            eventlet.sleep(0)
+            time.sleep(0)
 
     def _concurrent_action_limit(self, action):
         """Check Concurrency limits and block operations if needed.

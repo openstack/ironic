@@ -34,8 +34,6 @@ from ironic.tests.unit.objects import utils as obj_utils
 INFO_DICT = db_utils.get_test_redfish_info()
 
 
-@mock.patch('oslo_utils.eventletutils.EventletEvent.wait',
-            lambda *args, **kwargs: None)
 class RedfishFirmwareTestCase(db_base.DbTestCase):
 
     def setUp(self):

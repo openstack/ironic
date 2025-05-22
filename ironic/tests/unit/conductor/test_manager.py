@@ -22,9 +22,9 @@ from collections import namedtuple
 import datetime
 import queue
 import re
+import time
 from unittest import mock
 
-import eventlet
 from futurist import waiters
 from oslo_config import cfg
 import oslo_messaging as messaging
@@ -6126,7 +6126,7 @@ class ManagerSyncPowerStatesTestCase(mgr_utils.CommonMixIn,
         acquire_mock.side_effect = self._get_acquire_side_effect(tasks)
         sync_mock.side_effect = sync_results
 
-        with mock.patch.object(eventlet, 'sleep', autospec=True) as sleep_mock:
+        with mock.patch.object(time, 'sleep', autospec=True) as sleep_mock:
             self.service._sync_power_states(self.context)
             # Ensure we've yielded on every iteration, except for node
             # not mapped to this conductor
