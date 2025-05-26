@@ -15,9 +15,9 @@ Modules required to work with ironic_inspector:
     https://pypi.org/project/ironic-inspector
 """
 
+import threading
 from urllib import parse as urlparse
 
-import eventlet
 from oslo_log import log as logging
 
 from ironic.common import exception
@@ -262,10 +262,12 @@ class Inspector(Common):
 
     def _start_unmanaged_inspection(self, task):
         """Call to inspector to start inspection."""
-        # NOTE(dtantsur): spawning a short-living green thread so that
+        # NOTE(cid): spawning a short-lived daemon OS thread so that
         # we can release a lock as soon as possible and allow
         # ironic-inspector to operate on the node.
-        eventlet.spawn_n(_start_inspection, task.node.uuid, task.context)
+        threading.Thread(target=_start_inspection,
+                         args=(task.node.uuid, task.context),
+                         daemon=True).start()
 
     def abort(self, task):
         """Abort hardware inspection.
