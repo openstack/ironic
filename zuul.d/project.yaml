@@ -22,10 +22,7 @@
         - ironic-tempest-ramdisk-bios-snmp-pxe
         - ironic-tempest-uefi-redfish-https
         - ironic-tempest-ovn-uefi-ipmi-pxe
-        # NOTE(JayF): 20250521 Multi-repo devstack breakage means we have to disable this job
-        # temporarily to enable devstack fixes to be merged into networking-generic-switch
-        - ironic-tempest-ovn-uefi-ipxe-ipv6:
-            voting: false
+        - ironic-tempest-ovn-uefi-ipxe-ipv6
         # NOTE(TheJulia) Marking multinode non-voting on 20210311
         # Due to a high failure rate on limestone where the compute1
         # machine never appears to be able to communicate across the
@@ -87,9 +84,7 @@
         - ironic-tempest-ramdisk-bios-snmp-pxe
         - ironic-tempest-uefi-redfish-https
         - ironic-tempest-ovn-uefi-ipmi-pxe
-        # NOTE(JayF): 20250521 Multi-repo devstack breakage means we have to disable this job
-        # temporarily to enable devstack fixes to be merged into networking-generic-switch
-        #- ironic-tempest-ovn-uefi-ipxe-ipv6
+        - ironic-tempest-ovn-uefi-ipxe-ipv6
         # NOTE(TheJulia): Disabled multinode on 20210311 due to Limestone
         # seeming to be
         # - ironic-tempest-ipa-wholedisk-direct-tinyipa-multinode
