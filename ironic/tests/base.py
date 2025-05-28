@@ -114,15 +114,6 @@ class WarningsFixture(fixtures.Fixture):
             category=sqla_exc.SAWarning,
         )
 
-        # FIXME(stephenfin): We can remove this once oslo.db is fixed
-        # https://review.opendev.org/c/openstack/oslo.db/+/856453
-        warnings.filterwarnings(
-            'ignore',
-            module='ironic',
-            message='TypeDecorator .* will not produce a cache key',
-            category=sqla_exc.SAWarning,
-        )
-
         self.addCleanup(self._reset_warning_filters)
 
     def _reset_warning_filters(self):
