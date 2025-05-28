@@ -87,6 +87,7 @@ class NeutronInterfaceTestCase(db_base.DbTestCase):
 
     @mock.patch.object(neutron_common, 'validate_network', autospec=True)
     def test_validate(self, validate_mock):
+        self.context.roles = ['admin', 'member', 'reader']
         with task_manager.acquire(self.context, self.node.id) as task:
             self.interface.validate(task)
             # NOTE(TheJulia): This tests validates the calls are made.

@@ -43,8 +43,11 @@ class NeutronNetwork(common.NeutronVIFPortIDMixin,
         """
         # NOTE(TheJulia): These are the minimal networks needed for
         # the neutron network interface to function.
-        self.get_cleaning_network_uuid(task)
-        self.get_provisioning_network_uuid(task)
+        if 'admin' in task.context.roles:
+            # NOTE(TheJulia): In a fully integrated environment, the user
+            # must be an admin to fully resolve networking details.
+            self.get_cleaning_network_uuid(task)
+            self.get_provisioning_network_uuid(task)
         if (task.node.disable_power_off
                 and not CONF.neutron.allow_disabling_power_off):
             raise exception.InvalidParameterValue(
