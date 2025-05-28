@@ -71,8 +71,8 @@
       become: true
       ignore_errors: true
       loop:
-        - baremetal
         - provisioning
+        - external
 
     - name: Fetch libvirt VMs
       shell: |
