@@ -22,6 +22,7 @@ from ironic.common import exception
 from ironic.common.i18n import _
 from ironic.common import states
 from ironic.common import utils
+from ironic.conf import CONF
 from ironic.drivers import base
 from ironic.drivers.modules import inspect_utils
 from ironic.drivers.modules.redfish import utils as redfish_utils
@@ -183,7 +184,7 @@ class RedfishInspect(base.InspectInterface):
         if pxe_port_macs is None:
             LOG.warning("No PXE enabled NIC was found for node "
                         "%(node_uuid)s.", {'node_uuid': task.node.uuid})
-        else:
+        elif CONF.inspector.update_pxe_enabled:
             pxe_port_macs = [macs.lower() for macs in pxe_port_macs]
 
             ports = objects.Port.list_by_node_id(task.context, task.node.id)

@@ -1,0 +1,6 @@
+---
+other:
+  - |
+    Adding condition to control whether the pxe_enabled field of a Port should be updated during inspection.
+    [inspector]update_pxe_enabled is a configuration used to control it and the default value is True.
+
