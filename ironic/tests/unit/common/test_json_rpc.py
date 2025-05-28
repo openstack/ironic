@@ -84,7 +84,10 @@ class TestService(TestCase):
         super(TestService, self).setUp()
         self.config(auth_strategy='noauth', group='json_rpc')
         self.server_mock = self.useFixture(fixtures.MockPatch(
-            'oslo_service.wsgi.Server', autospec=True)).mock
+            'cheroot.wsgi.Server', autospec=True)).mock
+
+        server_instance = self.server_mock.return_value
+        server_instance.requests = mock.MagicMock()
 
         self.serializer = FakeSerializer()
         self.service = server.WSGIService(FakeManager(), self.serializer,
@@ -140,7 +143,7 @@ class TestService(TestCase):
         # self.config(http_basic_password='myPassword', group='json_rpc')
         self.service = server.WSGIService(FakeManager(), self.serializer,
                                           FakeContext)
-        self.app = self.server_mock.call_args[0][2]
+        self.app = self.server_mock.call_args.kwargs['wsgi_app']
 
     def test_http_basic_not_authenticated(self):
         self._setup_http_basic()
@@ -289,7 +292,7 @@ class TestService(TestCase):
         self.config(auth_strategy='keystone', group='json_rpc')
         self.service = server.WSGIService(FakeManager(), self.serializer,
                                           FakeContext)
-        self.app = self.server_mock.call_args[0][2]
+        self.app = self.server_mock.call_args.kwargs['wsgi_app']
         self._request('success', {'context': self.ctx, 'x': 42},
                       expected_error=401)
 
@@ -298,7 +301,7 @@ class TestService(TestCase):
         self.config(allowed_roles=['allowed', 'ignored'], group='json_rpc')
         self.service = server.WSGIService(FakeManager(), self.serializer,
                                           FakeContext)
-        self.app = self.server_mock.call_args[0][2]
+        self.app = self.server_mock.call_args.kwargs['wsgi_app']
         self._request('success', {'context': self.ctx, 'x': 42},
                       expected_error=401,
                       headers={'Content-Type': 'application/json',

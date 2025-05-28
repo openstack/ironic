@@ -43,9 +43,14 @@ opts = [
     cfg.BoolOpt('use_ssl',
                 default=False,
                 help=_('Whether to use TLS for JSON RPC')),
+    cfg.StrOpt('cert_file',
+               help=_("Certificate file the JSON-RPC listener will present "
+                      "to clients when [json_rpc]use_ssl=True.")),
+    cfg.StrOpt('key_file',
+               help=_("Private key file matching cert_file.")),
     cfg.BoolOpt('client_use_ssl',
                 default=False,
-                help=_('Set to True for force TLS connections in the client '
+                help=_('Set to True to force TLS connections in the client '
                        'even if use_ssl is set to False. Only makes sense '
                        'if server-side TLS is provided outside of Ironic '
                        '(e.g. with httpd acting as a reverse proxy).')),
