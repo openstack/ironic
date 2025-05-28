@@ -13,9 +13,8 @@
 import os
 import time
 
-import eventlet
-from eventlet import event
 from oslo_log import log
+import threading
 
 from ironic.common.i18n import _
 from ironic.common import metrics_utils
@@ -52,14 +51,25 @@ class PXEFilterManager:
             raise RuntimeError(_('Attempt to start an already running '
                                  'PXE filter manager'))
 
-        self._shutdown = event.Event()
-        self._thread = eventlet.spawn_after(_START_DELAY, self._periodic_sync)
+        self._shutdown = threading.Event()
+
+        # Delay startup by ``_START_DELAY`` seconds to mimic the former
+        # ``eventlet.spawn_after`` behaviour.
+        def _delayed_start():
+            time.sleep(_START_DELAY)
+            self._periodic_sync()
+
+        self._thread = threading.Thread(
+            target=_delayed_start, name="pxe-sync",
+            daemon=True)
+
+        self._thread.start()
         self._started = True
 
     def del_host(self):
-        self._shutdown.send(True)
-        eventlet.sleep(0)
-        self._thread.wait()
+        self._shutdown.set()
+        time.sleep(0)
+        self._thread.join()
         self._started = False
 
     def _periodic_sync(self):

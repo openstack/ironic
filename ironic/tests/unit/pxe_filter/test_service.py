@@ -111,8 +111,10 @@ class TestSync(test_base.DbTestCase):
 
 class TestManager(test_base.DbTestCase):
 
-    @mock.patch('eventlet.spawn_after', lambda delay, func: func())
-    @mock.patch('eventlet.event.Event', autospec=True)
+    @mock.patch('time.sleep', lambda _: None)
+    @mock.patch('threading.Thread.start',
+                lambda self: self._target(*self._args, **self._kwargs))
+    @mock.patch('threading.Event', autospec=True)
     @mock.patch.object(pxe_filter_service.PXEFilterManager, '_sync',
                        autospec=True)
     def test_init_and_run(self, mock_sync, mock_event):
