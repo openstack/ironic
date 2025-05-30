@@ -488,6 +488,29 @@ class RedfishInspectTestCase(db_base.DbTestCase):
             port = mock_list_by_node_id.return_value
             self.assertFalse(port[0].pxe_enabled)
 
+    @mock.patch.object(objects.Port, 'list_by_node_id') # noqa
+    @mock.patch.object(redfish_utils, 'get_system', autospec=True)
+    def test_inspect_hardware_with_conf_update_pxe_disabled_false(
+            self, mock_get_system, mock_list_by_node_id):
+        self.init_system_mock(mock_get_system.return_value)
+
+        pxe_enabled_port = obj_utils.create_test_port(
+            self.context, uuid=self.node.uuid,
+            node_id=self.node.id, address='24:6E:96:70:49:01',
+            pxe_enabled=True)
+        mock_list_by_node_id.return_value = [pxe_enabled_port]
+
+        self.config(update_pxe_enabled=False, group='inspector')
+
+        with task_manager.acquire(self.context, self.node.uuid,
+                                  shared=True) as task:
+            task.driver.inspect._get_pxe_port_macs = mock.Mock()
+            task.driver.inspect._get_pxe_port_macs.return_value = \
+                ['24:6E:96:70:49:00']
+            task.driver.inspect.inspect_hardware(task)
+            port = mock_list_by_node_id.return_value
+            self.assertTrue(port[0].pxe_enabled)
+
     @mock.patch.object(redfish_utils, 'get_system', autospec=True)
     def test_inspect_hardware_with_no_mac(self, mock_get_system):
         self.init_system_mock(mock_get_system.return_value)
