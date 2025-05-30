@@ -1,0 +1,9 @@
+---
+features:
+  - |
+    It is now possible to filter by conductor groups when listing ports and
+    portgroups. For example, the following request returns only the ports for
+    nodes in conductor groups ``bear`` and ``metal``::
+
+       GET /v1/ports?conductor_groups=bear,metal
+

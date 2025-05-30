@@ -596,6 +596,49 @@ class TestListPortgroups(test_api_base.BaseApiTest):
         self.assertEqual(portgroup.uuid, data['portgroups'][0]['uuid'])
         self.assertEqual(self.node.uuid, data['portgroups'][0]['node_uuid'])
 
+    def test_get_all_by_conductor_groups(self):
+        # Get /v1/portgroups with filter on conductor group
+        node_a = obj_utils.create_test_node(self.context,
+                                            uuid=uuidutils.generate_uuid(),
+                                            conductor_group='group_a')
+        node_b = obj_utils.create_test_node(self.context,
+                                            uuid=uuidutils.generate_uuid(),
+                                            conductor_group='group_b')
+        uuids_group_a = []
+        uuids_group_b = []
+        for i in range(0, 2):
+            portgroup = obj_utils.create_test_portgroup(
+                self.context,
+                node_id=node_a.id,
+                uuid=uuidutils.generate_uuid(),
+                name='foo-%s' % i,
+                address='52:54:00:cf:2d:3%s' % i)
+            uuids_group_a.append(portgroup.uuid)
+        for i in range(3, 6):
+            portgroup = obj_utils.create_test_portgroup(
+                self.context,
+                node_id=node_b.id,
+                uuid=uuidutils.generate_uuid(),
+                name='foo-%s' % i,
+                address='52:54:00:cf:2d:3%s' % i)
+            uuids_group_b.append(portgroup.uuid)
+        data = self.get_json(
+            '/portgroups?conductor_groups=%s' % 'group_a,group_b',
+            headers={api_base.Version.string: str(api_v1.max_version())})
+        self.assertEqual(5, len(data['portgroups']))
+        self.assertJsonEqual(uuids_group_a + uuids_group_b,
+                             [x['uuid'] for x in data['portgroups']])
+        data = self.get_json(
+            '/portgroups?conductor_groups=%s' % 'group_b',
+            headers={api_base.Version.string: str(api_v1.max_version())})
+        self.assertEqual(3, len(data['portgroups']))
+        self.assertJsonEqual(uuids_group_b,
+                             [x['uuid'] for x in data['portgroups']])
+        data = self.get_json(
+            '/portgroups?conductor_groups=%s' % 'no_such_group',
+            headers={api_base.Version.string: str(api_v1.max_version())})
+        self.assertEqual([], data['portgroups'])
+
 
 @mock.patch.object(rpcapi.ConductorAPI, 'update_portgroup', autospec=True)
 class TestPatch(test_api_base.BaseApiTest):

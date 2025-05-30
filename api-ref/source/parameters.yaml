@@ -293,6 +293,23 @@ r_conductor_group:
   in: query
   required: false
   type: string
+r_conductor_groups:
+  description: |
+    Filter the list of returned ports or portgroups, and only return those with
+    the specified ``conductor_group`` or an empty set if none found. List of
+    case-insensitive strings up to 255 characters, containing ``a-z``, ``0-9``,
+    ``_``, ``-``, and ``.``. This cannot be used if ``node``, ``node_uuid``,
+    ``portgroup`` or ``address`` is specified.
+
+    For example, the following request returns only the ports for nodes
+    in conductor groups ``bear`` and ``metal``:
+
+    ::
+
+       GET /v1/ports?conductor_groups=bear,metal
+  in: query
+  required: false
+  type: array
 r_description_contains:
   description: |
     Filter the list of returned nodes, and only return those containing

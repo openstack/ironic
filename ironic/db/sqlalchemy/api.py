@@ -337,6 +337,24 @@ def add_port_filter_by_portgroup(query, value):
         return query.filter(models.Portgroup.uuid == value)
 
 
+def add_port_filter_by_node_conductor_groups(query, conductor_groups):
+    if conductor_groups:
+        query = query.join(models.Node,
+                           models.Port.node_id == models.Node.id)
+        query = query.filter(
+            models.Node.conductor_group.in_(conductor_groups))
+    return query
+
+
+def add_portgroup_filter_by_node_conductor_groups(query, conductor_groups):
+    if conductor_groups:
+        query = query.join(models.Node,
+                           models.Portgroup.node_id == models.Node.id)
+        query = query.filter(
+            models.Node.conductor_group.in_(conductor_groups))
+    return query
+
+
 def add_node_filter_by_chassis(query, value):
     if strutils.is_int_like(value):
         return query.filter_by(chassis_id=value)
@@ -1080,13 +1098,16 @@ class Connection(api.Connection):
 
     def get_port_list(self, limit=None, marker=None,
                       sort_key=None, sort_dir=None, owner=None,
-                      project=None, filters=None):
+                      project=None, conductor_groups=None, filters=None):
         query = sa.select(models.Port)
+
         if owner:
             query = add_port_filter_by_node_owner(query, owner)
         elif project:
             query = add_port_filter_by_node_project(query, project)
         query = add_port_filter_description_contains(query, filters)
+        query = add_port_filter_by_node_conductor_groups(query,
+                                                         conductor_groups)
         return _paginate_query(models.Port, limit, marker,
                                sort_key, sort_dir, query)
 
@@ -1223,8 +1244,11 @@ class Connection(api.Connection):
         return res
 
     def get_portgroup_list(self, limit=None, marker=None,
-                           sort_key=None, sort_dir=None, project=None):
+                           sort_key=None, sort_dir=None, project=None,
+                           conductor_groups=None, filters=None):
         query = sa.select(models.Portgroup)
+        query = add_portgroup_filter_by_node_conductor_groups(
+            query, conductor_groups)
         if project:
             query = add_portgroup_filter_by_node_project(query, project)
         return _paginate_query(models.Portgroup, limit, marker,

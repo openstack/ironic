@@ -285,7 +285,8 @@ class Connection(object, metaclass=abc.ABCMeta):
 
     @abc.abstractmethod
     def get_port_list(self, limit=None, marker=None,
-                      sort_key=None, sort_dir=None, filters=None):
+                      sort_key=None, sort_dir=None,
+                      conductor_groups=None, filters=None):
         """Return a list of ports.
 
         :param limit: Maximum number of ports to return.
@@ -294,6 +295,8 @@ class Connection(object, metaclass=abc.ABCMeta):
         :param sort_key: Attribute by which results should be sorted.
         :param sort_dir: direction in which results should be sorted.
                          (asc, desc)
+        :param conductor_groups: A list of conductor groups to filter by,
+                                 defaults to None
         :param filters: Filters to apply, defaults to None
         """
 
@@ -400,7 +403,8 @@ class Connection(object, metaclass=abc.ABCMeta):
     @abc.abstractmethod
     def get_portgroup_list(self, limit=None, marker=None,
                            sort_key=None, sort_dir=None,
-                           project=None):
+                           project=None, conductor_groups=None,
+                           filters=None):
         """Return a list of portgroups.
 
         :param limit: Maximum number of portgroups to return.
@@ -410,6 +414,9 @@ class Connection(object, metaclass=abc.ABCMeta):
         :param sort_dir: Direction in which results should be sorted.
                          (asc, desc)
         :param project: A node owner or lessee to filter by.
+        :param conductor_groups: A list of conductor groups to filter by,
+                                 defaults to None
+        :param filters: Filters to apply, defaults to None
         :returns: A list of portgroups.
         """
 

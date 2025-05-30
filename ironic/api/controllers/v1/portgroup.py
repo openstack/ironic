@@ -166,7 +166,8 @@ class PortgroupsController(pecan.rest.RestController):
     def _get_portgroups_collection(self, node_ident, address,
                                    marker, limit, sort_key, sort_dir,
                                    resource_url=None, fields=None,
-                                   detail=None, project=None):
+                                   detail=None, project=None,
+                                   conductor_groups=None):
         """Return portgroups collection.
 
         :param node_ident: UUID or name of a node.
@@ -179,6 +180,7 @@ class PortgroupsController(pecan.rest.RestController):
         :param fields: Optional, a list with a specified set of fields
                        of the resource to be returned.
         :param project: Optional, project ID to filter the request by.
+        :param conductor_groups: conductor groups, to filter the request by.
         """
         limit = api_utils.validate_limit(limit)
         sort_dir = api_utils.validate_sort_dir(sort_dir)
@@ -195,6 +197,11 @@ class PortgroupsController(pecan.rest.RestController):
 
         node_ident = self.parent_node_ident or node_ident
 
+        if conductor_groups and (node_ident or address):
+            raise exception.Invalid(
+                _("Filtering by conductor_groups and node_ident/address "
+                  "simultaneously is not supported."))
+
         if node_ident:
             # FIXME: Since all we need is the node ID, we can
             #        make this more efficient by only querying
@@ -209,10 +216,10 @@ class PortgroupsController(pecan.rest.RestController):
             portgroups = self._get_portgroups_by_address(address,
                                                          project=project)
         else:
-            portgroups = objects.Portgroup.list(api.request.context, limit,
-                                                marker_obj, sort_key=sort_key,
-                                                sort_dir=sort_dir,
-                                                project=project)
+            portgroups = objects.Portgroup.list(
+                api.request.context, limit,
+                marker_obj, sort_key=sort_key, sort_dir=sort_dir,
+                project=project, conductor_groups=conductor_groups)
         parameters = {}
         if detail is not None:
             parameters['detail'] = detail
@@ -246,10 +253,10 @@ class PortgroupsController(pecan.rest.RestController):
     @args.validate(node=args.uuid_or_name, address=args.mac_address,
                    marker=args.uuid, limit=args.integer, sort_key=args.string,
                    sort_dir=args.string, fields=args.string_list,
-                   detail=args.boolean)
+                   detail=args.boolean, conductor_groups=args.string_list)
     def get_all(self, node=None, address=None, marker=None,
                 limit=None, sort_key='id', sort_dir='asc', fields=None,
-                detail=None):
+                detail=None, conductor_groups=None):
         """Retrieve a list of portgroups.
 
         :param node: UUID or name of a node, to get only portgroups for that
@@ -265,6 +272,7 @@ class PortgroupsController(pecan.rest.RestController):
         :param sort_dir: direction to sort. "asc" or "desc". Default: asc.
         :param fields: Optional, a list with a specified set of fields
                        of the resource to be returned.
+        :param conductor_groups: conductor groups, to filter the request by.
         """
         if not api_utils.allow_portgroups():
             raise exception.NotFound()
@@ -284,21 +292,22 @@ class PortgroupsController(pecan.rest.RestController):
         fields = api_utils.get_request_return_fields(fields, detail,
                                                      _DEFAULT_RETURN_FIELDS)
 
-        return self._get_portgroups_collection(node, address,
-                                               marker, limit,
-                                               sort_key, sort_dir,
-                                               fields=fields,
-                                               resource_url='portgroups',
-                                               detail=detail,
-                                               project=project)
+        return self._get_portgroups_collection(
+            node, address, marker, limit, sort_key, sort_dir,
+            fields=fields,
+            resource_url='portgroups',
+            detail=detail,
+            project=project,
+            conductor_groups=conductor_groups)
 
     @METRICS.timer('PortgroupsController.detail')
     @method.expose()
     @args.validate(node=args.uuid_or_name, address=args.mac_address,
                    marker=args.uuid, limit=args.integer, sort_key=args.string,
-                   sort_dir=args.string)
+                   sort_dir=args.string, conductor_groups=args.string_list)
     def detail(self, node=None, address=None, marker=None,
-               limit=None, sort_key='id', sort_dir='asc'):
+               limit=None, sort_key='id', sort_dir='asc',
+               conductor_groups=None):
         """Retrieve a list of portgroups with detail.
 
         :param node: UUID or name of a node, to get only portgroups for that
@@ -312,6 +321,7 @@ class PortgroupsController(pecan.rest.RestController):
                       max_limit resources will be returned.
         :param sort_key: column to sort results by. Default: id.
         :param sort_dir: direction to sort. "asc" or "desc". Default: asc.
+        :param conductor_groups: conductor groups, to filter the request by.
         """
         if not api_utils.allow_portgroups():
             raise exception.NotFound()
@@ -334,7 +344,8 @@ class PortgroupsController(pecan.rest.RestController):
 
         return self._get_portgroups_collection(
             node, address, marker, limit, sort_key, sort_dir,
-            resource_url='portgroups/detail', project=project)
+            resource_url='portgroups/detail', project=project,
+            conductor_groups=conductor_groups)
 
     @METRICS.timer('PortgroupsController.get_one')
     @method.expose()
