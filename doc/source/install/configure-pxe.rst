@@ -388,17 +388,20 @@ PXE multi-architecture setup
 It is possible to deploy servers of different architecture by one conductor.
 To use this feature, architecture-specific boot and template files must
 be configured using the configuration options
-:oslo.config:option:`pxe.pxe_bootfile_name_by_arch` and :oslo.config:option:`pxe.pxe_config_template_by_arch`
+:oslo.config:option:`pxe.pxe_bootfile_name_by_arch` (or :oslo.config:option:`pxe.ipxe_bootfile_name_by_arch`
+for iPXE-based deployments) and :oslo.config:option:`pxe.pxe_config_template_by_arch`
 respectively, in the Bare Metal service's configuration file
 (/etc/ironic/ironic.conf).
 
-These two options are dictionary values; the key is the architecture and the
-value is the boot (or config template) file. A node's ``cpu_arch`` property is
-used as the key to get the appropriate boot file and template file. If the
-node's ``cpu_arch`` is not in the dictionary, the configuration options (in
-[pxe] group) ``pxe_bootfile_name``, ``pxe_config_template``,
-``uefi_pxe_bootfile_name`` and ``uefi_pxe_config_template`` will be used
-instead.
+The ``*_by_arch`` configuration options are dictionaries that map architecture
+names to bootfiles and templates. The key is the architecture and the value is
+the boot (or config template) file.
+
+A node's ``cpu_arch`` property is used as the key to get the appropriate
+boot file and template file. If the node's ``cpu_arch`` is not in the
+dictionary, the configuration options (in [pxe] group)
+``pxe_bootfile_name``, ``pxe_config_template``, ``uefi_pxe_bootfile_name``
+and ``uefi_pxe_config_template`` will be used instead.
 
 In the following example, since 'x86' and 'x86_64' keys are not in the
 ``pxe_bootfile_name_by_arch`` or ``pxe_config_template_by_arch`` options, x86
@@ -439,8 +442,13 @@ nodes will be deployed by 'grubaa64.efi', and ppc64 nodes by 'bootppc64'::
 
 .. note::
    A :oslo.config:option:`pxe.ipxe_bootfile_name_by_arch` setting is available for multi-arch
-   iPXE based deployment, and defaults to the same behavior as the comperable
+   iPXE-based deployment, and defaults to the same behavior as the comperable
    :oslo.config:option:`pxe.pxe_bootfile_name_by_arch` setting for standard PXE.
+   For example::
+
+      [pxe]
+
+      ipxe_bootfile_name_by_arch = aarch64:ipxe-aa64.efi,x86_64:ipxe.efi
 
 .. note::
    When booting PowerPC based machines, the firmware loader directly boots
