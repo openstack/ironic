@@ -72,12 +72,17 @@ hardware type by default::
     enable_service key
     enable_service memory_tracker
     enable_service mysql
-    enable_service q-agt
-    enable_service q-dhcp
-    enable_service q-l3
-    enable_service q-meta
-    enable_service q-metering
-    enable_service q-svc
+    # NOTE(JayF): q-* is an old way of referring to neutron (fka quantum)
+    #             services. As of 2025-05-30, devstack won't work with all q-
+    #             configurations; it also won't work with all neutron-
+    #             service. Defining both gives us best possible behavior.
+    enable_service neutron-api q-api
+    enable_service neutron-agent q-agt
+    enable_service neutron-dhcp q-dhcp
+    enable_service neutron-l3 q-l3
+    enable_service neutron-metadata-agent q-meta
+    enable_service neutron-metering q-metering
+
     enable_service rabbit
 
     # Credentials
@@ -185,9 +190,15 @@ enabled and use the ``ipmi`` hardware type with this config::
     disable_service cinder c-sch c-api c-vol
 
     # Configure networking by disabling OVN and enabling Neutron w/OVS.
-    disable_service ovn-controller ovn-northd q-ovn-metadata-agent
+    disable_service ovn-controller
     disable_service ovn-northd
-    enable_service q-agt q-dhcp q-l3 q-svc q-meta
+    disable_service neutron-ovn-metadata-agent
+
+    enable_service neutron-agent q-agt
+    enable_service neutron-dhcp q-dhcp
+    enable_service neutron-l3 q-l3
+    enable_service neutron-metadata-agent q-meta
+    enable_service neutron-api q-svc
     Q_AGENT=openvswitch
     Q_ML2_PLUGIN_MECHANISM_DRIVERS="openvswitch"
     Q_ML2_TENANT_NETWORK_TYPE="vxlan"
