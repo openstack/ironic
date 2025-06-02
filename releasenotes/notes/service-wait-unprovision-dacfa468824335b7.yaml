@@ -1,0 +1,5 @@
+---
+features:
+  - |
+    Add support for a node in ``service wait`` state can be unprovisioned
+    via the ``delete`` provision action.
