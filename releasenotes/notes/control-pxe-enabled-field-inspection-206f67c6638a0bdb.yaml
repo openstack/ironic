@@ -1,6 +1,7 @@
 ---
-other:
+fixes:
   - |
-    Adding condition to control whether the pxe_enabled field of a Port should be updated during inspection.
-    [inspector]update_pxe_enabled is a configuration used to control it and the default value is True.
+    In the redfish inspector, use condition to control whether the pxe_enabled field of a port is updated during inspection.
+    [inspector]update_pxe_enabled is used to control this so it behaves like all other inspection interfaces.
+    The default value for this configuration is True.
 
