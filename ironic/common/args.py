@@ -334,11 +334,11 @@ def validate(*args, **kwargs):
     assert kwargs, 'No validators specified'
     validators = kwargs
 
-    def inner_function(function):
+    def add_validator(function):
         params, param_positional, param_keyword = _inspect(function)
 
         @functools.wraps(function)
-        def inner_check_args(*args, **kwargs):
+        def wrapper(*args, **kwargs):
             args = list(args)
             args_len = len(args)
             kwargs_next = {}
@@ -398,8 +398,17 @@ def validate(*args, **kwargs):
                     kwargs_next.update(kwargs)
 
             return function(*args, **kwargs_next)
-        return inner_check_args
-    return inner_function
+
+        if hasattr(wrapper, 'arguments_transformed'):
+            raise RuntimeError(
+                'The validate decorator should only be applied once per method'
+            )
+
+        wrapper.arguments_transformed = True
+
+        return wrapper
+
+    return add_validator
 
 
 patch = schema({
