@@ -2100,8 +2100,6 @@ function create_systemd_container_dir {
 # Project     User       Roles
 # ------------------------------------------------------------------
 # service     ironic     admin
-# service     nova       baremetal_admin # Legacy, Pre-SRBAC effort
-# demo        demo       baremetal_observer # Legacy, Pre-SRBAC effort
 function create_ironic_accounts {
     if [[ "$ENABLED_SERVICES" =~ "ir-api" && "$ENABLED_SERVICES" =~ "key" ]]; then
         # Define service and endpoints in Keystone
@@ -2116,13 +2114,9 @@ function create_ironic_accounts {
         create_service_user "ironic" "admin"
 
         # Create additional bare metal tenant and roles
-        # TODO(TheJulia): Remove when we remove the legacy RBAC policies.
-        get_or_create_role baremetal_admin
-        get_or_create_role baremetal_observer
         if is_service_enabled nova; then
-            get_or_add_user_project_role baremetal_admin nova $SERVICE_PROJECT_NAME
+            get_or_add_user_project_role admin nova $SERVICE_PROJECT_NAME
         fi
-        get_or_add_user_project_role baremetal_observer demo demo
     fi
 }
 
