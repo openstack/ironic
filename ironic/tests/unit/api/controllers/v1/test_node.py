@@ -9008,8 +9008,9 @@ class TestNodeFirmwareComponent(test_api_base.BaseApiTest):
             self.context, node_id=self.node.id, component='BIOS')
 
     def test_get_all_firmware_components(self):
-        ret = self.get_json('/nodes/%s/firmware' % self.node.uuid,
-                            headers={api_base.Version.string: self.version})
+        ret = self.get_json(
+            '/nodes/%s/firmware' % self.node.uuid,
+            headers={api_base.Version.string: self.version})
         expected_components = [
             {'created_at': ret['firmware'][0]['created_at'],
              'updated_at': ret['firmware'][0]['updated_at'],
@@ -9021,6 +9022,28 @@ class TestNodeFirmwareComponent(test_api_base.BaseApiTest):
              'component': 'bmc',
              'initial_version': 'v1.0.0', 'current_version': 'v1.0.0',
              'last_version_flashed': None}]
+        self.assertEqual({'firmware': expected_components}, ret)
+
+    def test_get_all_custom_fields(self):
+        fields = 'component,last_version_flashed'
+        ret = self.get_json(
+            '/nodes/%s/firmware?fields=%s' % (self.node.uuid, fields),
+            headers={api_base.Version.string: self.version})
+        expected_components = [
+            # We always append "created_at", "updated_at"
+            {
+                'created_at': ret['firmware'][0]['created_at'],
+                'updated_at': ret['firmware'][0]['updated_at'],
+                'component': 'BIOS',
+                'last_version_flashed': None,
+            },
+            {
+                'created_at': ret['firmware'][1]['created_at'],
+                'updated_at': ret['firmware'][1]['updated_at'],
+                'component': 'bmc',
+                'last_version_flashed': None,
+            }
+        ]
         self.assertEqual({'firmware': expected_components}, ret)
 
     def test_wrong_version_get_all_firmware_components_old_version(self):

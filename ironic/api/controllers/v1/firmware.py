@@ -17,8 +17,12 @@ from pecan import rest
 
 from ironic import api
 from ironic.api.controllers.v1 import utils as api_utils
+from ironic.api.controllers.v1 import versions
 from ironic.api import method
+from ironic.api.schemas.v1 import firmware as schema
+from ironic.api import validation
 from ironic.common import args
+from ironic.common.i18n import _
 from ironic.common import metrics_utils
 from ironic import objects
 
@@ -59,7 +63,17 @@ class NodeFirmwareController(rest.RestController):
 
     @METRICS.timer('NodeFirmwareController.get_all')
     @method.expose()
-    @args.validate(fields=args.string_list, detail=args.boolean)
+    # TODO(adamcarthur): We are currently using this for
+    # side-effects to e.g. convert a CSV string to an array or a string
+    # to an integer. We should probably rename this decorator or provide
+    # a separate, simpler decorator.
+    @args.validate(fields=args.string_list)
+    @validation.api_version(
+        min_version=versions.MINOR_86_FIRMWARE_INTERFACE,
+        message=_('The API version does not allow node firmware'),
+    )
+    @validation.request_query_schema(schema.index_request_query, 86)
+    @validation.response_body_schema(schema.index_response_body, 86)
     def get_all(self, detail=None, fields=None):
         """List node firmware components."""
         node = api_utils.check_node_policy_and_retrieve(
