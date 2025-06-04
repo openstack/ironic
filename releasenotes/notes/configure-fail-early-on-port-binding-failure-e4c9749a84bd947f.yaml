@@ -1,0 +1,10 @@
+---
+features:
+  - |
+    Adds a new boolean configuration option ``[neutron]fail_on_port_binding_failure``
+    and corresponding node ``driver_info`` setting ``fail_on_binding_failure``
+    to control whether deployment should fail or continue if Neutron port
+    binding fails. With a default of ``true``, if your network is not
+    configured properly, this will likely cause deployment failures.
+    To maintain the previous behavior, explicitly set this option to False in
+    your configuration.

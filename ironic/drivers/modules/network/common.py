@@ -294,8 +294,27 @@ def plug_port_to_tenant_network(task, port_like_obj, client=None):
 
     try:
         neutron.update_neutron_port(task.context, vif_id, port_attrs)
-        if is_smart_nic:
-            neutron.wait_for_port_status(client, vif_id, 'ACTIVE')
+
+        binding_fail_fatal = False
+        is_neutron_iface = node.network_interface == 'neutron'
+
+        if is_neutron_iface:
+            binding_fail_fatal = getattr(
+                CONF.neutron, 'fail_on_port_binding_failure', False)
+
+        default_failure_behavior = is_smart_nic or binding_fail_fatal
+
+        fail_on_binding_failure = node.driver_info.get(
+            'fail_on_binding_failure', default_failure_behavior)
+
+        # NOTE(cid): Only check port status if it's a smart NIC or if we're
+        # configured to fail on binding failures. This avoids unnecessary
+        # failures when using network interfaces where binding may fail but
+        # we want to continue anyway (like in the case of flat networks).
+        if fail_on_binding_failure:
+            neutron.wait_for_port_status(
+                client, vif_id, 'ACTIVE',
+                fail_on_binding_failure=fail_on_binding_failure)
     except openstack_exc.OpenStackCloudException as e:
         msg = (_('Could not add public network VIF %(vif)s '
                  'to node %(node)s, possible network issue. %(exc)s') %

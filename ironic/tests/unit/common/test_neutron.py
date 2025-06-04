@@ -1026,7 +1026,8 @@ class TestNeutronNetworkActions(db_base.DbTestCase):
             wait_agent_mock.assert_called_once_with(
                 self.client_mock, 'hostname')
             wait_port_mock.assert_called_once_with(
-                self.client_mock, self.neutron_port.id, 'ACTIVE')
+                self.client_mock, self.neutron_port.id, 'ACTIVE',
+                fail_on_binding_failure=True)
 
     @mock.patch.object(neutron, 'is_smartnic_port', autospec=True)
     @mock.patch.object(neutron, 'wait_for_host_agent', autospec=True)

@@ -428,8 +428,11 @@ class TestCommonFunctions(db_base.DbTestCase):
                               task, self.vif_id, {'physnet2'})
 
     @mock.patch.object(neutron_common, 'update_neutron_port', autospec=True)
+    @mock.patch.object(neutron_common, 'wait_for_port_status', autospec=True)
     @mock.patch.object(neutron_common, 'get_client', autospec=True)
-    def test_plug_port_to_tenant_network_client(self, mock_gc, mock_update):
+    def test_plug_port_to_tenant_network_client(self, mock_gc,
+                                                wait_mock_status,
+                                                mock_update):
         self.port.internal_info = {common.TENANT_VIF_KEY: self.vif_id}
         self.port.save()
         with task_manager.acquire(self.context, self.node.id) as task:
@@ -439,8 +442,11 @@ class TestCommonFunctions(db_base.DbTestCase):
         self.assertTrue(mock_update.called)
 
     @mock.patch.object(neutron_common, 'update_neutron_port', autospec=True)
+    @mock.patch.object(neutron_common, 'wait_for_port_status', autospec=True)
     @mock.patch.object(neutron_common, 'get_client', autospec=True)
-    def test_plug_port_to_tenant_network_no_client(self, mock_gc, mock_update):
+    def test_plug_port_to_tenant_network_no_client(self, mock_gc,
+                                                   wait_mock_status,
+                                                   mock_update):
         self.port.internal_info = {common.TENANT_VIF_KEY: self.vif_id}
         self.port.save()
         with task_manager.acquire(self.context, self.node.id) as task:
@@ -480,7 +486,7 @@ class TestCommonFunctions(db_base.DbTestCase):
             wait_agent_mock.assert_called_once_with(
                 nclient, 'hostname')
             wait_port_mock.assert_called_once_with(
-                nclient, self.vif_id, 'ACTIVE')
+                nclient, self.vif_id, 'ACTIVE', fail_on_binding_failure=True)
             self.assertTrue(mock_update.called)
 
 

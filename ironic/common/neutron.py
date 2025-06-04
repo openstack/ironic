@@ -407,8 +407,27 @@ def add_ports_to_network(task, network_uuid, security_groups=None):
                                        update_port_attrs)
             if CONF.neutron.dhcpv6_stateful_address_count > 1:
                 _add_ip_addresses_for_ipv6_stateful(task.context, port, client)
-            if is_smart_nic:
-                wait_for_port_status(client, port.id, 'ACTIVE')
+
+            binding_fail_fatal = False
+            is_neutron_iface = node.network_interface == 'neutron'
+
+            if is_neutron_iface:
+                binding_fail_fatal = getattr(
+                    CONF.neutron, 'fail_on_port_binding_failure', False)
+
+            default_failure_behavior = is_smart_nic or binding_fail_fatal
+
+            fail_on_binding_failure = node.driver_info.get(
+                'fail_on_binding_failure', default_failure_behavior)
+
+            # NOTE(cid): Only check port status if it's a smart NIC or if we're
+            # configured to fail on binding failures. This avoids unnecessary
+            # failures when using network interfaces where binding may fail but
+            # we want to continue anyway (like in the case of flat networks).
+            if fail_on_binding_failure:
+                wait_for_port_status(
+                    client, port.id, 'ACTIVE',
+                    fail_on_binding_failure=fail_on_binding_failure)
         except openstack_exc.OpenStackCloudException as e:
             failures.append(ironic_port.uuid)
             LOG.warning("Could not create neutron port for node's "
@@ -1061,12 +1080,15 @@ def wait_for_host_agent(client, host_id, target_state='up'):
     stop=tenacity.stop_after_attempt(CONF.agent.neutron_agent_max_attempts),
     wait=tenacity.wait_fixed(CONF.agent.neutron_agent_status_retry_interval),
     reraise=True)
-def wait_for_port_status(client, port_id, status):
+def wait_for_port_status(client, port_id, status,
+                         fail_on_binding_failure=None):
     """Wait for port status to be the desired status
 
     :param client: A Neutron client object.
     :param port_id: Neutron port_id
     :param status: Port's target status, can be ACTIVE, DOWN ... etc.
+    :param fail_on_binding_failure: Whether to raise exception if port
+        binding fails.
     :returns: boolean indicates that the port status matches the
         required value passed by param status.
     :raises: InvalidParameterValue if the port does not exist.
@@ -1080,6 +1102,14 @@ def wait_for_port_status(client, port_id, status):
               {'port_id': port_id, 'status': port.status})
     if port.status == status:
         return True
+
+    # fail early on port binding failure
+    if port.get('binding:vif_type') == 'binding_failed':
+        msg = "Binding failed for neutron port %s" % port_id
+        if fail_on_binding_failure:
+            LOG.error(msg)
+            raise openstack_exc.OpenStackCloudException(msg)
+        LOG.warning(msg)
     raise exception.NetworkError(
         'Port %(port_id)s failed to reach status %(status)s' % {
             'port_id': port_id, 'status': status})

@@ -26,6 +26,10 @@ opts = [
                mutable=True,
                help=_('Delay value to wait for Neutron agents to setup '
                       'sufficient DHCP configuration for port.')),
+    cfg.BoolOpt('fail_on_port_binding_failure',
+                default=True,
+                help=_('Whether to fail or continue deployment if neutron '
+                       'port binding fails.')),
     cfg.IntOpt('retries',
                default=3,
                mutable=True,
