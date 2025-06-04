@@ -13,6 +13,42 @@
         nodes:
           - controller
 
+# NOTE(TheJulia): Based upon openstack-two-node-noble, but modeled
+# for Ironic's multinode jobs.
+- nodeset:
+    name: ironic-three-node-noble
+    nodes:
+      - name: controller
+        label: ubuntu-noble
+      - name: compute0
+        label: ubuntu-noble
+      - name: compute1
+        label: ubuntu-noble
+    groups:
+      # Node where tests are executed and test results collected
+      - name: tempest
+        nodes:
+          - controller
+      # Nodes running the compute service
+      - name: compute
+        nodes:
+          - controller
+          - compute0
+          - compute1
+      # Nodes that are not the controller
+      - name: subnode
+        nodes:
+          - compute0
+          - compute1
+      # Switch node for multinode networking setup
+      - name: switch
+        nodes:
+          - controller
+      # Peer nodes for multinode networking setup
+      - name: peers
+        nodes:
+          - compute0
+          - compute1
 
 - job:
     name: ironic-base
@@ -684,17 +720,18 @@
         # tests can also exercised as part of CI.
 
 - job:
-    name: ironic-tempest-ipa-wholedisk-direct-tinyipa-multinode
-    description: ironic-tempest-ipa-wholedisk-direct-tinyipa-multinode
+    name: ironic-tempest-ipa-wholedisk-direct-multinode
+    description: ironic-tempest-ipa-wholedisk-direct-multinode
     parent: tempest-multinode-full-base
-    nodeset: openstack-two-node-noble
+    nodeset: ironic-three-node-noble
     pre-run: playbooks/ci-workarounds/pre.yaml
+    post-run: playbooks/ci-workarounds/get_extra_logging.yaml
     required-projects:
       - opendev.org/openstack/ironic
       - opendev.org/openstack/ironic-python-agent
       - opendev.org/openstack/ironic-python-agent-builder
       - opendev.org/openstack/ironic-tempest-plugin
-      - opendev.org/openstack/virtualbmc
+      - opendev.org/openstack/sushy-tools
       - opendev.org/openstack/networking-generic-switch
     irrelevant-files:
       - ^.*\.rst$
@@ -728,27 +765,32 @@
         HOST_TOPOLOGY_ROLE: primary
         INSTALL_TEMPEST: False # Don't install a tempest package globally
         IRONIC_AUTOMATED_CLEAN_ENABLED: False
-        HOST_TOPOLOGY_SUBNODES: "{{ hostvars['compute1']['nodepool']['public_ipv4'] }}"
+        # NOTE(TheJulia): We *MUST* list all of the hosts in this list,
+        # this drives the configuration of switch references on the controller
+        # node. Furthermore, this job will fail if there is not a public IPv4
+        # address available for the SSH access to manage port configurations.
+        HOST_TOPOLOGY_SUBNODES: "{{ hostvars['compute0']['nodepool']['public_ipv4'] }} {{ hostvars['compute1']['nodepool']['public_ipv4'] }}"
         IRONIC_BAREMETAL_BASIC_OPS: True
         IRONIC_BUILD_DEPLOY_RAMDISK: False
         IRONIC_CALLBACK_TIMEOUT: 600
-        IRONIC_DEPLOY_DRIVER: ipmi
+        IRONIC_DEPLOY_DRIVER: redfish
+        IRONIC_ENABLED_BOOT_INTERFACES: "redfish-virtual-media"
+        IRONIC_ENABLED_HARDWARE_TYPES: redfish
+        IRONIC_ENABLED_MANAGEMENT_INTERFACES: redfish
+        IRONIC_REDFISH_EMULATOR_FEATURE_SET: vmedia
         IRONIC_ENABLED_NETWORK_INTERFACES: flat,neutron
         IRONIC_INSPECTOR_BUILD_RAMDISK: False
         IRONIC_NETWORK_INTERFACE: neutron
         IRONIC_PROVISION_NETWORK_NAME: ironic-provision
         IRONIC_PROVISION_SUBNET_GATEWAY: 10.0.5.1
         IRONIC_PROVISION_SUBNET_PREFIX: 10.0.5.0/24
-        IRONIC_RAMDISK_TYPE: tinyipa
         IRONIC_TEMPEST_BUILD_TIMEOUT: 600
         IRONIC_TEMPEST_WHOLE_DISK_IMAGE: True
         IRONIC_USE_LINK_LOCAL: True
-        IRONIC_VM_COUNT: 3
+        IRONIC_VM_COUNT: 1
         IRONIC_VM_EPHEMERAL_DISK: 0
         IRONIC_VM_LOG_DIR: '{{ devstack_base_dir }}/ironic-bm-logs'
-        IRONIC_VM_SPECS_RAM: 1024
-        IRONIC_VM_SPECS_DISK: 4
-        IRONIC_VM_SPECS_CPU: 1
+        IRONIC_VM_SPECS_DISK: 10
         OVS_BRIDGE_MAPPINGS: 'mynetwork:brbm,public:br-infra'
         OVS_PHYSICAL_BRIDGE: brbm
         PHYSICAL_NETWORK: mynetwork
@@ -809,8 +851,23 @@
         ovn-northd: False
         q-ovn-metadata-agent: False
         rabbit: True
+        tls-proxy: False
     group-vars:
+      # Turns out, devstack looks for the subnode group name.
       subnode:
+        devstack_services:
+          atop: True
+          c-api: False
+          c-bak: False
+          c-sch: False
+          c-vol: False
+          cinder: False
+          q-agt: True
+          ovn-controller: False
+          ovn-northd: False
+          q-ovn-metadata-agent: False
+          n-cpu: True
+          tls-proxy: False
         devstack_localrc:
           ENABLE_TENANT_TUNNELS: False
           ENABLE_TENANT_VLANS: True
@@ -819,61 +876,65 @@
           HOST_TOPOLOGY_ROLE: subnode
           IRONIC_AUTOMATED_CLEAN_ENABLED: False
           IRONIC_BAREMETAL_BASIC_OPS: True
-          IRONIC_DEPLOY_DRIVER: ipmi
+          IRONIC_DEPLOY_DRIVER: redfish
+          IRONIC_ENABLED_BOOT_INTERFACES: "redfish-virtual-media"
+          IRONIC_ENABLED_HARDWARE_TYPES: redfish
+          IRONIC_ENABLED_MANAGEMENT_INTERFACES: redfish
+          IRONIC_REDFISH_EMULATOR_FEATURE_SET: vmedia
           IRONIC_ENABLED_NETWORK_INTERFACES: flat,neutron
           IRONIC_NETWORK_INTERFACE: neutron
           IRONIC_PROVISION_NETWORK_NAME: ironic-provision
-          IRONIC_RAMDISK_TYPE: tinyipa
           IRONIC_USE_LINK_LOCAL: True
           IRONIC_VM_COUNT: 3
           IRONIC_VM_EPHEMERAL_DISK: 0
           IRONIC_VM_LOG_DIR: '{{ devstack_base_dir }}/ironic-bm-logs'
-          IRONIC_VM_NETWORK_BRIDGE: sub1brbm
-          IRONIC_VM_SPECS_RAM: 1024
-          IRONIC_VM_SPECS_DISK: 4
-          IRONIC_VM_SPECS_CPU: 1
-          OVS_BRIDGE_MAPPINGS: 'mynetwork:sub1brbm,public:br-infra'
-          OVS_PHYSICAL_BRIDGE: sub1brbm
           PHYSICAL_NETWORK: mynetwork
           Q_AGENT: openvswitch
           Q_ML2_TENANT_NETWORK_TYPE: vlan
           VIRT_DRIVER: ironic
           PUBLIC_BRIDGE: br-infra
           LIBVIRT_STORAGE_POOL_PATH: /opt/libvirt/images
-        devstack_services:
-          atop: True
-          c-api: False
-          c-bak: False
-          c-sch: False
-          c-vol: False
-          cinder: False
+          OVS_BRIDGE_MAPPINGS: 'mynetwork:brbm,public:br-infra'
+          OVS_PHYSICAL_BRIDGE: brbm
 
-          q-agt: True
-          ovn-controller: False
-          ovn-northd: False
-          q-ovn-metadata-agent: False
-          n-cpu: True
+- job:
+    # NOTE(TheJulia): Compatibility job definition, can be removed.
+    name: ironic-tempest-ipa-wholedisk-direct-tinyipa-multinode
+    description: ironic-tempest-ipa-wholedisk-direct-multinode
+    parent: ironic-tempest-ipa-wholedisk-direct-multinode
+
+- job:
+    # NOTE(TheJulia): Compatibility job definition, can be removed.
+    name: ironic-tempest-ipa-wholedisk-direct-tinyipa-multinode-shard
+    description: ironic-tempest-ipa-wholedisk-direct-multinode-shard
+    parent: ironic-tempest-ipa-wholedisk-direct-multinode-shard
+
 
 - job:
     # NOTE(JayF) This job sets up two nova-computes with two different shards
     # TODO(JayF) Add a post-run validation to ensure the two n-cpus did not
     #            see each others' nodes
-    name: ironic-tempest-ipa-wholedisk-direct-tinyipa-multinode-shard
-    description: ironic-tempest-ipa-wholedisk-direct-tinyipa-multinode-shard
+    name: ironic-tempest-ipa-wholedisk-direct-multinode-shard
+    description: ironic-tempest-ipa-wholedisk-direct-multinode-shard
       with automated cleaning enabled.
-    parent: ironic-tempest-ipa-wholedisk-direct-tinyipa-multinode
-    nodeset: openstack-two-node-noble
+    parent: ironic-tempest-ipa-wholedisk-direct-multinode
+    nodeset: ironic-three-node-noble
     vars:
       tempest_test_regex: "BaremetalBasicOps"
       devstack_localrc:
         IRONIC_SHARDS: 1
         IRONIC_SHARD_1_NAME: "main-node"
         IRONIC_AUTOMATED_CLEAN_ENABLED: True
+        # Let the local services ignore the controller node,
+        # but focus on managing the nodes on the subnode, since
+        # we have greater resources on the other nodes.
+        IRONIC_NODE_SHARD_NAME: "subnode"
     group-vars:
       subnode:
         devstack_localrc:
           IRONIC_SHARDS: 1
           IRONIC_SHARD_1_NAME: "subnode"
+          IRONIC_NODE_SHARD_NAME: "main-node"
 
 - job:
     name: ironic-tox-unit-with-driver-libs

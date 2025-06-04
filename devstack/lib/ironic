@@ -128,6 +128,7 @@ fi
 # IRONIC_SHARD_1_NAME + IRONIC_SHARDS will also configure n-cpu
 IRONIC_SHARDS=${IRONIC_SHARDS:-0}
 IRONIC_SHARD_1_NAME=${IRONIC_SHARD_1_NAME:-ds_shard_1}
+IRONIC_NODE_SHARD_NAME=${IRONIC_NODE_SHARD_NAME:-ds_shard_1}
 
 # The file is composed of multiple lines, each line includes fields
 # separated by white space, in the format:
@@ -311,19 +312,6 @@ IRONIC_RAMDISK_TYPE=${IRONIC_RAMDISK_TYPE:-dib}
 # Confirm we have a supported ramdisk type or fail early.
 if [[ ! "$IRONIC_RAMDISK_TYPE" =~ $IRONIC_SUPPORTED_RAMDISK_TYPES_RE ]]; then
     die $LINENO "Unrecognized IRONIC_RAMDISK_TYPE: $IRONIC_RAMDISK_TYPE. Expected 'tinyipa' or 'dib'"
-fi
-
-# NOTE(TheJulia): If we ever run any arm64, we will need to consider doing
-# the same. Nested virt is not a thing there.
-# Prevent a case that will likely result in a failure.
-# NOTE(hjensas): tinyipa does not support dhcpv6-stateful
-if [[ $IRONIC_HW_ARCH != "aarch64" ]] && [[ $IRONIC_IPV6_ADDRESS_MODE != "dhcpv6-stateful" ]]; then
-    if [[ "$hostdomain" =~ "rax" ]] || [[ "$hostdomain" =~ "iweb" ]] || ! $(grep -q -E 'vmx|svm' /proc/cpuinfo) ; then
-        if [[ "$IRONIC_RAMDISK_TYPE" == "dib" ]]; then
-            echo "** WARNING ** - DIB based IPA images have been defined, however we are running devstack on an environment which does not support nested VMs. Due to virtualization constraints, we are automatically falling back to TinyIPA to ensure CI job passage."
-            IRONIC_RAMDISK_TYPE="tinyipa"
-        fi
-    fi
 fi
 
 # Which deploy driver to use - valid choices right now
@@ -522,6 +510,25 @@ IRONIC_PROVISION_PROVIDER_NETWORK_TYPE=${IRONIC_PROVISION_PROVIDER_NETWORK_TYPE:
 # This is only used if IRONIC_PROVISION_NETWORK_NAME has been set.
 IRONIC_PROVISION_SEGMENTATION_ID=${IRONIC_PROVISION_SEGMENTATION_ID:-}
 
+# NOTE(TheJulia): Some silly logic to help make multinode work because conductors
+# refer to themselves and in this case we're running multiple conductors.
+SUBNODE_FINAL="2"
+# For nodes, there is a relative order, so when we have a subnode, we use
+# this value to try and track which would be appropriate.
+SUBNODE_ID=""
+if [ -f /etc/devstack-host ]; then
+    # NOTE(TheJulia): this needs to match the Zuul Nodeset configuration
+    # of hostnames, and should then be mapped out with as many nodes
+    # required.
+    if $(grep -qi compute0 /etc/devstack-host); then
+        SUBNODE_FINAL="2"
+        SUBNODE_ID="1"
+    elif $(grep -qi compute1 /etc/devstack-host); then
+        SUBNODE_FINAL="3"
+        SUBNODE_ID="2"
+    fi
+fi
+
 if [[ "$IRONIC_IP_VERSION" != '6' ]]; then
     # NOTE(TheJulia): Lets not try and support mixed mode since the conductor
     # can't support mixed mode operation. We are either IPv4 OR IPv6.
@@ -535,7 +542,7 @@ if [[ "$IRONIC_IP_VERSION" != '6' ]]; then
     # IRONIC_PROVISION_SUBNET_GATEWAY - is configured on primary node.
     # Ironic provision subnet gateway.
     IRONIC_PROVISION_SUBNET_GATEWAY=${IRONIC_PROVISION_SUBNET_GATEWAY:-'10.0.5.1'}
-    IRONIC_PROVISION_SUBNET_SUBNODE_IP=${IRONIC_PROVISION_SUBNET_SUBNODE_IP:-'10.0.5.2'}
+    IRONIC_PROVISION_SUBNET_SUBNODE_IP=${IRONIC_PROVISION_SUBNET_SUBNODE_IP:-'10.0.5.'$SUBNODE_FINAL}
 
     # Ironic provision subnet prefix
     # Example: IRONIC_PROVISION_SUBNET_PREFIX=10.0.5.0/24
@@ -546,7 +553,7 @@ else
     # HOST_IPV6 cannot be used for v6 testing.
     IRONIC_HOST_IPV6='fc00::1'
     IRONIC_PROVISION_SUBNET_GATEWAY=${IRONIC_PROVISION_SUBNET_GATEWAY:-'fc01::1'}
-    IRONIC_PROVISION_SUBNET_SUBNODE_IP=${IRONIC_PROVISION_SUBNET_SUBNODE_IP:-'fc01::2'}
+    IRONIC_PROVISION_SUBNET_SUBNODE_IP=${IRONIC_PROVISION_SUBNET_SUBNODE_IP:-'fc01::'$SUBNODE_FINAL}
     IRONIC_PROVISION_SUBNET_PREFIX=${IRONIC_PROVISION_SUBNET_PREFIX:-'fc01::/64'}
     IRONIC_TFTPSERVER_IP=$IRONIC_HOST_IPV6
 fi
@@ -3284,7 +3291,11 @@ function enroll_nodes {
                 local switch_id
                 if [[ "${IRONIC_NETWORK_SIMULATOR:-ovs}" == "ovs" ]]; then
                     switch_id=$(echo $hardware_info |awk '{print $4}')
-                    switch_info=$(echo $hardware_info |awk '{print $5}')
+                    if [[ "$SUBNODE_ID" == "" ]]; then
+                        switch_info=$(echo $hardware_info |awk '{print $5}')
+                    else
+                        switch_info="sub$SUBNODE_ID$(echo $hardware_info |awk '{print $5}')"
+                    fi
                 else
                     switch_id="00:00:00:00:00:00"
                     switch_info=${IRONIC_NETWORK_SIMULATOR:-brbm}
@@ -3398,7 +3409,7 @@ function enroll_nodes {
         fi
 
         if [[ $IRONIC_SHARDS == "1" ]]; then
-            openstack --os-cloud devstack-system-admin baremetal node set $node_id --shard $IRONIC_SHARD_1_NAME
+            openstack --os-cloud devstack-system-admin baremetal node set $node_id --shard $IRONIC_NODE_SHARD_NAME
         fi
 
         # In case we using portgroups, we should API version that support them.
@@ -3504,12 +3515,28 @@ function enroll_nodes {
             # that was created will fail the service_check in the end of the deployment
             _clean_ncpu_failure
             start_nova_compute
-        else
-            # NOTE(vsaienko) we enrolling IRONIC_VM_COUNT on each node. So on subnode
-            # we expect to have 2 x total_cpus
-            total_nodes=$(( total_nodes * 2 ))
         fi
-        wait_for_nova_resources $total_nodes
+        if [[ "$IRONIC_SHARD_1_NAME" != "$IRONIC_NODE_SHARD_NAME" ]]; then
+            # If we're running in a disjointed shard configuration, we may see
+            # only one node, the other compute services are the ones in use,
+            # which means our total local count is invalid and can't be used.
+            # So, we just make sure we can see *one* node successfully.
+            if [[ "$HOST_TOPOLOGY_ROLE" == "subnode" ]]; then
+                # If we're on a subnode, just wait for at least one node.
+                # If we're on the controller, we won't see any nodes.
+                wait_for_nova_resources $total_nodes
+            fi
+            # TODO(TheJulia): We should check the primary/controller node
+            # to ensure that nova-compute doesn't see the node configured
+            # for it if we are so configured. We would do that as the else
+            # of the above logic, which *should* never see the ironic baremetal
+            # node entry by default.
+        else
+            # In this case, we're looking to match all the nodes on this host,
+            # itself. Meaning the tests focus on the use of this node and we
+            # need to ensure we have all the nodes.
+            wait_for_nova_resources $total_nodes
+        fi
     fi
 }
 
@@ -4176,9 +4203,6 @@ function ironic_configure_tempest {
     if [[ -n "$TEMPEST_BAREMETAL_MAX_MICROVERSION" ]]; then
         iniset $TEMPEST_CONFIG baremetal max_microversion $TEMPEST_BAREMETAL_MAX_MICROVERSION
     fi
-    if [[ -n "$IRONIC_VM_COUNT" ]]; then
-        iniset $TEMPEST_CONFIG baremetal available_nodes $IRONIC_VM_COUNT
-    fi
     if [[ -n "$IRONIC_PING_TIMEOUT" ]]; then
         iniset $TEMPEST_CONFIG validation ping_timeout $IRONIC_PING_TIMEOUT
     fi
@@ -4340,7 +4364,7 @@ function ironic_configure_tempest {
 function get_ironic_node_prefix {
     local node_prefix="node"
     if [[ "$HOST_TOPOLOGY_ROLE" == "subnode" ]]; then
-        node_prefix="$HOST_TOPOLOGY_ROLE"
+        node_prefix="$(cat /etc/devstack-host|sed s/compute/c/)node"
     fi
     echo $node_prefix
 }
