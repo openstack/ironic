@@ -849,6 +849,29 @@ class RedfishImageUtilsTestCase(db_base.DbTestCase):
                 inject_files={}, base_iso=None)
 
     @mock.patch.object(image_utils, '_prepare_iso_image', autospec=True)
+    def test_prepare_deploy_iso_bootloader_by_arch(self,
+                                                   mock__prepare_iso_image):
+        with task_manager.acquire(self.context, self.node.uuid,
+                                  shared=True) as task:
+
+            self.config(bootloader_by_arch={'x86_64': 'bootx64.efi'},
+                        group='conductor')
+
+            d_info = {
+                'deploy_kernel': 'kernel',
+                'deploy_ramdisk': 'ramdisk',
+            }
+            task.node.driver_info.update(d_info)
+
+            task.node.instance_info.update(deploy_boot_mode='uefi')
+
+            image_utils.prepare_deploy_iso(task, {}, 'deploy', d_info)
+
+            mock__prepare_iso_image.assert_called_once_with(
+                task, 'kernel', 'ramdisk', 'bootx64.efi', params={},
+                inject_files={}, base_iso=None)
+
+    @mock.patch.object(image_utils, '_prepare_iso_image', autospec=True)
     def test_prepare_deploy_iso_existing_iso(self, mock__prepare_iso_image):
         with task_manager.acquire(self.context, self.node.uuid,
                                   shared=True) as task:

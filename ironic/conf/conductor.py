@@ -279,7 +279,8 @@ opts = [
                       'partition image containing EFI boot loader. This image '
                       'will be used by ironic when building UEFI-bootable ISO '
                       'out of kernel and ramdisk. Required for UEFI boot from '
-                      'partition images.')),
+                      'partition images. Can be overridden per-architecture '
+                      'using the bootloader_by_arch option.')),
     cfg.MultiOpt('clean_step_priority_override',
                  item_type=types.Dict(),
                  default={},
@@ -545,6 +546,16 @@ opts = [
                     '"" (empty) disables file:// URL support. Paths listed '
                     'here are validated as absolute paths and will be rejected'
                     'if they contain path traversal mechanisms, such as "..".'
+                )),
+    cfg.DictOpt('bootloader_by_arch',
+                default={},
+                help=_(
+                    'Bootloader ESP image parameter per node architecture. '
+                    'For example: x86_64:bootx64.efi,aarch64:grubaa64.efi. '
+                    'A node\'s cpu_arch property is used as the key to get '
+                    'the appropriate bootloader ESP image. If the node\'s '
+                    'cpu_arch is not in the dictionary, '
+                    'the [conductor]bootloader value will be used instead.'
                 )),
 ]
 

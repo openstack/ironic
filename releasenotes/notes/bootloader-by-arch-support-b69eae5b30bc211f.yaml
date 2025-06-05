@@ -1,0 +1,8 @@
+---
+features:
+  - |
+    Adds a new configuration option ``bootloader_by_arch``, a dictionary value
+    that maps architecture names to a Glance ID, http:// or file:// URL
+    of an EFI system partition image containing EFI boot loader, to support
+    architecture-specific images for virtual media boot in mixed-architecture
+    clouds.

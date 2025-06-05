@@ -567,6 +567,11 @@ def prepare_deploy_iso(task, params, mode, d_info):
     kernel_href = _find_param(kernel_str, d_info)
     ramdisk_href = _find_param(ramdisk_str, d_info)
     iso_href = _find_param(iso_str, d_info)
+
+    if not d_info.get('bootloader'):
+        d_info['bootloader'] = driver_utils.get_field(
+            task.node, 'bootloader', use_conf=True)
+
     bootloader_href = _find_param(bootloader_str, d_info)
 
     params = override_api_url(params)
