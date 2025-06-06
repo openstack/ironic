@@ -145,9 +145,9 @@ unattached port or port group:
    use of the ``--port-uuid <port_uuid>`` option with the ``baremetal node vif
    attach`` command.
 
-As all VIFs are requered to be attached to a port group or independent
+As all VIFs are required to be attached to a port group or independent
 ports, the maximum number of VIFs is determined by the number of configured
-and available ports represented in Ironic, as framed by the suitablity
+and available ports represented in Ironic, as framed by the suitability
 criteria noted above.
 
 Ironic goes to attach *any* supplied, selected, or even self-created
@@ -191,6 +191,25 @@ If the host in in an *active* state:
 Ironic explicitly sets the physical port's MAC address for which the
 VIF will be bound, and is immediately attached to the host with any
 required metadata for port binding, which is then transmitted to Neutron.
+
+A port binding failure will, by default, forcibly abort deployment on the
+``neutron`` interface to prevent scenarios where instances appear as
+``ACTIVE`` but are actually connected to the wrong network (e.g., remaining
+on the provisioning network instead of their assigned VLAN), leading to
+non-functional networking.
+
+This behavior can be adjusted using the
+:oslo.config:option:`neutron.fail_on_port_binding_failure` configuration
+option (default: ``true``). When set to ``false``, failures will only log
+a warning.
+
+For Smart NICs, port binding failures are treated as fatal regardless of the
+global configuration setting, as proper network configuration is essential for
+these devices.
+
+Operators can override both the global configuration and Smart NIC default
+behavior on a per-node basis using the ``fail_on_binding_failure`` field in
+the node's ``driver_info``.
 
 When Ironic goes to unbind the VIF, Ironic makes a request for Neutron to
 "reset" the assigned MAC address in order to avoid conflicts with Neutron's
