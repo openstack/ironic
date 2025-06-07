@@ -557,6 +557,16 @@ opts = [
                     'cpu_arch is not in the dictionary, '
                     'the [conductor]bootloader value will be used instead.'
                 )),
+    cfg.BoolOpt('disable_configdrive_check',
+                default=False,
+                mutable=True,
+                help=_('Option to disable operations which check and '
+                       'potentially fix up configuration drive contents, '
+                       'such as invalid network metadata values. When these '
+                       'issues are detected, and ironic is able to correct '
+                       'the data, Ironic will do so transparently. Setting '
+                       'this option to True will disable this '
+                       'functionality.')),
 ]
 
 

@@ -561,17 +561,29 @@ def _uncidr(cidr, ipv6=False):
     return str(net.network_address), str(net.netmask)
 
 
-def get_neutron_port_data(port_id, vif_id, client=None, context=None):
+def get_neutron_port_data(port_id, vif_id, client=None, context=None,
+                          mac_address=None, iface_type='vif',
+                          bond_links=None):
     """Gather Neutron port and network configuration
 
     Query Neutron for port and network configuration, return whatever
-    is available.
+    is available. Apply a mac_address override, which may be useful for
+    the caller if this is being executed prior to port attachments.
 
     :param port_id: ironic port/portgroup ID.
     :param vif_id: Neutron port ID.
     :param client: Optional a Neutron client object.
     :param context: request context
     :type context: ironic.common.context.RequestContext
+    :param mac_address: An override ethernet mac address.
+    :param iface_type: Default interface type to denote a link
+                       to be. Likely ignored by cloud-init, but
+                       still best to be populated. Other applicable
+                       option is 'phy', or 'bond'.
+    :param bond_links: A list of dictionaries of additional links
+                       which indicate the port is a bind. This
+                       value being set overrides the iface_type
+                       value to 'bond'
     :raises: NetworkError
     :returns: a dict holding network configuration information
          associated with this ironic or Neutron port.
@@ -592,6 +604,11 @@ def get_neutron_port_data(port_id, vif_id, client=None, context=None):
     LOG.debug('Received port %(port)s data: %(info)s',
               {'port': vif_id, 'info': port_config})
 
+    # NOTE(TheJulia): We might want to change this to be just an ID
+    # at some point. The name is not a unique field, so someone evaluating
+    # the metadata may become confused. That being said, this also really
+    # is not hurting anyone and could be friendlier to a user as well.
+    # https://github.com/openstack/neutron/blob/ec34283b9d11924aaa8141cde23281753f5ecbcb/neutron/db/models_v2.py#L125
     port_id = port_config['name'] or port_id
 
     network_id = port_config.network_id
@@ -610,12 +627,22 @@ def get_neutron_port_data(port_id, vif_id, client=None, context=None):
 
     subnets_config = {}
 
+    if mac_address:
+        use_mac_address = mac_address
+    else:
+        use_mac_address = port_config['mac_address']
+
+    if bond_links:
+        # If we have bond links, we have to override the
+        # default value for the mapping.
+        iface_type = 'bond'
+
     network_data = {
         'links': [
             {
                 'id': port_id,
-                'type': 'vif',
-                'ethernet_mac_address': port_config['mac_address'],
+                'type': iface_type,
+                'ethernet_mac_address': use_mac_address,
                 'vif_id': port_config['id'],
                 'mtu': network_config['mtu']
             }
@@ -628,6 +655,19 @@ def get_neutron_port_data(port_id, vif_id, client=None, context=None):
 
         ]
     }
+
+    # Finish setup of bond links configuration injection
+    if bond_links:
+        links = []
+        for link in bond_links:
+            links.append(link['id'])
+        # Add the list of links to the bond port
+        network_data['links'][0]['bond_links'] = links
+        # Add the rest of the links to the metadata.
+        network_data['links'].extend(bond_links)
+
+    # Proceed with attempting to hydrate the rest of the
+    # network metadata around networks and services.
 
     for fixed_ip in port_config.get('fixed_ips', []):
         subnet_id = fixed_ip['subnet_id']
@@ -698,7 +738,11 @@ def get_neutron_port_data(port_id, vif_id, client=None, context=None):
                 'type': 'dns',
                 'address': dns_nameserver
             }
-
+            # NOTE(TheJulia): 'services' is expected to be defined on a
+            # network level and in the top level for the overall network
+            # data structure. Unknown if anyone actually uses it beyond
+            # just the top level. See this link:
+            # https://docs.openstack.org/nova/latest/_downloads/9119ca7ac90aa2990e762c08baea3a36/network_data.json  # noqa
             network_data['services'].append(service)
 
     return network_data

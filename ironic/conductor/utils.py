@@ -1164,6 +1164,7 @@ def power_state_for_network_configuration(task):
     restore_power_state_if_needed(task, previous)
 
 
+# NOTE(TheJulia): Move this to configdrive_utils at some point in the future.
 def build_configdrive(node, configdrive):
     """Build a configdrive from provided meta_data, network_data and user_data.
 
@@ -1192,6 +1193,7 @@ def build_configdrive(node, configdrive):
                                 vendor_data=configdrive.get('vendor_data'))
 
 
+# NOTE(TheJulia): Move this to configdrive_utils at some point in the future.
 def get_configdrive_image(node):
     """Get configdrive as an ISO image or a URL.
 

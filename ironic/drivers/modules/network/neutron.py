@@ -33,6 +33,10 @@ class NeutronNetwork(common.NeutronVIFPortIDMixin,
                      base.NetworkInterface):
     """Neutron v2 network interface"""
 
+    # Indicator signaling metadata generation/handling can be achieved on this
+    # interface.
+    capabilities = ['metadata']
+
     def validate(self, task):
         """Validates the network interface.
 

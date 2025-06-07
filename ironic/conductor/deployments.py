@@ -26,6 +26,7 @@ from ironic.common import lessee_sources
 from ironic.common import metrics_utils
 from ironic.common import states
 from ironic.common import swift
+from ironic.conductor import configdrive_utils
 from ironic.conductor import notification_utils as notify_utils
 from ironic.conductor import steps as conductor_steps
 from ironic.conductor import task_manager
@@ -206,6 +207,12 @@ def do_node_deploy(task, conductor_id=None, configdrive=None,
     utils.wipe_deploy_internal_info(task)
     try:
         if configdrive:
+            if (not CONF.conductor.disable_configdrive_check
+                    and 'metadata' in task.driver.network.capabilities):
+                # Network interface drivers in this interface have sufficient
+                # support to enable us to check/fix/regenerate metadata.
+                configdrive = configdrive_utils.check_and_fix_configdrive(
+                    task, configdrive)
             _store_configdrive(node, configdrive)
     except (exception.SwiftOperationError, exception.ConfigInvalid) as e:
         with excutils.save_and_reraise_exception():

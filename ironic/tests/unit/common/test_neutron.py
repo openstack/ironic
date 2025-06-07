@@ -650,6 +650,83 @@ class TestNeutronNetworkActions(db_base.DbTestCase):
 
         self.assertEqual(expected_services, network_data['services'])
 
+    def test_get_neutron_port_data_with_overrides(self):
+
+        mac_addr = "00:11:22:33:44:55"
+        network_data = neutron.get_neutron_port_data('port0', 'vif0',
+                                                     mac_address=mac_addr,
+                                                     iface_type='phy')
+        expected_port = {
+            'id': 'port0',
+            'type': 'phy',
+            'ethernet_mac_address': '00:11:22:33:44:55',
+            'vif_id': '46d4bfb9-b26e-41f3-bd2e-e6dcc1ccedb2',
+            'mtu': 1500
+        }
+
+        self.assertEqual(expected_port, network_data['links'][0])
+
+    def test_get_neutron_port_data_with_bond_links(self):
+        vif_id = 'df5ff3e5-545a-4bb4-91b2-59f96559543e'
+        pg = object_utils.create_test_portgroup(
+            self.context, node_id=self.node.id,
+            uuid='cbc1d358-b19c-4e8e-91a1-6f7a768ca468',
+            extra={'vif_port_id': vif_id})
+        mac_addr = "00:11:22:33:44:55"
+        bond_port_1 = object_utils.create_test_port(
+            self.context, node_id=self.node.id,
+            uuid='f99544f6-1aa2-43db-b41f-c63eb431e559',
+            address=mac_addr,
+            portgroup_id=pg.id)
+        bond_port_2 = object_utils.create_test_port(
+            self.context, node_id=self.node.id,
+            uuid='6fc5ac99-6919-4789-a6bf-4906baca5da4',
+            address='aa:bb:cc:dd:ee:ff',
+            portgroup_id=pg.id)
+        # Bond links in this case are supplied by the caller, but
+        # we need to pass something through and validate data is
+        # injected in to the result.
+        bond_links = [
+            {
+                'id': str(bond_port_1.id),
+                'type': 'phy',
+                'ethernet_mac_address': bond_port_1.address,
+            },
+            {
+                'id': str(bond_port_2.id),
+                'type': 'phy',
+                'ethernet_mac_address': bond_port_2.address,
+            }
+        ]
+
+        network_data = neutron.get_neutron_port_data('port0', 'vif0',
+                                                     mac_address=mac_addr,
+                                                     iface_type='phy',
+                                                     bond_links=bond_links)
+
+        expected_links = [
+            {
+                'bond_links': ["2", "3"],
+                'ethernet_mac_address': '00:11:22:33:44:55',
+                'id': 'port0',
+                'mtu': 1500,
+                'type': 'bond',
+                'vif_id': '46d4bfb9-b26e-41f3-bd2e-e6dcc1ccedb2'
+            },
+            {
+                'ethernet_mac_address': '00:11:22:33:44:55',
+                'id': "2",
+                'type': 'phy'
+            },
+            {
+                'ethernet_mac_address': 'aa:bb:cc:dd:ee:ff',
+                'id': "3",
+                'type': 'phy'
+            }
+        ]
+
+        self.assertEqual(expected_links, network_data['links'])
+
     def load_ipv6_files(self):
         port_show_file = os.path.join(
             os.path.dirname(__file__), 'json_samples',
