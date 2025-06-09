@@ -10,17 +10,20 @@
 # License for the specific language governing permissions and limitations
 # under the License.
 
+name = {
+    'type': 'string',
+    'minLength': 1,
+    'maxLength': 255,
+    'pattern': r'(?i)^[A-Z0-9-._~]+$',
+}
 
-uuid_or_name = {
-    'anyOf': [
-        {'type': 'string', 'format': 'uuid'},
-        {
-            'type': 'string',
-            'minLength': 1,
-            'maxLength': 255,
-            'pattern': r'^[a-zA-Z0-9-._~]+$',
-        },
-    ]
+uuid = {'type': 'string', 'format': 'uuid'}
+
+uuid_or_name = {'anyOf': [uuid, name]}
+
+detail = {
+    'type': ['string', 'boolean'],
+    'format': '(?i)^(1|t|true|on|y|yes|0|f|false|off|n|no)$',
 }
 
 sort_dir = {'type': 'string', 'enum': ['asc', 'desc'], 'default': 'asc'}
