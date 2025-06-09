@@ -17,7 +17,9 @@ from pecan import rest
 
 from ironic import api
 from ironic.api.controllers.v1 import utils as api_utils
+from ironic.api.controllers.v1 import versions
 from ironic.api import method
+from ironic.api import validation
 from ironic.common import args
 from ironic.common import exception
 from ironic.common import metrics_utils
@@ -65,6 +67,7 @@ class NodeBiosController(rest.RestController):
 
     @METRICS.timer('NodeBiosController.get_all')
     @method.expose()
+    @validation.api_version(min_version=versions.MINOR_40_BIOS_INTERFACE)
     @args.validate(fields=args.string_list, detail=args.boolean)
     def get_all(self, detail=None, fields=None):
         """List node bios settings."""
@@ -85,6 +88,7 @@ class NodeBiosController(rest.RestController):
 
     @METRICS.timer('NodeBiosController.get_one')
     @method.expose()
+    @validation.api_version(min_version=versions.MINOR_40_BIOS_INTERFACE)
     @args.validate(setting_name=args.name)
     def get_one(self, setting_name):
         """Retrieve information about the given bios setting.

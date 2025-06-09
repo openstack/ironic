@@ -2386,6 +2386,8 @@ class NodesController(rest.RestController):
             pecan.abort(http_client.BAD_REQUEST, e.args[0])
         if not remainder:
             return
+        # TODO(stephenfin): Remove all of these once we have version decorators
+        # on them all
         if ((remainder[0] == 'portgroups'
                 and not api_utils.allow_portgroups_subcontrollers())
             or (remainder[0] == 'vifs'
