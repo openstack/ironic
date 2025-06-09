@@ -568,7 +568,7 @@ bios_interface:
   type: string
 bios_setting_allowable_values:
   description: |
-    A list of allowable values, otherwise ``null``.
+    A list of allowable values. May be ``null``.
   in: body
   required: true
   type: array
@@ -598,21 +598,19 @@ bios_setting_min_length:
   type: integer
 bios_setting_name:
   description: |
-    The name of a Bios setting for a Node, eg. "virtualization".
+    The name of a Bios setting for a Node, eg. ``virtualization``.
   in: body
   required: true
   type: string
 bios_setting_read_only:
   description: |
-    This Bios setting is read only and can't be changed.
-    May be None.
+    This Bios setting is read only and can't be changed. May be ``null``.
   in: body
   required: true
   type: boolean
 bios_setting_reset_required:
   description: |
-    After setting this Bios setting a node reboot is required.
-    May be None.
+    After setting this Bios setting a node reboot is required. May be ``null``.
   in: body
   required: true
   type: boolean
