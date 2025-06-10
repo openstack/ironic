@@ -658,9 +658,7 @@ def get_neutron_port_data(port_id, vif_id, client=None, context=None,
 
     # Finish setup of bond links configuration injection
     if bond_links:
-        links = []
-        for link in bond_links:
-            links.append(link['id'])
+        links = [link['id'] for link in bond_links]
         # Add the list of links to the bond port
         network_data['links'][0]['bond_links'] = links
         # Add the rest of the links to the metadata.

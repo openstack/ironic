@@ -563,7 +563,7 @@ opts = [
                 help=_('Option to disable operations which check and '
                        'potentially fix up configuration drive contents, '
                        'such as invalid network metadata values. When these '
-                       'issues are detected, and ironic is able to correct '
+                       'issues are detected, and Ironic is able to correct '
                        'the data, Ironic will do so transparently. Setting '
                        'this option to True will disable this '
                        'functionality.')),

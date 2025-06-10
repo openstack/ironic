@@ -75,6 +75,8 @@ class MetadataUtilsTestCase(db_base.DbTestCase):
     @mock.patch.object(cd_utils, 'generate_instance_network_data',
                        autospec=True)
     def test_generate_config_metadata_none(self, mock_gen, mock_valid):
+        # We don't expect None to ever be returned from
+        # generate_instance_network_data, but just in case!
         mock_gen.return_value = None
         with task_manager.acquire(self.context, self.node.id,
                                   shared=True) as task:
@@ -83,7 +85,7 @@ class MetadataUtilsTestCase(db_base.DbTestCase):
                 cd_utils.generate_config_metadata,
                 task)
             mock_gen.assert_called_once_with(task)
-        mock_valid.assert_not_called()
+        mock_valid.assert_called_once_with(None)
 
     @mock.patch.object(cd_utils, 'is_invalid_network_metadata',
                        autospec=True)
@@ -216,26 +218,26 @@ class MetadataUtilsTestCase(db_base.DbTestCase):
         expected = {
             'links': [
                 {'ethernet_mac_address': '52:54:00:cf:2d:31',
-                 'id': '86ffb399-6dd4-4e6c-8eb0-069d608bc5ca',
+                 'id': 'iface0',
                  'mtu': 1500,
                  'type': 'phy',
                  'vif_id': 'meep'},
                 {'ethernet_mac_address': '51:54:00:cf:2d:32',
-                 'id': '373960ab-131f-4a37-8329-8cda768ba722',
+                 'id': 'iface1',
                  'mtu': 1500,
                  'type': 'phy',
                  'vif_id': 'beep'}],
             'networks': [
                 {'id': 'boop',
                  'ip_address': '192.168.1.1',
-                 'link': '86ffb399-6dd4-4e6c-8eb0-069d608bc5ca',
+                 'link': 'iface0',
                  'netmask': '255.255.255.0',
                  'network_id': 'a8164a5e-ce7e-4ce4-b017-20c93a559f7c',
                  'routes': [],
                  'type': 'ipv4'},
                 {'id': 'boop',
                  'ip_address': '192.168.1.2',
-                 'link': '373960ab-131f-4a37-8329-8cda768ba722',
+                 'link': 'iface1',
                  'netmask': '255.255.255.0',
                  'network_id': 'a8164a5e-ce7e-4ce4-b017-20c93a559f7c',
                  'routes': [],
@@ -285,6 +287,15 @@ class MetadataUtilsTestCase(db_base.DbTestCase):
                  'type': 'phy',
                  'ethernet_mac_address': '01:02:03:04:05:06',
                  'vif_id': 'meep',
+                 'mtu': 1500,
+                 'bond_links': [port1.uuid, port2.uuid]},
+                {'id': port1.uuid,
+                 'type': 'phy',
+                 'ethernet_mac_address': port1.address,
+                 'mtu': 1500},
+                {'id': port2.uuid,
+                 'type': 'phy',
+                 'ethernet_mac_address': port2.address,
                  'mtu': 1500}],
             'networks': [
                 {'id': "boop",
@@ -296,14 +307,37 @@ class MetadataUtilsTestCase(db_base.DbTestCase):
                  'routes': []}],
             'services': []
         }
+        expected = {
+            'links': [
+                {'bond_links': ['iface1', 'iface2'],
+                 'ethernet_mac_address': '01:02:03:04:05:06',
+                 'id': 'iface0',
+                 'mtu': 1500,
+                 'type': 'phy',
+                 'vif_id': 'meep'},
+                {'ethernet_mac_address': '52:54:00:cf:2d:31',
+                 'id': 'iface1',
+                 'mtu': 1500,
+                 'type': 'phy'},
+                {'ethernet_mac_address': '51:54:00:cf:2d:32',
+                 'id': 'iface2',
+                 'mtu': 1500,
+                 'type': 'phy'}],
+            'networks': [{
+                'id': 'boop',
+                'ip_address': '192.168.1.1',
+                'link': 'iface0',
+                'netmask': '255.255.255.0',
+                'network_id': 'a8164a5e-ce7e-4ce4-b017-20c93a559f7c',
+                'routes': [],
+                'type': 'ipv4'}],
+            'services': []}
+
         mock_gnpd.return_value = gnpd
         with task_manager.acquire(self.context, self.node.id,
                                   shared=True) as task:
-            cd_utils.generate_instance_network_data(task)
-            # NOTE(TheJulia): Not really concerned with the result, the
-            # key aspect is to ensure we assembled the bond links correctly
-            # from the available data. Other tests ensure the fields
-            # get assembled together.
+            res = cd_utils.generate_instance_network_data(task)
+            self.assertEqual(expected, res)
             mock_gnpd.assert_called_once_with(
                 pg.id, 'meep',
                 mac_address=pg.address,
@@ -409,7 +443,8 @@ class MetadataUtilsTestCase(db_base.DbTestCase):
             cd_utils.check_and_patch_configdrive(task, 'foo')
         mock_regen.assert_called_once_with(
             mock.ANY, mock.ANY,
-            {'/openstack/latest/network_data.json': mock.ANY})
+            {'/openstack/latest/network_data.json': mock.ANY},
+            node_uuid=self.node.uuid)
         self.assertTrue(mock_remove.called)
         mock_temp.assert_called_once_with(dir=mock.ANY, mode='wb+')
         mock_mkstemp.assert_called_once_with(dir=mock.ANY)
@@ -450,7 +485,8 @@ class MetadataUtilsTestCase(db_base.DbTestCase):
             cd_utils.check_and_patch_configdrive(task, 'foo')
         mock_regen.assert_called_once_with(
             mock.ANY, mock.ANY,
-            {'/openstack/latest/network_data.json': mock.ANY})
+            {'/openstack/latest/network_data.json': mock.ANY},
+            node_uuid=self.node.uuid)
         self.assertTrue(mock_remove.called)
         mock_temp.assert_called_once_with(dir=mock.ANY, mode='wb+')
         mock_mkstemp.assert_called_once_with(dir=mock.ANY)
@@ -603,17 +639,6 @@ class PatchConfigDriveTestCase(db_base.DbTestCase):
             'networks': [{'bar': 'baz'}],
             'services': [],
         }
-
-    def test__check_and_fix_configdrive_noop(self, mock_cdp, mock_gen,
-                                             mock_invalid):
-        with task_manager.acquire(self.context, self.node.uuid) as task:
-            self.assertIsNone(
-                cd_utils.check_and_fix_configdrive(task, None))
-            self.assertEqual(
-                {}, cd_utils.check_and_fix_configdrive(task, {}))
-        mock_invalid.assert_not_called()
-        mock_cdp.assert_not_called()
-        mock_gen.assert_not_called()
 
     def test_check_and_fix_configdrive_metadata(self, mock_cdp, mock_gen,
                                                 mock_invalid):

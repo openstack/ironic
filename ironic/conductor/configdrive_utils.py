@@ -1,5 +1,3 @@
-# coding=utf-8
-
 #    Licensed under the Apache License, Version 2.0 (the "License"); you may
 #    not use this file except in compliance with the License. You may obtain
 #    a copy of the License at
@@ -47,9 +45,9 @@ def is_invalid_network_metadata(network_data):
         # likely just declare missing MTU as a qualifier to rebuild, but
         # that is likely to then trigger far more often. Maybe that means
         # it is an even better idea...
-        return ((len(network_data.get('links', [])) == 0)
-                and (len(network_data.get('networks', [])) == 0)
-                and (len(network_data.get('services', [])) == 0))
+        return (not network_data.get('links', [])
+                and not network_data.get('networks', [])
+                and not network_data.get('services', []))
     except AttributeError:
         # Got called with None or something else lacking the attribute.
         # NOTE(TheJulia): If we ever want to inject metadata if missing
@@ -66,7 +64,7 @@ def check_and_patch_configdrive(task, configdrive):
     correct, which is intended to allow the overall deployment process to
     proceed with the correct data.
 
-    :param task: A Taskmanager object.
+    :param task: A TaskManager object.
     :param configdrive: The in-memory configuration drive file which was
                         submitted by the requester.
     :returns: The submitted configuration drive or a regenerated and patched
@@ -104,9 +102,12 @@ def check_and_patch_configdrive(task, configdrive):
                     # move on.
                     LOG.debug('Encountered error while trying to parse '
                               'configuration drive network_data.json file '
+                              'for node UUID %(node)s, instance %(inst)s.'
                               'content which was submitted to Ironic. '
-                              'Error: %s', e)
-                    pass
+                              'Error: %(error)s',
+                              {'error': e,
+                               'node': task.node.uuid,
+                               'inst': task.node.instance_uuid})
             LOG.warning('The provided metadata for the deployment of '
                         'node %s appears invalid, and will be '
                         'regenerated based upon the available '
@@ -121,15 +122,19 @@ def check_and_patch_configdrive(task, configdrive):
             # regenerate_iso call takes overrides.
             regenerate_iso(
                 provided_iso, new_iso_file,
-                {'/openstack/latest/network_data.json': network_data})
+                {'/openstack/latest/network_data.json': network_data},
+                node_uuid=task.node.uuid)
             new_drive = _read_config_drive(new_iso_file)
             # Remove the file.
             os.remove(new_iso_file)
     except (OSError, processutils.ProcessExecutionError) as e:
         # Catch any general OSError (permission issue) or
         # ProcessExecutionError from regenerate_iso.
-        LOG.error('Failed to regenerate the configuration drive ISO, '
-                  'proceeding with submitted metadata: %s', e)
+        LOG.error('Failed to regenerate the configuration drive ISO '
+                  'for node %(node)s, '
+                  'roceeding with submitted metadata: %s',
+                  {'error': e,
+                   'node': task.node.uuid})
         return configdrive
     except exception.ConfigDriveRegenerationFailure:
         # If this is being raised, the generation failed. That should have
@@ -153,7 +158,7 @@ def _read_config_drive(file):
             gzip.compress(new_iso.read())).decode()
 
 
-def regenerate_iso(source, dest, override_files):
+def regenerate_iso(source, dest, override_files, node_uuid=None):
     """Utility method to regenerate a config drive ISO image.
 
     This method takes the source, extracts the contents in a temporary folder,
@@ -166,12 +171,16 @@ def regenerate_iso(source, dest, override_files):
                            as values paris, which will be used to override
                            contents of the configuration drive for the purpose
                            of patching metadata.
+    :param node_uuid: The node UUID, for logging purposes.
     """
     with tempfile.TemporaryDirectory(dir=CONF.tempdir) as tempfolder:
         # NOTE(TheJulia): The base extraction logic was sourced from kickstart
         # utils, as an actually kind of simple base approach to do the needful
         # extraction.
-        LOG.debug('Extracting configuration drive to %s', tempfolder)
+        LOG.debug('Extracting configuration drive for node %(node)s to '
+                  '%(location)s.',
+                  {'node': node_uuid,
+                   'location': tempfolder})
         # The default configuration drive format we expect is generally
         # of a rock ridge format, and to avoid classic dos ISO9660 level
         # constraints, we will get the path using a rock ridge base path
@@ -196,8 +205,11 @@ def regenerate_iso(source, dest, override_files):
                 source.get_file_from_iso(
                     joliet_path=iso_file_path, local_path=posix_file_path)
         # Okay, we have the files in a folder, lets patch!
-        for file in override_files.keys():
-            LOG.debug('Patching override configuration drive file %s', file)
+        for file in override_files:
+            LOG.debug('Patching override configuration drive file '
+                      '%(file)s for node %(node)s.',
+                      {'file': file,
+                       'node': node_uuid})
             content = override_files[file]
             dest_path = os.path.join(tempfolder, str(file).lstrip('/'))
             with open(dest_path, mode="w") as new_file:
@@ -264,8 +276,8 @@ def generate_instance_network_data(task):
 
         # The pattern here is keyed off a list of VIF Ids. We'll need
         # this to finish hydrating necessary data.
-        vif_id_keys = list(vif_id_to_objects['ports'].keys())
-        vif_id_keys.extend(list(vif_id_to_objects['portgroups'].keys()))
+        vif_id_keys = list(vif_id_to_objects['ports'])
+        vif_id_keys.extend(list(vif_id_to_objects['portgroups']))
 
         # This is the starting point for metadata generation. We have three
         # buckets which contain lists of dicts. In this specific case, we
@@ -324,6 +336,39 @@ def generate_instance_network_data(task):
             # as its entirely a possible situation in an entirely
             # manually configured universe.
             net_meta[key].extend(vif_net_meta[key])
+
+    # NOTE(TheJulia): This is done after the fact since our entire
+    # structure assembles everything together by vif and upon the basis
+    # of the vif attachments. We swap the values down to shorter values
+    # because it turns out some configdrive readers will try to use the
+    # id as a name value instead of operating relatively within the
+    # context of the running state of the node where the data applies.
+    link_count = 0
+    link_map = {}
+    # This is all modeled to modify in place so we minimally touch
+    # the rest of the data structure.
+    for link in net_meta['links']:
+        link_name = 'iface{}'.format(link_count)
+        link_map[link['id']] = link_name
+        net_meta['links'][link_count]['id'] = link_name
+        link_count += 1
+    # We have to re-iterate through the all of the links to address
+    # bond links, since we should already have mapped names, and now
+    # we just need to correct them.
+    link_count = 0
+    for link in net_meta['links']:
+        bond_links = link.get('bond_links')
+        if bond_links:
+            new_links = [link_map[x] for x in bond_links]
+            net_meta['links'][link_count]['bond_links'] = new_links
+        link_count += 0
+    # We now need to re-associate networks to the new interface
+    # id values.
+    net_count = 0
+    for network in net_meta['networks']:
+        new_name = link_map[net_meta['networks'][net_count]['link']]
+        net_meta['networks'][net_count]['link'] = new_name
+        net_count += 1
     return net_meta
 
 
@@ -356,20 +401,7 @@ def generate_config_metadata(task):
     # future, and with that somewhat in mind, the name of the method
     # was left appropriately broad to set that stage.
 
-    # Logging first, because we know we're only being called if there
-    # is a problem. We can proceed from there.
-    LOG.error('An error has been detected in the supplied network '
-              'configuration metadata for the deployment of '
-              'node %s.', task.node.uuid)
     metadata = generate_instance_network_data(task)
-    if metadata is None:
-        # We were unable to generate metadata because the underlying
-        # interface configuration, i.e. no neutron support.
-        LOG.error('Failed to generate new network metadata for '
-                  'deployment of node %s as the underlying '
-                  'interfaces do not signify neutron support.',
-                  task.node.uuid)
-        raise exception.ConfigDriveRegenerationFailure()
     if is_invalid_network_metadata(metadata):
         # NOTE(TheJulia): This *should* never happen in the scenarios
         # known to Ironic, however *could* happen if there is some sort
@@ -411,13 +443,7 @@ def check_and_fix_configdrive(task, configdrive):
     # use this same method to also just supply network metadata injection if
     # no configuration drive is supplied.
     try:
-        if configdrive is None or configdrive == {}:
-            LOG.debug('Failed to locate configuration drive contents for '
-                      'node %s.', task.node.uuid)
-            # Nothing to see here, move along. Possible opportunity to
-            # improve UX by pre-emptively injecting a configuration drive.
-            return configdrive
-        elif isinstance(configdrive, str) and configdrive.startswith('http'):
+        if isinstance(configdrive, str) and configdrive.startswith('http'):
             # In this event, we've been given a URL. We don't support
             # trying to do anything else hwere.
             return configdrive
