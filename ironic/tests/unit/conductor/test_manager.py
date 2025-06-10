@@ -1278,8 +1278,10 @@ class UpdateNodeTestCase(mgr_utils.ServiceSetUpMixin, db_base.DbTestCase):
 
             expected_msg_regex = \
                 (r'^Node {} can not have resource_class updated unless it is '
-                 r'in one of allowed \(.*\) states.$').format(
-                    re.escape(node.uuid))
+                 r'in one of allowed \(.*\) states. '
+                 r'Current state is \'{}\'.$').format(
+                    re.escape(node.uuid),
+                    re.escape(node.provision_state))
             self.assertRegex(str(exc.exc_info[1]), expected_msg_regex)
 
             # verify change did not happen
