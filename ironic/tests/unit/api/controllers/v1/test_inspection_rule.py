@@ -198,6 +198,14 @@ class TestPost(BaseInspectionRulesAPITest):
                                   headers=self.headers)
         self.assertEqual(201, response.status_int)
 
+    def test_create_rule_with_invalid_priority_fails(self):
+        idict = test_api_utils.post_get_test_inspection_rule()
+        idict['priority'] = -1
+        response = self.post_json('/inspection_rules', idict,
+                                  headers=self.headers,
+                                  expect_errors=True)
+        self.assertEqual(http_client.BAD_REQUEST, response.status_int)
+
 
 class TestPatch(BaseInspectionRulesAPITest):
     def test_patch_invalid_api_version(self):

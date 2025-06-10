@@ -146,10 +146,10 @@ def validate_rule(rule):
             })
 
     priority = rule.get('priority', 0)
-    if priority < 0 and not rule['built_in']:
+    if priority < 0 and not rule.get('built_in'):
         errors.append(
             _("Priority cannot be negative for user-defined rules."))
-    if priority > 9999 and not rule['built_in']:
+    if priority > 9999 and not rule.get('built_in'):
         errors.append(
             _("Priority must be between 0 and 9999 for user-defined rules."))
 
