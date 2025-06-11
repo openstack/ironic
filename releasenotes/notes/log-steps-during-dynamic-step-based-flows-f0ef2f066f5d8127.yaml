@@ -1,0 +1,12 @@
+---
+features:
+  - |
+    Start and end of dynamic step-based flows (automated cleaning,
+    manual cleaning, servicing, and deploy steps) are now logged to
+    Node History if ``[conductor]record_step_flows_in_history`` is enabled
+    (default: ``True``). This makes it easier to trace what steps were
+    attempted when troubleshooting deployment failures.
+
+    A second knob which is disabled by default,
+    ``[conductor]log_step_flows_to_syslog``, allows emitting the same flow
+    events, but to the service log.

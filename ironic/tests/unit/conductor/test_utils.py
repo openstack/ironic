@@ -3094,6 +3094,12 @@ class NodeHistoryRecordTestCase(db_base.DbTestCase):
         self.node = obj_utils.create_test_node(
             self.context,
             uuid=uuidutils.generate_uuid())
+        self.steps = [
+            {
+                'step': 'erase_devices',
+                'interface': 'deploy',
+                'args': {'token': 'secret'},
+                'priority': 99}]
 
     def test_record_node_history(self):
         conductor_utils.node_history_record(self.node, event='meow')
@@ -3142,6 +3148,39 @@ class NodeHistoryRecordTestCase(db_base.DbTestCase):
         mock_history.create = mock_create
         mock_history.assert_not_called()
         mock_create.assert_not_called()
+
+    @mock.patch('ironic.conductor.utils.LOG', autospec=True)
+    @mock.patch('ironic.conductor.utils.node_history_record', autospec=True)
+    def test_logs_to_history_and_syslog(self, mock_history, mock_log):
+        self.config(record_step_flows_in_history=True, group='conductor')
+        self.config(log_step_flows_to_syslog=True, group='conductor')
+
+        conductor_utils.log_step_flow_history(
+            self.node, flow=conductor_utils.StepFlow.DEPLOYMENT,
+            steps=self.steps, status='start')
+
+        mock_history.assert_called_once()
+        mock_log.info.assert_called_once()
+        assert 'deployment_start' in mock_history.call_args.kwargs[
+            'event_type']
+        assert self.node.uuid in mock_log.info.call_args.args[1]['node']
+
+    @mock.patch('ironic.conductor.utils.node_history_record', autospec=True)
+    def test_sanitizes_passwords_in_args(self, mock_history):
+        steps = [
+            {'interface': 'clean', 'step': 'noop',
+             'args': {'password': 'meow'}, 'priority': 10}
+        ]
+
+        conductor_utils.log_step_flow_history(
+            self.node, flow=conductor_utils.StepFlow.CLEANING_AUTO,
+            steps=steps, status='start')
+
+        mock_history.assert_called_once()
+        event_string = mock_history.call_args.kwargs['event']
+        assert 'password' in event_string
+        assert '***' in event_string
+        assert 'meow' not in event_string
 
 
 class GetTokenProjectFromRequestTestCase(db_base.DbTestCase):

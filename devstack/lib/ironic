@@ -182,6 +182,7 @@ IRONIC_EXTRA_PXE_PARAMS=${IRONIC_EXTRA_PXE_PARAMS:-}
 IRONIC_TTY_DEV=${IRONIC_TTY_DEV:-ttyS0,115200}
 IRONIC_USE_PORT_GROUP=$(trueorfalse False IRONIC_USE_PORT_GROUP)
 IRONIC_PORT_GROUP_MODE=${IRONIC_PORT_GROUP_MODE:-"balance-rr"}
+IRONIC_LOG_STEPS_TO_SYSLOG=${IRONIC_LOG_STEPS_TO_SYSLOG:-False}
 
 IRONIC_TEMPEST_BUILD_TIMEOUT=${IRONIC_TEMPEST_BUILD_TIMEOUT:-${BUILD_TIMEOUT:-}}
 if [[ -n "$BUILD_TIMEOUT" ]]; then
@@ -1903,6 +1904,8 @@ function configure_ironic_conductor {
     iniset $IRONIC_CONF_FILE DEFAULT enabled_hardware_types $IRONIC_ENABLED_HARDWARE_TYPES
 
     iniset $IRONIC_CONF_FILE conductor automated_clean $IRONIC_AUTOMATED_CLEAN_ENABLED
+
+    iniset $IRONIC_CONF_FILE conductor log_step_flows_to_syslog $IRONIC_LOG_STEPS_TO_SYSLOG
 
     # configure enabled and default interfaces
     local iface

@@ -652,7 +652,22 @@ opts = [
                        'and fail the provisioning action that required a '
                        'ramdisk and kernel. When set to False, Ironic will '
                        'fallback to the next valid, consistent configured '
-                       'ramdisk and kernel for the node.'))
+                       'ramdisk and kernel for the node.')),
+    cfg.BoolOpt(
+        "record_step_flows_in_history",
+        default=True,
+        help=(
+            "When True, the conductor writes a Node History entry at the "
+            "start and end of every cleaning/servicing/deploy-steps flow. "
+            "Disable this in very high-churn environments to reduce DB load."
+        )),
+    cfg.BoolOpt(
+        'log_step_flows_to_syslog',
+        default=False,
+        help=(
+            "Log steps at the start/end of cleaning/servicing/deployment "
+            "to the conductor service log (WARNING for aborted/failure, "
+            "INFO otherwise.")),
 ]
 
 

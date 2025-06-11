@@ -303,6 +303,12 @@ def do_node_deploy(task, conductor_id=None, configdrive=None,
         node.conductor_affinity = conductor_id
         node.save()
 
+    utils.log_step_flow_history(
+        node=node, flow=utils.StepFlow.DEPLOYMENT,
+        steps=node.driver_internal_info.get("deploy_steps", []),
+        status="start",
+    )
+
     do_next_deploy_step(task, 0)
 
 
@@ -384,6 +390,12 @@ def do_next_deploy_step(task, step_index):
             task.process_event('wait')
             return
         except exception.IronicException as e:
+            utils.log_step_flow_history(
+                node=node, flow=utils.StepFlow.DEPLOYMENT,
+                steps=node.driver_internal_info.get("deploy_steps", []),
+                status="end", aborted_step=step.get("step"),
+            )
+
             if isinstance(e, exception.AgentConnectionFailed):
                 if task.node.driver_internal_info.get(
                         async_steps.DEPLOYMENT_REBOOT):
@@ -408,6 +420,12 @@ def do_next_deploy_step(task, step_index):
                     % {'step': conductor_steps.step_id(step), 'err': e})
             return
         except Exception as e:
+            utils.log_step_flow_history(
+                node=node, flow=utils.StepFlow.DEPLOYMENT,
+                steps=node.driver_internal_info.get("deploy_steps", []),
+                status="end", aborted_step=step.get("step"),
+            )
+
             log_msg = ('Node %(node)s failed deploy step %(step)s with '
                        'unexpected error: %(err)s' %
                        {'node': node.uuid, 'step': node.deploy_step, 'err': e})
@@ -452,6 +470,12 @@ def do_next_deploy_step(task, step_index):
 
         LOG.info('Node %(node)s finished deploy step %(step)s',
                  {'node': node.uuid, 'step': step})
+
+    utils.log_step_flow_history(
+        node=node, flow=utils.StepFlow.DEPLOYMENT,
+        steps=node.driver_internal_info.get("deploy_steps", []),
+        status="end",
+    )
 
     # Finished executing the steps. Clear deploy_step.
     node.deploy_step = None

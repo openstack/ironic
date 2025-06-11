@@ -14,6 +14,7 @@
 
 import contextlib
 import datetime
+from enum import Enum
 import functools
 import os
 import secrets
@@ -52,6 +53,13 @@ PASSWORD_HASH_FORMAT = {
     'sha256': 'SHA-256',
     'sha512': 'SHA-512',
 }
+
+
+class StepFlow(Enum):
+    CLEANING_MANUAL = 'manual_cleaning'
+    CLEANING_AUTO = 'automated_cleaning'
+    DEPLOYMENT = 'deployment'
+    SERVICING = 'servicing'
 
 
 @task_manager.require_exclusive_lock
@@ -2008,3 +2016,53 @@ def node_update_cache(task):
     node_cache_boot_mode(task)
     node_cache_bios_settings(task)
     node_cache_firmware_components(task)
+
+
+def log_step_flow_history(node, flow, steps, status, aborted_step=None):
+    """Persist start/end milestones for cleaning / servicing / deploy flows.
+
+    :param node: A Node object
+    :param flow: A StepFlow enum member, e.g. StepFlow.DEPLOYMENT
+    :param steps: full list of step dicts (may be empty/None)
+    :param status: ``'start'`` or ``'done'``
+    :param aborted_step:  name of failed step (optional)
+    """
+    if not (CONF.conductor.record_step_flows_in_history
+            or CONF.conductor.log_step_flows_to_syslog):
+        return
+
+    sanitized = [
+        (
+            dict(st, args=strutils.mask_dict_password(st["args"]))
+            if isinstance(st, dict) and isinstance(st.get("args"), dict)
+            else st
+        )
+        for st in (steps or [])
+    ]
+
+    error = False
+    if status == "start":
+        event_type = "%s_start" % flow.value
+        event = "Starting %s with steps=%s" % (
+            flow.value.replace("_", " "), sanitized)
+    elif status == "end":
+        event_type = "%s_end" % flow.value
+        if aborted_step:
+            error = True
+            event = "%s aborted at step '%s' with steps=%s" % (
+                flow.value.replace("_", " ").title(),
+                aborted_step, sanitized)
+        else:
+            event = "%s completed successfully with steps=%s" % (
+                flow.value.replace("_", " ").title(), sanitized)
+    else:
+        raise ValueError("Unknown status '%s'" % status)
+
+    if CONF.conductor.log_step_flows_to_syslog:
+        log_fn = LOG.warning if error else LOG.info
+        log_fn("Node %(node)s: %(event)s",
+               {'node': node.uuid, 'event': event})
+
+    if CONF.conductor.record_step_flows_in_history:
+        node_history_record(node, event=event, event_type=event_type,
+                            error=error)

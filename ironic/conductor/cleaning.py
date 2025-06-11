@@ -28,6 +28,11 @@ from ironic import objects
 LOG = log.getLogger(__name__)
 
 
+def get_cleaning_flow(manual_clean=False):
+    return (utils.StepFlow.CLEANING_MANUAL if manual_clean
+            else utils.StepFlow.CLEANING_AUTO)
+
+
 @task_manager.require_exclusive_lock
 def do_node_clean(task, clean_steps=None, disable_ramdisk=False,
                   automated_with_steps=False):
@@ -44,7 +49,9 @@ def do_node_clean(task, clean_steps=None, disable_ramdisk=False,
     """
     node = task.node
     manual_clean = clean_steps is not None and automated_with_steps is False
-    clean_type = 'manual' if manual_clean else 'automated'
+
+    clean_type = get_cleaning_flow(manual_clean)
+
     LOG.debug('Starting %(type)s cleaning for node %(node)s',
               {'type': clean_type, 'node': node.uuid})
 
@@ -135,6 +142,10 @@ def do_node_clean(task, clean_steps=None, disable_ramdisk=False,
         return utils.cleaning_error_handler(task, msg)
 
     steps = node.driver_internal_info.get('clean_steps', [])
+
+    utils.log_step_flow_history(node=node, flow=clean_type,
+                                steps=steps, status="start")
+
     step_index = 0 if steps else None
     do_next_clean_step(task, step_index, disable_ramdisk=disable_ramdisk)
 
@@ -157,6 +168,9 @@ def do_next_clean_step(task, step_index, disable_ramdisk=None):
     # For manual cleaning, the target provision state is MANAGEABLE,
     # whereas for automated cleaning, it is AVAILABLE.
     manual_clean = node.target_provision_state == states.MANAGEABLE
+
+    clean_type = get_cleaning_flow(manual_clean)
+
     if step_index is None:
         steps = []
     else:
@@ -234,6 +248,12 @@ def do_next_clean_step(task, step_index, disable_ramdisk=None):
                 task.process_event('wait', target_state=target_state)
                 return
 
+            utils.log_step_flow_history(
+                node=node, flow=clean_type,
+                steps=node.driver_internal_info.get("clean_steps", []),
+                status="end", aborted_step=step.get("step"),
+            )
+
             msg = (_('Node %(node)s failed step %(step)s: '
                      '%(exc)s') %
                    {'node': node.uuid, 'exc': e,
@@ -285,6 +305,13 @@ def do_next_clean_step(task, step_index, disable_ramdisk=None):
                                                 tear_down_cleaning=False)
     utils.node_update_cache(task)
     LOG.info('Node %s cleaning complete', node.uuid)
+
+    utils.log_step_flow_history(
+        node=node, flow=clean_type,
+        steps=node.driver_internal_info.get("clean_steps", []),
+        status="end"
+    )
+
     event = 'manage' if manual_clean or node.retired else 'done'
     # NOTE(rloo): No need to specify target prov. state; we're done
     task.process_event(event)

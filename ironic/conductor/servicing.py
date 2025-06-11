@@ -76,6 +76,11 @@ def do_node_service(task, service_steps=None, disable_ramdisk=False):
         return utils.servicing_error_handler(task, msg)
 
     steps = node.driver_internal_info.get('service_steps', [])
+
+    utils.log_step_flow_history(
+        node=node, flow=utils.StepFlow.SERVICING,
+        steps=steps, status="start")
+
     step_index = 0 if steps else None
     for step in steps:
         step_requires_ramdisk = step.get('requires_ramdisk')
@@ -194,6 +199,12 @@ def do_next_service_step(task, step_index, disable_ramdisk=None):
                 task.process_event('wait')
                 return
 
+            utils.log_step_flow_history(
+                node=node, flow=utils.StepFlow.SERVICING,
+                steps=node.driver_internal_info.get("service_steps", []),
+                status="end", aborted_step=step.get("step"),
+            )
+
             msg = (_('Node %(node)s failed step %(step)s: '
                      '%(exc)s') %
                    {'node': node.uuid, 'exc': e,
@@ -236,6 +247,13 @@ def _tear_down_node_service(task, disable_ramdisk):
     task.node.service_step = None
     utils.wipe_service_internal_info(task)
     task.node.save()
+
+    utils.log_step_flow_history(
+        node=task.node, flow=utils.StepFlow.SERVICING,
+        steps=task.node.driver_internal_info.get("service_steps", []),
+        status="end"
+    )
+
     if not disable_ramdisk:
         try:
             task.driver.deploy.tear_down_service(task)
