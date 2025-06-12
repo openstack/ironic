@@ -1671,9 +1671,10 @@ function configure_neutron_l3_lower_v6_ra {
 }
 
 function configure_neutron_dhcp_enable_addr6_list {
-    if is_service_enabled q-dhcp; then
+    if is_service_enabled q-dhcp neutron-dhcp; then
         iniset $Q_DHCP_CONF_FILE DEFAULT dnsmasq_enable_addr6_list true
-        restart_service devstack@q-dhcp.service
+        restart_service devstack@q-dhcp.service || true
+        restart_service devstack@neutron-dhcp.service || true
     fi
 }
 
@@ -4352,7 +4353,7 @@ function downgrade_dnsmasq {
             echo "Dnsmasq already downgraded, continuing..."
         else
             echo "Downgrading dnsmasq..."
-            sudo dpkg -r dnsmasq-base
+            sudo dpkg -r dnsmasq dnsmasq-base
             # NOTE(JayF) Cannot shallow clone; need to checkout a commit that
             # is not part of a named tag
             DNSMASQ_DIR=$(mktemp --tmpdir -u dnsmasq.XXXXXX)
