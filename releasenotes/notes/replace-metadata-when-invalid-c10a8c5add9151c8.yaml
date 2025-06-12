@@ -2,7 +2,7 @@
 fixes:
   - |
     Fixes an issue where a Nova, or other consumer attempting to send network
-    data to Ironic can send grossly invalid network metadata which needs to
+    data to Ironic can send invalid network metadata which needs to
     be replaced. Ironic now identifies the condition, and regenerates the network
     metadata utilizing the attached VIF records. This results in some minor
     data differences, such as Nova's internal VIF tap naming which is redundant,
