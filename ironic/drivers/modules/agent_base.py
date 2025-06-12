@@ -570,8 +570,11 @@ class HeartbeatMixin(object):
                 task.resume_cleaning()
                 # First, cache the clean steps
                 self.refresh_clean_steps(task)
+                use_existing_steps = node.driver_internal_info.get(
+                    'declarative_cleaning', False)
                 # Then set/verify node clean steps and start cleaning
-                conductor_steps.set_node_cleaning_steps(task)
+                conductor_steps.set_node_cleaning_steps(
+                    task, use_existing_steps=use_existing_steps)
                 cleaning.continue_node_clean(task)
             else:
                 msg = _('Node failed to check cleaning progress')

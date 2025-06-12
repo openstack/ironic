@@ -293,15 +293,22 @@ def _get_verify_steps(task, enabled=False, sort=True):
     return verify_steps
 
 
-def set_node_cleaning_steps(task, disable_ramdisk=False):
+def set_node_cleaning_steps(task, disable_ramdisk=False,
+                            use_existing_steps=False):
     """Set up the node with clean step information for cleaning.
 
     For automated cleaning, get the clean steps from the driver.
     For manual cleaning, the user's clean steps are known but need to be
     validated against the driver's clean steps.
 
+    :param task: A TaskManager object
     :param disable_ramdisk: If `True`, only steps with requires_ramdisk=False
         are accepted.
+    :param use_existing_steps: If `True`, validate existing steps from
+        driver_internal_info['clean_steps'] which comes from manual cleaning
+        API call or a runbook-based declarative automated cleaning. If
+        `False`, retrieve cleaning steps from the driver (implicit
+        automated cleaning).
     :raises: InvalidParameterValue if there is a problem with the user's
              clean steps.
     :raises: NodeCleaningFailure if there was a problem getting the
@@ -309,14 +316,9 @@ def set_node_cleaning_steps(task, disable_ramdisk=False):
     """
     node = task.node
 
-    # For manual cleaning, the target provision state is MANAGEABLE, whereas
-    # for automated cleaning, it is AVAILABLE.
-    manual_clean = node.target_provision_state == states.MANAGEABLE
-
-    if not manual_clean:
-        # Get the prioritized steps for automated cleaning
-        steps = _get_cleaning_steps(task, enabled=True)
-    else:
+    # NOTE(JayF): This is true when doing manual cleaning or when doing
+    #             cleaning via runbook.
+    if use_existing_steps is True:
         # For manual cleaning, the list of cleaning steps was specified by the
         # user and already saved in node.driver_internal_info['clean_steps'].
         # Now that we know what the driver's available clean steps are, we can
@@ -324,7 +326,13 @@ def set_node_cleaning_steps(task, disable_ramdisk=False):
         steps = _validate_user_clean_steps(
             task, node.driver_internal_info['clean_steps'],
             disable_ramdisk=disable_ramdisk)
+    else:
+        # Get the prioritized steps for automated cleaning
+        steps = _get_cleaning_steps(task, enabled=True)
 
+    # For manual cleaning, the target provision state is MANAGEABLE, whereas
+    # for automated cleaning, it is AVAILABLE.
+    manual_clean = node.target_provision_state == states.MANAGEABLE
     LOG.debug('List of the steps for %(type)s cleaning of node %(node)s: '
               '%(steps)s', {'type': 'manual' if manual_clean else 'automated',
                             'node': node.uuid,

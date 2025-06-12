@@ -843,7 +843,8 @@ class NodeCleaningStepsTestCase(db_base.DbTestCase):
 
         with task_manager.acquire(
                 self.context, node.uuid, shared=False) as task:
-            conductor_steps.set_node_cleaning_steps(task)
+            conductor_steps.set_node_cleaning_steps(task,
+                                                    use_existing_steps=False)
             node.refresh()
             self.assertEqual(self.clean_steps,
                              node.driver_internal_info['clean_steps'])
@@ -870,7 +871,8 @@ class NodeCleaningStepsTestCase(db_base.DbTestCase):
 
         with task_manager.acquire(
                 self.context, node.uuid, shared=False) as task:
-            conductor_steps.set_node_cleaning_steps(task)
+            conductor_steps.set_node_cleaning_steps(task,
+                                                    use_existing_steps=True)
             node.refresh()
             self.assertEqual(clean_steps,
                              node.driver_internal_info['clean_steps'])

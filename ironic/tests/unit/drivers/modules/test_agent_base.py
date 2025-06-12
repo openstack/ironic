@@ -334,7 +334,32 @@ class HeartbeatMixinTest(AgentDeployMixinBaseTest):
         mock_touch.assert_called_once_with(mock.ANY)
         mock_refresh.assert_called_once_with(mock.ANY, task, 'clean')
         mock_clean.assert_called_once_with(task)
-        mock_set_steps.assert_called_once_with(task)
+        mock_set_steps.assert_called_once_with(task, use_existing_steps=False)
+
+    @mock.patch.object(objects.node.Node, 'touch_provisioning', autospec=True)
+    @mock.patch.object(agent_base.HeartbeatMixin,
+                       'refresh_steps', autospec=True)
+    @mock.patch.object(conductor_steps, 'set_node_cleaning_steps',
+                       autospec=True)
+    @mock.patch.object(cleaning, 'continue_node_clean', autospec=True)
+    def test_heartbeat_resume_clean_declarative(self, mock_clean,
+                                                mock_set_steps,
+                                                mock_refresh, mock_touch):
+        # Test declarative cleaning case where use_existing_steps=True
+        self.node.clean_step = {}
+        self.node.provision_state = states.CLEANWAIT
+        info = self.node.driver_internal_info
+        info['declarative_cleaning'] = True
+        self.node.driver_internal_info = info
+        self.node.save()
+        with task_manager.acquire(
+                self.context, self.node.uuid, shared=False) as task:
+            self.deploy.heartbeat(task, 'http://127.0.0.1:8080', '1.0.0')
+
+        mock_touch.assert_called_once_with(mock.ANY)
+        mock_refresh.assert_called_once_with(mock.ANY, task, 'clean')
+        mock_clean.assert_called_once_with(task)
+        mock_set_steps.assert_called_once_with(task, use_existing_steps=True)
 
     @mock.patch.object(manager_utils, 'cleaning_error_handler', autospec=True)
     @mock.patch.object(objects.node.Node, 'touch_provisioning', autospec=True)
@@ -1216,6 +1241,42 @@ class ContinueCleaningTest(AgentDeployMixinBaseTest):
                                   shared=False) as task:
             self.deploy.continue_cleaning(task)
             error_mock.assert_called_once_with(task, mock.ANY, traceback=False)
+
+    @mock.patch.object(cleaning, 'continue_node_clean', autospec=True)
+    @mock.patch.object(agent_client.AgentClient, 'get_commands_status',
+                       autospec=True)
+    def test_continue_cleaning_declarative_flag_preserved(self, status_mock,
+                                                          clean_mock):
+        # Test that declarative_cleaning flag is preserved during cleaning
+        self.node.clean_step = {
+            'priority': 10,
+            'interface': 'deploy',
+            'step': 'erase_devices',
+            'reboot_requested': False
+        }
+        info = self.node.driver_internal_info
+        info['declarative_cleaning'] = True
+        self.node.driver_internal_info = info
+        self.node.save()
+        status_mock.return_value = [{
+            'command_status': 'SUCCEEDED',
+            'command_name': 'execute_clean_step',
+            'command_result': {
+                'clean_step': self.node.clean_step
+            }
+        }]
+        with task_manager.acquire(self.context, self.node['uuid'],
+                                  shared=False) as task:
+            self.deploy.continue_cleaning(task)
+            clean_mock.assert_called_once_with(task)
+            self.assertEqual(states.CLEANING, task.node.provision_state)
+            self.assertEqual(states.AVAILABLE,
+                             task.node.target_provision_state)
+            # Verify the flag is still present during cleaning
+            self.assertIn('declarative_cleaning',
+                          task.node.driver_internal_info)
+            self.assertTrue(
+                task.node.driver_internal_info['declarative_cleaning'])
 
 
 class ContinueServiceTest(AgentDeployMixinBaseTest):
