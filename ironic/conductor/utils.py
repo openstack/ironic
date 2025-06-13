@@ -1654,7 +1654,7 @@ def node_cache_boot_mode(task):
         task.node.secure_boot = secure_boot
         task.node.save()
         LOG.info("Updated boot_mode %(boot_mode)s, secure_boot %(secure_boot)s"
-                 "for node %(node)s",
+                 " for node %(node)s",
                  {'boot_mode': boot_mode, 'secure_boot': secure_boot,
                   'node': task.node.uuid})
 
