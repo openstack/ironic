@@ -223,7 +223,8 @@ class ConductorManager(base_manager.BaseConductorManager):
                                  states.AVAILABLE]
         action = _("Node %(node)s can not have %(field)s "
                    "updated unless it is in one of allowed "
-                   "(%(allowed)s) states or in maintenance mode.")
+                   "(%(allowed)s) states or in maintenance mode. "
+                   "Current state is '%(state)s'.")
         updating_driver = 'driver' in delta
         check_interfaces = updating_driver
         for iface in drivers_base.ALL_INTERFACES:
@@ -239,7 +240,8 @@ class ConductorManager(base_manager.BaseConductorManager):
                 raise exception.InvalidState(
                     action % {'node': node_obj.uuid,
                               'allowed': ', '.join(allowed_update_states),
-                              'field': interface_field})
+                              'field': interface_field,
+                              'state': node_obj.provision_state})
 
             check_interfaces = True
 
@@ -268,10 +270,12 @@ class ConductorManager(base_manager.BaseConductorManager):
                     not in allowed_update_states):
                 action = _("Node %(node)s can not have resource_class "
                            "updated unless it is in one of allowed "
-                           "(%(allowed)s) states.")
+                           "(%(allowed)s) states. "
+                           "Current state is '%(state)s'.")
                 raise exception.InvalidState(
                     action % {'node': node_obj.uuid,
-                              'allowed': ', '.join(allowed_update_states)})
+                              'allowed': ', '.join(allowed_update_states),
+                              'state': task.node.provision_state})
 
             if ('instance_uuid' in delta and task.node.allocation_id
                     and not node_obj.instance_uuid):
@@ -280,10 +284,12 @@ class ConductorManager(base_manager.BaseConductorManager):
                     action = _("Node %(node)s with an allocation can not have "
                                "instance_uuid removed unless it is in one of "
                                "allowed (%(allowed)s) states or in "
-                               "maintenance mode.")
+                               "maintenance mode. "
+                               "Current state is '%(state)s'.")
                     raise exception.InvalidState(
                         action % {'node': node_obj.uuid,
-                                  'allowed': ', '.join(allowed_update_states)})
+                                  'allowed': ', '.join(allowed_update_states),
+                                  'state': task.node.provision_state})
 
                 try:
                     allocation = objects.Allocation.get_by_id(
@@ -2611,12 +2617,14 @@ class ConductorManager(base_manager.BaseConductorManager):
                     and not node.maintenance):
                     action = _("Portgroup %(portgroup)s can not be associated "
                                "to node %(node)s unless the node is in a "
-                               "%(allowed)s state or in maintenance mode.")
+                               "%(allowed)s state or in maintenance mode. "
+                               "Current state is '%(state)s'.")
 
                     raise exception.InvalidState(
                         action % {'portgroup': portgroup_uuid,
                                   'node': node.uuid,
-                                  'allowed': ', '.join(allowed_update_states)})
+                                  'allowed': ', '.join(allowed_update_states),
+                                  'state': node.provision_state})
 
                 # NOTE(zhenguo): If portgroup update is modifying the
                 # portgroup-node association then there should not be
