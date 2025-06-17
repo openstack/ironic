@@ -897,6 +897,7 @@ VERSIONED_FIELDS = {
     'firmware_interface': versions.MINOR_86_FIRMWARE_INTERFACE,
     'service_step': versions.MINOR_87_SERVICE,
     'disable_power_off': versions.MINOR_95_DISABLE_POWER_OFF,
+    'instance_name': versions.MINOR_104_NODE_INSTANCE_NAME,
 }
 
 for field in V31_FIELDS:
@@ -2283,3 +2284,17 @@ def allow_port_category():
     Version 1.101 of the API added category field to the port object.
     """
     return api.request.version.minor >= versions.MINOR_101_PORT_CATEGORY
+
+
+def allow_node_instance_name():
+    """Check if instance_name is allowed for nodes.
+
+    Version 1.104 of the API added instance_name field to the node object.
+    """
+    return api.request.version.minor >= versions.MINOR_104_NODE_INSTANCE_NAME
+
+
+def check_allow_filter_by_instance_name(instance_name):
+    if instance_name is not None and not allow_node_instance_name():
+        raise exception.NotAcceptable(
+            _("instance_name is not acceptable in this API version"))

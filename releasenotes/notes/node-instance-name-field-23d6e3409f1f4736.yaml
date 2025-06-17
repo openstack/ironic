@@ -1,0 +1,15 @@
+---
+features:
+  - |
+    Adds a new ``instance_name`` field to Ironic nodes. This field can be used
+    to store the display name of the Nova instance that is associated with the
+    node, matching the constraints and format of Nova's ``display_name`` field.
+    The field supports strings up to 255 characters with minimum length of 1
+    character when not null.
+
+    The ``instance_name`` field is automatically cleared when instance data
+    is cleared during node teardown operations. For forward compatibility,
+    when Nova or other API clients update ``instance_info`` with a
+    ``display_name`` value, that value is automatically copied to the
+    ``instance_name`` field if ``instance_name`` is not explicitly being set
+    in the same request.

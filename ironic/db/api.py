@@ -64,6 +64,7 @@ class Connection(object, metaclass=abc.ABCMeta):
                             nodes with inspection_started_at field before this
                             interval in seconds
                         :instance_uuid: uuid of instance
+                        :instance_name: name of instance
                         :lessee: node's lessee (e.g. project ID)
                         :maintenance: True | False
                         :owner: node's owner (e.g. project ID)

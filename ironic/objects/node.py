@@ -84,7 +84,8 @@ class Node(base.IronicObject, object_base.VersionedObjectDictCompat):
     # Version 1.40: Add service_step field
     # Version 1.41: Add disable_power_off field
     # Version 1.42: Moves multiple methods to be remotable methods.
-    VERSION = '1.42'
+    # Version 1.43: Add instance_name field
+    VERSION = '1.43'
 
     dbapi = db_api.get_instance()
 
@@ -185,6 +186,7 @@ class Node(base.IronicObject, object_base.VersionedObjectDictCompat):
         'shard': object_fields.StringField(nullable=True),
         'parent_node': object_fields.StringField(nullable=True),
         'disable_power_off': objects.fields.BooleanField(nullable=True),
+        'instance_name': object_fields.StringField(nullable=True),
     }
 
     def as_dict(self, secure=False, mask_configdrive=True):
@@ -634,6 +636,9 @@ class Node(base.IronicObject, object_base.VersionedObjectDictCompat):
         Version 1.39: firmware_interface field was added. Its default value is
             None. For versions prior to this, it should be set to None (or
             removed).
+        Version 1.43: instance_name field was added. Its default value is
+            None. For versions prior to this, it should be set to None (or
+            removed).
 
         :param target_version: the desired version of the object
         :param remove_unavailable_fields: True to remove fields that are
@@ -650,7 +655,7 @@ class Node(base.IronicObject, object_base.VersionedObjectDictCompat):
                   ('owner', 30), ('allocation_id', 31), ('description', 32),
                   ('retired_reason', 33), ('lessee', 34), ('boot_mode', 36),
                   ('secure_boot', 36), ('shard', 37),
-                  ('firmware_interface', 39)]
+                  ('firmware_interface', 39), ('instance_name', 43)]
 
         for name, minor in fields:
             self._adjust_field_to_version(name, None, target_version,

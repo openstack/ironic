@@ -140,6 +140,9 @@ BASE_VERSION = 1
 # v1.100: Add vendor field to port.
 # v1.101: Add category field to port.
 # v1.102: Add physical_network field to portgroup.
+# v1.103: Add category field to portgroup
+# v1.104: Add instance_name to node
+
 
 MINOR_0_JUNO = 0
 MINOR_1_INITIAL_VERSION = 1
@@ -245,15 +248,18 @@ MINOR_100_PORT_VENDOR = 100
 MINOR_101_PORT_CATEGORY = 101
 MINOR_102_PORTGROUP_PHYSICAL_NETWORK = 102
 MINOR_103_PORTGROUP_CATEGORY = 103
+MINOR_104_NODE_INSTANCE_NAME = 104
+
 
 # When adding another version, update:
 # - MINOR_MAX_VERSION
 # - doc/source/contributor/webapi-version-history.rst with a detailed
 #   explanation of what changed in the new version
 # - common/release_mappings.py, RELEASE_MAPPING['master']['api']
+# - Add a comment describing the change above the list of consts
 
 
-MINOR_MAX_VERSION = MINOR_103_PORTGROUP_CATEGORY
+MINOR_MAX_VERSION = MINOR_104_NODE_INSTANCE_NAME
 
 # String representations of the minor and maximum versions
 _MIN_VERSION_STRING = '{}.{}'.format(BASE_VERSION, MINOR_1_INITIAL_VERSION)

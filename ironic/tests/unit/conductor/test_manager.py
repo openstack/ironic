@@ -2508,6 +2508,7 @@ class DoNodeTearDownTestCase(mgr_utils.ServiceSetUpMixin, db_base.DbTestCase):
         self.assertIsNone(node.instance_uuid)
         self.assertIsNone(node.allocation_id)
         self.assertIsNone(node.lessee)
+        self.assertIsNone(node.instance_name)
         self.assertEqual({}, node.instance_info)
         self.assertNotIn('instance', node.driver_internal_info)
         self.assertIsNone(node.driver_internal_info['deploy_steps'])

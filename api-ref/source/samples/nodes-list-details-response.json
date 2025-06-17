@@ -27,6 +27,7 @@
       "inspection_started_at": null,
       "instance_info": {},
       "instance_uuid": "5344a3e2-978a-444e-990a-cbf47c62ef88",
+      "instance_name": "my-test-instance",
       "last_error": null,
       "lessee": null,
       "links": [
@@ -133,6 +134,7 @@
       "inspection_started_at": null,
       "instance_info": {},
       "instance_uuid": null,
+      "instance_name": null,
       "last_error": null,
       "lessee": null,
       "links": [

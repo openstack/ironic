@@ -219,6 +219,7 @@ class Deployment(base.IronicObject, object_base.VersionedObjectDictCompat):
             assert node.uuid == self.node_uuid
         node.instance_uuid = None
         node.instance_info = {}
+        node.instance_name = None
         node.save()
         self._update_from_node_object(node)
         self.obj_reset_changes()
