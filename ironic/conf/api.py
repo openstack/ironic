@@ -103,6 +103,12 @@ opts = [
                 mutable=True,
                 help=_("Specifies a list of boot modes that are not allowed "
                        "during enrollment. Eg: ['bios']")),
+    cfg.StrOpt('cert_file',
+               help="Certificate file to use when starting "
+                    "the server securely."),
+    cfg.StrOpt('key_file',
+               help="Private key file to use when starting "
+                    "the server securely."),
 ]
 
 opt_group = cfg.OptGroup(name='api',

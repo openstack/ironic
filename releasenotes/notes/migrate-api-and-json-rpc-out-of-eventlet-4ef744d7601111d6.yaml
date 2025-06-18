@@ -1,0 +1,21 @@
+---
+fixes:
+  - |
+    The Ironic REST API and JSON-RPC endpoints are now served by
+    ``cheroot.wsgi.Server`` instead of the deprecated ``oslo_service.wsgi``
+    / eventlet stack.  Behaviour and CLI commands are unchanged.
+
+features:
+  - |
+    The REST API and JSON-RPC listeners now honour new options in their own
+    config sections:
+
+    * ``[api]cert_file`` / ``[api]key_file``
+    * ``[json_rpc]cert_file`` / ``[json_rpc]key_file``
+
+    This lets operators present different certificates for each endpoint
+    without touching the global ``[ssl]`` block as that is now deprecated,
+    to be removed in **2026.1**.
+
+    Deployments that still rely on the global ``[ssl]`` section are advised
+    to move the certificate settings to the per-service options.
