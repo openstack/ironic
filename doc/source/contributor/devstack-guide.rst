@@ -10,6 +10,10 @@ using a combination of OpenVSwitch and libvirt.  It is highly recommended
 to deploy on an expendable virtual machine and not on your personal work
 station.
 
+Ironic has a much smaller support envelope than devstack generally. For
+best results, use Ubuntu 24.04 (Noble) as the base OS for your devstack
+installation.
+
 .. seealso::
 
     https://docs.openstack.org/devstack/latest/
