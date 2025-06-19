@@ -19,7 +19,6 @@ import time
 
 import futurist
 from futurist import periodics
-from futurist import rejection
 from oslo_db import exception as db_exception
 from oslo_log import log
 from oslo_utils import excutils
@@ -100,25 +99,51 @@ class BaseConductorManager(object):
         self.dbapi.clear_node_reservations_for_conductor(self.host)
 
     def _init_executors(self, total_workers, reserved_percentage):
-        # NOTE(dtantsur): do not allow queuing work. Given our model, it's
-        # better to reject an incoming request with HTTP 503 or reschedule
-        # a periodic task that end up with hidden backlog that is hard
-        # to track and debug. Using 1 instead of 0 because of how things are
-        # ordered in futurist (it checks for rejection first).
-        rejection_func = rejection.reject_when_reached(1)
-
+        # NOTE(TheJulia): For context, as of 2025.2's development we have
+        # 16 periodics and 8 power sync threads. We end up scaling our
+        # minimum number of workers based upon the configuration later on,
+        # but we do this to try and keep a reasonable balance of workers
         reserved_workers = int(total_workers * reserved_percentage / 100)
         remaining = total_workers - reserved_workers
         LOG.info("Starting workers pool: %d normal workers + %d reserved",
                  remaining, reserved_workers)
+        # NOTE(TheJulia): We need to create two separate rejection functions
+        # which are individually aware of their maximum sizes in order to
+        # appropriately know if work must be rejected, or not.
+        # In the past, Ironic's internal model prefers we *never* queue
+        # more work than the current item, but  we won't have a choice
+        # with cross-thread activity. The custom rejector
+        # we invoke will result in work being rejected when the new
+        # work would exceed our overall capacity and thus return an API
+        # caller with an HTTP 503 or reschedule a task later.
+        rejection_func = reject_when_reached(remaining)
+        reserved_rejection_func = reject_when_reached(reserved_workers)
 
-        self._executor = futurist.GreenThreadPoolExecutor(
+        # Calculate our minimum worker count.
+        # This is imperfect because we presently have 8 power sync workers
+        # by default, along with 16 periodics, plus we need a little room
+        # to avoid adding/removing threads constantly. i.e. an idle deployment
+        # should hover around this many workers by default.
+        min_workers = int(
+            CONF.conductor.sync_power_state_workers
+            + (2 * CONF.conductor.periodic_max_workers) + 2)
+
+        if min_workers >= remaining:
+            msg = ("The number of calculated minimum workers %(workers)s "
+                   "exceeds the resulting maximum worker count %(max)s." %
+                   {'workers': min_workers,
+                    'max': remaining})
+            LOG.error("Cannot start ironic: %s", msg)
+            raise exception.IncorrectConfiguration(error=msg)
+
+        self._executor = futurist.DynamicThreadPoolExecutor(
+            min_workers=min_workers,
             max_workers=remaining,
             check_and_reject=rejection_func)
         if reserved_workers:
-            self._reserved_executor = futurist.GreenThreadPoolExecutor(
+            self._reserved_executor = futurist.DynamicThreadPoolExecutor(
                 max_workers=reserved_workers,
-                check_and_reject=rejection_func)
+                check_and_reject=reserved_rejection_func)
         else:
             self._reserved_executor = None
 
@@ -136,6 +161,8 @@ class BaseConductorManager(object):
         :raises: DriverLoadError if an enabled driver cannot be loaded.
         :raises: DriverNameConflict if a classic driver and a dynamic driver
                  are both enabled and have the same name.
+        :raises: IncorrectConfiguration if invalid configuration has been
+                 set which cannot permit proper operation.
         """
         if self._started:
             raise RuntimeError(_('Attempt to start an already running '
@@ -684,3 +711,40 @@ class BaseConductorManager(object):
         self._zeroconf.register_service('baremetal',
                                         deploy_utils.get_ironic_api_url(),
                                         params=params)
+
+
+def reject_when_reached(pool_size):
+    """Return a function to reject new work for Ironic.
+
+    :param pool_size: The maximum number of items in the execution
+                      pool.
+    :returns: A function which is executed by futurist when attempting
+              to determine if work should be deleted, or not.
+    """
+    # NOTE(TheJulia): This is based upon futurist's rejection.py as of
+    # commit d17f58d. It is extended because Ironic's operating model has
+    # more than one thread actively adding  work which will compete for the
+    # same lock, and then see the other queued item and reject work without
+    # consulting the overall and really even before the other thread is
+    # actually running.
+    # In other words, Ironic's thread and operation model requires a bit more
+    # robustness where it is okay to queue items as long as we won't exceed
+    # the thresholds.
+    def _rejector(executor, backlog):
+        # Get the current size once do we're not revisiting it again
+        # if we are rejecting inbound work.
+        current_size = int(executor.num_workers)
+        # Consult the backlog, which might have a couple entries from other
+        # threads firing up, add 1 to represent the request we're being
+        # invoked for, and ultimately if this will exceed the pool size
+        # when compared to the current executor size.
+        # This does not consider *idle* threads, because
+        # that too requires the same lock which caused backlog to be a
+        # non-zero number in the first place.
+        if backlog + 1 + current_size > pool_size:
+            raise futurist.RejectedSubmission(_(
+                "Queued backlog count is %s, and the pool is presently "
+                "at %s executors. Adding new work would "
+                "go beyond %s, the maximum thread pool size.") %
+                (backlog, current_size, pool_size))
+    return _rejector

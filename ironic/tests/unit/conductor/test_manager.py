@@ -1616,7 +1616,7 @@ class VendorPassthruTestCase(mgr_utils.ServiceSetUpMixin, db_base.DbTestCase):
                             'async': False,
                             'attach': False,
                             'http_methods': ['POST']}}
-        self.service.init_host()
+        self._start_service()
         # init_host() called _spawn_worker because of the heartbeat
         mock_spawn.reset_mock()
         # init_host() called get_interface during driver loading
@@ -1646,7 +1646,7 @@ class VendorPassthruTestCase(mgr_utils.ServiceSetUpMixin, db_base.DbTestCase):
                                  'async': True,
                                  'attach': False,
                                  'http_methods': ['POST']}}
-        self.service.init_host()
+        self._start_service()
         # init_host() called _spawn_worker because of the heartbeat
         mock_spawn.reset_mock()
 
@@ -1667,7 +1667,7 @@ class VendorPassthruTestCase(mgr_utils.ServiceSetUpMixin, db_base.DbTestCase):
             'test_method': {'func': mock.MagicMock(),
                             'async': True,
                             'http_methods': ['POST']}}
-        self.service.init_host()
+        self._start_service()
         # GET not supported by test_method
         exc = self.assertRaises(messaging.ExpectedException,
                                 self.service.driver_vendor_passthru,
@@ -1680,7 +1680,7 @@ class VendorPassthruTestCase(mgr_utils.ServiceSetUpMixin, db_base.DbTestCase):
     def test_driver_vendor_passthru_method_not_supported(self):
         # Test for when the vendor interface is set, but hasn't passed a
         # driver_passthru_mapping to MixinVendorInterface
-        self.service.init_host()
+        self._start_service()
         exc = self.assertRaises(messaging.ExpectedException,
                                 self.service.driver_vendor_passthru,
                                 self.context, 'fake-hardware', 'test_method',
@@ -1690,7 +1690,7 @@ class VendorPassthruTestCase(mgr_utils.ServiceSetUpMixin, db_base.DbTestCase):
                          exc.exc_info[0])
 
     def test_driver_vendor_passthru_driver_not_found(self):
-        self.service.init_host()
+        self._start_service()
         self.assertRaises(messaging.ExpectedException,
                           self.service.driver_vendor_passthru,
                           self.context, 'does_not_exist', 'test_method',
@@ -1699,7 +1699,7 @@ class VendorPassthruTestCase(mgr_utils.ServiceSetUpMixin, db_base.DbTestCase):
     @mock.patch.object(driver_factory, 'default_interface', autospec=True)
     def test_driver_vendor_passthru_no_default_interface(self,
                                                          mock_def_iface):
-        self.service.init_host()
+        self._start_service()
         # NOTE(rloo): service.init_host() will call
         #             driver_factory.default_interface() and we want these to
         #             succeed, so we set the side effect *after* that call.
@@ -1725,7 +1725,7 @@ class VendorPassthruTestCase(mgr_utils.ServiceSetUpMixin, db_base.DbTestCase):
                                        'http_methods': ['POST'],
                                        'func': None}}
         vendor_mock.driver_routes = fake_routes
-        self.service.init_host()
+        self._start_service()
 
         # init_host() will call get_interface
         mock_get_if.reset_mock()
@@ -1741,7 +1741,7 @@ class VendorPassthruTestCase(mgr_utils.ServiceSetUpMixin, db_base.DbTestCase):
     @mock.patch.object(driver_factory, 'default_interface', autospec=True)
     def test_get_driver_vendor_passthru_methods_no_default_interface(
             self, mock_def_iface):
-        self.service.init_host()
+        self._start_service()
         # NOTE(rloo): service.init_host() will call
         #             driver_factory.default_interface() and we want these to
         #             succeed, so we set the side effect *after* that call.
@@ -1766,7 +1766,7 @@ class VendorPassthruTestCase(mgr_utils.ServiceSetUpMixin, db_base.DbTestCase):
             'test_method': {'func': test_method,
                             'async': False,
                             'http_methods': ['POST']}}
-        self.service.init_host()
+        self._start_service()
         exc = self.assertRaises(messaging.ExpectedException,
                                 self.service.driver_vendor_passthru,
                                 self.context, 'fake-hardware', 'test_method',
@@ -3881,6 +3881,8 @@ class MiscTestCase(mgr_utils.ServiceSetUpMixin, mgr_utils.CommonMixIn,
                         mock_fail_if_state):
         self._start_service()
         self.service._correct_stuck_states()
+        # reset_mock() after startup to verify only test-invoked ones
+        mock_nodeinfo_list.reset_mock()
         self.columns = ['uuid', 'driver', 'conductor_group', 'id']
         nodes = [self._create_node(id=i, driver='fake-hardware',
                                    conductor_group='')
@@ -4765,7 +4767,6 @@ class SensorsTestCase(mgr_utils.ServiceSetUpMixin, db_base.DbTestCase):
                                       self.service._sensors_nodes_task,
                                       self.context, mock.ANY)
 
-    @mock.patch.object(queue, 'Queue', autospec=True)
     @mock.patch.object(manager.ConductorManager, '_sensors_conductor',
                        autospec=True)
     @mock.patch.object(manager.ConductorManager, '_spawn_worker',
@@ -4776,8 +4777,7 @@ class SensorsTestCase(mgr_utils.ServiceSetUpMixin, db_base.DbTestCase):
     def test___send_sensor_data_disabled(
             self, get_nodeinfo_list_mock,
             _mapped_to_this_conductor_mock,
-            mock_spawn, mock_sensors_conductor,
-            mock_queue):
+            mock_spawn, mock_sensors_conductor):
         self._start_service()
 
         CONF.set_override('send_sensor_data', True, group='sensor_data')
@@ -4790,7 +4790,15 @@ class SensorsTestCase(mgr_utils.ServiceSetUpMixin, db_base.DbTestCase):
                           group='sensor_data')
         _mapped_to_this_conductor_mock.return_value = True
         get_nodeinfo_list_mock.return_value = [('fake_uuid', 'fake', None)]
-        self.service._send_sensor_data(self.context)
+
+        # NOTE(cid): Patch here instead of as a decorator to avoid replacing
+        # queue.Queue globally. ThreadPoolExecutor uses it in
+        # _init_executors(), called by init_host(), and relies on real queue
+        # semantics for backlog checks.
+        with mock.patch('ironic.conductor.manager.queue.Queue',
+                        autospec=True) as mock_queue:
+            self.service._send_sensor_data(self.context)
+
         mock_sensors_conductor.assert_not_called()
         # NOTE(TheJulia): Can't use the spawn worker since it records other,
         # unrelated calls. So, queue works well here.
@@ -6611,7 +6619,7 @@ class ManagerTestProperties(mgr_utils.ServiceSetUpMixin, db_base.DbTestCase):
         self._check_driver_properties('manual-management', [])
 
     def test_driver_properties_fail(self):
-        self.service.init_host()
+        self._start_service()
         exc = self.assertRaises(messaging.rpc.ExpectedException,
                                 self.service.get_driver_properties,
                                 self.context, "bad-driver")
