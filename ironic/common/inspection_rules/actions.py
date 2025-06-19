@@ -11,6 +11,9 @@
 #    under the License.
 
 import abc
+import requests
+from requests.adapters import HTTPAdapter
+from urllib3.util.retry import Retry
 
 from oslo_log import log
 
@@ -39,6 +42,7 @@ ACTIONS = {
     "set-port-attribute": "SetPortAttributeAction",
     "extend-port-attribute": "ExtendPortAttributeAction",
     "del-port-attribute": "DelPortAttributeAction",
+    "api-call": "CallAPIHookAction",
 }
 
 
@@ -414,5 +418,48 @@ class DelPortAttributeAction(ActionBase):
             msg = ("Failed to delete attribute %(path)s for port "
                    "%(port_id)s: %(exc)s") % {
                        'path': path, 'port_id': port_id, 'exc': str(exc)}
+            LOG.error(msg)
+            raise exception.RuleActionExecutionFailure(reason=msg)
+
+
+class CallAPIHookAction(ActionBase):
+    FORMATTED_ARGS = ['url']
+    OPTIONAL_PARAMS = [
+        'headers', 'proxies', 'timeout', 'retries', 'backoff_factor'
+    ]
+
+    def __call__(self, task, url, headers=None, proxies=None,
+                 timeout=5, retries=3, backoff_factor=0.3):
+        try:
+            timeout = float(timeout)
+            if timeout <= 0:
+                raise ValueError("timeout must be greater than zero")
+            retries = int(retries)
+            backoff_factor = float(backoff_factor)
+            retry_strategy = Retry(
+                total=retries,
+                backoff_factor=backoff_factor,
+                status_forcelist=[429, 500, 502, 503, 504],
+                allowed_methods=["GET"],
+                raise_on_status=False
+            )
+            adapter = HTTPAdapter(max_retries=retry_strategy)
+            session = requests.Session()
+            session.mount("http://", adapter)
+            session.mount("https://", adapter)
+            request_kwargs = {}
+            if headers:
+                request_kwargs['headers'] = headers
+            if proxies:
+                request_kwargs['proxies'] = proxies
+            response = session.get(url, timeout=timeout, **request_kwargs)
+            response.raise_for_status()
+        except ValueError as exc:
+            msg = _("Invalid parameter: %s") % exc
+            LOG.error(msg)
+            raise exception.RuleActionExecutionFailure(reason=msg)
+        except requests.exceptions.RequestException as exc:
+            msg = _("Request to %(url)s failed: %(exc)s") % {
+                'url': url, 'exc': exc}
             LOG.error(msg)
             raise exception.RuleActionExecutionFailure(reason=msg)
