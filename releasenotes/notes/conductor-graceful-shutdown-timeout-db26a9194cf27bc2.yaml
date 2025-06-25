@@ -1,0 +1,16 @@
+---
+upgrade:
+  - |
+    The configuration option `[DEFAULT]/graceful_shutdown_timeout` from
+    `oslo.service` has been replaced by configuration option
+    `[conductor]/graceful_shutdown_timeout`.
+
+    The default value (`60` seconds) has not changed, operators using a custom
+    value for should update their configuration files to use the new option.
+deprecations:
+  - |
+    The configuration option `[DEFAULT]/graceful_shutdown_timeout` from
+    `oslo.service` has been deprecated, replaced by
+    `[conductor]/graceful_shutdown_timeout`. This change was triggered by the
+    need to remove usage of eventlet.
+

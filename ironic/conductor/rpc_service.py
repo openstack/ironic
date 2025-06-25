@@ -107,7 +107,7 @@ class RPCService(rpc_service.BaseRPCService):
         if self.draining:
             shutdown_timeout = CONF.drain_shutdown_timeout
         else:
-            shutdown_timeout = CONF.graceful_shutdown_timeout
+            shutdown_timeout = CONF.conductor.graceful_shutdown_timeout
         if shutdown_timeout == 0:
             # No timeout, run until no nodes are reserved
             return False
