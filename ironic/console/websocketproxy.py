@@ -25,6 +25,8 @@ from urllib import parse as urlparse
 
 from oslo_log import log
 from oslo_utils import encodeutils
+from oslo_utils import eventletutils
+from oslo_utils import importutils
 import websockify
 from websockify import websockifyserver
 
@@ -113,10 +115,18 @@ class IronicProxyRequestHandler(websockify.ProxyRequestHandler):
 
     def new_websocket_client(self):
         """Called after a new WebSocket connection has been established."""
-        # Reopen the eventlet hub to make sure we don't share an epoll
-        # fd with parent and/or siblings, which would be bad
-        from eventlet import hubs
-        hubs.use_hub()
+        # TODO(TheJulia): Once we remove eventlet support overall, we can
+        # remove this code down to the use_hub() invocation. This is because
+        # there really is no intermediate state for this code and we either
+        # need to launch without eventlet, or invoke code along these lines
+        # to invoke eventlet.hubs.use_hub() for the service to operate
+        # properly.
+        eventlet = importutils.try_import('eventlet')
+        if eventlet and eventletutils.is_monkey_patched("thread"):
+            # If eventlet monkey patching has been invoked,
+            # reopen the eventlet hub to make sure we don't share an epoll
+            # fd with parent and/or siblings, which would be bad
+            eventlet.hubs.use_hub()
 
         # The ironic expected behavior is to have token
         # passed to the method GET of the request
