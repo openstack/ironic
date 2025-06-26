@@ -1,3 +1,0 @@
-# ironic-rootwrap command filters for disk manipulation
-# This file should be owned by (and only-writable by) the root user
-# DEPRECATED for removal: Ironic no longer needs root.
