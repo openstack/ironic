@@ -1,0 +1,5 @@
+---
+features:
+  - |
+    Adds support for updating firmware of certain NIC interfaces to the
+    ``redfish`` firmware interface.
