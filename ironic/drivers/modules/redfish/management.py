@@ -741,55 +741,126 @@ class RedfishManagement(base.ManagementInterface):
         return sensors
 
     @classmethod
-    def _get_sensors_drive(cls, system):
-        """Get storage drive sensors reading.
+    def _get_sensor_drive(cls, drive, storage_identity, system_identity):
+        """Get sensor data for a single drive.
 
-        :param chassis: Redfish `system` object
-        :returns: returns a dict of sensor data.
+        :param drive: Individual drive or device object
+        :param storage_identity: Identity of the parent storage/simple_storage
+        :param system_identity: Identity of the parent system
+        :returns: tuple of (unique_name, sensor_data)
         """
-        sensors = {}
+        sensor = cls._sensor2dict(
+            drive, 'name', 'model', 'capacity_bytes')
+        sensor.update(cls._sensor2dict(
+            drive.status, 'state', 'health'))
 
-        if storages := system.storage or system.simple_storage:
-            for storage in storages.get_members():
-                drives = storage.drives if hasattr(
-                    storage, 'drives') else storage.devices
-                for drive in drives:
-                    sensor = cls._sensor2dict(
-                        drive, 'name', 'model', 'capacity_bytes')
-                    sensor.update(
-                        cls._sensor2dict(drive.status, 'state', 'health'))
-                    unique_name = '%s:%s@%s' % (
-                        drive.name, storage.identity, system.identity)
-                    sensors[unique_name] = sensor
+        # Some vendors (e.g., HPE) omit State from Drive Status
+        # If drive is reporting health status, assume enabled
+        if not sensor.get('state') and sensor.get('health'):
+            sensor['state'] = 'Enabled'
 
-        return sensors
+        unique_name = '%s:%s@%s' % (
+            drive.name, storage_identity, system_identity)
+
+        return unique_name, sensor
 
     def get_sensors_data(self, task):
         """Get sensors data.
 
+        Collects sensor data from chassis (fans, temperature, power) and
+        storage (drives) with minimal redfish API calls.
+
         :param task: a TaskManager instance.
-        :raises: FailedToGetSensorData when getting the sensor data fails.
-        :raises: FailedToParseSensorData when parsing sensor data fails.
-        :raises: InvalidParameterValue if required parameters
-                 are missing.
-        :raises: MissingParameterValue if a required parameter is missing.
         :returns: returns a dict of sensor data grouped by sensor type.
         """
-        node = task.node
+        # Note for dev: This function is called frequently (e.g 60s)
+        # So we must be careful about introducing new Redfish API
+        # calls as they tend to be slow. Depending on vendor
+        # this function may take up to 20s to finish.
 
+        # We are leveraging $expand the as much as possible
+        # So if you need to make additional call, first check
+        # if calling with expand already has your data.
+        method_start = time.time()
+        node = task.node
         sensors = collections.defaultdict(dict)
 
+        # 1 API call to get Chassis and Storage Links
         system = redfish_utils.get_system(node)
 
+        # Collect hardware metadata
         baremetal_fields = {
             'Manufacturer': system.manufacturer,
             'Model': system.model,
             'UUID': system.uuid
         }
-
         sensors['Extra'] = baremetal_fields
 
-        for chassis in system.chassis:
+        # Get chassis with expanded data and process sensors
+        chassis_data = self._process_chassis_sensors(node, system)
+        sensors['Fan'].update(chassis_data['Fan'])
+        sensors['Temperature'].update(chassis_data['Temperature'])
+        sensors['Power'].update(chassis_data['Power'])
+
+        # Process storage sensors (drives)
+        # Prioritize SimpleStorage as it requires fewer API calls
+        drive_data = {}
+        simple_storage_available = False
+        try:
+            # SimpleStorage has drive data inline (1 API call)
+            drive_data = self._process_simple_storage_sensors(
+                node, system)
+            simple_storage_available = True
+            LOG.debug("Using SimpleStorage for drive sensors on %s",
+                      node.uuid)
+        except sushy.exceptions.MissingAttributeError:
+            LOG.debug("SimpleStorage not available for node %s",
+                      node.uuid)
+
+        # Fall back to Storage only if SimpleStorage is not available
+        if not simple_storage_available:
+            try:
+                # Storage requires following drive links (1+M calls)
+                drive_data = self._process_storage_sensors(
+                    node, system)
+                LOG.debug("Falling back to Storage for drive "
+                          "sensors on %s (less efficient than "
+                          "SimpleStorage)", node.uuid)
+            except sushy.exceptions.MissingAttributeError:
+                LOG.debug("Storage not available for node %s", node.uuid)
+
+        sensors['Drive'].update(drive_data.get('Drive', {}))
+
+        total = time.time() - method_start
+        LOG.debug("Gathered sensor data for node %s in %.2f seconds: %s",
+                  node.uuid, total, sensors)
+
+        return sensors
+
+    def _process_chassis_sensors(self, node, system):
+        """Process all chassis sensors using single expanded.
+
+        Process all chassis sensors (Fan, Temperature, Power) using single
+        expanded Redfish API call.
+
+        :param node: Ironic node object
+        :param system: Redfish System object
+        :returns: Dictionary with Fan, Temperature, and Power sensor data
+        """
+
+        start_time = time.time()
+        sensors = {'Fan': {}, 'Temperature': {}, 'Power': {}}
+
+        try:
+            # 1 API call to get all chassis with expanded data
+            chassis_list = system.chassis_expanded
+            # Use first chassis if only one available, otherwise use first one
+            chassis = chassis_list[0] if chassis_list else None
+
+            if not chassis:
+                LOG.debug("No chassis found for node %s", node.uuid)
+                return sensors
+
             try:
                 sensors['Fan'].update(self._get_sensors_fan(chassis))
 
@@ -815,16 +886,142 @@ class RedfishManagement(base.ManagementInterface):
                           "%(node)s: %(error)s", {'node': node.uuid,
                                                   'error': exc})
 
+            # Log
+            total_chassis_sensors = sum(len(data) for data in sensors.values())
+            chassis_time = time.time() - start_time
+            LOG.debug("Chassis processing completed for node %s: %d sensors "
+                      "in %.2f seconds",
+                      node.uuid, total_chassis_sensors, chassis_time)
+
+        except Exception as exc:
+            LOG.debug("Failed reading expanded chassis information for "
+                      "node %(node)s: %(error)s",
+                      {'node': node.uuid, 'error': exc})
+
+        return sensors
+
+    def _process_storage_sensors(self, node, system):
+        """Process all storage sensors using storage expansion optimization.
+
+        Processes all storage sensors (Drive) with expand call.
+        Extracts only the available drive links from the expanded
+        storage collection and processes them directly.
+
+        :param node: Ironic node object
+        :param system: Redfish System object
+        :returns: Dictionary with Drive sensor data
+        """
+        start_time = time.time()
+        storage_sensors = {'Drive': {}}
+
+        # Get system identity from driver info
+        driver_info = redfish_utils.parse_driver_info(node)
+        system_identity = driver_info['system_id'].split('/')[-1]
+
         try:
-            sensors['Drive'].update(self._get_sensors_drive(system))
+            drives = {}
+            # 1 API call to get all the available Drives uri using $expand
+            storage_collection_expanded = system.storage_expanded
+
+            # Process drives from all storage controllers
+            # M API calls (M is the number of drives)
+            for storage in storage_collection_expanded.get_members():
+                try:
+                    if storage.drives_identities:
+                        # Process drives from Storage
+                        for drive in storage.drives:
+                            unique_name, sensor = self._get_sensor_drive(
+                                drive, storage.identity, system_identity)
+                            drives[unique_name] = sensor
+
+                except Exception as drive_exc:
+                    LOG.debug("Failed to process drives from storage %s: %s",
+                              storage.identity, drive_exc)
+                    continue
+
+            storage_sensors['Drive'].update(drives)
+
+            # Log
+            total_storage_sensors = len(storage_sensors['Drive'])
+            storage_time = time.time() - start_time
+            LOG.debug("Storage processing completed for node %s: %d sensors "
+                      "in %.2f seconds",
+                      node.uuid, total_storage_sensors, storage_time)
 
         except sushy.exceptions.SushyError as exc:
             LOG.debug("Failed reading drive information for node "
                       "%(node)s: %(error)s", {'node': node.uuid,
                                               'error': exc})
-        LOG.debug("Gathered sensor data: %(sensors)s", {'sensors': sensors})
 
-        return sensors
+        return storage_sensors
+
+    def _process_simple_storage_sensors(self, node, system):
+        """Process drive sensors from SimpleStorage.
+
+        SimpleStorage provides drive data inline, requiring only 1 API call
+        instead of following individual drive links like Storage.
+
+        :param node: Ironic node object
+        :param system: Redfish System object
+        :returns: Dictionary with Drive sensor data
+        """
+        start_time = time.time()
+        simple_storage_sensors = {'Drive': {}}
+
+        # Get system identity from driver info
+        driver_info = redfish_utils.parse_driver_info(node)
+        system_identity = driver_info['system_id'].split('/')[-1]
+
+        try:
+            drives = {}
+            # 1 API call to get all SimpleStorage with devices expanded
+            simple_storage_collection_expanded = system.simple_storage_expanded
+
+            # Process devices from all simple storage controllers
+            for simple_storage in (
+                    simple_storage_collection_expanded.get_members()):
+                try:
+                    # Process devices directly from SimpleStorage
+                    for device in simple_storage.devices:
+                        # Skip devices without capacity (e.g., backplanes,
+                        # enclosures). These are physical infrastructure, not
+                        # storage drives. Including them causes Prometheus
+                        # label inconsistency errors since they lack fields
+                        # like capacity_bytes that actual drives have.
+                        if not device.capacity_bytes:
+                            LOG.debug("Skipping device %s with no capacity "
+                                      "for node %s", device.name, node.uuid)
+                            continue
+
+                        unique_name, sensor = self._get_sensor_drive(
+                            device, simple_storage.identity, system_identity)
+                        drives[unique_name] = sensor
+
+                except Exception as device_exc:
+                    LOG.debug("Failed to process devices from simple "
+                              "storage %s: %s",
+                              simple_storage.identity, device_exc)
+                    continue
+
+            simple_storage_sensors['Drive'].update(drives)
+
+            # Log
+            total_simple_storage_sensors = len(simple_storage_sensors['Drive'])
+            simple_storage_time = time.time() - start_time
+            LOG.debug("SimpleStorage processing completed for node %s: "
+                      "%d sensors in %.2f seconds",
+                      node.uuid, total_simple_storage_sensors,
+                      simple_storage_time)
+
+        except sushy.exceptions.MissingAttributeError:
+            # Re-raise MissingAttributeError so caller can fall back to Storage
+            raise
+        except sushy.exceptions.SushyError as exc:
+            LOG.debug("Failed reading simple storage information for node "
+                      "%(node)s: %(error)s", {'node': node.uuid,
+                                              'error': exc})
+
+        return simple_storage_sensors
 
     @task_manager.require_exclusive_lock
     def inject_nmi(self, task):
