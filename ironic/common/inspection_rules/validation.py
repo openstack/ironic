@@ -128,14 +128,13 @@ def validate_rule(rule):
     :param rule: The inspection rule to validate.
     :raises: Invalid if the rule is invalid.
     """
-    if not rule.get('conditions'):
-        rule['conditions'] = []
-
-    errors = []
     try:
         jsonschema.validate(rule, SCHEMA)
     except jsonschema.ValidationError as e:
-        errors.append(_('Validation failed for inspection rule: %s') % e)
+        raise exception.Invalid(
+            _('Validation failed for inspection rule: %s') % e)
+
+    errors = []
 
     phase = rule.get('phase', InspectionPhase.MAIN.value)
     if phase not in (p.value for p in InspectionPhase):
