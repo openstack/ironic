@@ -91,10 +91,23 @@ class RedfishInspectTestCase(db_base.DbTestCase):
         system_mock.storage.volumes_sizes_bytes = (
             2 * units.Gi, units.Gi * 4, units.Gi * 6)
 
+        eth_interface_mock1 = mock.Mock()
+        eth_interface_mock1.identity = 'NIC.Integrated.1-1'
+        eth_interface_mock1.mac_address = '00:11:22:33:44:55'
+
+        eth_interface_mock2 = mock.Mock()
+        eth_interface_mock2.identity = 'NIC.Integrated.2-1'
+        eth_interface_mock2.mac_address = '66:77:88:99:AA:BB'
+
         system_mock.ethernet_interfaces.summary = {
             '00:11:22:33:44:55': sushy.STATE_ENABLED,
             '66:77:88:99:AA:BB': sushy.STATE_DISABLED,
         }
+
+        ethernet_mock = mock.Mock()
+        ethernet_mock.get_members.return_value = [eth_interface_mock1,
+                                                  eth_interface_mock2]
+        system_mock.ethernet_interfaces = ethernet_mock
 
         system_mock.name = 'System1'
 
@@ -118,11 +131,13 @@ class RedfishInspectTestCase(db_base.DbTestCase):
             task.driver.management.validate(task)
             mock_parse_driver_info.assert_called_once_with(task.node)
 
+    @mock.patch.object(redfish_utils, 'get_enabled_macs', autospec=True)
     @mock.patch.object(redfish_utils, 'get_system', autospec=True)
     @mock.patch.object(inspect_utils, 'create_ports_if_not_exist',
                        autospec=True)
     def test_inspect_hardware_ok(self, mock_create_ports_if_not_exist,
-                                 mock_get_system):
+                                 mock_get_system,
+                                 mock_get_enabled_macs):
         expected_properties = {
             'capabilities': 'boot_mode:uefi',
             'cpu_arch': 'x86_64', 'cpus': '8',
@@ -151,8 +166,10 @@ class RedfishInspectTestCase(db_base.DbTestCase):
             self.assertEqual(expected_manufacturer,
                              system_vendor['manufacturer'])
 
-            expected_interfaces = [{'mac_address': '00:11:22:33:44:55'},
-                                   {'mac_address': '66:77:88:99:AA:BB'}]
+            expected_interfaces = [{'mac_address': '00:11:22:33:44:55',
+                                    'name': 'NIC.Integrated.1-1'},
+                                   {'mac_address': '66:77:88:99:AA:BB',
+                                    'name': 'NIC.Integrated.2-1'}]
             self.assertEqual(expected_interfaces,
                              inventory['inventory']['interfaces'])
 
@@ -165,11 +182,13 @@ class RedfishInspectTestCase(db_base.DbTestCase):
             self.assertEqual(expected_disks,
                              inventory["inventory"]['disks'])
 
+    @mock.patch.object(redfish_utils, 'get_enabled_macs', autospec=True)
     @mock.patch.object(redfish_utils, 'get_system', autospec=True)
     @mock.patch.object(inspect_utils, 'create_ports_if_not_exist',
                        autospec=True)
     def test_inspect_port_creation(self, mock_create_ports_if_not_exist,
-                                   mock_get_system):
+                                   mock_get_system,
+                                   mock_get_enabled_macs):
         self.init_system_mock(mock_get_system.return_value)
 
         with task_manager.acquire(self.context, self.node.uuid,
@@ -190,8 +209,10 @@ class RedfishInspectTestCase(db_base.DbTestCase):
             self.assertRaises(exception.HardwareInspectionFailure,
                               task.driver.inspect.inspect_hardware, task)
 
+    @mock.patch.object(redfish_utils, 'get_enabled_macs', autospec=True)
     @mock.patch.object(redfish_utils, 'get_system', autospec=True)
-    def test_inspect_hardware_ignore_missing_cpu_count(self, mock_get_system):
+    def test_inspect_hardware_ignore_missing_cpu_count(self, mock_get_system,
+                                                       mock_get_enabled_macs):
         system_mock = self.init_system_mock(mock_get_system.return_value)
         system_mock.processors.summary = None, None
 
@@ -208,8 +229,10 @@ class RedfishInspectTestCase(db_base.DbTestCase):
                                                           self.context)
             self.assertNotIn('count', inventory['inventory']['cpu'])
 
+    @mock.patch.object(redfish_utils, 'get_enabled_macs', autospec=True)
     @mock.patch.object(redfish_utils, 'get_system', autospec=True)
-    def test_inspect_hardware_ignore_missing_cpu_model(self, mock_get_system):
+    def test_inspect_hardware_ignore_missing_cpu_model(self, mock_get_system,
+                                                       mock_get_enabled_macs):
         system_mock = self.init_system_mock(mock_get_system.return_value)
         mock_processor = system_mock.processors.get_members.return_value[0]
         mock_processor.model = None
@@ -228,9 +251,10 @@ class RedfishInspectTestCase(db_base.DbTestCase):
                                                           self.context)
             self.assertNotIn('model', inventory['inventory']['cpu'])
 
+    @mock.patch.object(redfish_utils, 'get_enabled_macs', autospec=True)
     @mock.patch.object(redfish_utils, 'get_system', autospec=True)
-    def test_inspect_hardware_ignore_missing_cpu_frequency(self,
-                                                           mock_get_system):
+    def test_inspect_hardware_ignore_missing_cpu_frequency(
+            self, mock_get_system, mock_get_enabled_macs):
         system_mock = self.init_system_mock(mock_get_system.return_value)
         mock_processor = system_mock.processors.get_members.return_value[0]
         mock_processor.max_speed_mhz = None
@@ -249,10 +273,10 @@ class RedfishInspectTestCase(db_base.DbTestCase):
                                                           self.context)
             self.assertNotIn('frequency', inventory['inventory']['cpu'])
 
+    @mock.patch.object(redfish_utils, 'get_enabled_macs', autospec=True)
     @mock.patch.object(redfish_utils, 'get_system', autospec=True)
     def test_inspect_hardware_ignore_missing_cpu_instruction_set(
-            self,
-            mock_get_system):
+            self, mock_get_system, mock_get_enabled_macs):
         system_mock = self.init_system_mock(mock_get_system.return_value)
         mock_processor = system_mock.processors.get_members.return_value[0]
         mock_processor.instruction_set = None
@@ -271,8 +295,10 @@ class RedfishInspectTestCase(db_base.DbTestCase):
                                                           self.context)
             self.assertNotIn('architecture', inventory['inventory']['cpu'])
 
+    @mock.patch.object(redfish_utils, 'get_enabled_macs', autospec=True)
     @mock.patch.object(redfish_utils, 'get_system', autospec=True)
-    def test_inspect_hardware_ignore_missing_local_gb(self, mock_get_system):
+    def test_inspect_hardware_ignore_missing_local_gb(self, mock_get_system,
+                                                      mock_get_enabled_macs):
         system_mock = self.init_system_mock(mock_get_system.return_value)
         system_mock.simple_storage.disks_sizes_bytes = None
         system_mock.storage.volumes_sizes_bytes = None
@@ -287,9 +313,10 @@ class RedfishInspectTestCase(db_base.DbTestCase):
             task.driver.inspect.inspect_hardware(task)
             self.assertEqual(expected_properties, task.node.properties)
 
+    @mock.patch.object(redfish_utils, 'get_enabled_macs', autospec=True)
     @mock.patch.object(redfish_utils, 'get_system', autospec=True)
     def test_inspect_hardware_ignore_missing_simple_storage_and_storage(
-            self, mock_get_system):
+            self, mock_get_system, mock_get_enabled_macs):
         system_mock = self.init_system_mock(mock_get_system.return_value)
         system_mock.simple_storage = {}
         system_mock.storage = {}
@@ -308,9 +335,10 @@ class RedfishInspectTestCase(db_base.DbTestCase):
                                                           self.context)
             self.assertNotIn('disks', inventory['inventory'])
 
+    @mock.patch.object(redfish_utils, 'get_enabled_macs', autospec=True)
     @mock.patch.object(redfish_utils, 'get_system', autospec=True)
-    def test_inspect_hardware_ignore_missing_simple_storage(self,
-                                                            mock_get_system):
+    def test_inspect_hardware_ignore_missing_simple_storage(
+            self, mock_get_system, mock_get_enabled_macs):
         system_mock = self.init_system_mock(mock_get_system.return_value)
         system_mock.simple_storage = {}
 
@@ -328,8 +356,10 @@ class RedfishInspectTestCase(db_base.DbTestCase):
                                                           self.context)
             self.assertIn('disks', inventory['inventory'])
 
+    @mock.patch.object(redfish_utils, 'get_enabled_macs', autospec=True)
     @mock.patch.object(redfish_utils, 'get_system', autospec=True)
-    def test_inspect_hardware_ignore_missing_storage(self, mock_get_system):
+    def test_inspect_hardware_ignore_missing_storage(self, mock_get_system,
+                                                     mock_get_enabled_macs):
         system_mock = self.init_system_mock(mock_get_system.return_value)
         system_mock.storage = {}
 
@@ -358,8 +388,10 @@ class RedfishInspectTestCase(db_base.DbTestCase):
             self.assertRaises(exception.HardwareInspectionFailure,
                               task.driver.inspect.inspect_hardware, task)
 
+    @mock.patch.object(redfish_utils, 'get_enabled_macs', autospec=True)
     @mock.patch.object(redfish_utils, 'get_system', autospec=True)
-    def test_inspect_hardware_ignore_missing_memory_mb(self, mock_get_system):
+    def test_inspect_hardware_ignore_missing_memory_mb(self, mock_get_system,
+                                                       mock_get_enabled_macs):
         system_mock = self.init_system_mock(mock_get_system.return_value)
         system_mock.memory_summary.size_gib = None
 
@@ -394,9 +426,10 @@ class RedfishInspectTestCase(db_base.DbTestCase):
                                                           self.context)
             self.assertNotIn('interfaces', inventory['inventory'])
 
+    @mock.patch.object(redfish_utils, 'get_enabled_macs', autospec=True)
     @mock.patch.object(redfish_utils, 'get_system', autospec=True)
     def test_inspect_hardware_ignore_missing_cpus(
-            self, mock_get_system):
+            self, mock_get_system, mock_get_enabled_macs):
         system_mock = self.init_system_mock(mock_get_system.return_value)
         system_mock.processors = []
 
@@ -407,8 +440,10 @@ class RedfishInspectTestCase(db_base.DbTestCase):
                                                           self.context)
             self.assertNotIn('cpu', inventory['inventory'])
 
+    @mock.patch.object(redfish_utils, 'get_enabled_macs', autospec=True)
     @mock.patch.object(redfish_utils, 'get_system', autospec=True)
-    def test_inspect_hardware_preserve_boot_mode(self, mock_get_system):
+    def test_inspect_hardware_preserve_boot_mode(self, mock_get_system,
+                                                 mock_get_enabled_macs):
         self.init_system_mock(mock_get_system.return_value)
 
         with task_manager.acquire(self.context, self.node.uuid,
@@ -431,8 +466,10 @@ class RedfishInspectTestCase(db_base.DbTestCase):
             self.assertEqual(expected_boot_mode,
                              inventory['inventory']['boot'])
 
+    @mock.patch.object(redfish_utils, 'get_enabled_macs', autospec=True)
     @mock.patch.object(redfish_utils, 'get_system', autospec=True)
-    def test_inspect_hardware_ignore_missing_boot_mode(self, mock_get_system):
+    def test_inspect_hardware_ignore_missing_boot_mode(self, mock_get_system,
+                                                       mock_get_enabled_macs):
         system_mock = self.init_system_mock(mock_get_system.return_value)
         system_mock.boot.mode = None
 
@@ -448,10 +485,13 @@ class RedfishInspectTestCase(db_base.DbTestCase):
                                                           self.context)
             self.assertNotIn('boot', inventory['inventory'])
 
+    @mock.patch.object(redfish_utils, 'get_enabled_macs', autospec=True)
     @mock.patch.object(objects.Port, 'list_by_node_id') # noqa
     @mock.patch.object(redfish_utils, 'get_system', autospec=True)
     def test_inspect_hardware_with_set_port_pxe_enabled(
-            self, mock_get_system, mock_list_by_node_id):
+            self, mock_get_system,
+            mock_list_by_node_id,
+            mock_get_enabled_macs):
         self.init_system_mock(mock_get_system.return_value)
 
         pxe_disabled_port = obj_utils.create_test_port(
@@ -467,10 +507,12 @@ class RedfishInspectTestCase(db_base.DbTestCase):
             task.driver.inspect.inspect_hardware(task)
             self.assertTrue(port[0].pxe_enabled)
 
+    @mock.patch.object(redfish_utils, 'get_enabled_macs', autospec=True)
     @mock.patch.object(objects.Port, 'list_by_node_id') # noqa
     @mock.patch.object(redfish_utils, 'get_system', autospec=True)
     def test_inspect_hardware_with_set_port_pxe_disabled(
-            self, mock_get_system, mock_list_by_node_id):
+            self, mock_get_system,
+            mock_list_by_node_id, mock_get_enabled_macs):
         self.init_system_mock(mock_get_system.return_value)
 
         pxe_enabled_port = obj_utils.create_test_port(
@@ -488,12 +530,13 @@ class RedfishInspectTestCase(db_base.DbTestCase):
             port = mock_list_by_node_id.return_value
             self.assertFalse(port[0].pxe_enabled)
 
+    @mock.patch.object(redfish_utils, 'get_enabled_macs', autospec=True)
     @mock.patch.object(objects.Port, 'list_by_node_id') # noqa
     @mock.patch.object(redfish_utils, 'get_system', autospec=True)
     def test_inspect_hardware_with_conf_update_pxe_disabled_false(
-            self, mock_get_system, mock_list_by_node_id):
+            self, mock_get_system,
+            mock_list_by_node_id, mock_get_enabled_macs):
         self.init_system_mock(mock_get_system.return_value)
-
         pxe_enabled_port = obj_utils.create_test_port(
             self.context, uuid=self.node.uuid,
             node_id=self.node.id, address='24:6E:96:70:49:01',
@@ -526,10 +569,12 @@ class RedfishInspectTestCase(db_base.DbTestCase):
             ports = objects.Port.list_by_node_id(task.context, self.node.id)
             self.assertEqual(1, len(ports))
 
+    @mock.patch.object(redfish_utils, 'get_enabled_macs', autospec=True)
     @mock.patch.object(objects.Port, 'list_by_node_id') # noqa
     @mock.patch.object(redfish_utils, 'get_system', autospec=True)
     def test_inspect_hardware_with_empty_pxe_port_macs(
-            self, mock_get_system, mock_list_by_node_id):
+            self, mock_get_system,
+            mock_list_by_node_id, mock_get_enabled_macs):
         self.init_system_mock(mock_get_system.return_value)
 
         pxe_enabled_port = obj_utils.create_test_port(
@@ -547,11 +592,13 @@ class RedfishInspectTestCase(db_base.DbTestCase):
             self.assertFalse(port[0].pxe_enabled)
             self.assertEqual(states.MANAGEABLE, return_value)
 
+    @mock.patch.object(redfish_utils, 'get_enabled_macs', autospec=True)
     @mock.patch.object(objects.Port, 'list_by_node_id') # noqa
     @mock.patch.object(redfish_utils, 'get_system', autospec=True)
     @mock.patch.object(inspect.LOG, 'warning', autospec=True)
     def test_inspect_hardware_with_none_pxe_port_macs(
-            self, mock_log, mock_get_system, mock_list_by_node_id):
+            self, mock_log, mock_get_system,
+            mock_list_by_node_id, mock_get_enabled_macs):
         self.init_system_mock(mock_get_system.return_value)
 
         pxe_enabled_port = obj_utils.create_test_port(
@@ -569,8 +616,10 @@ class RedfishInspectTestCase(db_base.DbTestCase):
             self.assertTrue(port[0].pxe_enabled)
             mock_log.assert_called_once()
 
+    @mock.patch.object(redfish_utils, 'get_enabled_macs', autospec=True)
     @mock.patch.object(redfish_utils, 'get_system', autospec=True)
-    def test_create_port_when_its_state_is_none(self, mock_get_system):
+    def test_create_port_when_its_state_is_none(self, mock_get_system,
+                                                mock_get_enabled_macs):
         self.init_system_mock(mock_get_system.return_value)
         expected_port_mac_list = ["00:11:22:33:44:55", "24:6e:96:70:49:00"]
         with task_manager.acquire(self.context, self.node.uuid,
@@ -580,9 +629,10 @@ class RedfishInspectTestCase(db_base.DbTestCase):
             for port in ports:
                 self.assertIn(port.address, expected_port_mac_list)
 
+    @mock.patch.object(redfish_utils, 'get_enabled_macs', autospec=True)
     @mock.patch.object(redfish_utils, 'get_system', autospec=True)
-    def test_inspect_hardware_ignore_missing_system_vendor(self,
-                                                           mock_get_system):
+    def test_inspect_hardware_ignore_missing_system_vendor(
+            self, mock_get_system, mock_get_enabled_macs):
         system_mock = self.init_system_mock(mock_get_system.return_value)
         system_mock.name = None
         system_mock.serial_number = None

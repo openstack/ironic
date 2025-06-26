@@ -135,9 +135,10 @@ class RedfishInspect(base.InspectInterface):
 
         if system.ethernet_interfaces and system.ethernet_interfaces.summary:
             inventory['interfaces'] = []
-            mac_addresses = list(system.ethernet_interfaces.summary.keys())
-            for mac_address in mac_addresses:
-                inventory['interfaces'].append({'mac_address': mac_address})
+            for eth in system.ethernet_interfaces.get_members():
+                iface = {'mac_address': eth.mac_address,
+                         'name': eth.identity}
+                inventory['interfaces'].append(iface)
 
         system_vendor = {}
         if system.name:
@@ -205,7 +206,6 @@ class RedfishInspect(base.InspectInterface):
             else:
                 LOG.warning("No port information discovered "
                             "for node %(node)s", {'node': task.node.uuid})
-
         inspect_utils.store_inspection_data(task.node,
                                             inventory, None, task.context)
         return states.MANAGEABLE

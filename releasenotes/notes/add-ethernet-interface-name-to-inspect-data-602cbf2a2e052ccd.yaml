@@ -1,0 +1,8 @@
+---
+fixes:
+  - |
+    Include Ethernet interface name(identity attribute) in inventory for inspection hooks
+    To succeed Redfish inspection flow ensure that the Ethernet interface name is present in the inventory data.
+    This is required for inspection hooks such as `validate-interfaces` to function correctly.
+
+
