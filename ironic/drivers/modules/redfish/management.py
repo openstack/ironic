@@ -14,9 +14,11 @@
 #    under the License.
 
 import collections
+from datetime import timezone
 import time
 from urllib.parse import urlparse
 
+from dateutil import parser
 from oslo_log import log
 from oslo_utils import timeutils
 import sushy
@@ -447,6 +449,101 @@ class RedfishManagement(base.ManagementInterface):
             if hasattr(resource, field)
             for attr in [getattr(resource, field)]
         }
+
+    @base.clean_step(priority=0, abortable=False, argsinfo={
+        'target_datetime': {
+            'description': 'The datetime to set in ISO8601 format',
+            'required': True
+        },
+        'datetime_local_offset': {
+            'description': 'The local time offset from UTC',
+            'required': False
+        }
+    })
+    @task_manager.require_exclusive_lock
+    def set_bmc_clock(self, task, target_datetime, datetime_local_offset=None):
+        """Set the BMC clock using Redfish Manager resource.
+
+        :param task: a TaskManager instance containing the node to act on.
+        :param target_datetime: The datetime to set in ISO8601 format
+        :param datetime_local_offset: The local time offset from UTC (optional)
+        :raises: RedfishError if the operation fails
+        """
+        try:
+            system = redfish_utils.get_system(task.node)
+            manager = redfish_utils.get_manager(task.node, system)
+            LOG.debug("Setting BMC clock to %s (offset: %s)",
+                      target_datetime, datetime_local_offset)
+            manager._conn.timeout = 30
+            manager.set_datetime(
+                target_datetime,
+                datetime_local_offset
+            )
+
+            manager.refresh()
+            if manager.datetime != target_datetime:
+                raise exception.RedfishError(
+                    "BMC clock update failed: mismatch after setting datetime")
+
+            LOG.info(
+                "Successfully updated BMC clock for node %s",
+                task.node.uuid
+            )
+        except Exception as e:
+            LOG.exception("BMC clock update failed: %s", e)
+            raise exception.RedfishError(error=str(e))
+
+    @base.verify_step(priority=1)
+    @task_manager.require_exclusive_lock
+    def verify_bmc_clock(self, task):
+        """Verify and auto-set the BMC clock to the current UTC time.
+
+        This step compares the system UTC time to the BMC's Redfish datetime.
+        If the difference exceeds 1 second, it attempts to sync the time.
+        Verification fails only if the BMC time remains incorrect
+        after the update.
+        """
+        if not CONF.redfish.enable_verify_bmc_clock:
+            LOG.info("Skipping BMC clock verify step: disabled via config")
+            return
+
+        try:
+            system_time = timeutils.utcnow().replace(
+                tzinfo=timezone.utc).isoformat()
+            system = redfish_utils.get_system(task.node)
+            manager = redfish_utils.get_manager(task.node, system)
+            manager.refresh()
+
+            manager_time = parser.isoparse(manager.datetime)
+            local_time = parser.isoparse(system_time)
+
+            LOG.debug("BMC time: %s, Local time: %s",
+                      manager_time, local_time)
+            LOG.debug("manager.datetime_local_offset: %s",
+                      manager.datetimelocaloffset)
+
+            # Fail if the BMC clock differs from system time
+            # by more than 1 second
+            if abs((manager_time - local_time).total_seconds()) > 1:
+                LOG.info("BMC clock is out of sync. Updating...")
+                manager.set_datetime(system_time,
+                                     datetime_local_offset="+00:00")
+                manager.refresh()
+
+                updated_time = parser.isoparse(manager.datetime)
+                if abs((updated_time - local_time).total_seconds()) > 1:
+                    raise exception.RedfishError(
+                        "BMC clock still incorrect after update")
+
+            LOG.info("BMC clock update successful for node %s",
+                     task.node.uuid)
+
+        except Exception as e:
+            LOG.exception("BMC clock auto-update failed during verify: %s", e)
+            raise exception.NodeVerifyFailure(
+                node=getattr(task.node, 'uuid', 'unknown'),
+                reason="BMC clock verify step failed: %s" % str(e)
+            )
 
     @classmethod
     def _get_sensors_fan(cls, chassis):

@@ -1,0 +1,17 @@
+---
+features:
+  - |
+    Adds two new capabilities to the Redfish managemnet interface
+    for managing the BMC clock.
+
+    1. A manual cleaning step ``set_bmc_clock`` that allows operators
+       to set the BMC's hardware clock to a specific datetime (in ISO8601 format),
+       optionally including a datetimelocaloffset.
+
+    2. An automated verify step ``verify_bmc_clock``  that compares the
+       BMC's Redfish datetime to the system UTC time, and automatically
+       updates the BMC clock if needed. Verification fails if the difference
+       exceeds 1 second after the update.
+
+    These steps helps ensure BMC clock synchronization in baremetal environments
+    where incorrect or drifting BMC clocks may lead to TLS  certificate validation failures.
