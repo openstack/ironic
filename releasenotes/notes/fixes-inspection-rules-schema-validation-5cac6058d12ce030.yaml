@@ -1,0 +1,9 @@
+---
+fixes:
+  - |
+    Fixes schema validation by raising formatting and schema errors
+    early during inspection rule creation, updates and execution.
+
+  - |
+    Adds support for standard comparison operators (`le`, `ge`, `ne`)
+    to extend inspection rules capabilities for common logical conditions.
