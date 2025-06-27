@@ -9,10 +9,7 @@
 # WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
 # License for the specific language governing permissions and limitations
 # under the License.
-
 from unittest import mock
-
-import eventlet
 
 from ironic.common import exception
 from ironic.common import states
@@ -82,7 +79,6 @@ class CommonFunctionsTestCase(BaseTestCase):
                                inspector._get_callback_endpoint, client)
 
 
-@mock.patch.object(eventlet, 'spawn_n', lambda f, *a, **kw: f(*a, **kw))
 @mock.patch.object(client, 'get_client', autospec=True)
 class InspectHardwareTestCase(BaseTestCase):
     def test_validate_ok(self, mock_client):
