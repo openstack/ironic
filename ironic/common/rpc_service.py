@@ -14,8 +14,6 @@
 # License for the specific language governing permissions and limitations
 # under the License.
 
-import sys
-import time
 
 from oslo_config import cfg
 from oslo_log import log
@@ -45,13 +43,6 @@ class BaseRPCService(service.Service):
         self._started = False
         self._failure = None
 
-    def wait_for_start(self):
-        while not self._started and not self._failure:
-            time.sleep(0.1)
-        if self._failure:
-            LOG.critical(self._failure)
-            sys.exit(self._failure)
-
     def start(self):
         self._failure = None
         self._started = False
@@ -63,9 +54,6 @@ class BaseRPCService(service.Service):
             raise
         else:
             self._started = True
-
-    def handle_signal(self):
-        pass
 
     def _real_start(self):
         admin_context = context.get_admin_context()
@@ -84,7 +72,6 @@ class BaseRPCService(service.Service):
         if self.rpcserver is not None:
             self.rpcserver.start()
 
-        self.handle_signal()
         self.manager.init_host(admin_context)
 
         LOG.info('Created RPC server with %(transport)s transport for service '

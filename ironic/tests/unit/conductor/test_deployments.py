@@ -652,7 +652,6 @@ class DoNextDeployStepTestCase(mgr_utils.ServiceSetUpMixin,
             'step': 'deploy_middle', 'priority': 30, 'interface': 'deploy'}
 
     def test__do_next_deploy_step_none(self):
-        self._start_service()
         node = obj_utils.create_test_node(self.context, driver='fake-hardware')
         task = task_manager.TaskManager(self.context, node.uuid)
         task.process_event('deploy')
@@ -667,7 +666,6 @@ class DoNextDeployStepTestCase(mgr_utils.ServiceSetUpMixin,
     def test__do_next_deploy_step_async(self, mock_execute):
         driver_internal_info = {'deploy_step_index': None,
                                 'deploy_steps': self.deploy_steps}
-        self._start_service()
         node = obj_utils.create_test_node(
             self.context, driver='fake-hardware',
             driver_internal_info=driver_internal_info,
@@ -693,7 +691,6 @@ class DoNextDeployStepTestCase(mgr_utils.ServiceSetUpMixin,
         driver_internal_info = {'deploy_step_index': None,
                                 'deploy_steps': self.deploy_steps,
                                 'deployment_polling': True}
-        self._start_service()
         node = obj_utils.create_test_node(
             self.context, driver='fake-hardware',
             driver_internal_info=driver_internal_info,
@@ -727,7 +724,6 @@ class DoNextDeployStepTestCase(mgr_utils.ServiceSetUpMixin,
         # Resume an in-progress deploy after the first async step
         driver_internal_info = {'deploy_step_index': 0,
                                 'deploy_steps': self.deploy_steps}
-        self._start_service()
         node = obj_utils.create_test_node(
             self.context, driver='fake-hardware',
             provision_state=states.DEPLOYWAIT,
@@ -760,7 +756,6 @@ class DoNextDeployStepTestCase(mgr_utils.ServiceSetUpMixin,
         # Resume where last_step is the last deploy step that was executed
         driver_internal_info = {'deploy_step_index': 1,
                                 'deploy_steps': self.deploy_steps}
-        self._start_service()
         node = obj_utils.create_test_node(
             self.context, driver='fake-hardware',
             provision_state=states.DEPLOYWAIT,
@@ -840,7 +835,6 @@ class DoNextDeployStepTestCase(mgr_utils.ServiceSetUpMixin,
                                 'deploy_steps': self.deploy_steps[:1],
                                 'agent_url': 'url',
                                 'agent_secret_token': 'token'}
-        self._start_service()
         node = obj_utils.create_test_node(
             self.context, driver='fake-hardware',
             driver_internal_info=driver_internal_info,
@@ -916,7 +910,6 @@ class DoNextDeployStepTestCase(mgr_utils.ServiceSetUpMixin,
         # When a deploy step fails, go to DEPLOYFAIL
         driver_internal_info = {'deploy_step_index': None,
                                 'deploy_steps': self.deploy_steps}
-        self._start_service()
 
         node = obj_utils.create_test_node(
             self.context, driver='fake-hardware',
@@ -1023,7 +1016,6 @@ class DoNextDeployStepTestCase(mgr_utils.ServiceSetUpMixin,
         # When a deploy step fails, go to DEPLOYWAIT
         tgt_prov_state = states.ACTIVE
 
-        self._start_service()
         node = obj_utils.create_test_node(
             self.context, driver='fake-hardware',
             provision_state=states.DEPLOYING,
@@ -1057,7 +1049,6 @@ class DoNextDeployStepTestCase(mgr_utils.ServiceSetUpMixin,
         # When a deploy step fails, go to DEPLOYWAIT
         tgt_prov_state = states.ACTIVE
 
-        self._start_service()
         node = obj_utils.create_test_node(
             self.context, driver='fake-hardware',
             provision_state=states.DEPLOYING,
@@ -1091,7 +1082,6 @@ class DoNextDeployStepTestCase(mgr_utils.ServiceSetUpMixin,
         # When a deploy step fails with no reboot requested go to DEPLOYFAIL
         tgt_prov_state = states.ACTIVE
 
-        self._start_service()
         node = obj_utils.create_test_node(
             self.context, driver='fake-hardware',
             provision_state=states.DEPLOYING,

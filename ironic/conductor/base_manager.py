@@ -59,7 +59,7 @@ class BaseConductorManager(object):
         self.topic = topic
         self.sensors_notifier = rpc.get_sensors_notifier()
         self._started = False
-        self._shutdown = None
+        self._shutdown = threading.Event()
         self._zeroconf = None
         self.dbapi = None
 
@@ -167,7 +167,6 @@ class BaseConductorManager(object):
         if self._started:
             raise RuntimeError(_('Attempt to start an already running '
                                  'conductor manager'))
-        self._shutdown = False
 
         if not self.dbapi:
             self.dbapi = dbapi.get_instance()
@@ -378,9 +377,9 @@ class BaseConductorManager(object):
         if not hasattr(self, 'conductor'):
             return
 
-        # the keepalive heartbeat greenthread will continue to run, but will
+        # the keepalive heartbeat thread will continue to run, but will
         # now be setting online=False
-        self._shutdown = True
+        self._shutdown.set()
 
         if clear_node_reservations:
             # clear all locks held by this conductor before deregistering
@@ -399,11 +398,14 @@ class BaseConductorManager(object):
         else:
             LOG.info('Not deregistering conductor with hostname %(hostname)s.',
                      {'hostname': self.host})
+        # Stop keepalive operations
+        self.keepalive_halt()
         # Waiting here to give workers the chance to finish. This has the
         # benefit of releasing locks workers placed on nodes, as well as
         # having work complete normally.
         self._periodic_tasks.stop()
         self._periodic_tasks.wait()
+        # Shutdown the reserved and normal executors.
         if self._reserved_executor is not None:
             self._reserved_executor.shutdown(wait=True)
         self._executor.shutdown(wait=True)
@@ -496,7 +498,7 @@ class BaseConductorManager(object):
         columns = ['uuid', 'driver', 'conductor_group'] + list(fields or ())
         node_list = self.dbapi.get_nodeinfo_list(columns=columns, **kwargs)
         for result in node_list:
-            if self._shutdown:
+            if self._shutdown.is_set():
                 break
             if self._mapped_to_this_conductor(*result[:3]):
                 yield result
@@ -533,7 +535,7 @@ class BaseConductorManager(object):
             return
         while not self._keepalive_evt.is_set():
             try:
-                self.conductor.touch(online=not self._shutdown)
+                self.conductor.touch(online=not self._shutdown.is_set())
             except db_exception.DBConnectionError:
                 LOG.warning('Conductor could not connect to database '
                             'while heartbeating.')

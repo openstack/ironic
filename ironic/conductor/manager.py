@@ -1612,7 +1612,7 @@ class ConductorManager(base_manager.BaseConductorManager):
         # (through to its DB API call) so that we can eliminate our call
         # and first set of checks below.
 
-        while not self._shutdown:
+        while not self._shutdown.is_set():
             try:
                 (node_uuid, driver, conductor_group,
                  node_id) = nodes.get_nowait()
@@ -2753,7 +2753,7 @@ class ConductorManager(base_manager.BaseConductorManager):
     @METRICS.timer('ConductorManager._sensors_nodes_task')
     def _sensors_nodes_task(self, context, nodes):
         """Sends sensors data for nodes from synchronized queue."""
-        while not self._shutdown:
+        while not self._shutdown.is_set():
             try:
                 (node_uuid, driver, conductor_group,
                  instance_uuid) = nodes.get_nowait()

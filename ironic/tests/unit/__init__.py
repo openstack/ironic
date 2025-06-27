@@ -22,14 +22,9 @@
    :platform: Unix
 """
 
-import eventlet
-
-
-# NOTE(JayF): We must green all python stdlib modules before anything else
-#             is imported for consistent behavior. For instance, sqlalchemy
-#             creates a threading.RLock early, and if it was imported before
-eventlet.monkey_patch() # noqa
-
+# NOTE(TheJulia): This is to force oslo_service from trying to use eventlet.
+from oslo_service import backend
+backend.init_backend(backend.BackendType.THREADING)
 
 from oslo_config import cfg # noqa E402
 from oslo_log import log # noqa E402
