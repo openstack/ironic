@@ -753,6 +753,7 @@ def _set_and_wait(task, power_action, driver_info, timeout=None):
     except (exception.PasswordFileFailedToCreate,
             processutils.ProcessExecutionError,
             subprocess.TimeoutExpired,
+            # NOTE(TheJulia): Remove once we remove the eventlet support.
             # https://github.com/eventlet/eventlet/issues/624
             green_subprocess.TimeoutExpired) as e:
         LOG.warning("IPMI power action %(cmd)s failed for node %(node_id)s "
