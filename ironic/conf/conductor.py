@@ -607,6 +607,14 @@ opts = [
                     'here are validated as absolute paths and will be rejected'
                     'if they contain path traversal mechanisms, such as "..".'
                 )),
+    cfg.IntOpt('graceful_shutdown_timeout',
+               deprecated_group='DEFAULT',
+               deprecated_reason=_(
+                   'This replaces oslo.service '
+                   '[DEFAULT]/graceful_shutdown_timeout option.'),
+               default=60,
+               help='Specify a timeout after which a gracefully shutdown '
+                    'conductor will exit. Zero value means endless wait.'),
     cfg.DictOpt('bootloader_by_arch',
                 default={},
                 help=_(
