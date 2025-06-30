@@ -41,11 +41,18 @@ DEFAULT_RETURN_FIELDS = ['uuid', 'priority', 'phase', 'description']
 
 
 def convert_actions(rpc_actions):
-    return [{
-        'op': action['op'],
-        'args': action['args'],
-        'loop': action.get('loop', [])
-    } for action in rpc_actions]
+    converted_actions = []
+    for action in rpc_actions:
+        result = {
+            'op': action['op'],
+            'args': action['args']
+        }
+
+        if action.get('loop', []):
+            result['loop'] = action['loop']
+
+        converted_actions.append(result)
+    return converted_actions
 
 
 def convert_conditions(rpc_conditions):
