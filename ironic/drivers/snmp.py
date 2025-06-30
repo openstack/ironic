@@ -25,6 +25,12 @@ from ironic.drivers.modules import snmp
 class SNMPHardware(generic.GenericHardware):
     """SNMP Hardware type """
 
+    # NOTE(JayF) The SNMP driver depends on an old, out of maintenance library
+    #   pysnmp-lextudio; unless it is migrated to a modern library (pysnmp),
+    #   it will be removed in a future Ironic release. See bug #2106674.
+    # TODO(JayF) Remove this driver on or after OpenStack 2026.1 release.
+    supported = False
+
     @property
     def supported_power_interfaces(self):
         """List of supported power interfaces."""

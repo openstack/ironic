@@ -91,6 +91,10 @@ fi
 # Ping timeout after the node becomes active
 IRONIC_PING_TIMEOUT=${IRONIC_PING_TIMEOUT:-}
 
+# Whether to allow devstack to continue when ironic-status upgrade check
+# finds unsupported drivers. Set to "true" to continue despite the error.
+IRONIC_ALLOW_UNSUPPORTED_DRIVERS=$(trueorfalse False IRONIC_ALLOW_UNSUPPORTED_DRIVERS)
+
 # Deploy to hardware platform
 IRONIC_HW_NODE_CPU=${IRONIC_HW_NODE_CPU:-1}
 IRONIC_HW_NODE_RAM=${IRONIC_HW_NODE_RAM:-512}
@@ -2143,11 +2147,14 @@ function init_ironic {
 
     # NOTE(rloo): We're not upgrading but want to make sure this command works,
     # even though we're not parsing the output of this command.
-    $IRONIC_BIN_DIR/ironic-status upgrade check
-
     $IRONIC_BIN_DIR/ironic-status upgrade check && ret_val=$? || ret_val=$?
     if [ $ret_val -gt 1 ] ; then
-        die $LINENO "The `ironic-status upgrade check` command returned an error. Cannot proceed."
+        # Allow continuing even with unsupported drivers if explicitly enabled
+        if [[ "${IRONIC_ALLOW_UNSUPPORTED_DRIVERS}" != "True" ]]; then
+            die $LINENO "The `ironic-status upgrade check` command returned an error. Cannot proceed."
+        else
+            echo "WARNING: Continuing despite upgrade check failure because IRONIC_ALLOW_UNSUPPORTED_DRIVERS=True"
+        fi
     fi
     if is_service_enabled ir-novnc; then
         create_systemd_container_dir

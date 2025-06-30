@@ -590,6 +590,7 @@
         IRONIC_TEMPEST_WHOLE_DISK_IMAGE: True
         IRONIC_VM_EPHEMERAL_DISK: 0
         IRONIC_AUTOMATED_CLEAN_ENABLED: False
+        IRONIC_ALLOW_UNSUPPORTED_DRIVERS: True
         # NOTE(TheJulia): Explicitly set scope enforcement to False until we
         # remove the legacy policies.
         IRONIC_ENFORCE_SCOPE: False
