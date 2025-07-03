@@ -26,4 +26,6 @@ detail = {
     'format': '(?i)^(1|t|true|on|y|yes|0|f|false|off|n|no)$',
 }
 
+limit = {'type': 'integer', 'min': 0}
+
 sort_dir = {'type': 'string', 'enum': ['asc', 'desc'], 'default': 'asc'}

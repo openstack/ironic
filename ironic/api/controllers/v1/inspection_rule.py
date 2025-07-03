@@ -25,6 +25,7 @@ from ironic.api.controllers.v1 import notification_utils as notify
 from ironic.api.controllers.v1 import utils as api_utils
 from ironic.api.controllers.v1 import versions
 from ironic.api import method
+from ironic.api.schemas.v1 import inspection_rule as schema
 from ironic.api import validation
 from ironic.common import args
 from ironic.common import exception
@@ -132,9 +133,13 @@ class InspectionRuleController(rest.RestController):
         min_version=versions.MINOR_96_INSPECTION_RULES,
         message=_('The API version does not allow inspection rules'),
     )
-    @args.validate(marker=args.name, limit=args.integer, sort_key=args.string,
-                   sort_dir=args.string, fields=args.string_list,
-                   detail=args.boolean)
+    # TODO(stephenfin): We are currently using this for side-effects to e.g.
+    # convert a CSV string to an array or a string to an integer. We should
+    # probably rename this decorator or provide a separate, simpler decorator.
+    @args.validate(
+        limit=args.integer, fields=args.string_list, detail=args.boolean
+    )
+    @validation.request_query_schema(schema.index_request_query)
     def get_all(self, marker=None, limit=None, sort_key='id', sort_dir='asc',
                 fields=None, detail=None, phase=None):
         """Retrieve a list of inspection rules.
@@ -193,7 +198,12 @@ class InspectionRuleController(rest.RestController):
         min_version=versions.MINOR_96_INSPECTION_RULES,
         message=_('The API version does not allow inspection rules'),
     )
-    @args.validate(inspection_rule_uuid=args.uuid, fields=args.string_list)
+    # TODO(stephenfin): We are currently using this for side-effects to e.g.
+    # convert a CSV string to an array or a string to an integer. We should
+    # probably rename this decorator or provide a separate, simpler decorator.
+    @args.validate(fields=args.string_list)
+    @validation.request_parameter_schema(schema.show_request_parameter)
+    @validation.request_query_schema(schema.show_request_query)
     def get_one(self, inspection_rule_uuid, fields=None):
         """Retrieve information about the given inspection rule.
 
@@ -216,7 +226,7 @@ class InspectionRuleController(rest.RestController):
         message=_('The API version does not allow inspection rules'),
         exception_class=webob_exc.HTTPMethodNotAllowed,
     )
-    @args.validate(inspection_rule=ir_validation.VALIDATOR)
+    @validation.request_body_schema(schema.create_request_body)
     def post(self, inspection_rule):
         """Create a new inspection rule.
 
@@ -248,7 +258,12 @@ class InspectionRuleController(rest.RestController):
         message=_('The API version does not allow inspection rules'),
         exception_class=webob_exc.HTTPMethodNotAllowed,
     )
+    # TODO(stephenfin): We are currently using this for side-effects to e.g.
+    # convert a CSV string to an array or a string to an integer. We should
+    # probably rename this decorator or provide a separate, simpler decorator.
     @args.validate(inspection_rule_uuid=args.uuid, patch=args.patch)
+    @validation.request_parameter_schema(schema.update_request_parameter)
+    @validation.request_body_schema(schema.update_request_body)
     def patch(self, inspection_rule_uuid, patch=None):
         """Update an existing inspection rule.
 
@@ -272,15 +287,17 @@ class InspectionRuleController(rest.RestController):
 
         rule = api_utils.apply_jsonpatch(rule, patch)
 
+        validator = args.and_valid(
+            args.schema(schema.create_request_body),
+            args.dict_valid(uuid=args.uuid))
         api_utils.patched_validate_with_schema(
-            rule, ir_validation.SCHEMA,
-            ir_validation.VALIDATOR)
+            rule, schema.create_request_body, validator)
 
         ir_validation.validate_rule(rule)
 
         api_utils.patch_update_changed_fields(
             rule, rpc_rule, fields=objects.InspectionRule.fields,
-            schema=ir_validation.SCHEMA
+            schema=schema.create_request_body
         )
 
         notify.emit_start_notification(context, rpc_rule, 'update')
@@ -299,7 +316,7 @@ class InspectionRuleController(rest.RestController):
         message=_('The API version does not allow inspection rules'),
         exception_class=webob_exc.HTTPMethodNotAllowed,
     )
-    @args.validate(inspection_rule_uuid=args.uuid)
+    @validation.request_parameter_schema(schema.delete_request_parameter)
     def delete(self, inspection_rule_uuid):
         """Delete an inspection rule.
 
