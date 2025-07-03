@@ -15,7 +15,6 @@ from http import client as http_client
 from ironic.common import metrics_utils
 from oslo_log import log
 from oslo_utils import uuidutils
-import pecan
 from pecan import rest
 from webob import exc as webob_exc
 
@@ -24,11 +23,13 @@ from ironic.api.controllers import link
 from ironic.api.controllers.v1 import collection
 from ironic.api.controllers.v1 import notification_utils as notify
 from ironic.api.controllers.v1 import utils as api_utils
+from ironic.api.controllers.v1 import versions
 from ironic.api import method
+from ironic.api import validation
 from ironic.common import args
 from ironic.common import exception
 from ironic.common.i18n import _
-from ironic.common.inspection_rules import validation
+from ironic.common.inspection_rules import validation as ir_validation
 import ironic.conf
 from ironic import objects
 
@@ -125,18 +126,12 @@ class InspectionRuleController(rest.RestController):
 
     invalid_sort_key_list = ['actions', 'conditions']
 
-    @pecan.expose()
-    def _route(self, args, request=None):
-        if not api_utils.allow_inspection_rules():
-            msg = _("The API version does not allow inspection rules")
-            if api.request.method == "GET":
-                raise webob_exc.HTTPNotFound(msg)
-            else:
-                raise webob_exc.HTTPMethodNotAllowed(msg)
-        return super()._route(args, request)
-
     @METRICS.timer('InspectionRuleController.get_all')
     @method.expose()
+    @validation.api_version(
+        min_version=versions.MINOR_96_INSPECTION_RULES,
+        message=_('The API version does not allow inspection rules'),
+    )
     @args.validate(marker=args.name, limit=args.integer, sort_key=args.string,
                    sort_dir=args.string, fields=args.string_list,
                    detail=args.boolean)
@@ -194,6 +189,10 @@ class InspectionRuleController(rest.RestController):
 
     @METRICS.timer('InspectionRuleController.get_one')
     @method.expose()
+    @validation.api_version(
+        min_version=versions.MINOR_96_INSPECTION_RULES,
+        message=_('The API version does not allow inspection rules'),
+    )
     @args.validate(inspection_rule_uuid=args.uuid, fields=args.string_list)
     def get_one(self, inspection_rule_uuid, fields=None):
         """Retrieve information about the given inspection rule.
@@ -212,7 +211,12 @@ class InspectionRuleController(rest.RestController):
     @METRICS.timer('InspectionRuleController.post')
     @method.expose(status_code=http_client.CREATED)
     @method.body('inspection_rule')
-    @args.validate(inspection_rule=validation.VALIDATOR)
+    @validation.api_version(
+        min_version=versions.MINOR_96_INSPECTION_RULES,
+        message=_('The API version does not allow inspection rules'),
+        exception_class=webob_exc.HTTPMethodNotAllowed,
+    )
+    @args.validate(inspection_rule=ir_validation.VALIDATOR)
     def post(self, inspection_rule):
         """Create a new inspection rule.
 
@@ -220,7 +224,7 @@ class InspectionRuleController(rest.RestController):
         """
         context = api.request.context
         api_utils.check_policy('baremetal:inspection_rule:create')
-        validation.validate_rule(inspection_rule)
+        ir_validation.validate_rule(inspection_rule)
 
         if not inspection_rule.get('uuid'):
             inspection_rule['uuid'] = uuidutils.generate_uuid()
@@ -239,6 +243,11 @@ class InspectionRuleController(rest.RestController):
     @METRICS.timer('InspectionRuleController.patch')
     @method.expose()
     @method.body('patch')
+    @validation.api_version(
+        min_version=versions.MINOR_96_INSPECTION_RULES,
+        message=_('The API version does not allow inspection rules'),
+        exception_class=webob_exc.HTTPMethodNotAllowed,
+    )
     @args.validate(inspection_rule_uuid=args.uuid, patch=args.patch)
     def patch(self, inspection_rule_uuid, patch=None):
         """Update an existing inspection rule.
@@ -264,14 +273,14 @@ class InspectionRuleController(rest.RestController):
         rule = api_utils.apply_jsonpatch(rule, patch)
 
         api_utils.patched_validate_with_schema(
-            rule, validation.SCHEMA,
-            validation.VALIDATOR)
+            rule, ir_validation.SCHEMA,
+            ir_validation.VALIDATOR)
 
-        validation.validate_rule(rule)
+        ir_validation.validate_rule(rule)
 
         api_utils.patch_update_changed_fields(
             rule, rpc_rule, fields=objects.InspectionRule.fields,
-            schema=validation.SCHEMA
+            schema=ir_validation.SCHEMA
         )
 
         notify.emit_start_notification(context, rpc_rule, 'update')
@@ -285,6 +294,11 @@ class InspectionRuleController(rest.RestController):
 
     @METRICS.timer('InspectionRuleController.delete')
     @method.expose(status_code=http_client.NO_CONTENT)
+    @validation.api_version(
+        min_version=versions.MINOR_96_INSPECTION_RULES,
+        message=_('The API version does not allow inspection rules'),
+        exception_class=webob_exc.HTTPMethodNotAllowed,
+    )
     @args.validate(inspection_rule_uuid=args.uuid)
     def delete(self, inspection_rule_uuid):
         """Delete an inspection rule.
