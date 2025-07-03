@@ -441,9 +441,12 @@ class RedfishManagement(base.ManagementInterface):
 
     @staticmethod
     def _sensor2dict(resource, *fields):
-        return {field: getattr(resource, field)
-                for field in fields
-                if hasattr(resource, field)}
+        return {
+            field: attr.value if hasattr(attr, 'value') else attr
+            for field in fields
+            if hasattr(resource, field)
+            for attr in [getattr(resource, field)]
+        }
 
     @classmethod
     def _get_sensors_fan(cls, chassis):

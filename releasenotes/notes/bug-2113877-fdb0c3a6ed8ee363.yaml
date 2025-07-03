@@ -1,0 +1,5 @@
+---
+fixes:
+  - |
+    Fixes the redfish sensor data output, before any enum value would be
+    treated as an object, now we consider their value as string.
