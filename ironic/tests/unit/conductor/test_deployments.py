@@ -1040,7 +1040,6 @@ class DoNextDeployStepTestCase(mgr_utils.ServiceSetUpMixin,
                 self.context, node.uuid, shared=False) as task:
             deployments.do_next_deploy_step(task, 0)
 
-        self._stop_service()
         node.refresh()
 
         # Make sure we go to DEPLOYWAIT
@@ -1075,7 +1074,6 @@ class DoNextDeployStepTestCase(mgr_utils.ServiceSetUpMixin,
                 self.context, node.uuid, shared=False) as task:
             deployments.do_next_deploy_step(task, 0)
 
-        self._stop_service()
         node.refresh()
 
         # Make sure we go to DEPLOYWAIT
@@ -1109,7 +1107,6 @@ class DoNextDeployStepTestCase(mgr_utils.ServiceSetUpMixin,
                 self.context, node.uuid, shared=False) as task:
             deployments.do_next_deploy_step(task, 0)
 
-        self._stop_service()
         node.refresh()
 
         # Make sure we go to DEPLOYFAIL, clear deploy_steps

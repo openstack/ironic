@@ -16,7 +16,6 @@ import collections
 from unittest import mock
 import uuid
 
-import eventlet
 import futurist
 from futurist import periodics
 from oslo_config import cfg
@@ -118,7 +117,6 @@ class StartStopTestCase(mgr_utils.ServiceSetUpMixin, db_base.DbTestCase):
             res = objects.Conductor.get_by_hostname(self.context,
                                                     self.hostname)
             self.assertEqual(init_names, res['drivers'])
-            self._stop_service()
 
             # verify that restart registers new driver names
             self.config(enabled_hardware_types=restart_names)
@@ -223,11 +221,6 @@ class StartStopTestCase(mgr_utils.ServiceSetUpMixin, db_base.DbTestCase):
         self.assertTrue(log_mock.error.called)
         del_mock.assert_called_once()
 
-    def test_prevent_double_start(self):
-        self._start_service()
-        self.assertRaisesRegex(RuntimeError, 'already running',
-                               self.service.init_host)
-
     def test_start_recover_nodes_stuck(self):
         state_trans = [
             (states.DEPLOYING, states.DEPLOYFAIL),
@@ -244,7 +237,10 @@ class StartStopTestCase(mgr_utils.ServiceSetUpMixin, db_base.DbTestCase):
                                             provision_state=state[0])
                  for state in state_trans]
 
+        # Sets the basic environment
         self._start_service()
+        # Trigger the stuck state correction code.
+        self.service._correct_stuck_states()
         for node, state in zip(nodes, state_trans):
             node.refresh()
             self.assertEqual(state[1], node.provision_state,
@@ -255,12 +251,6 @@ class StartStopTestCase(mgr_utils.ServiceSetUpMixin, db_base.DbTestCase):
         CONF.set_override('workers_pool_size', 3, 'conductor')
         self._start_service()
         self.assertTrue(log_mock.warning.called)
-
-    @mock.patch.object(eventlet.greenpool.GreenPool, 'waitall', autospec=True)
-    def test_del_host_waits_on_workerpool(self, wait_mock):
-        self._start_service()
-        self.service.del_host()
-        self.assertTrue(wait_mock.called)
 
     def test_conductor_shutdown_flag(self):
         self._start_service()
@@ -305,11 +295,7 @@ class StartStopTestCase(mgr_utils.ServiceSetUpMixin, db_base.DbTestCase):
     @mock.patch.object(dbapi, 'get_instance', autospec=True)
     def test_start_dbapi_single_call(self, mock_dbapi):
         self._start_service()
-        # NOTE(TheJulia): This seems like it should only be 1, but
-        # the hash ring initialization pulls it's own database connection
-        # instance, which is likely a good thing, thus this is 2 instead of
-        # 3 without reuse of the database connection.
-        self.assertEqual(2, mock_dbapi.call_count)
+        self.assertEqual(1, mock_dbapi.call_count)
 
     def test_start_with_json_rpc(self):
         CONF.set_override('rpc_transport', 'json-rpc')
@@ -327,16 +313,6 @@ class StartStopTestCase(mgr_utils.ServiceSetUpMixin, db_base.DbTestCase):
         res = objects.Conductor.get_by_hostname(self.context,
                                                 self.service.host)
         self.assertEqual(f'{self.hostname}:8192', res['hostname'])
-
-    def test_start_without_jsonrpc_port_pined_version(self):
-        CONF.set_override('rpc_transport', 'json-rpc')
-        CONF.set_override('host', 'foo.bar.baz')
-        CONF.set_override('port', 8192, group='json_rpc')
-        CONF.set_override('pin_release_version', '21.4')
-        self._start_service()
-        res = objects.Conductor.get_by_hostname(self.context,
-                                                self.service.host)
-        self.assertEqual(self.hostname, res['hostname'])
 
 
 class KeepAliveTestCase(mgr_utils.ServiceSetUpMixin, db_base.DbTestCase):

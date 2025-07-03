@@ -17,17 +17,23 @@
 
 """Test utils for Ironic Managers."""
 
+import threading
 from unittest import mock
 
+import futurist
 from futurist import periodics
+from oslo_config import cfg
 from oslo_utils import strutils
 from oslo_utils import uuidutils
 
+from ironic.common import driver_factory
 from ironic.common import exception
-from ironic.common import pxe_utils
+from ironic.common import hash_ring
 from ironic.common import states
 from ironic.conductor import manager
 from ironic import objects
+
+CONF = cfg.CONF
 
 
 class CommonMixIn(object):
@@ -147,17 +153,77 @@ class ServiceSetUpMixin(object):
 
     def _start_service(self, start_periodic_tasks=False, start_consoles=True,
                        start_allocations=True):
-        if start_periodic_tasks:
-            self.service.init_host(start_consoles=start_consoles,
-                                   start_allocations=start_allocations)
-        else:
+        """Stand up a service, much like conductor base_manager.
+
+        Ironic is a complex service, and the reality is that threading
+        in a post-eventlet world makes things far more complicated.
+        The fun thing is that it is not actually that more complicated,
+        but that we need to do things sanely and different for service
+        startup than we need to do to predicate test setup. Largely around
+        database initialization and thread usage in testing, otherwise we
+        create unsuitable conditions for the tests in the test runners.
+
+        Translation: If your adding any functionality here for tests,
+        ensure a similar piece goes into ironic/conductor/base_manager.py.
+        """
+
+        self.service._shutdown = False
+
+        # Test class structure sets up self.dbapi, attaching it to
+        # self.service for executing code to be able to leverage
+        self.service.dbapi = self.dbapi
+        if (CONF.rpc_transport == 'json-rpc'
+                and CONF.json_rpc.port != 8089):
+            self.service.host = f'{CONF.host}:{CONF.json_rpc.port}'
+            self.hostname = CONF.host
+
+        hardware_types = driver_factory.hardware_types()
+        driver_factory.NetworkInterfaceFactory()
+        driver_factory.StorageInterfaceFactory()
+        hardware_type_names = list(hardware_types)
+
+        # TODO(TheJulia): This should be largely handled for the specific
+        # tests which need the fallack behavior.
+        try:
+            self.service.conductor = objects.Conductor.register(
+                None, self.service.host, hardware_type_names,
+                CONF.conductor.conductor_group)
+        except exception.ConductorAlreadyRegistered:
+            # This conductor was already registered and did not shut down
+            # properly, so log a warning and update the record.
+            self.conductor = objects.Conductor.register(
+                None, self.service.host, hardware_type_names,
+                CONF.conductor.conductor_group, update_existing=True)
+
+        self.service._register_and_validate_hardware_interfaces(hardware_types)
+
+        # Explicitly create some executors to handle threads from tasks.
+        self.service._executor = futurist.SynchronousExecutor()
+        self.service._reserved_executor = futurist.SynchronousExecutor()
+
+        # Create a hash ring
+        self.service.ring_manager = hash_ring.HashRingManager()
+
+        # The next two steps are items expected by tests as related to
+        # service startup in BaseConductorManager's prepare_host method
+        self.dbapi.clear_node_target_power_state(self.service.host)
+        self.dbapi.clear_node_reservations_for_conductor(self.service.host)
+
+        if not start_periodic_tasks:
             with mock.patch.object(periodics, 'PeriodicWorker', autospec=True):
-                with mock.patch.object(pxe_utils, 'place_common_config',
-                                       autospec=True):
-                    self.service.prepare_host()
-                    self.service.init_host(start_consoles=start_consoles,
-                                           start_allocations=start_allocations)
-        self.addCleanup(self._stop_service)
+                self.service._collect_periodic_tasks(None)
+                if start_allocations:
+                    self.service._spawn_worker(
+                        self.service._resume_allocations, None)
+        else:
+            self.service._collect_periodic_tasks(None)
+
+        # Misc expectations.
+        self.service._keepalive_evt = threading.Event()
+
+        # Ideally, we should move this to the tests which need it.
+        if CONF.conductor.enable_mdns:
+            self.service._publish_endpoint()
 
 
 def mock_record_keepalive(func_or_class):

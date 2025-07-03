@@ -213,12 +213,8 @@ class BaseConductorManager(object):
         self._periodic_tasks_worker.add_done_callback(
             self._on_periodic_tasks_stop)
 
-        for state in states.STUCK_STATES_TREATED_AS_FAIL:
-            self._fail_transient_state(
-                state,
-                _("The %(state)s state can't be resumed by conductor "
-                  "%(host)s. Moving to fail state.") %
-                {'state': state, 'host': self.host})
+        # Correct stuck states
+        self._correct_stuck_states()
 
         # Start consoles if it set enabled in a greenthread.
         try:
@@ -253,6 +249,14 @@ class BaseConductorManager(object):
         self._started = True
         LOG.debug('Started Ironic Conductor - %s',
                   version.version_info.release_string())
+
+    def _correct_stuck_states(self):
+        for state in states.STUCK_STATES_TREATED_AS_FAIL:
+            self._fail_transient_state(
+                state,
+                _("The %(state)s state can't be resumed by conductor "
+                  "%(host)s. Moving to fail state.") %
+                {'state': state, 'host': self.host})
 
     def _use_jsonrpc_port(self):
         """Determines if the JSON-RPC port can be used."""

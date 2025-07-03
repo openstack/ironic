@@ -61,8 +61,6 @@ class DoNodeVerifyTestCase(mgr_utils.ServiceSetUpMixin, db_base.DbTestCase):
                 self.context, node['id'], shared=False) as task:
             verify.do_node_verify(task)
 
-        self._stop_service()
-
         # 1 notification should be sent -
         # baremetal.node.power_state_corrected.success
         mock_notif.assert_called_once_with(publisher=mock.ANY,
@@ -101,7 +99,6 @@ class DoNodeVerifyTestCase(mgr_utils.ServiceSetUpMixin, db_base.DbTestCase):
                 self.context, node['id'], shared=False) as task:
             verify.do_node_verify(task)
 
-        self._stop_service()
         node.refresh()
 
         mock_validate.assert_called_once_with(mock.ANY, task)
@@ -131,7 +128,6 @@ class DoNodeVerifyTestCase(mgr_utils.ServiceSetUpMixin, db_base.DbTestCase):
                 self.context, node['id'], shared=False) as task:
             verify.do_node_verify(task)
 
-        self._stop_service()
         node.refresh()
 
         mock_get_power_state.assert_called_once_with(mock.ANY, task)

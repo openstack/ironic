@@ -91,7 +91,6 @@ class ChangeNodePowerStateTestCase(mgr_utils.ServiceSetUpMixin,
         self.service.change_node_power_state(self.context,
                                              node.uuid,
                                              states.POWER_ON)
-        self._stop_service()
 
         get_power_mock.assert_called_once_with(mock.ANY, mock.ANY)
         node.refresh()
@@ -118,7 +117,6 @@ class ChangeNodePowerStateTestCase(mgr_utils.ServiceSetUpMixin,
                                              node.uuid,
                                              states.SOFT_POWER_OFF,
                                              timeout=2)
-        self._stop_service()
 
         get_power_mock.assert_called_once_with(mock.ANY, mock.ANY)
         node.refresh()
@@ -149,9 +147,6 @@ class ChangeNodePowerStateTestCase(mgr_utils.ServiceSetUpMixin,
         # Compare true exception hidden by @messaging.expected_exceptions
         self.assertEqual(exception.NodeLocked, exc.exc_info[0])
 
-        # In this test worker should not be spawned, but waiting to make sure
-        # the below perform_mock assertion is valid.
-        self._stop_service()
         self.assertFalse(pwr_act_mock.called, 'node_power_action has been '
                                               'unexpectedly called.')
         # Verify existing reservation wasn't broken.
@@ -207,7 +202,6 @@ class ChangeNodePowerStateTestCase(mgr_utils.ServiceSetUpMixin,
         self.service.change_node_power_state(self.context,
                                              node.uuid,
                                              new_state)
-        self._stop_service()
 
         get_power_mock.assert_called_once_with(mock.ANY, mock.ANY)
         set_power_mock.assert_called_once_with(mock.ANY, mock.ANY,
@@ -263,8 +257,6 @@ class ChangeNodePowerStateTestCase(mgr_utils.ServiceSetUpMixin,
         self.service.change_node_power_state(self.context,
                                              node.uuid,
                                              states.POWER_ON)
-        # Give async worker a chance to finish
-        self._stop_service()
 
         # 2 notifications should be sent: 1 .start and 1 .end
         self.assertEqual(2, mock_notif.call_count)
@@ -302,8 +294,6 @@ class ChangeNodePowerStateTestCase(mgr_utils.ServiceSetUpMixin,
         self.service.change_node_power_state(self.context,
                                              node.uuid,
                                              states.POWER_ON)
-        # Give async worker a chance to finish
-        self._stop_service()
 
         get_power_mock.assert_called_once_with(mock.ANY, mock.ANY)
 
@@ -343,8 +333,6 @@ class ChangeNodePowerStateTestCase(mgr_utils.ServiceSetUpMixin,
         self.service.change_node_power_state(self.context,
                                              node.uuid,
                                              states.POWER_ON)
-        # Give async worker a chance to finish
-        self._stop_service()
 
         set_power_mock.assert_called_once_with(mock.ANY, mock.ANY,
                                                states.POWER_ON, timeout=None)
@@ -410,8 +398,6 @@ class ChangeNodePowerStateTestCase(mgr_utils.ServiceSetUpMixin,
         self.service.change_node_power_state(self.context,
                                              node.uuid,
                                              states.POWER_OFF)
-        # Give async worker a chance to finish
-        self._stop_service()
 
         # 2 notifications should be sent: 1 .start and 1 .end
         self.assertEqual(2, mock_notif.call_count)
@@ -475,7 +461,6 @@ class ChangeNodeBootModeTestCase(mgr_utils.ServiceSetUpMixin,
         self.service.change_node_boot_mode(self.context,
                                            node.uuid,
                                            boot_modes.UEFI)
-        self._stop_service()
 
         set_boot_mock.assert_called_once_with(mock.ANY, mock.ANY,
                                               mode=boot_modes.UEFI)
@@ -504,7 +489,6 @@ class ChangeNodeBootModeTestCase(mgr_utils.ServiceSetUpMixin,
         self.service.change_node_boot_mode(self.context,
                                            node.uuid,
                                            boot_modes.LEGACY_BIOS)
-        self._stop_service()
 
         set_boot_mock.assert_not_called()
         self.assertEqual(get_boot_mock.call_count, 1)
@@ -537,9 +521,6 @@ class ChangeNodeBootModeTestCase(mgr_utils.ServiceSetUpMixin,
         # Compare true exception hidden by @messaging.expected_exceptions
         self.assertEqual(exception.NodeLocked, exc.exc_info[0])
 
-        # In this test worker should not be spawned, but waiting to make sure
-        # the below perform_mock assertion is valid.
-        self._stop_service()
         self.assertFalse(ncbm_mock.called, 'node_change_boot_mode has been '
                          'unexpectedly called.')
         # Verify existing reservation wasn't broken.
@@ -593,7 +574,6 @@ class ChangeNodeBootModeTestCase(mgr_utils.ServiceSetUpMixin,
         self.service.change_node_boot_mode(self.context,
                                            node.uuid,
                                            new_state)
-        self._stop_service()
 
         # Call once before setting to see if it was required
         self.assertEqual(get_boot_mock.call_count, 1)
@@ -651,7 +631,6 @@ class ChangeNodeBootModeTestCase(mgr_utils.ServiceSetUpMixin,
         self.service.change_node_boot_mode(self.context,
                                            node.uuid,
                                            new_state)
-        self._stop_service()
 
         # Call once before setting to see if it is required
         self.assertEqual(get_boot_mock.call_count, 1)
@@ -686,7 +665,6 @@ class ChangeNodeSecureBootTestCase(mgr_utils.ServiceSetUpMixin,
         self.service.change_node_secure_boot(self.context,
                                              node.uuid,
                                              target_state)
-        self._stop_service()
 
         set_boot_mock.assert_called_once_with(mock.ANY, mock.ANY,
                                               target_state)
@@ -717,7 +695,6 @@ class ChangeNodeSecureBootTestCase(mgr_utils.ServiceSetUpMixin,
         self.service.change_node_secure_boot(self.context,
                                              node.uuid,
                                              False)
-        self._stop_service()
 
         set_boot_mock.assert_not_called()
         self.assertEqual(get_boot_mock.call_count, 1)
@@ -750,9 +727,6 @@ class ChangeNodeSecureBootTestCase(mgr_utils.ServiceSetUpMixin,
         # Compare true exception hidden by @messaging.expected_exceptions
         self.assertEqual(exception.NodeLocked, exc.exc_info[0])
 
-        # In this test worker should not be spawned, but waiting to make sure
-        # the below perform_mock assertion is valid.
-        self._stop_service()
         self.assertFalse(ncbm_mock.called, 'node_change_secure_boot has been '
                          'unexpectedly called.')
         # Verify existing reservation wasn't broken.
@@ -808,7 +782,6 @@ class ChangeNodeSecureBootTestCase(mgr_utils.ServiceSetUpMixin,
         self.service.change_node_secure_boot(self.context,
                                              node.uuid,
                                              new_state)
-        self._stop_service()
 
         # Call once before setting to see if it was required
         self.assertEqual(get_boot_mock.call_count, 1)
@@ -868,7 +841,6 @@ class ChangeNodeSecureBootTestCase(mgr_utils.ServiceSetUpMixin,
         self.service.change_node_secure_boot(self.context,
                                              node.uuid,
                                              new_state)
-        self._stop_service()
 
         # Call once before setting to see if it is required
         self.assertEqual(get_boot_mock.call_count, 1)
@@ -1460,8 +1432,6 @@ class VendorPassthruTestCase(mgr_utils.ServiceSetUpMixin, db_base.DbTestCase):
         response = self.service.vendor_passthru(self.context, node.uuid,
                                                 'second_method', 'POST',
                                                 info)
-        # Waiting to make sure the below assertions are valid.
-        self._stop_service()
 
         # Assert spawn_after was called
         self.assertTrue(mock_spawn.called)
@@ -1486,8 +1456,6 @@ class VendorPassthruTestCase(mgr_utils.ServiceSetUpMixin, db_base.DbTestCase):
         response = self.service.vendor_passthru(self.context, node.uuid,
                                                 'third_method_sync',
                                                 'POST', info)
-        # Waiting to make sure the below assertions are valid.
-        self._stop_service()
 
         # Assert no workers were used
         self.assertFalse(mock_spawn.called)
@@ -1512,8 +1480,6 @@ class VendorPassthruTestCase(mgr_utils.ServiceSetUpMixin, db_base.DbTestCase):
         response = self.service.vendor_passthru(self.context, node.uuid,
                                                 'fourth_method_shared_lock',
                                                 'POST', info)
-        # Waiting to make sure the below assertions are valid.
-        self._stop_service()
 
         # Assert spawn_after was called
         self.assertTrue(mock_spawn.called)
@@ -1614,9 +1580,6 @@ class VendorPassthruTestCase(mgr_utils.ServiceSetUpMixin, db_base.DbTestCase):
                                     'second_method', 'POST', info)
             # Compare true exception hidden by @messaging.expected_exceptions
             self.assertEqual(exception.NoFreeConductorWorker, exc.exc_info[0])
-
-            # Waiting to make sure the below assertions are valid.
-            self._stop_service()
 
             node.refresh()
             self.assertIsNone(node.last_error)
@@ -1920,7 +1883,6 @@ class ServiceDoNodeDeployTestCase(mgr_utils.ServiceSetUpMixin,
                 driver_internal_info={'agent_url': 'url'})
 
             self.service.do_node_deploy(self.context, node.uuid)
-            self._stop_service()
             node.refresh()
             self.assertEqual(states.DEPLOYING, node.provision_state)
             self.assertEqual(states.ACTIVE, node.target_provision_state)
@@ -1954,7 +1916,6 @@ class ServiceDoNodeDeployTestCase(mgr_utils.ServiceSetUpMixin,
                 driver_internal_info={'is_whole_disk_image': False})
 
             self.service.do_node_deploy(self.context, node.uuid, rebuild=True)
-            self._stop_service()
             node.refresh()
             self.assertEqual(states.DEPLOYFAIL, node.provision_state)
             self.assertEqual(states.ACTIVE, node.target_provision_state)
@@ -1987,7 +1948,6 @@ class ServiceDoNodeDeployTestCase(mgr_utils.ServiceSetUpMixin,
                 instance_info={'image_source': uuidutils.generate_uuid()})
 
             self.service.do_node_deploy(self.context, node.uuid, rebuild=True)
-            self._stop_service()
             node.refresh()
             self.assertEqual(states.DEPLOYWAIT, node.provision_state)
             self.assertEqual(states.ACTIVE, node.target_provision_state)
@@ -2016,7 +1976,6 @@ class ServiceDoNodeDeployTestCase(mgr_utils.ServiceSetUpMixin,
                 target_provision_state=states.NOSTATE)
 
             self.service.do_node_deploy(self.context, node.uuid, rebuild=True)
-            self._stop_service()
             node.refresh()
             self.assertEqual(states.ACTIVE, node.provision_state)
             self.assertEqual(states.NOSTATE, node.target_provision_state)
@@ -2045,7 +2004,6 @@ class ServiceDoNodeDeployTestCase(mgr_utils.ServiceSetUpMixin,
                 target_provision_state=states.NOSTATE)
 
             self.service.do_node_deploy(self.context, node.uuid, rebuild=True)
-            self._stop_service()
             node.refresh()
             self.assertEqual(states.ACTIVE, node.provision_state)
             self.assertEqual(states.NOSTATE, node.target_provision_state)
@@ -2074,7 +2032,6 @@ class ServiceDoNodeDeployTestCase(mgr_utils.ServiceSetUpMixin,
                 target_provision_state=states.NOSTATE)
 
             self.service.do_node_deploy(self.context, node.uuid, rebuild=True)
-            self._stop_service()
             node.refresh()
             self.assertEqual(states.ACTIVE, node.provision_state)
             self.assertEqual(states.NOSTATE, node.target_provision_state)
@@ -2142,7 +2099,6 @@ class ServiceDoNodeDeployTestCase(mgr_utils.ServiceSetUpMixin,
                                     self.context, node.uuid)
             # Compare true exception hidden by @messaging.expected_exceptions
             self.assertEqual(exception.NoFreeConductorWorker, exc.exc_info[0])
-            self._stop_service()
             node.refresh()
             # Make sure things were rolled back
             self.assertEqual(prv_state, node.provision_state)
@@ -2200,7 +2156,6 @@ class ContinueNodeDeployTestCase(mgr_utils.ServiceSetUpMixin,
                           self.service.continue_node_deploy,
                           self.context, node.uuid)
 
-        self._stop_service()
         node.refresh()
         # Make sure node wasn't modified
         self.assertEqual(prv_state, node.provision_state)
@@ -2221,7 +2176,6 @@ class ContinueNodeDeployTestCase(mgr_utils.ServiceSetUpMixin,
                                           deploy_step=self.deploy_steps[0])
         self._start_service()
         self.service.continue_node_deploy(self.context, node.uuid)
-        self._stop_service()
         node.refresh()
         self.assertEqual(states.DEPLOYING, node.provision_state)
         self.assertEqual(tgt_prv_state, node.target_provision_state)
@@ -2250,7 +2204,6 @@ class ContinueNodeDeployTestCase(mgr_utils.ServiceSetUpMixin,
                 ([exception.NodeLocked(node='foo', host='foo')] * max_attempts)
                 + [node])
             self.service.continue_node_deploy(self.context, node.uuid)
-        self._stop_service()
 
     @mock.patch.object(task_manager.TaskManager, 'process_event',
                        autospec=True)
@@ -2274,7 +2227,6 @@ class ContinueNodeDeployTestCase(mgr_utils.ServiceSetUpMixin,
                                           driver_internal_info=driver_info,
                                           deploy_step=self.deploy_steps[0])
         self.service.continue_node_deploy(self.context, node.uuid)
-        self._stop_service()
         node.refresh()
         self.assertEqual(states.DEPLOYING, node.provision_state)
         self.assertEqual(tgt_prv_state, node.target_provision_state)
@@ -2298,7 +2250,6 @@ class CheckTimeoutsTestCase(mgr_utils.ServiceSetUpMixin, db_base.DbTestCase):
             provision_updated_at=datetime.datetime(2000, 1, 1, 0, 0))
 
         self.service._check_deploy_timeouts(self.context)
-        self._stop_service()
         node.refresh()
         self.assertEqual(states.DEPLOYFAIL, node.provision_state)
         self.assertEqual(states.ACTIVE, node.target_provision_state)
@@ -2322,7 +2273,6 @@ class CheckTimeoutsTestCase(mgr_utils.ServiceSetUpMixin, db_base.DbTestCase):
                 'clean_step_index': 0})
 
         self.service._check_cleanwait_timeouts(self.context)
-        self._stop_service()
         node.refresh()
         self.assertEqual(states.CLEANFAIL, node.provision_state)
         self.assertEqual(tgt_prov_state, node.target_provision_state)
@@ -2362,7 +2312,6 @@ class CheckTimeoutsTestCase(mgr_utils.ServiceSetUpMixin, db_base.DbTestCase):
             provision_updated_at=datetime.datetime(2000, 1, 1, 0, 0))
 
         self.service._check_rescuewait_timeouts(self.context)
-        self._stop_service()
         node.refresh()
         self.assertEqual(states.RESCUEFAIL, node.provision_state)
         self.assertEqual(tgt_prov_state, node.target_provision_state)
@@ -2387,7 +2336,6 @@ class CheckTimeoutsTestCase(mgr_utils.ServiceSetUpMixin, db_base.DbTestCase):
             provision_updated_at=datetime.datetime(2000, 1, 1, 0, 0))
 
         self.service._check_servicewait_timeouts(self.context)
-        self._stop_service()
         node.refresh()
         self.assertEqual(states.SERVICEFAIL, node.provision_state)
         self.assertEqual(tgt_prov_state, node.target_provision_state)
@@ -2594,7 +2542,6 @@ class DoNodeTearDownTestCase(mgr_utils.ServiceSetUpMixin, db_base.DbTestCase):
 
         self._start_service()
         self.service.do_node_tear_down(self.context, node.uuid)
-        self._stop_service()
         node.refresh()
         # Node will be moved to AVAILABLE after cleaning, not tested here
         self.assertEqual(states.CLEANING, node.provision_state)
@@ -2648,7 +2595,6 @@ class DoNodeTearDownTestCase(mgr_utils.ServiceSetUpMixin, db_base.DbTestCase):
                                 self.context, node.uuid)
         # Compare true exception hidden by @messaging.expected_exceptions
         self.assertEqual(exception.NoFreeConductorWorker, exc.exc_info[0])
-        self._stop_service()
         node.refresh()
         # Assert instance_info/driver_internal_info was not touched
         self.assertEqual(fake_instance_info, node.instance_info)
@@ -2712,7 +2658,6 @@ class DoProvisioningActionTestCase(mgr_utils.ServiceSetUpMixin,
                                 self.context, node.uuid, 'provide')
         # Compare true exception hidden by @messaging.expected_exceptions
         self.assertEqual(exception.NoFreeConductorWorker, exc.exc_info[0])
-        self._stop_service()
         node.refresh()
         # Make sure things were rolled back
         self.assertEqual(prv_state, node.provision_state)
@@ -3008,7 +2953,6 @@ class DoNodeCleanTestCase(mgr_utils.ServiceSetUpMixin, db_base.DbTestCase):
                                 self.context, node.uuid, clean_steps)
         # Compare true exception hidden by @messaging.expected_exceptions
         self.assertEqual(exception.NoFreeConductorWorker, exc.exc_info[0])
-        self._stop_service()
         mock_power_valid.assert_called_once_with(mock.ANY, mock.ANY)
         mock_network_valid.assert_called_once_with(mock.ANY, mock.ANY)
         mock_spawn.assert_called_with(
@@ -3057,7 +3001,6 @@ class DoNodeCleanTestCase(mgr_utils.ServiceSetUpMixin, db_base.DbTestCase):
                           self.service.continue_node_clean,
                           self.context, node.uuid)
 
-        self._stop_service()
         node.refresh()
         # Make sure things were rolled back
         self.assertEqual(prv_state, node.provision_state)
@@ -3078,7 +3021,6 @@ class DoNodeCleanTestCase(mgr_utils.ServiceSetUpMixin, db_base.DbTestCase):
                                           clean_step=self.clean_steps[0])
         self._start_service()
         self.service.continue_node_clean(self.context, node.uuid)
-        self._stop_service()
         node.refresh()
         self.assertEqual(states.CLEANING, node.provision_state)
         self.assertEqual(tgt_prv_state, node.target_provision_state)
@@ -3106,7 +3048,6 @@ class DoNodeCleanTestCase(mgr_utils.ServiceSetUpMixin, db_base.DbTestCase):
 
         self._start_service()
         self.service.continue_node_clean(self.context, node.uuid)
-        self._stop_service()
         node.refresh()
         self.assertEqual(states.CLEANFAIL, node.provision_state)
         self.assertEqual(tgt_prov_state, node.target_provision_state)
@@ -3135,7 +3076,6 @@ class DoNodeCleanTestCase(mgr_utils.ServiceSetUpMixin, db_base.DbTestCase):
 
         self._start_service()
         self.service.continue_node_clean(self.context, node.uuid)
-        self._stop_service()
         node.refresh()
         self.assertEqual(tgt_prov_state, node.provision_state)
         self.assertIsNone(node.target_provision_state)
@@ -3165,12 +3105,12 @@ class DoNodeCleanTestCase(mgr_utils.ServiceSetUpMixin, db_base.DbTestCase):
             target_provision_state=tgt_prov_state, last_error=None,
             driver_internal_info=driver_info, clean_step=self.clean_steps[0])
         self._start_service()
+        self.service._correct_stuck_states()
         with mock.patch.object(objects.Node, 'reserve', autospec=True) as mck:
             mck.side_effect = (
                 ([exception.NodeLocked(node='foo', host='foo')] * max_attempts)
                 + [node])
             self.service.continue_node_clean(self.context, node.uuid)
-        self._stop_service()
 
     @mock.patch('ironic.conductor.manager.ConductorManager._spawn_worker',
                 autospec=True)
@@ -3197,7 +3137,6 @@ class DoNodeCleanTestCase(mgr_utils.ServiceSetUpMixin, db_base.DbTestCase):
         node.refresh()
         self.assertIsNone(node.last_error)
         self.assertEqual(states.CLEANING, node.provision_state)
-        self._stop_service()
 
     @mock.patch('ironic.conductor.manager.ConductorManager._spawn_worker',
                 autospec=True)
@@ -3227,7 +3166,6 @@ class DoNodeCleanTestCase(mgr_utils.ServiceSetUpMixin, db_base.DbTestCase):
         node.refresh()
         self.assertIsNone(node.last_error)
         self.assertEqual(states.CLEANING, node.provision_state)
-        self._stop_service()
 
     @mock.patch('ironic.conductor.manager.ConductorManager._spawn_worker',
                 autospec=True)
@@ -3254,7 +3192,6 @@ class DoNodeCleanTestCase(mgr_utils.ServiceSetUpMixin, db_base.DbTestCase):
         node.refresh()
         self.assertIsNone(node.last_error)
         self.assertEqual(states.DEPLOYING, node.provision_state)
-        self._stop_service()
 
 
 @mgr_utils.mock_record_keepalive
@@ -3310,7 +3247,6 @@ class DoNodeServiceTestCase(mgr_utils.ServiceSetUpMixin, db_base.DbTestCase):
                           self.service.continue_node_service,
                           self.context, node.uuid)
 
-        self._stop_service()
         node.refresh()
         # Make sure things were rolled back
         self.assertEqual(prv_state, node.provision_state)
@@ -3331,7 +3267,6 @@ class DoNodeServiceTestCase(mgr_utils.ServiceSetUpMixin, db_base.DbTestCase):
                                           service_step=self.service_steps[0])
         self._start_service()
         self.service.continue_node_service(self.context, node.uuid)
-        self._stop_service()
         node.refresh()
         self.assertEqual(states.SERVICING, node.provision_state)
         self.assertEqual(tgt_prv_state, node.target_provision_state)
@@ -3357,7 +3292,6 @@ class DoNodeServiceTestCase(mgr_utils.ServiceSetUpMixin, db_base.DbTestCase):
 
         self._start_service()
         self.service.continue_node_service(self.context, node.uuid)
-        self._stop_service()
         node.refresh()
         self.assertEqual(states.SERVICEFAIL, node.provision_state)
         self.assertEqual(tgt_prov_state, node.target_provision_state)
@@ -3384,7 +3318,6 @@ class DoNodeServiceTestCase(mgr_utils.ServiceSetUpMixin, db_base.DbTestCase):
 
         self._start_service()
         self.service.continue_node_service(self.context, node.uuid)
-        self._stop_service()
         node.refresh()
         self.assertEqual(tgt_prov_state, node.provision_state)
         self.assertIsNone(node.target_provision_state)
@@ -3417,7 +3350,6 @@ class DoNodeServiceTestCase(mgr_utils.ServiceSetUpMixin, db_base.DbTestCase):
                 ([exception.NodeLocked(node='foo', host='foo')] * max_attempts)
                 + [node])
             self.service.continue_node_service(self.context, node.uuid)
-        self._stop_service()
 
     @mock.patch('ironic.drivers.modules.fake.FakePower.validate',
                 autospec=True)
@@ -3477,7 +3409,6 @@ class DoNodeServiceTestCase(mgr_utils.ServiceSetUpMixin, db_base.DbTestCase):
         self.service.do_provisioning_action(self.context, node.uuid, 'unhold')
         mock_spawn.assert_called_with(
             self.service, servicing.continue_node_service, mock.ANY)
-        self._stop_service()
 
 
 class DoNodeRescueTestCase(mgr_utils.CommonMixIn, mgr_utils.ServiceSetUpMixin,
@@ -3949,6 +3880,7 @@ class MiscTestCase(mgr_utils.ServiceSetUpMixin, mgr_utils.CommonMixIn,
     def test_iter_nodes(self, mock_nodeinfo_list, mock_mapped,
                         mock_fail_if_state):
         self._start_service()
+        self.service._correct_stuck_states()
         self.columns = ['uuid', 'driver', 'conductor_group', 'id']
         nodes = [self._create_node(id=i, driver='fake-hardware',
                                    conductor_group='')
@@ -4031,7 +3963,6 @@ class ConsoleTestCase(mgr_utils.ServiceSetUpMixin, db_base.DbTestCase):
                                     self.context, node.uuid, True)
             # Compare true exception hidden by @messaging.expected_exceptions
             self.assertEqual(exception.NoFreeConductorWorker, exc.exc_info[0])
-            self._stop_service()
             spawn_mock.assert_called_once_with(mock.ANY, mock.ANY, mock.ANY)
 
     @mock.patch.object(notification_utils, 'emit_console_notification',
@@ -4040,7 +3971,6 @@ class ConsoleTestCase(mgr_utils.ServiceSetUpMixin, db_base.DbTestCase):
         node = obj_utils.create_test_node(self.context, driver='fake-hardware')
         self._start_service()
         self.service.set_console_mode(self.context, node.uuid, True)
-        self._stop_service()
         node.refresh()
         self.assertTrue(node.console_enabled)
         mock_notify.assert_has_calls(
@@ -4056,7 +3986,6 @@ class ConsoleTestCase(mgr_utils.ServiceSetUpMixin, db_base.DbTestCase):
                                           console_enabled=True)
         self._start_service()
         self.service.set_console_mode(self.context, node.uuid, False)
-        self._stop_service()
         node.refresh()
         self.assertFalse(node.console_enabled)
         mock_notify.assert_has_calls(
@@ -4087,7 +4016,6 @@ class ConsoleTestCase(mgr_utils.ServiceSetUpMixin, db_base.DbTestCase):
         self._start_service()
         mock_sc.side_effect = exception.IronicException('test-error')
         self.service.set_console_mode(self.context, node.uuid, True)
-        self._stop_service()
         mock_sc.assert_called_once_with(mock.ANY, mock.ANY)
         node.refresh()
         self.assertIsNotNone(node.last_error)
@@ -4107,7 +4035,6 @@ class ConsoleTestCase(mgr_utils.ServiceSetUpMixin, db_base.DbTestCase):
         self._start_service()
         mock_sc.side_effect = exception.IronicException('test-error')
         self.service.set_console_mode(self.context, node.uuid, False)
-        self._stop_service()
         mock_sc.assert_called_once_with(mock.ANY, mock.ANY)
         node.refresh()
         self.assertIsNotNone(node.last_error)
@@ -4127,7 +4054,6 @@ class ConsoleTestCase(mgr_utils.ServiceSetUpMixin, db_base.DbTestCase):
         self.service.set_console_mode(self.context, node.uuid, True)
         self.assertFalse(mock_sc.called)
         self.assertFalse(mock_notify.called)
-        self._stop_service()
 
     @mock.patch.object(fake.FakeConsole, 'stop_console', autospec=True)
     @mock.patch.object(notification_utils, 'emit_console_notification',
@@ -4137,7 +4063,6 @@ class ConsoleTestCase(mgr_utils.ServiceSetUpMixin, db_base.DbTestCase):
                                           console_enabled=False)
         self._start_service()
         self.service.set_console_mode(self.context, node.uuid, False)
-        self._stop_service()
         self.assertFalse(mock_sc.called)
         self.assertFalse(mock_notify.called)
 
@@ -7114,7 +7039,6 @@ class NodeInspectHardware(mgr_utils.ServiceSetUpMixin, db_base.DbTestCase):
             inspection_started_at=datetime.datetime(2000, 1, 1, 0, 0))
 
         self.service._check_inspect_wait_timeouts(self.context)
-        self._stop_service()
         node.refresh()
         self.assertEqual(states.INSPECTFAIL, node.provision_state)
         self.assertEqual(states.MANAGEABLE, node.target_provision_state)
@@ -7139,7 +7063,6 @@ class NodeInspectHardware(mgr_utils.ServiceSetUpMixin, db_base.DbTestCase):
                                 self.context, node.uuid)
         # Compare true exception hidden by @messaging.expected_exceptions
         self.assertEqual(exception.NoFreeConductorWorker, exc.exc_info[0])
-        self._stop_service()
         node.refresh()
         # Make sure things were rolled back
         self.assertEqual(prv_state, node.provision_state)
