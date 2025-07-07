@@ -394,6 +394,127 @@ class UtilsRamdiskLogsTestCase(tests_base.TestCase):
         mock_logs_name.assert_called_once_with(self.node, label=None)
 
 
+class GetAgentKernelRamdiskTestCase(db_base.DbTestCase):
+
+    def setUp(self):
+        super(GetAgentKernelRamdiskTestCase, self).setUp()
+        self.node = obj_utils.create_test_node(self.context)
+
+    def test_get_agent_kernel_ramdisk_from_node_driver_info(self):
+        """Test getting kernel/ramdisk from node driver_info."""
+        self.node.driver_info = {
+            'deploy_kernel': 'http://example.com/kernel',
+            'deploy_ramdisk': 'http://example.com/ramdisk'
+        }
+        result = driver_utils.get_agent_kernel_ramdisk(self.node)
+        expected = {
+            'deploy_kernel': 'http://example.com/kernel',
+            'deploy_ramdisk': 'http://example.com/ramdisk'
+        }
+        self.assertEqual(expected, result)
+
+    def test_get_agent_kernel_ramdisk_from_by_arch(self):
+        """Test kernel/ramdisk from by_arch config when no driver_info."""
+        self.config(deploy_kernel_by_arch={'x86_64': 'kernel_by_arch'},
+                    group='conductor')
+        self.config(deploy_ramdisk_by_arch={'x86_64': 'ramdisk_by_arch'},
+                    group='conductor')
+        self.node.properties = {'cpu_arch': 'x86_64'}
+        result = driver_utils.get_agent_kernel_ramdisk(self.node)
+        expected = {
+            'deploy_kernel': 'kernel_by_arch',
+            'deploy_ramdisk': 'ramdisk_by_arch'
+        }
+        self.assertEqual(expected, result)
+
+    def test_get_agent_kernel_ramdisk_from_global_config(self):
+        """Test getting kernel/ramdisk from global config."""
+        self.config(deploy_kernel='global_kernel', group='conductor')
+        self.config(deploy_ramdisk='global_ramdisk', group='conductor')
+        result = driver_utils.get_agent_kernel_ramdisk(self.node)
+        expected = {
+            'deploy_kernel': 'global_kernel',
+            'deploy_ramdisk': 'global_ramdisk'
+        }
+        self.assertEqual(expected, result)
+
+    def test_get_agent_kernel_ramdisk_inconsistent_node_raises_exception(self):
+        """Test that inconsistent node config raises exception enabled."""
+        self.config(error_on_ramdisk_config_inconsistency=True,
+                    group='conductor')
+        self.node.driver_info = {'deploy_kernel': 'kernel_only'}
+
+        self.assertRaises(exception.MissingParameterValue,
+                          driver_utils.get_agent_kernel_ramdisk, self.node)
+
+    def test_get_agent_kernel_ramdisk_inconsistent_node_logs_warning(self):
+        """Test that inconsistent node config logs warning when disabled."""
+        self.config(error_on_ramdisk_config_inconsistency=False,
+                    group='conductor')
+        self.config(deploy_kernel='global_kernel', group='conductor')
+        self.config(deploy_ramdisk='global_ramdisk', group='conductor')
+        self.node.driver_info = {'deploy_kernel': 'kernel_only'}
+
+        with mock.patch.object(driver_utils.LOG, 'warning',
+                               autospec=True) as mock_log:
+            result = driver_utils.get_agent_kernel_ramdisk(self.node)
+            # fall back to global config since node config is inconsistent
+            expected = {
+                'deploy_kernel': 'global_kernel',
+                'deploy_ramdisk': 'global_ramdisk'
+            }
+            self.assertEqual(expected, result)
+            mock_log.assert_called_once()
+
+    def test_get_agent_kernel_ramdisk_inconsistent_by_arch_raises(self):
+        """Test that inconsistent by_arch config raises when enabled."""
+        self.config(error_on_ramdisk_config_inconsistency=True,
+                    group='conductor')
+        self.config(deploy_kernel_by_arch={'x86_64': 'kernel_by_arch'},
+                    group='conductor')
+        # Missing ramdisk_by_arch for x86_64
+        self.node.properties = {'cpu_arch': 'x86_64'}
+
+        self.assertRaises(exception.MissingParameterValue,
+                          driver_utils.get_agent_kernel_ramdisk, self.node)
+
+    def test_get_agent_kernel_ramdisk_inconsistent_by_arch_logs_warning(self):
+        """Test that inconsistent by_arch config logs warning when disabled."""
+        self.config(error_on_ramdisk_config_inconsistency=False,
+                    group='conductor')
+        self.config(deploy_kernel='fallback_kernel', group='conductor')
+        self.config(deploy_ramdisk='fallback_ramdisk', group='conductor')
+        self.config(deploy_kernel_by_arch={'x86_64': 'kernel_by_arch'},
+                    group='conductor')
+        # Missing ramdisk_by_arch for x86_64
+        self.node.properties = {'cpu_arch': 'x86_64'}
+
+        with mock.patch.object(driver_utils.LOG, 'warning',
+                               autospec=True) as mock_log:
+            result = driver_utils.get_agent_kernel_ramdisk(self.node)
+            # Should fall back to global config
+            expected = {
+                'deploy_kernel': 'fallback_kernel',
+                'deploy_ramdisk': 'fallback_ramdisk'
+            }
+            self.assertEqual(expected, result)
+            mock_log.assert_called_once()
+
+    def test_get_agent_kernel_ramdisk_rescue_mode(self):
+        """Test getting rescue kernel/ramdisk works correctly."""
+        self.node.driver_info = {
+            'rescue_kernel': 'http://example.com/rescue_kernel',
+            'rescue_ramdisk': 'http://example.com/rescue_ramdisk'
+        }
+        result = driver_utils.get_agent_kernel_ramdisk(self.node,
+                                                       mode='rescue')
+        expected = {
+            'rescue_kernel': 'http://example.com/rescue_kernel',
+            'rescue_ramdisk': 'http://example.com/rescue_ramdisk'
+        }
+        self.assertEqual(expected, result)
+
+
 class MixinVendorInterfaceTestCase(db_base.DbTestCase):
 
     def setUp(self):

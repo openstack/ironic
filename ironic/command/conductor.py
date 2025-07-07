@@ -77,10 +77,54 @@ def warn_about_max_wait_parameters(conf):
                     'please re-evaluate your configuration.', error_with)
 
 
+def warn_about_inconsistent_kernel_ramdisk(conf):
+    """Check consistency of configurations around kernels and ramdisks
+
+    This method logs a warning if any of the paired
+    CONF.conductor.*_ramdisk_by_arch and CONF.conductor.*_kernel_by_arch
+    config dictionaries are inconsistent -- such as having a kernel configured
+    for aarch64 without having a ramdisk configured.
+
+    :param conf: an ironic.conf.CONF oslo.config object
+    :returns: None
+    """
+    config_pairs = [
+        ('deploy_kernel_by_arch', 'deploy_ramdisk_by_arch', 'provisioning'),
+        ('rescue_kernel_by_arch', 'rescue_ramdisk_by_arch', 'rescue'),
+    ]
+
+    for kernel_opt, ramdisk_opt, operation in config_pairs:
+        kernel_dict = getattr(conf.conductor, kernel_opt)
+        ramdisk_dict = getattr(conf.conductor, ramdisk_opt)
+
+        kernel_arches = set(kernel_dict.keys())
+        ramdisk_arches = set(ramdisk_dict.keys())
+
+        kernel_only = kernel_arches - ramdisk_arches
+        ramdisk_only = ramdisk_arches - kernel_arches
+
+        if kernel_only:
+            LOG.warning('The [conductor]%s configuration has entries for '
+                        'architectures %s that are missing from '
+                        '[conductor]%s. This may result in failed %s '
+                        'operations for these architectures.',
+                        kernel_opt, ', '.join(sorted(kernel_only)),
+                        ramdisk_opt, operation)
+
+        if ramdisk_only:
+            LOG.warning('The [conductor]%s configuration has entries for '
+                        'architectures %s that are missing from '
+                        '[conductor]%s. This may result in failed %s '
+                        'operations for these architectures.',
+                        ramdisk_opt, ', '.join(sorted(ramdisk_only)),
+                        kernel_opt, operation)
+
+
 def issue_startup_warnings(conf):
     warn_about_unsafe_shred_parameters(conf)
     warn_about_sqlite()
     warn_about_max_wait_parameters(conf)
+    warn_about_inconsistent_kernel_ramdisk(conf)
 
 
 def main():

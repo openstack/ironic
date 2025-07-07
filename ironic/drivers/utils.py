@@ -475,39 +475,90 @@ def get_field(node, name, deprecated_prefix=None, use_conf=False,
         return getattr(CONF.conductor, name)
 
 
-def get_agent_kernel_ramdisk(node, mode='deploy', deprecated_prefix=None):
-    """Get the agent kernel/ramdisk as a dictionary."""
+def _handle_inconsistent_ramdisk_config(msg):
+    LOG.warning(msg)
+    if CONF.conductor.error_on_ramdisk_config_inconsistency:
+        raise exception.MissingParameterValue(msg)
+
+
+def _get_kernel_ramdisk_from_node(node, mode='deploy', deprecated_prefix=None):
     kernel_name = f'{mode}_kernel'
     ramdisk_name = f'{mode}_ramdisk'
     kernel, ramdisk = (
         get_field(node, kernel_name, deprecated_prefix),
         get_field(node, ramdisk_name, deprecated_prefix),
     )
-    # NOTE(dtantsur): avoid situation when e.g. deploy_kernel comes
-    # from driver_info but deploy_ramdisk comes from configuration,
-    # since it's a sign of a potential operator's mistake.
     if not kernel or not ramdisk:
-        # NOTE(kubajj): If kernel and/or ramdisk are specified by architecture,
-        # prioritise them, otherwise use the default.
-        kernel_dict_param_name = f'{mode}_kernel_by_arch'
-        ramdisk_dict_param_name = f'{mode}_ramdisk_by_arch'
-        kernel_dict = getattr(CONF.conductor, kernel_dict_param_name)
-        ramdisk_dict = getattr(CONF.conductor, ramdisk_dict_param_name)
-        cpu_arch = node.properties.get('cpu_arch')
-        kernel = kernel_dict.get(cpu_arch) if cpu_arch else None
-        ramdisk = ramdisk_dict.get(cpu_arch) if cpu_arch else None
-        if not kernel or not ramdisk:
-            kernel = getattr(CONF.conductor, kernel_name)
-            ramdisk = getattr(CONF.conductor, ramdisk_name)
-        return {
-            kernel_name: kernel,
-            ramdisk_name: ramdisk,
-        }
+        if ramdisk or kernel:
+            solo = 'unknown'
+            missing = 'unknown'
+            if kernel:
+                solo = kernel_name
+                missing = ramdisk_name
+            if ramdisk:
+                solo = ramdisk_name
+                missing = kernel_name
+            msg = _("Node %(node)s driver_info has an override for %(solo)s, "
+                    "but not for %(missing)s. This configuration is "
+                    "ambiguous. Node %(node)s cannot boot a ramdisk.") % {
+                        'node': node.uuid, 'solo': solo, 'missing': missing}
+            _handle_inconsistent_ramdisk_config(msg)
+        return None
+
+    return {kernel_name: kernel, ramdisk_name: ramdisk}
+
+
+def _get_kernel_ramdisk_by_arch(node, mode='deploy', deprecated_prefix=None):
+    kernel_name = f'{mode}_kernel'
+    ramdisk_name = f'{mode}_ramdisk'
+    kernel_dict_param_name = f'{mode}_kernel_by_arch'
+    ramdisk_dict_param_name = f'{mode}_ramdisk_by_arch'
+    kernel_dict = getattr(CONF.conductor, kernel_dict_param_name)
+    ramdisk_dict = getattr(CONF.conductor, ramdisk_dict_param_name)
+    cpu_arch = node.properties.get('cpu_arch')
+    kernel = kernel_dict.get(cpu_arch) if cpu_arch else None
+    ramdisk = ramdisk_dict.get(cpu_arch) if cpu_arch else None
+    if not kernel or not ramdisk:
+        solo = 'unknown'
+        missing = 'unknown'
+        if ramdisk or kernel:
+            if kernel:
+                solo = kernel_dict_param_name
+                missing = ramdisk_dict_param_name
+            if ramdisk:
+                solo = ramdisk_dict_param_name
+                missing = kernel_dict_param_name
+            msg = _("CONF.conductor.%(solo)s has a value for %(cpu_arch)s "
+                    "servers, but doesn't have one in "
+                    "CONF.conductor.%(missing)s. This configuration is "
+                    "ambiguous. Node %(node)s cannot boot a ramdisk.") % {
+                        'solo': solo, 'cpu_arch': cpu_arch,
+                        'missing': missing, 'node': node.uuid}
+            _handle_inconsistent_ramdisk_config(msg)
+        return None
     else:
-        return {
-            kernel_name: kernel,
-            ramdisk_name: ramdisk
-        }
+        return {kernel_name: kernel, ramdisk_name: ramdisk}
+
+
+def get_agent_kernel_ramdisk(node, mode='deploy', deprecated_prefix=None):
+    """Get the agent kernel/ramdisk as a dictionary.
+
+    Get the agent kernel/ramdisk for a given $mode. This code enforces
+    """
+    from_node = _get_kernel_ramdisk_from_node(node, mode, deprecated_prefix)
+    if from_node:
+        return from_node
+
+    from_by_arch = _get_kernel_ramdisk_by_arch(node, mode, deprecated_prefix)
+    if from_by_arch:
+        return from_by_arch
+
+    kernel_name = f'{mode}_kernel'
+    ramdisk_name = f'{mode}_ramdisk'
+    return {
+        kernel_name: getattr(CONF.conductor, kernel_name),
+        ramdisk_name: getattr(CONF.conductor, ramdisk_name),
+    }
 
 
 def get_agent_iso(node, mode='deploy', deprecated_prefix=None):

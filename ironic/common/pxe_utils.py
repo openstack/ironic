@@ -666,20 +666,11 @@ def parse_driver_info(node, mode='deploy'):
         # options. Skipping.
         return {}
 
-    info = node.driver_info
-
-    params_to_check = KERNEL_RAMDISK_LABELS[mode]
-
-    d_info = {k: info.get(k) for k in params_to_check}
-    if not any(d_info.values()):
-        # NOTE(dtantsur): avoid situation when e.g. deploy_kernel comes from
-        # driver_info but deploy_ramdisk comes from configuration, since it's
-        # a sign of a potential operator's mistake.
-        d_info = {k: getattr(CONF.conductor, k) for k in params_to_check}
+    info = driver_utils.get_agent_kernel_ramdisk(node, mode=mode)
     error_msg = _("Cannot validate PXE bootloader. Some parameters were"
                   " missing in node's driver_info and configuration")
-    deploy_utils.check_for_missing_params(d_info, error_msg)
-    return d_info
+    deploy_utils.check_for_missing_params(info, error_msg)
+    return info
 
 
 def get_instance_image_info(task, ipxe_enabled=False):

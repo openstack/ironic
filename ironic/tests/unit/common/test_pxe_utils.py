@@ -1363,18 +1363,21 @@ class PXEInterfacesTestCase(db_base.DbTestCase):
     def test_parse_driver_info_mixed_source_deploy(self):
         self.config(deploy_kernel='file:///image',
                     deploy_ramdisk='file:///image',
+                    error_on_ramdisk_config_inconsistency=True,
                     group='conductor')
         self._test_parse_driver_info_missing_ramdisk()
 
     def test_parse_driver_info_mixed_source_deploy_by_arch(self):
         self.config(deploy_kernel_by_arch={'x86_64': 'file:///image'},
                     deploy_ramdisk_by_arch={'x86_64': 'file:///image'},
+                    error_on_ramdisk_config_inconsistency=True,
                     group='conductor')
         self._test_parse_driver_info_missing_ramdisk()
 
     def test_parse_driver_info_mixed_source_rescue(self):
         self.config(rescue_kernel='file:///image',
                     rescue_ramdisk='file:///image',
+                    error_on_ramdisk_config_inconsistency=True,
                     group='conductor')
         self._test_parse_driver_info_missing_ramdisk(mode='rescue')
 
