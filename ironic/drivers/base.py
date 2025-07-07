@@ -409,7 +409,7 @@ class BaseInterface(object, metaclass=abc.ABCMeta):
             from the driver. For example, when a node (using an agent driver)
             has just been enrolled and the agent isn't alive yet to be queried
             for the available verify steps.
-        :returns: A list of deploy step dictionaries
+        :returns: A list of verify step dictionaries
         """
         return self.verify_steps
 
@@ -420,7 +420,7 @@ class BaseInterface(object, metaclass=abc.ABCMeta):
         object. It does not take keyword variable arguments.
 
         :param task: A TaskManager object
-        :param step: The deploy step dictionary representing the step to
+        :param step: The verify step dictionary representing the step to
             execute
         :returns: None if this method has completed synchronously
         """
@@ -438,18 +438,18 @@ class BaseInterface(object, metaclass=abc.ABCMeta):
             from the driver. For example, when a node (using an agent driver)
             has just been enrolled and the agent isn't alive yet to be queried
             for the available clean steps.
-        :returns: A list of clean step dictionaries
+        :returns: A list of service step dictionaries
         """
         return self.service_steps
 
     def execute_service_step(self, task, step):
         """Execute the service step on task.node.
 
-        A verify step must take a single positional argument: a TaskManager
+        A service step must take a single positional argument: a TaskManager
         object. It does not take keyword variable arguments.
 
         :param task: A TaskManager object
-        :param step: The deploy step dictionary representing the step to
+        :param step: The service step dictionary representing the step to
             execute
         :returns: None if this method has completed synchronously
         """
