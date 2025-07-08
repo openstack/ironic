@@ -109,14 +109,21 @@ class DoNodeServiceTestCase(db_base.DbTestCase):
         mock_validate.side_effect = exception.NetworkError()
         self.__do_node_service_validate_fail(mock_validate)
 
+    @mock.patch.object(conductor_steps, 'set_node_service_steps',
+                       autospec=True)
     @mock.patch('ironic.drivers.modules.network.flat.FlatNetwork.validate',
                 autospec=True)
     @mock.patch('ironic.drivers.modules.fake.FakeDeploy.prepare_service',
                 autospec=True)
     def test__do_node_service_prepare_service_fail(self, mock_prep,
                                                    mock_validate,
-                                                   service_steps=None):
-        # Exception from task.driver.deploy.prepare_cleaning should cause node
+                                                   mock_steps,
+                                                   service_steps=[]):
+        # NOTE(janders) after removing unconditional initial reboot into
+        # ramdisk, set_node_service_steps needs to InvalidParameterValue
+        # to force boot into ramdisk
+        mock_steps.side_effect = exception.InvalidParameterValue('error')
+        # Exception from task.driver.deploy.prepare_service should cause node
         # to go to SERVICEFAIL
         mock_prep.side_effect = exception.InvalidParameterValue('error')
         tgt_prov_state = states.ACTIVE
@@ -135,17 +142,76 @@ class DoNodeServiceTestCase(db_base.DbTestCase):
             self.assertFalse(node.maintenance)
             self.assertIsNone(node.fault)
 
+    @mock.patch.object(conductor_steps, 'set_node_service_steps',
+                       autospec=True)
     @mock.patch('ironic.drivers.modules.network.flat.FlatNetwork.validate',
                 autospec=True)
     @mock.patch('ironic.drivers.modules.fake.FakeDeploy.prepare_service',
                 autospec=True)
     def test__do_node_service_prepare_service_wait(self, mock_prep,
-                                                   mock_validate):
+                                                   mock_validate,
+                                                   mock_steps):
         service_steps = [
             {'step': 'trigger_servicewait', 'priority': 10,
              'interface': 'vendor'}
         ]
+        mock_steps.side_effect = exception.InvalidParameterValue('error')
+        mock_prep.return_value = states.SERVICEWAIT
+        tgt_prov_state = states.ACTIVE
+        node = obj_utils.create_test_node(
+            self.context, driver='fake-hardware',
+            provision_state=states.SERVICING,
+            target_provision_state=tgt_prov_state,
+            vendor_interface='fake')
+        with task_manager.acquire(
+                self.context, node.uuid, shared=False) as task:
+            servicing.do_node_service(task, service_steps=service_steps)
+        node.refresh()
+        self.assertEqual(states.SERVICEWAIT, node.provision_state)
+        self.assertEqual(tgt_prov_state, node.target_provision_state)
+        mock_prep.assert_called_once_with(mock.ANY, mock.ANY)
+        mock_validate.assert_called_once_with(mock.ANY, mock.ANY)
 
+    @mock.patch('ironic.drivers.modules.network.flat.FlatNetwork.validate',
+                autospec=True)
+    @mock.patch('ironic.drivers.modules.fake.FakeDeploy.prepare_service',
+                autospec=True)
+    def test__do_node_service_out_of_band(self, mock_prep,
+                                          mock_validate):
+        # NOTE(janders) this test ensures ramdisk isn't prepared if
+        # steps do not require it
+        service_steps = [
+            {'step': 'trigger_servicewait', 'priority': 10,
+             'interface': 'vendor'}
+        ]
+        mock_prep.return_value = states.SERVICEWAIT
+        tgt_prov_state = states.ACTIVE
+        node = obj_utils.create_test_node(
+            self.context, driver='fake-hardware',
+            provision_state=states.SERVICING,
+            target_provision_state=tgt_prov_state,
+            vendor_interface='fake')
+        with task_manager.acquire(
+                self.context, node.uuid, shared=False) as task:
+            servicing.do_node_service(task, service_steps=service_steps)
+        node.refresh()
+        self.assertEqual(states.SERVICEWAIT, node.provision_state)
+        self.assertEqual(tgt_prov_state, node.target_provision_state)
+        mock_prep.assert_not_called()
+        mock_validate.assert_called_once_with(mock.ANY, mock.ANY)
+
+    @mock.patch('ironic.drivers.modules.network.flat.FlatNetwork.validate',
+                autospec=True)
+    @mock.patch('ironic.drivers.modules.fake.FakeDeploy.prepare_service',
+                autospec=True)
+    def test__do_node_service_requires_ramdisk_fallback(self, mock_prep,
+                                                        mock_validate):
+        # NOTE(janders): here we set 'requires_ramdisk': 'True'
+        # to force ramdisk_needed to be set and trigger prepare ramdisk
+        service_steps = [
+            {'step': 'trigger_servicewait', 'priority': 10,
+             'interface': 'vendor', 'requires_ramdisk': 'True'}
+        ]
         mock_prep.return_value = states.SERVICEWAIT
         tgt_prov_state = states.ACTIVE
         node = obj_utils.create_test_node(
@@ -194,11 +260,8 @@ class DoNodeServiceTestCase(db_base.DbTestCase):
     @mock.patch.object(conductor_steps, 'set_node_service_steps',
                        autospec=True)
     def __do_node_service_steps_fail(self, mock_steps, mock_validate,
-                                     service_steps=None, invalid_exc=True):
-        if invalid_exc:
-            mock_steps.side_effect = exception.InvalidParameterValue('invalid')
-        else:
-            mock_steps.side_effect = exception.NodeCleaningFailure('failure')
+                                     service_steps=None):
+        mock_steps.side_effect = exception.NodeCleaningFailure('failure')
         tgt_prov_state = states.ACTIVE
         node = obj_utils.create_test_node(
             self.context, driver='fake-hardware',
@@ -224,12 +287,8 @@ class DoNodeServiceTestCase(db_base.DbTestCase):
     def test_do_node_service_steps_fail_poweroff(self, mock_steps,
                                                  mock_validate,
                                                  mock_power,
-                                                 service_steps=None,
-                                                 invalid_exc=True):
-        if invalid_exc:
-            mock_steps.side_effect = exception.InvalidParameterValue('invalid')
-        else:
-            mock_steps.side_effect = exception.NodeCleaningFailure('failure')
+                                                 service_steps=None):
+        mock_steps.side_effect = exception.NodeCleaningFailure('failure')
         tgt_prov_state = states.ACTIVE
         self.config(poweroff_in_cleanfail=True, group='conductor')
         node = obj_utils.create_test_node(
@@ -249,9 +308,7 @@ class DoNodeServiceTestCase(db_base.DbTestCase):
         self.assertFalse(mock_power.called)
 
     def test__do_node_service_steps_fail(self):
-        for invalid in (True, False):
-            self.__do_node_service_steps_fail(service_steps=[self.deploy_raid],
-                                              invalid_exc=invalid)
+        self.__do_node_service_steps_fail(service_steps=[self.deploy_raid])
 
     @mock.patch.object(conductor_steps, 'set_node_service_steps',
                        autospec=True)

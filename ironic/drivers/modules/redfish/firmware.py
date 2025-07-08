@@ -146,7 +146,7 @@ class RedfishFirmware(base.FirmwareInterface):
                      requires_ramdisk=True)
     @base.service_step(priority=0, abortable=False,
                        argsinfo=_FW_SETTINGS_ARGSINFO,
-                       requires_ramdisk=True)
+                       requires_ramdisk=False)
     @base.cache_firmware_components
     def update(self, task, settings):
         """Update the Firmware on the node using the settings for components.
@@ -181,7 +181,8 @@ class RedfishFirmware(base.FirmwareInterface):
             polling=True
         )
 
-        return deploy_utils.reboot_to_finish_step(task, timeout=wait_interval)
+        return deploy_utils.reboot_to_finish_step(task, timeout=wait_interval,
+                                                  disable_ramdisk=True)
 
     def _execute_firmware_update(self, node, update_service, settings):
         """Executes the next firmware update to the node

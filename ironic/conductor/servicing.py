@@ -38,6 +38,7 @@ def do_node_service(task, service_steps=None, disable_ramdisk=False):
     :param disable_ramdisk: Whether to skip booting ramdisk for servicing.
     """
     node = task.node
+    ramdisk_needed = None
     try:
         # NOTE(ghe): Valid power and network values are needed to perform
         # a service operation.
@@ -54,42 +55,53 @@ def do_node_service(task, service_steps=None, disable_ramdisk=False):
     node.set_driver_internal_info('service_disable_ramdisk',
                                   disable_ramdisk)
     task.node.save()
-
     utils.node_update_cache(task)
 
-    # Allow the deploy driver to set up the ramdisk again (necessary for IPA)
-    try:
-        if not disable_ramdisk:
-            prepare_result = task.driver.deploy.prepare_service(task)
-        else:
-            LOG.info('Skipping preparing for service in-band service since '
-                     'out-of-band only service has been requested for node '
-                     '%s', node.uuid)
-            prepare_result = None
-    except Exception as e:
-        msg = (_('Failed to prepare node %(node)s for service: %(e)s')
-               % {'node': node.uuid, 'e': e})
-        return utils.servicing_error_handler(task, msg, traceback=True)
-
-    if prepare_result == states.SERVICEWAIT:
-        # Prepare is asynchronous, the deploy driver will need to
-        # set node.driver_internal_info['service_steps'] and
-        # node.service_step and then make an RPC call to
-        # continue_node_service to start service operations.
-        task.process_event('wait')
-        return
     try:
         conductor_steps.set_node_service_steps(
             task, disable_ramdisk=disable_ramdisk)
+    except exception.InvalidParameterValue:
+        if disable_ramdisk:
+            # NOTE(janders) raising log severity since this will result
+            # in servicing failure
+            LOG.error('Failed to compose list of service steps for node '
+                      '%s', node.uuid)
+            raise
+        LOG.debug('Unable to compose list of service steps for node %(node)s '
+                  'will retry once ramdisk is booted.', {'node': node.uuid})
+        ramdisk_needed = True
     except Exception as e:
-        # Catch all exceptions and follow the error handling
-        # path so things are cleaned up properly.
         msg = (_('Cannot service node %(node)s: %(msg)s')
                % {'node': node.uuid, 'msg': e})
         return utils.servicing_error_handler(task, msg)
 
     steps = node.driver_internal_info.get('service_steps', [])
     step_index = 0 if steps else None
+    for step in steps:
+        step_requires_ramdisk = step.get('requires_ramdisk')
+        if step_requires_ramdisk:
+            LOG.debug('Found service step %s requiring ramdisk '
+                      'for node %s', step, task.node.uuid)
+            ramdisk_needed = True
+
+    if ramdisk_needed and not disable_ramdisk:
+        try:
+            prepare_result = task.driver.deploy.prepare_service(task)
+        except Exception as e:
+            msg = (_('Failed to prepare node %(node)s for service: %(e)s')
+                   % {'node': node.uuid, 'e': e})
+            return utils.servicing_error_handler(task, msg, traceback=True)
+        if prepare_result == states.SERVICEWAIT:
+            # Prepare is asynchronous, the deploy driver will need to
+            # set node.driver_internal_info['service_steps'] and
+            # node.service_step and then make an RPC call to
+            # continue_node_service to start service operations.
+            task.process_event('wait')
+            return
+    else:
+        LOG.debug('Will proceed with servicing node %(node)s '
+                  'without booting the ramdisk.', {'node': node.uuid})
+
     do_next_service_step(task, step_index, disable_ramdisk=disable_ramdisk)
 
 
