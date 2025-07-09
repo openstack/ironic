@@ -13,8 +13,10 @@
 
 import datetime
 import json
+import time
 from unittest import mock
 
+from oslo_config import cfg
 from oslo_utils import timeutils
 import sushy
 
@@ -352,6 +354,7 @@ class RedfishFirmwareTestCase(db_base.DbTestCase):
         self.node.save()
         self._test_invalid_settings_service()
 
+    @mock.patch.object(time, 'sleep', lambda seconds: None)
     def _generate_new_driver_internal_info(self, components=[], invalid=False,
                                            add_wait=False, wait=1):
         bmc_component = {'component': 'bmc', 'url': 'https://bmc/v1.0.1'}
@@ -795,6 +798,8 @@ class RedfishFirmwareTestCase(db_base.DbTestCase):
     def test_continue_updates_more_updates(self, get_system_collection_mock,
                                            node_power_action_mock,
                                            log_mock):
+        cfg.CONF.set_override('firmware_update_wait_unresponsive_bmc', 0,
+                              'redfish')
         self._generate_new_driver_internal_info(['bmc', 'bios'])
 
         task_monitor_mock = mock.Mock()
@@ -829,6 +834,7 @@ class RedfishFirmwareTestCase(db_base.DbTestCase):
 
     @mock.patch.object(redfish_utils, 'get_system', autospec=True)
     @mock.patch.object(redfish_utils, 'get_system_collection', autospec=True)
+    @mock.patch.object(time, 'sleep', lambda seconds: None)
     def test__execute_firmware_update_no_targets(self,
                                                  get_system_collection_mock,
                                                  system_mock):
@@ -855,6 +861,7 @@ class RedfishFirmwareTestCase(db_base.DbTestCase):
 
     @mock.patch.object(redfish_utils, 'get_system', autospec=True)
     @mock.patch.object(redfish_utils, 'get_system_collection', autospec=True)
+    @mock.patch.object(time, 'sleep', lambda seconds: None)
     def test__execute_firmware_update_targets(self,
                                               get_system_collection_mock,
                                               system_mock):
@@ -878,3 +885,79 @@ class RedfishFirmwareTestCase(db_base.DbTestCase):
                                           settings)
         update_service_mock.simple_update.assert_called_once_with(
             'https://bios/v1.0.1', targets=[mock.ANY])
+
+    @mock.patch.object(redfish_utils, 'get_system', autospec=True)
+    @mock.patch.object(redfish_utils, 'get_system_collection', autospec=True)
+    @mock.patch.object(time, 'sleep', autospec=True)
+    def test__execute_firmware_update_unresponsive_bmc(self, sleep_mock,
+                                                       get_sys_collec_mock,
+                                                       system_mock):
+        cfg.CONF.set_override('firmware_update_wait_unresponsive_bmc', 1,
+                              'redfish')
+        self._generate_new_driver_internal_info(['bmc'])
+        with open(
+            'ironic/tests/json_samples/systems_collection_single.json'
+        ) as f:
+            resp_obj = json.load(f)
+        system_collection_mock = mock.MagicMock()
+        system_collection_mock.get_members.return_value = resp_obj['Members']
+        get_sys_collec_mock.return_value = system_collection_mock
+
+        task_monitor_mock = mock.Mock()
+        task_monitor_mock.task_monitor_uri = '/task/2'
+        update_service_mock = mock.Mock()
+        update_service_mock.simple_update.return_value = task_monitor_mock
+
+        firmware = redfish_fw.RedfishFirmware()
+
+        settings = [{'component': 'bmc', 'url': 'https://bmc/v1.2.3'}]
+        firmware._execute_firmware_update(self.node, update_service_mock,
+                                          settings)
+
+        update_service_mock.simple_update.assert_called_once_with(
+            'https://bmc/v1.2.3')
+        sleep_mock.assert_called_once_with(
+            CONF.redfish.firmware_update_wait_unresponsive_bmc)
+
+    @mock.patch.object(redfish_utils, 'get_system', autospec=True)
+    @mock.patch.object(redfish_utils, 'get_system_collection', autospec=True)
+    @mock.patch.object(time, 'sleep', autospec=True)
+    def test__execute_firmware_update_unresponsive_bmc_node_override(
+            self, sleep_mock, get_sys_collec_mock, system_mock):
+        self._generate_new_driver_internal_info(['bmc'])
+        # Set a specific value for firmware_update_unresponsive_bmc_wait for
+        # the node
+        with mock.patch('time.sleep', lambda x: None):
+            d_info = self.node.driver_info.copy()
+            d_info['firmware_update_unresponsive_bmc_wait'] = 1
+            self.node.driver_info = d_info
+            self.node.save()
+
+        self.assertNotEqual(
+            CONF.redfish.firmware_update_wait_unresponsive_bmc,
+            self.node.driver_info.get('firmware_update_unresponsive_bmc_wait')
+        )
+
+        with open(
+            'ironic/tests/json_samples/systems_collection_single.json'
+        ) as f:
+            resp_obj = json.load(f)
+        system_collection_mock = mock.MagicMock()
+        system_collection_mock.get_members.return_value = resp_obj['Members']
+        get_sys_collec_mock.return_value = system_collection_mock
+
+        task_monitor_mock = mock.Mock()
+        task_monitor_mock.task_monitor_uri = '/task/2'
+        update_service_mock = mock.Mock()
+        update_service_mock.simple_update.return_value = task_monitor_mock
+
+        firmware = redfish_fw.RedfishFirmware()
+        settings = [{'component': 'bmc', 'url': 'https://bmc/v1.2.3'}]
+        firmware._execute_firmware_update(self.node, update_service_mock,
+                                          settings)
+
+        update_service_mock.simple_update.assert_called_once_with(
+            'https://bmc/v1.2.3')
+        sleep_mock.assert_called_once_with(
+            self.node.driver_info.get('firmware_update_unresponsive_bmc_wait')
+        )

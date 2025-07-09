@@ -59,6 +59,14 @@ class RedfishUtilsTestCase(db_base.DbTestCase):
         response = redfish_utils.parse_driver_info(self.node)
         self.assertEqual(self.parsed_driver_info, response)
 
+    def test_parse_driver_info_firmware_update_unresponsive_bmc_wait_set(
+            self):
+        self.node.driver_info['firmware_update_unresponsive_bmc_wait'] = 30
+        self.parsed_driver_info = redfish_utils.parse_driver_info(self.node)
+        self.assertEqual(
+            self.parsed_driver_info['firmware_update_unresponsive_bmc_wait'],
+            30)
+
     def test_parse_driver_info_default_scheme(self):
         self.node.driver_info['redfish_address'] = 'example.com'
         response = redfish_utils.parse_driver_info(self.node)
@@ -267,6 +275,7 @@ class RedfishUtilsAuthTestCase(db_base.DbTestCase):
             'password': 'password',
             'verify_ca': True,
             'auth_type': 'auto',
+            'firmware_update_unresponsive_bmc_wait': 300,
             'node_uuid': self.node.uuid
         }
 
@@ -421,6 +430,7 @@ class RedfishUtilsSystemTestCase(db_base.DbTestCase):
             'password': 'password',
             'verify_ca': True,
             'auth_type': 'auto',
+            'firmware_update_unresponsive_bmc_wait': 300,
             'node_uuid': self.node.uuid
         }
 

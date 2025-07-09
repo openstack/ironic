@@ -11,6 +11,7 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
+import time
 from urllib.parse import urlparse
 
 from oslo_log import log
@@ -231,6 +232,27 @@ class RedfishFirmware(base.FirmwareInterface):
                       'on node %(node)s. Error: %(error)s',
                       {'node': node.uuid, 'error': e.message})
             raise exception.RedfishError(error=e)
+
+        # NOTE(iurygregory): In case we are doing firmware updates we need to
+        # account for unresponsive BMC, in this case we wait for a set of
+        # minutes before proceeding to the power actions.
+        # In case the node has firmware_update_unresponsive_bmc_wait set we
+        # give priority over the configuration option.
+        wait_unres_bmc = (
+            node.driver_info.get('firmware_update_unresponsive_bmc_wait')
+            or CONF.redfish.firmware_update_wait_unresponsive_bmc
+        )
+        LOG.debug('BMC firmware update in progress. Waiting %(wait_time)s '
+                  'seconds before proceeding to reboot the node %(node_uuid)s '
+                  'to complete the step', {'node_uuid': node.uuid,
+                                           'wait_time': wait_unres_bmc})
+        # TODO(iurygregory): Improve the logic here to identify if the BMC
+        # is back, so we don't have to unconditionally wait.
+        # The wait_unres_bmc will be the maximum time to wait.
+        time.sleep(wait_unres_bmc)
+        LOG.debug('Wait completed. Proceeding to reboot the node '
+                  '%(node_uuid)s to complete the step.',
+                  {'node_uuid': node.uuid})
 
         fw_upd['task_monitor'] = task_monitor.task_monitor_uri
         node.set_driver_internal_info('redfish_fw_updates', settings)
