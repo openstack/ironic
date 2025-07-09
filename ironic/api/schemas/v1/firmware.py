@@ -47,9 +47,9 @@ _firmware_response_body = {
         'created_at': {'type': 'string', 'format': 'date-time'},
         'updated_at': {'type': ['string', 'null'], 'format': 'date-time'},
     },
-    # NOTE(adamcarthur, stephenfin): The 'fields' parameter
-    # means nothing is required
-    'required': [],
+    # NOTE(adamcarthur) - These are always returned, regardless of the
+    # value of the fields parameter
+    'required': ['created_at', 'updated_at'],
     'additionalProperties': False,
 }
 
