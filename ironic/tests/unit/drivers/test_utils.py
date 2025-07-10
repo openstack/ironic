@@ -551,3 +551,74 @@ class MixinVendorInterfaceTestCase(db_base.DbTestCase):
             self.assertRaises(exception.InvalidParameterValue,
                               self.vendor.validate,
                               task, method='fake_method')
+
+
+class GetVerifyCATestCase(tests_base.TestCase):
+
+    def setUp(self):
+        super(GetVerifyCATestCase, self).setUp()
+
+    def test_default_verify_is_unspecified(self):
+        node = obj_utils.get_test_node(self.context)
+        for case in [
+            {
+                'driver': 'idrac',
+                'config_group': 'drac',
+                'driver_info_key': 'redfish_verify_ca',
+            },
+            {
+                'driver': 'irmc',
+                'config_group': 'irmc',
+                'driver_info_key': 'irmc_verify_ca',
+            },
+            {
+                'driver': 'redfish',
+                'config_group': 'redfish',
+                'driver_info_key': 'redfish_verify_ca',
+            },
+        ]:
+            node.driver = case['driver']
+
+            verify_ca = driver_utils.get_verify_ca(node, True)
+            self.assertEqual(verify_ca, True)
+
+            verify_ca = driver_utils.get_verify_ca(node, False)
+            self.assertEqual(verify_ca, False)
+
+            verify_ca = driver_utils.get_verify_ca(node, None)
+            self.assertIsNone(verify_ca)
+
+            verify_ca = driver_utils.get_verify_ca(node, 'rootca.crt')
+            self.assertEqual(verify_ca, 'rootca.crt')
+
+    def test_default_verify_is_specified(self):
+        node = obj_utils.get_test_node(self.context)
+        for case in [
+            {
+                'driver': 'idrac',
+                'config_group': 'redfish',
+            },
+            {
+                'driver': 'irmc',
+                'config_group': 'irmc',
+            },
+            {
+                'driver': 'redfish',
+                'config_group': 'redfish',
+            },
+        ]:
+            node.driver = case['driver']
+            cfg.CONF.set_override(
+                'verify_ca', 'default.crt', case['config_group'])
+
+            verify_ca = driver_utils.get_verify_ca(node, True)
+            self.assertEqual(verify_ca, 'default.crt')
+
+            verify_ca = driver_utils.get_verify_ca(node, False)
+            self.assertEqual(verify_ca, False)
+
+            verify_ca = driver_utils.get_verify_ca(node, None)
+            self.assertEqual(verify_ca, 'default.crt')
+
+            verify_ca = driver_utils.get_verify_ca(node, 'rootca.crt')
+            self.assertEqual(verify_ca, 'rootca.crt')

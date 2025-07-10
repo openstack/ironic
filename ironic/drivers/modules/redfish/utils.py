@@ -30,6 +30,7 @@ from ironic.common import exception
 from ironic.common.i18n import _
 from ironic.common import utils
 from ironic.conf import CONF
+from ironic.drivers import utils as driver_utils
 
 LOG = log.getLogger(__name__)
 
@@ -156,7 +157,8 @@ def parse_driver_info(node):
                 {'value': driver_info['redfish_system_id'], 'node': node.uuid})
 
     # Check if verify_ca is a Boolean or a file/directory in the file-system
-    verify_ca = driver_info.get('redfish_verify_ca', True)
+    verify_ca = driver_utils.get_verify_ca(
+        node, driver_info.get('redfish_verify_ca', True))
     if isinstance(verify_ca, str):
         if os.path.isdir(verify_ca) or os.path.isfile(verify_ca):
             pass

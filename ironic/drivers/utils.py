@@ -601,3 +601,27 @@ def power_off_and_on(task):
     next_state = (states.REBOOT if task.node.disable_power_off
                   else states.POWER_ON)
     utils.node_power_action(task, next_state)
+
+
+def get_verify_ca(node, verify_ca):
+    """Add verify_ca setting to driver_info if needed.
+
+    This function checks if verify_ca needs to be set based on
+    configuration values and existing driver_info settings.
+
+    :param node: The node object
+    :param verify_ca: The verify_ca settings in driver_info
+    :return: Updated verify_ca setting if needed
+    """
+    config_group = node.driver
+
+    if node.driver == 'idrac':
+        config_group = 'redfish'
+
+    if verify_ca is not None and verify_ca is not True:
+        return verify_ca
+
+    if CONF.get(config_group, {}).get('verify_ca'):
+        verify_ca = CONF[config_group]['verify_ca']
+
+    return verify_ca
