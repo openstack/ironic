@@ -314,7 +314,10 @@
       tempest_concurrency: 3
       devstack_localrc:
         FORCE_CONFIG_DRIVE: False
-        IRONIC_AGENT_IMAGE_DOWNLOAD_SOURCE: http
+        # NOTE(TheJulia): Change IRONIC_AGENT_IMAGE_DOWNLOAD_SOURCE back to http
+        # once https://bugs.launchpad.net/ironic/+bug/2116135 has been fixed in IPA
+        # Images used by CI.
+        IRONIC_AGENT_IMAGE_DOWNLOAD_SOURCE: local
         IRONIC_AUTOMATED_CLEAN_ENABLED: False
         IRONIC_DEPLOY_DRIVER: redfish
         # NOTE(TheJulia): We test numerous boot interfaces here, but "http"
