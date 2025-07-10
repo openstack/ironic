@@ -30,7 +30,6 @@ from ironic.common import boot_modes
 from ironic.common import components
 from ironic.common import exception
 from ironic.common import indicator_states
-from ironic.common.json_rpc import client as json_rpc
 from ironic.common import release_mappings
 from ironic.common import rpc
 from ironic.common import states
@@ -740,16 +739,6 @@ class RPCAPITestCase(db_base.DbTestCase):
                        spec_set=conductor_manager.ConductorManager)
     def test_local_call(self, mock_manager):
         CONF.set_override('host', 'fake.host')
-        rpcapi = conductor_rpcapi.ConductorAPI(topic='fake.topic')
-        rpcapi.create_node(mock.sentinel.context, mock.sentinel.node,
-                           topic='fake.topic.fake.host')
-        mock_manager.create_node.assert_called_once_with(
-            mock.sentinel.context, node_obj=mock.sentinel.node)
-
-    @mock.patch.object(rpc, 'GLOBAL_MANAGER',
-                       spec_set=conductor_manager.ConductorManager)
-    def test_local_call_with_rpc_disabled(self, mock_manager):
-        CONF.set_override('host', 'fake.host')
         CONF.set_override('rpc_transport', 'none')
         rpcapi = conductor_rpcapi.ConductorAPI(topic='fake.topic')
         rpcapi.create_node(mock.sentinel.context, mock.sentinel.node,
@@ -760,18 +749,6 @@ class RPCAPITestCase(db_base.DbTestCase):
     @mock.patch.object(rpc, 'GLOBAL_MANAGER',
                        spec_set=conductor_manager.ConductorManager)
     def test_local_call_host_mismatch(self, mock_manager):
-        CONF.set_override('host', 'fake.host')
-        rpcapi = conductor_rpcapi.ConductorAPI(topic='fake.topic')
-        rpcapi.client = mock.Mock(spec_set=json_rpc.Client)
-        rpcapi.create_node(mock.sentinel.context, mock.sentinel.node,
-                           topic='fake.topic.not-fake.host')
-        mock_manager.create_node.assert_not_called()
-        rpcapi.client.prepare.assert_called_once_with(
-            topic='fake.topic.not-fake.host', version=mock.ANY)
-
-    @mock.patch.object(rpc, 'GLOBAL_MANAGER',
-                       spec_set=conductor_manager.ConductorManager)
-    def test_local_call_host_mismatch_with_rpc_disabled(self, mock_manager):
         CONF.set_override('host', 'fake.host')
         CONF.set_override('rpc_transport', 'none')
         rpcapi = conductor_rpcapi.ConductorAPI(topic='fake.topic')
@@ -794,6 +771,7 @@ class RPCAPITestCase(db_base.DbTestCase):
                        spec_set=conductor_manager.ConductorManager)
     def test_local_cast(self, mock_manager):
         CONF.set_override('host', 'fake.host')
+        CONF.set_override('rpc_transport', 'none')
         rpcapi = conductor_rpcapi.ConductorAPI(topic='fake.topic')
         cctxt = rpcapi._prepare_call(topic='fake.topic.fake.host')
         cctxt.cast(mock.sentinel.context, 'create_node',
@@ -806,6 +784,7 @@ class RPCAPITestCase(db_base.DbTestCase):
                        spec_set=conductor_manager.ConductorManager)
     def test_local_cast_error(self, mock_manager, mock_log):
         CONF.set_override('host', 'fake.host')
+        CONF.set_override('rpc_transport', 'none')
         mock_manager.create_node.side_effect = RuntimeError('boom')
         rpcapi = conductor_rpcapi.ConductorAPI(topic='fake.topic')
         cctxt = rpcapi._prepare_call(topic='fake.topic.fake.host')
@@ -823,6 +802,7 @@ class RPCAPITestCase(db_base.DbTestCase):
             raise exception.InvalidParameterValue('sorry')
 
         CONF.set_override('host', 'fake.host')
+        CONF.set_override('rpc_transport', 'none')
         rpcapi = conductor_rpcapi.ConductorAPI(topic='fake.topic')
         mock_manager.create_node.side_effect = fake_create
         self.assertRaisesRegex(exception.InvalidParameterValue, 'sorry',

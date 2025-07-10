@@ -208,7 +208,7 @@ class ConductorAPI(object):
         # the hostname to match it against the current host.
         host = topic[len(self.topic) + 1:]
 
-        if rpc.GLOBAL_MANAGER is not None and host == CONF.host:
+        if self.client is None and host == CONF.host:
             # Short-cut to a local function call if there is a built-in
             # conductor.
             return _LOCAL_CONTEXT
