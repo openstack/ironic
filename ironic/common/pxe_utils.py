@@ -1155,7 +1155,7 @@ def validate_kickstart_template(ks_template):
         msg = (_("The kickstart template includes a variable that is not "
                  "a valid kickstart option. Rendering the template returned "
                  " %(msg)s. The valid options are %(valid_options)s.") %
-               {'msg': exc.message,
+               {'msg': exc,
                 'valid_options': ','.join(ks_options.keys())})
         raise exception.InvalidKickstartTemplate(msg)
 
