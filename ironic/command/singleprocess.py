@@ -19,6 +19,7 @@ from oslo_service import service
 from ironic.command import conductor as conductor_cmd
 from ironic.common import service as ironic_service
 from ironic.common import wsgi_service
+from ironic.conductor import local_rpc
 from ironic.conductor import rpc_service
 from ironic.console import novncproxy_service
 
@@ -38,6 +39,8 @@ def main():
 
     # Parse config file and command line options, then start logging
     ironic_service.prepare_service('ironic', sys.argv)
+
+    local_rpc.configure()
 
     launcher = service.ServiceLauncher(CONF, restart_method='mutate')
 

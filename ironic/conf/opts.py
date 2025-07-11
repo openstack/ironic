@@ -40,6 +40,7 @@ _opts = [
     ('ipmi', ironic.conf.ipmi.opts),
     ('irmc', ironic.conf.irmc.opts),
     ('json_rpc', ironic.conf.json_rpc.list_opts()),
+    ('local_rpc', ironic.conf.local_rpc.list_opts()),
     ('mdns', ironic.conf.mdns.opts),
     ('metrics', ironic.conf.metrics.opts),
     ('metrics_statsd', ironic.conf.metrics.statsd_opts),

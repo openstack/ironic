@@ -87,9 +87,17 @@ class Client(object):
                       is the hostname of the remote json-rpc service.
         :param version: The RPC API version to utilize.
         """
-
         host = topic.split('.', 1)[1]
         host, port = netutils.parse_host_port(host)
+        return self.prepare_for_target(host, port, version=version)
+
+    def prepare_for_target(self, host, port=None, version=None):
+        """Prepare the client to transmit a request to the provided target.
+
+        :param host: Remote host to connect to.
+        :param port: Port to use.
+        :param version: The RPC API version to utilize.
+        """
         return _CallContext(
             host, self.serializer, version=version,
             version_cap=self.version_cap,

@@ -1,0 +1,9 @@
+---
+upgrade:
+  - |
+    All-in-one Ironic processes that use ``rpc_transport=none`` are switched
+    to using JSON RPC over localhost on upgrade. This is because the current
+    model is not compatible with the post-eventlet architecture.
+
+    Make sure that local traffic is possible on port 8089. If not, you may
+    change the port by modifying the ``[json_rpc]port`` option.
