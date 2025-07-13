@@ -15,10 +15,11 @@ There are three kinds of inspection supported by Bare Metal service:
 #. Out-of-band inspection is currently implemented by several hardware types,
    including ``redfish``, ``ilo``, ``idrac`` and ``irmc``.
 
-#. :doc:`In-band inspection </admin/inspection/inspector>` utilizing
-   the ironic-inspector_ project. This is now deprecated.
+#. :doc:`In-band inspection </admin/inspection/index>` utilizing Ironic Python
+   Agent to collect information.
 
-#. New built-in :doc:`in-band inspection </admin/inspection/index>`.
+#. :doc:`Older in-band inspection </admin/inspection/inspector>` implementation
+   utilizing the ironic-inspector_ project. This is now **deprecated**.
 
 The node should be in the ``manageable`` state before inspection is initiated.
 If it is in the ``enroll`` or ``available`` state, move it to ``manageable``
@@ -81,8 +82,8 @@ across a wide range of hardware.
 
 .. toctree::
 
-   inspection/inspector
+   inspection/index
 
 .. toctree::
 
-   inspection/index
+   inspection/inspector
