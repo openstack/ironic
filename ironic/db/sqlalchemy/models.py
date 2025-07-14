@@ -270,6 +270,7 @@ class Port(Base):
     is_smartnic = Column(Boolean, nullable=True, default=False)
     name = Column(String(255), nullable=True)
     description = Column(String(255), nullable=True)
+    vendor = Column(String(32), nullable=True)
 
     _node_uuid = orm.relationship(
         "Node",

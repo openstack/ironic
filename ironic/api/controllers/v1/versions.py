@@ -137,6 +137,7 @@ BASE_VERSION = 1
 # v1.97: Add description field to port.
 # v1.98: Add support for object attributes with keys containing ~ or /.
 # v1.99: Add conductor group filtering to port and portgroup list
+# v1.100: Add vendor field to port.
 
 MINOR_0_JUNO = 0
 MINOR_1_INITIAL_VERSION = 1
@@ -238,6 +239,7 @@ MINOR_96_INSPECTION_RULES = 96
 MINOR_97_PORT_DESCRIPTION = 97
 MINOR_98_SUPPORT_SPECIAL_CHAR_IN_ATTRIBUTES = 98
 MINOR_99_PORT_PORTGROUP_CONDUCTOR_GROUP_FILTER = 99
+MINOR_100_PORT_VENDOR = 100
 
 # When adding another version, update:
 # - MINOR_MAX_VERSION
@@ -246,7 +248,7 @@ MINOR_99_PORT_PORTGROUP_CONDUCTOR_GROUP_FILTER = 99
 # - common/release_mappings.py, RELEASE_MAPPING['master']['api']
 
 
-MINOR_MAX_VERSION = MINOR_99_PORT_PORTGROUP_CONDUCTOR_GROUP_FILTER
+MINOR_MAX_VERSION = MINOR_100_PORT_VENDOR
 
 # String representations of the minor and maximum versions
 _MIN_VERSION_STRING = '{}.{}'.format(BASE_VERSION, MINOR_1_INITIAL_VERSION)

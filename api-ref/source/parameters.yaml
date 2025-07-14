@@ -1582,6 +1582,12 @@ port_name:
   in: body
   required: false
   type: string
+port_vendor:
+  description: |
+    Name of the hardware vendor of the network Port.
+  in: body
+  required: false
+  type: string
 portgroup_address:
   description: |
     Physical hardware address of this Portgroup, typically the hardware
@@ -1980,6 +1986,12 @@ req_port_description:
 req_port_name:
   description: |
     The name assigned to the network Port.
+  in: body
+  required: false
+  type: string
+req_port_vendor:
+  description: |
+    Name of the hardware vendor of the network Port.
   in: body
   required: false
   type: string
