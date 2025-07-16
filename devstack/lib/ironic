@@ -212,6 +212,12 @@ if [[ "$hostdomain" =~ "rax" ]] || [[ "$hostdomain" =~ "iweb" ]]; then
     # we should make a helper method...
 fi
 
+# DO NOT MODIFY/SET
+# NOTE(TheJulia): These settings are for virtual media based testing, and
+# the need to send traffic *back* to the host. The subnet ID is dynamic,
+# the IP needs to be within the floating IP range.
+PUBLIC_SUBNET_ID=""
+PUBLIC_SUBNET_IP="172.24.5.250"
 
 # Oslo Policy enforcement for Scope and new policy enforcement.
 IRONIC_ENFORCE_SCOPE=$(trueorfalse True IRONIC_ENFORCE_SCOPE)
@@ -347,6 +353,10 @@ fi
 # OS for using with DIB images
 IRONIC_DIB_RAMDISK_OS=${IRONIC_DIB_RAMDISK_OS:-centos9}
 IRONIC_DIB_RAMDISK_RELEASE=${IRONIC_DIB_RAMDISK_RELEASE:-}
+
+# OS for building images in CI
+IRONIC_DIB_OS=${IRONIC_DIB_RAMDISK_OS:-centos9}
+IRONIC_DIB_RELEASE=${IRONIC_DIB_RAMDISK_RELEASE:-}
 
 # Configure URLs required to download ramdisk if we're not building it, and
 # IRONIC_DEPLOY_RAMDISK/KERNEL or the RAMDISK/KERNEL_URLs have not been
@@ -2561,6 +2571,13 @@ SUBSHELL
         # Route back to our test subnet. Static should be safe for a while.
         sudo ip -6 route add fd00::/8 via $IPV6_ROUTER_GW_IP
     fi
+
+    # NOTE(TheJulia): Getting the subnet_id might need additional logic
+    # behind it, should also just generally work.
+    PUBLIC_SUBNET_ID=$(openstack router show $Q_ROUTER_NAME -c external_gateway_info -f json | jq -r .external_gateway_info.external_fixed_ips[0].subnet_id)
+    # Add a route for dhcp-less return path traffic
+    sudo ip route add 10.0.6.0/24 via $PUBLIC_SUBNET_IP
+
     if [[ "${IRONIC_NETWORK_SIMULATOR:-ovs}" != "ovs" ]]; then
         create_network_simulator
     fi
@@ -3849,6 +3866,7 @@ function build_ipa_dib_ramdisk {
     fi
     git_clone $IRONIC_PYTHON_AGENT_BUILDER_REPO $IRONIC_PYTHON_AGENT_BUILDER_DIR $IRONIC_PYTHON_AGENT_BUILDER_BRANCH
     ELEMENTS_PATH="$IRONIC_PYTHON_AGENT_BUILDER_DIR/dib" \
+        DIB_CLOUD_INIT_DATASOURCES="ConfigDrive,openstack" \
         DIB_DHCP_TIMEOUT=$IRONIC_DIB_DHCP_TIMEOUT \
         DIB_RELEASE=$IRONIC_DIB_RAMDISK_RELEASE \
         DIB_REPOLOCATION_ironic_python_agent="$IRONIC_PYTHON_AGENT_DIR" \
@@ -3867,6 +3885,45 @@ function build_ipa_dib_ramdisk {
         mv "$tempdir/ironic-agent.iso" "$iso_path"
     fi
     rm -rf $tempdir
+}
+
+function build_wholedisk_image {
+    local img_path=$1
+    local tempdir
+    tempdir=$(mktemp -d --tmpdir=${DEST})
+
+    # install diskimage-builder if not present
+    if ! $(type -P disk-image-create > /dev/null); then
+        install_diskimage_builder
+    fi
+
+    echo "Building wholedisk DIB image options: $IRONIC_DIB_OPTIONS block-device-efi bootloader"
+    # Build a bootable UEFI image iniit tooling .
+    DIB_DHCP_TIMEOUT=$IRONIC_DIB_DHCP_TIMEOUT \
+        DIB_RELEASE=$IRONIC_DIB_RELEASE \
+        DIB_SIMPLE_INIT_NO_DHCP_FALLBACK=1 \
+        DIB_CLOUD_INIT_DATASOURCES="ConfigDrive,openstack" \
+        disk-image-create "$IRONIC_DIB_OPTIONS" block-device-efi bootloader \
+        -x -o  "$tempdir/wholedisk"
+    chmod -R +r $tempdir
+    mv "$tempdir/wholedisk.qcow2" "$img_path"
+    rm -rf $tempdir
+}
+
+function upload_baremetal_ironic_wholedisk {
+    disk_img=$1
+    disk_img_name=$2
+
+    if [[ "$HOST_TOPOLOGY_ROLE" != "subnode" ]]; then
+        echo_summary "Uploading baremetal images for ironic"
+        wholedisk_image_id=$(openstack --os-cloud devstack-admin \
+            image create \
+            $(basename $disk_img_name) \
+            --public --disk-format=qcow2 \
+            --container-format=bare \
+            --file $(readlink -f "$disk_img")  -f value -c id)
+        die_if_not_set $LINENO wholedisk_image_id "Failed to load wholedisk image into glance"
+    fi
 }
 
 function build_dib_image {
@@ -4096,10 +4153,17 @@ function prepare_baremetal_basic_ops {
     if [[ "$IRONIC_BAREMETAL_BASIC_OPS" != "True" ]]; then
         return 0
     fi
-
+    if [[ "${IRONIC_BUILD_WHOLEDISK:-False}" == "True" ]]; then
+        local dib_file_path
+        dib_file_path=$FILES/ironic-wholedisk-image.qcow2
+        build_wholedisk_image $dib_file_path
+        echo "WARNING: Overriding supplied IRONIC_WHOLEDISK_IMAGE_NAME as we have built an image as requested."
+        IRONIC_WHOLEDISK_IMAGE_NAME="ironic-wholedisk-image.qcow2"
+        upload_baremetal_ironic_wholedisk $dib_file_path $IRONIC_WHOLEDISK_IMAGE_NAME
+    fi
     if ! is_service_enabled nova && is_http_server_required; then
         local image_file_path
-        if [[ ${IRONIC_WHOLEDISK_IMAGE_NAME} =~ \.img$ ]]; then
+        if [[ ${IRONIC_WHOLEDISK_IMAGE_NAME} =~ \.img$ ]] || [ -f $FILES/${IRONIC_WHOLEDISK_IMAGE_NAME} ]; then
             image_file_path=$FILES/${IRONIC_WHOLEDISK_IMAGE_NAME}
         else
             image_file_path=$FILES/${IRONIC_WHOLEDISK_IMAGE_NAME}.img
@@ -4306,6 +4370,10 @@ function ironic_configure_tempest {
         iniset $TEMPEST_CONFIG baremetal unrescue_timeout $IRONIC_TEMPEST_BUILD_TIMEOUT
         iniset $TEMPEST_CONFIG baremetal inspect_timeout $IRONIC_TEMPEST_BUILD_TIMEOUT
     fi
+
+    # Set networking parameters for dhcp-less vmedia testing
+    iniset $TEMPEST_CONFIG baremetal public_subnet_id $PUBLIC_SUBNET_ID
+    iniset $TEMPEST_CONFIG baremetal public_subnet_ip $PUBLIC_SUBNET_IP
 
     if [[ $IRONIC_VM_VOLUME_COUNT -gt 1 ]]; then
         iniset $TEMPEST_CONFIG baremetal_feature_enabled software_raid True

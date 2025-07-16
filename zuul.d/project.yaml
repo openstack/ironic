@@ -17,6 +17,8 @@
         - ironic-tempest-functional-python3
         - ironic-standalone-redfish:
             voting: false
+        - ironic-tempest-standalone-advanced:
+            voting: false
         - ironic-tempest-bios-redfish-pxe
         - ironic-tempest-uefi-redfish-vmedia
         - ironic-tempest-ramdisk-bios-snmp-pxe
