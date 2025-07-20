@@ -4170,6 +4170,14 @@ def do_sync_power_state(task, count):
     count += 1
 
     max_retries = CONF.conductor.power_state_sync_max_retries
+
+    def _clear_last_error_if_needed(node, reason):
+        if CONF.conductor.node_history and node.last_error:
+            LOG.info("Clearing last_error for node %(node)s after %(reason)s.",
+                     {'node': node.uuid, 'reason': reason})
+            node.last_error = None
+            node.save()
+
     # If power driver info can not be validated, and node has no prior state,
     # do not attempt to sync the node's power state.
     if node.power_state is None:
@@ -4209,6 +4217,7 @@ def do_sync_power_state(task, count):
     if ((node.power_state and node.power_state == power_state)
             or (node.power_state is None and power_state is None)):
         # No action is needed
+        _clear_last_error_if_needed(node, "confirmed power state match")
         return 0
 
     # We will modify a node, so upgrade our lock and use reloaded node.
@@ -4220,6 +4229,7 @@ def do_sync_power_state(task, count):
     if ((node.power_state and node.power_state == power_state)
             or (node.power_state is None and power_state is None)):
         # Node power state was updated to the correct value
+        _clear_last_error_if_needed(node, "confirmed power state match")
         return 0
     elif node.provision_state in SYNC_EXCLUDED_STATES or node.maintenance:
         # Something was done to a node while a shared lock was held
@@ -4231,6 +4241,7 @@ def do_sync_power_state(task, count):
                  "previous known state. Recording current state '%(state)s'.",
                  {'node': node.uuid, 'state': power_state})
         node.power_state = power_state
+        _clear_last_error_if_needed(node, "no previous known state")
         node.save()
         if node.instance_uuid:
             nova.power_update(
