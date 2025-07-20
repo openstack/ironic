@@ -55,6 +55,7 @@ PORT_SCHEMA = {
         'name': {'type': ['string', 'null']},
         'description': {'type': ['string', 'null'], 'maxLength': 255},
         'vendor': {'type': ['string', 'null'], 'maxLength': 32},
+        'category': {'type': ['string', 'null'], 'maxLength': 80},
     },
     'required': ['address'],
     'oneOf': [
@@ -80,6 +81,7 @@ PATCH_ALLOWED_FIELDS = [
     'name',
     'description',
     'vendor',
+    'category',
 ]
 
 PORT_VALIDATOR_EXTRA = args.dict_valid(
@@ -144,6 +146,9 @@ def hide_fields_in_newer_versions(port):
     # if requested version is < 1.100, hide vendor field.
     if not api_utils.allow_port_vendor():
         port.pop('vendor', None)
+    # if requested version is < 1.101, hide category field.
+    if not api_utils.allow_port_category():
+        port.pop('category', None)
 
 
 def convert_with_links(rpc_port, fields=None, sanitize=True):
@@ -412,6 +417,9 @@ class PortsController(rest.RestController):
             raise exception.NotAcceptable()
         if ('vendor' in fields
                 and not api_utils.allow_port_vendor()):
+            raise exception.NotAcceptable()
+        if ('category' in fields
+                and not api_utils.allow_port_category()):
             raise exception.NotAcceptable()
 
     @METRICS.timer('PortsController.get_all')

@@ -59,6 +59,9 @@ By default, this query will return the uuid and address for each Port.
 .. versionadded:: 1.100
   Added the ``vendor`` field.
 
+.. versionadded:: 1.101
+  Added the ``category`` field.
+
 Normal response code: 200
 
 Request
@@ -134,6 +137,9 @@ This method requires a Node UUID and the physical hardware address for the Port
 .. versionadded:: 1.100
   Added the ``vendor`` field.
 
+.. versionadded:: 1.101
+  Added the ``category`` field.
+
 Normal response code: 201
 
 Request
@@ -153,6 +159,7 @@ Request
     - uuid: req_uuid
     - description: req_port_description
     - vendor: req_port_vendor
+    - category: req_port_category
 
 .. note::
    Either `node_ident` or `node_uuid` is a valid parameter.
@@ -183,6 +190,7 @@ Response
     - is_smartnic: is_smartnic
     - description: port_description
     - vendor: port_vendor
+    - category: port_category
 
 **Example Port creation response:**
 
@@ -227,6 +235,9 @@ Return a list of bare metal Ports, with detailed information.
 .. versionadded:: 1.100
   Added the ``vendor`` field.
 
+.. versionadded:: 1.101
+  Added the ``category`` field.
+
 Normal response code: 200
 
 Request
@@ -266,6 +277,7 @@ Response
     - is_smartnic: is_smartnic
     - description: port_description
     - vendor: port_vendor
+    - category: port_category
 
 **Example detailed Port list response:**
 

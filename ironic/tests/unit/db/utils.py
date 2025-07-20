@@ -290,6 +290,7 @@ def get_test_port(**kw):
         'name': kw.get('name'),
         'description': kw.get('description'),
         'vendor': kw.get('vendor'),
+        'category': kw.get('category'),
     }
 
 

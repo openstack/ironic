@@ -37,6 +37,9 @@ Response to include only the specified fields, rather than the default set.
 .. versionadded:: 1.100
   Added the ``vendor`` field.
 
+.. versionadded:: 1.101
+  Added the ``category`` field.
+
 Normal response code: 200
 
 Error codes: 400,401,403,404
@@ -90,6 +93,9 @@ Return a detailed list of bare metal Ports associated with ``portgroup_ident``.
 .. versionadded:: 1.100
   Added the ``vendor`` field.
 
+.. versionadded:: 1.101
+  Added the ``category`` field.
+
 Normal response code: 200
 
 Error codes: 400,401,403,404
@@ -127,6 +133,7 @@ Response
     - name: port_name
     - description: port_description
     - vendor: port_vendor
+    - category: port_category
 
 **Example details of a Portgroup's Ports:**
 

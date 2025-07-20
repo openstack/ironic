@@ -368,3 +368,29 @@ class DbPortTestCase(base.DbTestCase):
 
         retrieved_port1 = self.dbapi.get_port_by_uuid(port1.uuid)
         self.assertEqual(new_vendor, retrieved_port1.vendor)
+
+    def test_create_port_with_category(self):
+        category = 'hypernet'
+        port1 = db_utils.create_test_port(
+            uuid=uuidutils.generate_uuid(),
+            node_id=self.node.id,
+            address='52:54:00:cf:2d:42',
+            category=category)
+
+        port2 = db_utils.create_test_port(
+            uuid=uuidutils.generate_uuid(),
+            node_id=self.node.id,
+            address='52:54:00:cf:2d:45',
+            category=category)
+
+        self.assertEqual(category, port1.category)
+        self.assertEqual(category, port2.category)
+
+        new_category = 'ultranet'
+        updated_port = self.dbapi.update_port(
+            port1.id, {'category': new_category})
+
+        self.assertEqual(new_category, updated_port.category)
+
+        retrieved_port1 = self.dbapi.get_port_by_uuid(port1.uuid)
+        self.assertEqual(new_category, retrieved_port1.category)

@@ -1570,6 +1570,12 @@ port_address:
   in: body
   required: true
   type: string
+port_category:
+  description: |
+    Category of the network Port. Helps to further differentiate the Port.
+  in: body
+  required: false
+  type: string
 port_description:
   description: |
     Descriptive text about the network Port.
@@ -1976,6 +1982,12 @@ req_port_address:
     MAC address.
   in: body
   required: true
+  type: string
+req_port_category:
+  description: |
+    Category of the network Port. Helps to further differentiate the Port.
+  in: body
+  required: false
   type: string
 req_port_description:
   description: |
