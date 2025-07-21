@@ -179,6 +179,14 @@ the following format::
                     "component": "bios"
                     "url": "<url_to_firmware_image2>"
                 },
+                {
+                    "component": "nic:AD0700",
+                    "url": "<url_to_firmware_image3>"
+                },
+                {
+                    "component": "nic:NIC.Slot.2",
+                    "url": "<url_to_firmware_image4>"
+                }
                 ...
             ]
         }
@@ -198,10 +206,18 @@ The different attributes of the ``update`` step are as follows:
 Each firmware image dictionary is of the form::
 
     {
-      "component": "The desired component to have the firmware updated, only bios and bmc are currently supported",
+      "component": "The desired component to have the firmware updated, supported components are listed below",
       "url": "<URL of firmware image file>",
       "wait": <Optional time in seconds to wait after applying update>
     }
+
+.. csv-table::
+    :header: "Supported Components", "Description"
+    :widths: 30, 120
+
+    "bmc", "The BMC firmware"
+    "bios", "The BIOS firmware"
+    "nic:<NIC_REDFISH_ID>", "Since machines can have multiple NICs, we use **nic:** as prefix plus the **NIC_REDFISH_ID** to identify the NIC to update"
 
 The ``component`` and ``url`` arguments in the firmware image dictionary are
 mandatory, while the ``wait`` argument is optional.
@@ -242,7 +258,14 @@ installs two firmware updates.
                     "component": "bios",
                     "url": "https://192.0.2.10/BIOS_19.0.12_A00.EXE"
                 },
-
+                {
+                    "component": "nic:AD0700",
+                    "url": "http://192.0.2.10/NIC_19.0.12_AD0700.EXE"
+                },
+                {
+                    "component": "nic:NIC.Slot.2",
+                    "url": "http://192.0.2.10/NICSlot2_1.0.12.EXE"
+                }
             ]
         }
     }]
@@ -253,7 +276,7 @@ It is also possible to use ``runbooks`` for firmware updates.
 .. code-block:: console
 
     $ baremetal runbook create --name <RUNBOOK> --steps \
-        '[{"interface": "firmware", "step": "update", "args": {"settings":[{"component": "bmc", "url":"http://192.168.0.8:8080/ilo5278.bin"}]}}]'
+        '[{"interface": "firmware", "step": "update", "args": {"settings":[{"component": "bmc", "url":"http://192.168.0.8:8080/ilo5278.bin"}, {"component": "nic:AD0700", "url":"http://192.168.0.8:8080/nic.bin"}, {"component": "nic:NIC.Slot.2", "url":"http://192.168.0.8:8080/nic.bin"}]}}]'
     $ baremetal node add trait <ironic_node_uuid> <RUNBOOK>
     $ baremetal node <clean or service>  <ironic_node_uuid> --runbook <RUNBOOK>
 
@@ -278,6 +301,10 @@ In the following example, the JSON is specified directly on the command line:
        '[{"interface": "firmware", "step": "update", "args": {"settings":[{"component": "bmc", "url":"http://192.168.0.8:8080/ilo5278.bin"}]}}]'
    $ baremetal node service <ironic_node_uuid> --service-steps \
        '[{"interface": "firmware", "step": "update", "args": {"settings":[{"component": "bios", "url":"http://192.168.0.8:8080/bios.bin"}]}}]'
+   $ baremetal node clean <ironic_node_uuid> --clean-steps \
+       '[{"interface": "firmware", "step": "update", "args": {"settings":[{"component": "nic:AD0700", "url":"http://192.168.0.8:8080/nic.bin"}]}}]'
+   $ baremetal node clean <ironic_node_uuid> --clean-steps \
+       '[{"interface": "firmware", "step": "update", "args": {"settings":[{"component": "nic:NIC.Slot.2", "url":"http://192.168.0.8:8080/nic.bin"}]}}]'
 
 .. note::
    For Dell machines, you must extract the firmimgFIT.d9 from the iDRAC.exe
