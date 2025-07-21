@@ -91,23 +91,34 @@ class RedfishInspectTestCase(db_base.DbTestCase):
         system_mock.storage.volumes_sizes_bytes = (
             2 * units.Gi, units.Gi * 4, units.Gi * 6)
 
-        eth_interface_mock1 = mock.Mock()
+        eth_interface_mock1 = mock.Mock(
+            spec=sushy.resources.system.ethernet_interface.EthernetInterface)
         eth_interface_mock1.identity = 'NIC.Integrated.1-1'
         eth_interface_mock1.mac_address = '00:11:22:33:44:55'
+        eth_interface_mock1.status.state = sushy.STATE_ENABLED
+        eth_interface_mock1.status.health = sushy.HEALTH_OK
 
-        eth_interface_mock2 = mock.Mock()
+        eth_interface_mock2 = mock.Mock(
+            spec=sushy.resources.system.ethernet_interface.EthernetInterface)
         eth_interface_mock2.identity = 'NIC.Integrated.2-1'
         eth_interface_mock2.mac_address = '66:77:88:99:AA:BB'
+        eth_interface_mock2.status.state = sushy.STATE_DISABLED
+        eth_interface_mock2.status.health = sushy.HEALTH_OK
 
-        system_mock.ethernet_interfaces.summary = {
-            '00:11:22:33:44:55': sushy.STATE_ENABLED,
-            '66:77:88:99:AA:BB': sushy.STATE_DISABLED,
-        }
+        system_mock.ethernet_interfaces.get_members.return_value = [
+            eth_interface_mock1,
+            eth_interface_mock2
+        ]
 
-        ethernet_mock = mock.Mock()
-        ethernet_mock.get_members.return_value = [eth_interface_mock1,
-                                                  eth_interface_mock2]
-        system_mock.ethernet_interfaces = ethernet_mock
+        # make the summary follow the data above by making it
+        # a property like sushy and returning the same data
+        type(system_mock.ethernet_interfaces).summary = mock.PropertyMock(
+            side_effect=lambda: {
+                obj.mac_address: obj.status.state
+                for obj in
+                system_mock.ethernet_interfaces.get_members.return_value
+            }
+        )
 
         system_mock.name = 'System1'
 
@@ -415,7 +426,7 @@ class RedfishInspectTestCase(db_base.DbTestCase):
     def test_inspect_hardware_ignore_missing_nics(
             self, mock_create_ports_if_not_exist, mock_get_system):
         system_mock = self.init_system_mock(mock_get_system.return_value)
-        system_mock.ethernet_interfaces.summary = None
+        system_mock.ethernet_interfaces.get_members.return_value = []
 
         with task_manager.acquire(self.context, self.node.uuid,
                                   shared=True) as task:
@@ -556,12 +567,10 @@ class RedfishInspectTestCase(db_base.DbTestCase):
 
     @mock.patch.object(redfish_utils, 'get_system', autospec=True)
     def test_inspect_hardware_with_no_mac(self, mock_get_system):
-        self.init_system_mock(mock_get_system.return_value)
-        system = mock_get_system.return_value
-        system.ethernet_interfaces.summary = {
-            '00:11:22:33:44:55': sushy.STATE_ENABLED,
-            '': sushy.STATE_ENABLED,
-        }
+        system_mock = self.init_system_mock(mock_get_system.return_value)
+        mock_eths = system_mock.ethernet_interfaces.get_members.return_value
+        mock_eths[1].mac_address = ''
+        mock_eths[1].status.state = sushy.STATE_ENABLED
 
         with task_manager.acquire(self.context, self.node.uuid,
                                   shared=True) as task:
