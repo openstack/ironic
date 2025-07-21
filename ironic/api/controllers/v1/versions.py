@@ -139,6 +139,7 @@ BASE_VERSION = 1
 # v1.99: Add conductor group filtering to port and portgroup list
 # v1.100: Add vendor field to port.
 # v1.101: Add category field to port.
+# v1.102: Add physical_network field to portgroup.
 
 MINOR_0_JUNO = 0
 MINOR_1_INITIAL_VERSION = 1
@@ -242,6 +243,7 @@ MINOR_98_SUPPORT_SPECIAL_CHAR_IN_ATTRIBUTES = 98
 MINOR_99_PORT_PORTGROUP_CONDUCTOR_GROUP_FILTER = 99
 MINOR_100_PORT_VENDOR = 100
 MINOR_101_PORT_CATEGORY = 101
+MINOR_102_PORTGROUP_PHYSICAL_NETWORK = 102
 
 # When adding another version, update:
 # - MINOR_MAX_VERSION
@@ -250,7 +252,7 @@ MINOR_101_PORT_CATEGORY = 101
 # - common/release_mappings.py, RELEASE_MAPPING['master']['api']
 
 
-MINOR_MAX_VERSION = MINOR_101_PORT_CATEGORY
+MINOR_MAX_VERSION = MINOR_102_PORTGROUP_PHYSICAL_NETWORK
 
 # String representations of the minor and maximum versions
 _MIN_VERSION_STRING = '{}.{}'.format(BASE_VERSION, MINOR_1_INITIAL_VERSION)

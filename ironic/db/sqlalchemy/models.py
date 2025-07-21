@@ -302,6 +302,7 @@ class Portgroup(Base):
     standalone_ports_supported = Column(Boolean, default=True)
     mode = Column(String(255))
     properties = Column(db_types.JsonEncodedDict)
+    physical_network = Column(String(64), nullable=True)
 
     _node_uuid = orm.relationship(
         "Node",

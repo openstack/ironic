@@ -1,0 +1,7 @@
+---
+features:
+  - |
+    A new "physical_network" field has been added to the Portgroup object. This
+    field is semantically the same as the "physical_network" Port field.
+    This will allow portgroups to be scheduled by physical network, similar
+    to ports, in a future change.

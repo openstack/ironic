@@ -77,6 +77,9 @@ Creates a new Portgroup resource.
 This method requires a Node UUID and the physical hardware address for the
 Portgroup (MAC address in most cases).
 
+.. versionadded:: 1.102
+  Added the ``physical_network`` field.
+
 Normal response code: 201
 
 Error codes: 400,401,403,404
@@ -94,6 +97,7 @@ Request
     - properties: req_portgroup_properties
     - extra: req_extra
     - uuid: req_uuid
+    - physical_network: req_physical_network
 
 **Example Portgroup creation request:**
 
@@ -118,6 +122,7 @@ Response
     - updated_at: updated_at
     - links: links
     - ports: pg_ports
+    - physical_network: physical_network
 
 **Example Portgroup creation response:**
 
@@ -131,6 +136,9 @@ List Detailed Portgroups
 .. rest_method:: GET /v1/portgroups/detail
 
 Return a list of bare metal Portgroups, with detailed information.
+
+.. versionadded:: 1.102
+  Added the ``physical_network`` field.
 
 Normal response code: 200
 
@@ -167,6 +175,7 @@ Response
     - updated_at: updated_at
     - links: links
     - ports: pg_ports
+    - physical_network: physical_network
 
 **Example detailed Portgroup list response:**
 
@@ -180,6 +189,9 @@ Show Portgroup Details
 .. rest_method:: GET /v1/portgroups/{portgroup_ident}
 
 Show details for the given Portgroup.
+
+.. versionadded:: 1.102
+  Added the ``physical_network`` field.
 
 Normal response code: 200
 
@@ -211,6 +223,7 @@ Response
     - updated_at: updated_at
     - links: links
     - ports: pg_ports
+    - physical_network: physical_network
 
 **Example Portgroup details:**
 
@@ -224,6 +237,9 @@ Update a Portgroup
 .. rest_method:: PATCH /v1/portgroups/{portgroup_ident}
 
 Update a Portgroup.
+
+.. versionadded:: 1.102
+  Added the ``physical_network`` field.
 
 Normal response code: 200
 
@@ -262,6 +278,7 @@ Response
     - updated_at: updated_at
     - links: links
     - ports: pg_ports
+    - physical_network: physical_network
 
 **Example Portgroup update response:**
 

@@ -269,9 +269,9 @@ in Neutron for the networking-baremetal integration to properly reconcile
 the port. This has to be a name (not a UUID) since physical networks are
 configured in Neutron by name.
 
-The physical network of a port group is defined by the physical network of its
-constituent ports. The Ironic service ensures that all ports in a port
-group have the same value in their physical network field.
+The physical network of a port group is explicitly defined and
+constituent ports should match. The Ironic service ensures that all ports
+in a port group have the same value in their physical network field.
 
 The ``physical_network`` setting is used to have divided network fabrics which
 may carry different sets of traffic, and is intended to help model the reality
@@ -434,7 +434,7 @@ Physnet Mapping
 ---------------
 
 When using physnet mapping, it is critical for proper instance scheduling for
-network resources to be informed of the physical network mappins which
+network resources to be informed of the physical network mappings which
 are represented in relation to the hosts in the deployment.
 
 This takes the form of the ``ironic-neutron-agent`` which operators should

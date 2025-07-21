@@ -28,6 +28,7 @@
           "rel": "bookmark"
         }
       ],
+      "physical_network": "physnet1",
       "properties": {},
       "standalone_ports_supported": true,
       "updated_at": null,

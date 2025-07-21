@@ -98,7 +98,7 @@ class ConductorManager(base_manager.BaseConductorManager):
     # NOTE(rloo): This must be in sync with rpcapi.ConductorAPI's.
     # NOTE(pas-ha): This also must be in sync with
     #               ironic.common.release_mappings.RELEASE_MAPPING['master']
-    RPC_API_VERSION = '1.61'
+    RPC_API_VERSION = '1.62'
 
     target = messaging.Target(version=RPC_API_VERSION)
 
@@ -2276,6 +2276,32 @@ class ConductorManager(base_manager.BaseConductorManager):
                                   purpose='portgroup deletion') as task:
             portgroup.destroy()
             LOG.info('Successfully deleted portgroup %(portgroup)s. '
+                     'The node associated with the portgroup was %(node)s',
+                     {'portgroup': portgroup.uuid, 'node': task.node.uuid})
+
+    @METRICS.timer('ConductorManager.update_portgroup_physical_network')
+    @messaging.expected_exceptions(exception.NodeLocked,
+                                   exception.NodeNotFound)
+    def update_portgroup_physical_network(self, context, portgroup,
+                                          new_physical_network):
+        """Update the physical_network for a given portgroup and its ports.
+
+        :param context: request context.
+        :param portgroup: portgroup object
+        :raises: NodeLocked if node is locked by another conductor.
+        :raises: NodeNotFound if the node associated with the portgroup does
+                 not exist.
+
+        """
+        LOG.debug('RPC update_portgroup_physical_network called for '
+                  'portgroup %(portgroup)s',
+                  {'portgroup': portgroup.uuid})
+        purpose = 'portgroup physical_network update'
+        with task_manager.acquire(context, portgroup.node_id,
+                                  purpose=purpose) as task:
+            portgroup.update_physical_network(new_physical_network,
+                                              context=context)
+            LOG.info('Successfully updated portgroup %(portgroup)s. '
                      'The node associated with the portgroup was %(node)s',
                      {'portgroup': portgroup.uuid, 'node': task.node.uuid})
 

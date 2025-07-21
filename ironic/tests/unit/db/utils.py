@@ -467,6 +467,7 @@ def get_test_portgroup(**kw):
                                              True),
         'mode': kw.get('mode'),
         'properties': kw.get('properties', {}),
+        'physical_network': kw.get('physical_network', None)
     }
 
 
