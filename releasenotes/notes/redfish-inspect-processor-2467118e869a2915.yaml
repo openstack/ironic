@@ -1,0 +1,9 @@
+---
+upgrade:
+  - |
+    When using the redfish inspection method, the node property ``cpus`` will no
+    longer be populated. No other inspection method populated this field.
+fixes:
+  - |
+    When using the redfish inspection method, the node property ``cpu_arch`` is
+    now populated correctly with ``i686`` or ``x86_64`` for the processor.

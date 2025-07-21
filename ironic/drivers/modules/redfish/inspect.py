@@ -106,7 +106,16 @@ class RedfishInspect(base.InspectInterface):
             inspected_properties['memory_mb'] = memory
             inventory['memory'] = {'physical_mb': memory}
 
-        self._get_processor_info(task, system, inspected_properties, inventory)
+        # match the inventory data of ironic-inspector / ironic-python-agent
+        # to make existing inspection hooks and rules work by defaulting
+        # the values
+        inventory['cpu'] = {
+            'count': 0,
+            'architecture': '',
+        }
+        proc_info = self._get_processor_info(task, system,
+                                             inspected_properties)
+        inventory['cpu'].update(proc_info)
 
         # TODO(etingof): should we respect root device hints here?
         local_gb = self._detect_local_gb(task, system)
@@ -296,20 +305,17 @@ class RedfishInspect(base.InspectInterface):
         """
         return None
 
-    def _get_processor_info(self, task, system, inspected_properties,
-                            inventory):
+    def _get_processor_info(self, task, system, inspected_properties):
         # NOTE(JayF): Checking truthiness here is better than checking for None
         #             because if we have an empty list, we'll raise a
         #             ValueError.
-        if not system.processors:
-            return
-
         cpu = {}
+
+        if not system.processors:
+            return cpu
+
         if system.processors.summary:
-            cpus, arch = system.processors.summary
-            if cpus:
-                inspected_properties['cpus'] = cpus
-                cpu['count'] = cpus
+            cpu['count'], arch = system.processors.summary
             if arch:
                 try:
                     inspected_properties['cpu_arch'] = CPU_ARCH_MAP[arch]
@@ -324,8 +330,7 @@ class RedfishInspect(base.InspectInterface):
             cpu['model_name'] = str(processor.model)
         if processor.max_speed_mhz is not None:
             cpu['frequency'] = processor.max_speed_mhz
-        if processor.instruction_set is not None:
-            cpu['architecture'] = PROCESSOR_INSTRUCTION_SET_MAP[
-                processor.instruction_set]
+        cpu['architecture'] = PROCESSOR_INSTRUCTION_SET_MAP.get(
+            processor.instruction_set) or ''
 
-        inventory['cpu'] = cpu
+        return cpu

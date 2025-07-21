@@ -56,13 +56,24 @@ class RedfishInspectTestCase(db_base.DbTestCase):
 
         system_mock.memory_summary.size_gib = 2
 
-        mock_processor = mock.Mock()
+        mock_processor = mock.Mock(
+            spec=sushy.resources.system.processor.Processor)
         mock_processor.model = 'test'
-        mock_processor.instruction_set = sushy.InstructionSet.X86
+        mock_processor.processor_architecture = sushy.PROCESSOR_ARCH_x86
+        mock_processor.instruction_set = sushy.InstructionSet.X86_64
         mock_processor.max_speed_mhz = 1234
+        mock_processor.total_threads = 8
         system_mock.processors.get_members.return_value = [mock_processor]
 
-        system_mock.processors.summary = '8', sushy.PROCESSOR_ARCH_x86
+        # make the summary follow the data above by making it
+        # a property like sushy and returning the same data
+        type(system_mock.processors).summary = mock.PropertyMock(
+            side_effect=lambda:
+                sushy.resources.system.processor.ProcessorSummary(
+                    count=mock_processor.total_threads,
+                    architecture=mock_processor.processor_architecture
+                )
+        )
 
         mock_storage_drive = mock.Mock(
             spec=sushy.resources.system.storage.drive.Drive)
@@ -151,7 +162,7 @@ class RedfishInspectTestCase(db_base.DbTestCase):
                                  mock_get_enabled_macs):
         expected_properties = {
             'capabilities': 'boot_mode:uefi',
-            'cpu_arch': 'x86_64', 'cpus': '8',
+            'cpu_arch': 'x86_64',
             'local_gb': '3', 'memory_mb': 2048,
         }
         self.init_system_mock(mock_get_system.return_value)
@@ -184,8 +195,8 @@ class RedfishInspectTestCase(db_base.DbTestCase):
             self.assertEqual(expected_interfaces,
                              inventory['inventory']['interfaces'])
 
-            expected_cpu = {'count': '8', 'model_name': 'test',
-                            'frequency': 1234, 'architecture': 'i686'}
+            expected_cpu = {'count': 8, 'model_name': 'test',
+                            'frequency': 1234, 'architecture': 'x86_64'}
             self.assertEqual(expected_cpu,
                              inventory['inventory']['cpu'])
 
@@ -212,7 +223,8 @@ class RedfishInspectTestCase(db_base.DbTestCase):
     @mock.patch.object(redfish_utils, 'get_system', autospec=True)
     def test_inspect_hardware_fail_missing_cpu_arch(self, mock_get_system):
         system_mock = self.init_system_mock(mock_get_system.return_value)
-        system_mock.processors.summary = None, None
+        mock_processor = system_mock.processors.get_members.return_value[0]
+        mock_processor.processor_architecture = None
 
         with task_manager.acquire(self.context, self.node.uuid,
                                   shared=True) as task:
@@ -225,7 +237,8 @@ class RedfishInspectTestCase(db_base.DbTestCase):
     def test_inspect_hardware_ignore_missing_cpu_count(self, mock_get_system,
                                                        mock_get_enabled_macs):
         system_mock = self.init_system_mock(mock_get_system.return_value)
-        system_mock.processors.summary = None, None
+        mock_processor = system_mock.processors.get_members.return_value[0]
+        mock_processor.total_threads = 0
 
         with task_manager.acquire(self.context, self.node.uuid,
                                   shared=True) as task:
@@ -238,7 +251,8 @@ class RedfishInspectTestCase(db_base.DbTestCase):
 
             inventory = inspect_utils.get_inspection_data(task.node,
                                                           self.context)
-            self.assertNotIn('count', inventory['inventory']['cpu'])
+            self.assertIn('count', inventory['inventory']['cpu'])
+            self.assertEqual(0, inventory['inventory']['cpu']['count'])
 
     @mock.patch.object(redfish_utils, 'get_enabled_macs', autospec=True)
     @mock.patch.object(redfish_utils, 'get_system', autospec=True)
@@ -252,7 +266,7 @@ class RedfishInspectTestCase(db_base.DbTestCase):
                                   shared=True) as task:
             expected_properties = {
                 'capabilities': 'boot_mode:uefi',
-                'cpu_arch': 'x86_64', 'cpus': '8',
+                'cpu_arch': 'x86_64',
                 'local_gb': '3', 'memory_mb': 2048
             }
             task.driver.inspect.inspect_hardware(task)
@@ -274,7 +288,7 @@ class RedfishInspectTestCase(db_base.DbTestCase):
                                   shared=True) as task:
             expected_properties = {
                 'capabilities': 'boot_mode:uefi',
-                'cpu_arch': 'x86_64', 'cpus': '8',
+                'cpu_arch': 'x86_64',
                 'local_gb': '3', 'memory_mb': 2048
             }
             task.driver.inspect.inspect_hardware(task)
@@ -296,7 +310,7 @@ class RedfishInspectTestCase(db_base.DbTestCase):
                                   shared=True) as task:
             expected_properties = {
                 'capabilities': 'boot_mode:uefi',
-                'cpu_arch': 'x86_64', 'cpus': '8',
+                'cpu_arch': 'x86_64',
                 'local_gb': '3', 'memory_mb': 2048
             }
             task.driver.inspect.inspect_hardware(task)
@@ -304,7 +318,8 @@ class RedfishInspectTestCase(db_base.DbTestCase):
 
             inventory = inspect_utils.get_inspection_data(task.node,
                                                           self.context)
-            self.assertNotIn('architecture', inventory['inventory']['cpu'])
+            self.assertIn('architecture', inventory['inventory']['cpu'])
+            self.assertEqual('', inventory['inventory']['cpu']['architecture'])
 
     @mock.patch.object(redfish_utils, 'get_enabled_macs', autospec=True)
     @mock.patch.object(redfish_utils, 'get_system', autospec=True)
@@ -318,7 +333,7 @@ class RedfishInspectTestCase(db_base.DbTestCase):
                                   shared=True) as task:
             expected_properties = {
                 'capabilities': 'boot_mode:uefi',
-                'cpu_arch': 'x86_64', 'cpus': '8',
+                'cpu_arch': 'x86_64',
                 'local_gb': '0', 'memory_mb': 2048
             }
             task.driver.inspect.inspect_hardware(task)
@@ -336,7 +351,7 @@ class RedfishInspectTestCase(db_base.DbTestCase):
                                   shared=True) as task:
             expected_properties = {
                 'capabilities': 'boot_mode:uefi',
-                'cpu_arch': 'x86_64', 'cpus': '8',
+                'cpu_arch': 'x86_64',
                 'local_gb': '0', 'memory_mb': 2048
             }
             task.driver.inspect.inspect_hardware(task)
@@ -357,7 +372,7 @@ class RedfishInspectTestCase(db_base.DbTestCase):
                                   shared=True) as task:
             expected_properties = {
                 'capabilities': 'boot_mode:uefi',
-                'cpu_arch': 'x86_64', 'cpus': '8',
+                'cpu_arch': 'x86_64',
                 'local_gb': '3', 'memory_mb': 2048
             }
             task.driver.inspect.inspect_hardware(task)
@@ -378,7 +393,7 @@ class RedfishInspectTestCase(db_base.DbTestCase):
                                   shared=True) as task:
             expected_properties = {
                 'capabilities': 'boot_mode:uefi',
-                'cpu_arch': 'x86_64', 'cpus': '8',
+                'cpu_arch': 'x86_64',
                 'local_gb': '4', 'memory_mb': 2048
             }
             task.driver.inspect.inspect_hardware(task)
@@ -410,7 +425,7 @@ class RedfishInspectTestCase(db_base.DbTestCase):
                                   shared=True) as task:
             expected_properties = {
                 'capabilities': 'boot_mode:uefi',
-                'cpu_arch': 'x86_64', 'cpus': '8',
+                'cpu_arch': 'x86_64',
                 'local_gb': '3', 'memory_mb': '4096'
             }
             task.driver.inspect.inspect_hardware(task)
@@ -449,7 +464,7 @@ class RedfishInspectTestCase(db_base.DbTestCase):
             task.driver.inspect.inspect_hardware(task)
             inventory = inspect_utils.get_inspection_data(task.node,
                                                           self.context)
-            self.assertNotIn('cpu', inventory['inventory'])
+            self.assertIn('cpu', inventory['inventory'])
 
     @mock.patch.object(redfish_utils, 'get_enabled_macs', autospec=True)
     @mock.patch.object(redfish_utils, 'get_system', autospec=True)
@@ -464,7 +479,7 @@ class RedfishInspectTestCase(db_base.DbTestCase):
             }
             expected_properties = {
                 'capabilities': 'boot_mode:bios',
-                'cpu_arch': 'x86_64', 'cpus': '8',
+                'cpu_arch': 'x86_64',
                 'local_gb': '3', 'memory_mb': 2048
             }
 
@@ -487,7 +502,7 @@ class RedfishInspectTestCase(db_base.DbTestCase):
         with task_manager.acquire(self.context, self.node.uuid,
                                   shared=True) as task:
             expected_properties = {
-                'cpu_arch': 'x86_64', 'cpus': '8',
+                'cpu_arch': 'x86_64',
                 'local_gb': '3', 'memory_mb': 2048
             }
             task.driver.inspect.inspect_hardware(task)
