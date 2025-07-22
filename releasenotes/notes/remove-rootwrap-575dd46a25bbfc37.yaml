@@ -1,0 +1,9 @@
+---
+upgrade:
+  - |
+    Rootwrap support has been removed. Due to this removal, the following files
+    and directories are no longer used, and should be removed.
+
+    - ``/etc/ironic/rootwrap.conf`` file
+    - ``/etc/ironic/rootwrap.d`` directory
+    - ``ironic-rootwrap`` command
