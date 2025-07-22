@@ -910,6 +910,12 @@ class ParseRootDeviceTestCase(base.TestCase):
         self.assertEqual(
             expected, utils._extract_hint_operator_and_values(123, 'size'))
 
+    def test_extract_hint_operator_and_values_range_in(self):
+        expected = {'op': '<range-in>', 'values': ['( 100 200 )']}
+        self.assertEqual(
+            expected, utils._extract_hint_operator_and_values(
+                '<range-in> ( 100 200 )', 'size'))
+
     def test__append_operator_to_hints(self):
         root_device = {'serial': 'foo', 'size': 12345,
                        'model': 'foo model', 'rotational': True}
@@ -977,6 +983,11 @@ class MatchRootDeviceTestCase(base.TestCase):
         root_device_hints = {'size': '>= 70'}
         dev = utils.match_root_device_hints(self.devices, root_device_hints)
         self.assertEqual('/dev/sdb', dev['name'])
+
+    def test_match_root_device_hints_range_in(self):
+        root_device_hints = {'size': '<range-in> ( 10 100 )'}
+        dev = utils.match_root_device_hints(self.devices, root_device_hints)
+        self.assertEqual('/dev/sda', dev['name'])
 
     def test_match_root_device_hints_rotational(self):
         root_device_hints = {'rotational': False}

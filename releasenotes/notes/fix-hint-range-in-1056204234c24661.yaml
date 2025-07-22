@@ -1,0 +1,6 @@
+---
+fixes:
+  - |
+    Fixes an issue with <range in> operator in root device hint. Now it's
+    possible to use the range operator correctly, specifying a two values
+    range that includes the size of the root device in GiB.
