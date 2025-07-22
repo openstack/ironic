@@ -491,3 +491,75 @@ class FirmwareUtilsTestCase(base.TestCase):
         mock_swift_api.return_value.delete_object.assert_called_with(
             CONF.redfish.swift_container, object_name)
         mock_warning.assert_called_once()
+
+    def test_validate_firmware_interface_update_args(self):
+        settings = [
+            {
+                "component": "bios",
+                "url": "http://192.168.0.1/bios.exe"
+            },
+            {
+                "component": "bmc",
+                "url": "http://192.168.0.1/bmc.exe"
+            },
+            {
+                "component": "nic:DX00-9",
+                "url": "http://192.168.0.1/dx009.exe"
+            }
+        ]
+        firmware_utils.validate_firmware_interface_update_args(settings)
+
+    def test_validate_firmware_interface_update_args_not_list(self):
+        settings = {
+            "component": "bios",
+            "url": "http://192.168.0.1/bios.exe"
+        }
+        self.assertRaisesRegex(
+            exception.InvalidParameterValue, "is not of type 'array'",
+            firmware_utils.validate_firmware_interface_update_args,
+            settings)
+
+    def test_validate_firmware_interface_update_args_unknown_key(self):
+        settings = [
+            {
+                "component": "bios",
+                "url": "https://192.168.0.1/bios.exe",
+                "something": "unknown"
+            }
+        ]
+        self.assertRaisesRegex(
+            exception.InvalidParameterValue, "'something' was unexpected",
+            firmware_utils.validate_firmware_interface_update_args, settings)
+
+    def test_validate_update_firmware_args_invalid_url(self):
+        settings = [{"component": "bios"}]
+        self.assertRaisesRegex(
+            exception.InvalidParameterValue,
+            "'url' is a required property",
+            firmware_utils.validate_firmware_interface_update_args, settings)
+        settings2 = [
+            {
+                "component": "bios",
+                "url": 123
+            }
+        ]
+        self.assertRaisesRegex(
+            exception.InvalidParameterValue, "123 is not of type 'string'",
+            firmware_utils.validate_firmware_interface_update_args, settings2)
+
+    def test_validate_update_firmware_args_invalid_component(self):
+        settings = [{"component": "BIOS", "url": "http://url/bios.exe"}]
+        self.assertRaisesRegex(
+            exception.InvalidParameterValue,
+            "'BIOS' is not valid under any of the given schemas",
+            firmware_utils.validate_firmware_interface_update_args, settings)
+        settings2 = [{"component": "BMC", "url": "http://url/bmc.exe"}]
+        self.assertRaisesRegex(
+            exception.InvalidParameterValue,
+            "'BMC' is not valid under any of the given schemas",
+            firmware_utils.validate_firmware_interface_update_args, settings2)
+        settings3 = [{"component": "NICX1", "url": "http://url/nic.exe"}]
+        self.assertRaisesRegex(
+            exception.InvalidParameterValue,
+            "'NICX1' is not valid under any of the given schemas",
+            firmware_utils.validate_firmware_interface_update_args, settings3)

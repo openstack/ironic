@@ -91,6 +91,10 @@ BIOS = 'bios'
 BMC = 'bmc'
 "BMC Firmware Component"
 
+NIC_COMPONENT_PREFIX = "nic:"
+"Prefix for NIC Firmware Components"
+
+
 FIRMWARE_COMPONENTS = [BIOS, BMC]
 """Firmware Components available to update"""
 
@@ -574,3 +578,26 @@ def get_manager(node, system, manager_id=None):
                   {'system': system.identity,
                    'node': node.uuid, 'error': exc})
         raise exception.RedfishError(error=exc)
+
+
+def get_chassis(node, system):
+    """Get a Redfish Chassis associated with a System of a node
+
+    :param node: an Ironic node object
+    :param system: the Sushy System object
+    :raises: RedfishConnectionError when it fails to connect to Redfish
+    :raises: RedfishError if there is no Chassis registered
+    """
+    try:
+        available_chassis = system.chassis
+        if available_chassis:
+            return available_chassis[0]
+        else:
+            raise exception.RedfishError(
+                _('The Redfish Chassis was not found for node %(node)s.')
+                % {'node': node.uuid})
+    except sushy.exceptions.MissingAttributeError as e:
+        LOG.error('No chassis associated with system %(system)s. '
+                  'Error %(error)s',
+                  {'system': system.identity, 'error': e})
+        raise exception.RedfishError(error=e)

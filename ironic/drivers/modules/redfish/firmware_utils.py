@@ -78,7 +78,10 @@ _FIRMWARE_INTERFACE_UPDATE_SCHEMA = {
             "component": {
                 "description": "name of the firmware component to be updated",
                 "type": "string",
-                "enum": redfish_utils.FIRMWARE_COMPONENTS
+                "anyOf": [
+                    {"enum": redfish_utils.FIRMWARE_COMPONENTS},
+                    {"pattern": "^%s.*" % redfish_utils.NIC_COMPONENT_PREFIX}
+                ]
             },
             "url": {
                 "description": "URL for firmware file",

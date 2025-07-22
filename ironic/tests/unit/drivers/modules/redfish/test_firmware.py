@@ -66,10 +66,11 @@ class RedfishFirmwareTestCase(db_base.DbTestCase):
     @mock.patch.object(redfish_fw, 'LOG', autospec=True)
     @mock.patch.object(redfish_utils, 'get_system', autospec=True)
     @mock.patch.object(redfish_utils, 'get_manager', autospec=True)
+    @mock.patch.object(redfish_utils, 'get_chassis', autospec=True)
     @mock.patch.object(objects.FirmwareComponentList,
                        'sync_firmware_components', autospec=True)
-    def test_missing_all_components(self, sync_fw_cmp_mock, manager_mock,
-                                    system_mock, log_mock):
+    def test_missing_all_components(self, sync_fw_cmp_mock, chassis_mock,
+                                    manager_mock, system_mock, log_mock):
 
         with task_manager.acquire(self.context, self.node.uuid,
                                   shared=True) as task:
@@ -77,6 +78,10 @@ class RedfishFirmwareTestCase(db_base.DbTestCase):
             manager_mock.return_value.identity = "Manager1"
             system_mock.return_value.bios_version = None
             manager_mock.return_value.firmware_version = None
+
+            netadp = mock.MagicMock()
+            netadp.get_members.return_value = []
+            chassis_mock.return_value.network_adapters = netadp
 
             self.assertRaises(exception.UnsupportedDriverExtension,
                               task.driver.firmware.cache_firmware_components,
@@ -89,7 +94,7 @@ class RedfishFirmwareTestCase(db_base.DbTestCase):
                 % self.node.uuid)
             log_mock.error.assert_called_once_with(error_msg)
 
-            warning_calls = [
+            debug_calls = [
                 mock.call('Could not retrieve BiosVersion in node '
                           '%(node_uuid)s system %(system)s',
                           {'node_uuid': self.node.uuid,
@@ -97,8 +102,11 @@ class RedfishFirmwareTestCase(db_base.DbTestCase):
                 mock.call('Could not retrieve FirmwareVersion in node '
                           '%(node_uuid)s manager %(manager)s',
                           {'node_uuid': self.node.uuid,
-                           'manager': "Manager1"})]
-            log_mock.debug.assert_has_calls(warning_calls)
+                           'manager': "Manager1"}),
+                mock.call('Could not retrieve Firmware Package Version '
+                          'from NetworkAdapters on node %(node_uuid)s',
+                          {'node_uuid': self.node.uuid})]
+            log_mock.debug.assert_has_calls(debug_calls)
 
     @mock.patch.object(redfish_fw, 'LOG', autospec=True)
     @mock.patch.object(redfish_utils, 'get_system', autospec=True)
@@ -126,7 +134,7 @@ class RedfishFirmwareTestCase(db_base.DbTestCase):
             task.driver.firmware.cache_firmware_components(task)
             system_mock.assert_called_once_with(task.node)
 
-            log_mock.debug.assert_called_once_with(
+            log_mock.debug.assert_any_call(
                 'Could not retrieve BiosVersion in node '
                 '%(node_uuid)s system %(system)s',
                 {'node_uuid': self.node.uuid, 'system': 'System1'})
@@ -160,7 +168,7 @@ class RedfishFirmwareTestCase(db_base.DbTestCase):
             system_mock.return_value.bios_version = "v1.0.0"
             task.driver.firmware.cache_firmware_components(task)
 
-            log_mock.debug.assert_called_once_with(
+            log_mock.debug.assert_any_call(
                 'Could not retrieve FirmwareVersion in node '
                 '%(node_uuid)s manager %(manager)s',
                 {'node_uuid': self.node.uuid, 'manager': "Manager1"})
@@ -174,13 +182,16 @@ class RedfishFirmwareTestCase(db_base.DbTestCase):
     @mock.patch.object(redfish_fw, 'LOG', autospec=True)
     @mock.patch.object(redfish_utils, 'get_system', autospec=True)
     @mock.patch.object(redfish_utils, 'get_manager', autospec=True)
+    @mock.patch.object(redfish_utils, 'get_chassis', autospec=True)
     @mock.patch.object(objects, 'FirmwareComponentList', autospec=True)
     @mock.patch.object(objects, 'FirmwareComponent', spec_set=True,
                        autospec=True)
     def test_create_all_components(self, fw_cmp_mock, fw_cmp_list_mock,
-                                   manager_mock, system_mock, log_mock):
+                                   chassis_mock, manager_mock, system_mock,
+                                   log_mock):
         create_list = [{'component': 'bios', 'current_version': 'v1.0.0'},
-                       {'component': 'bmc', 'current_version': 'v1.0.0'}]
+                       {'component': 'bmc', 'current_version': 'v1.0.0'},
+                       {'component': 'nic:NIC1', 'current_version': '1'}]
         fw_cmp_list_mock.sync_firmware_components.return_value = (
             create_list, [], []
         )
@@ -191,10 +202,22 @@ class RedfishFirmwareTestCase(db_base.DbTestCase):
         bmc_component = {'component': 'bmc', 'current_version': 'v1.0.0',
                          'node_id': self.node.id}
 
+        nic_component = {'component': 'nic:NIC1', 'current_version': '1',
+                         'node_id': self.node.id}
+
         with task_manager.acquire(self.context, self.node.uuid,
                                   shared=True) as task:
             manager_mock.return_value.firmware_version = "v1.0.0"
             system_mock.return_value.bios_version = "v1.0.0"
+            chassis_mock
+            netadp_ctrl = mock.MagicMock()
+            netadp_ctrl.firmware_package_version = "1"
+            netadp = mock.MagicMock()
+            netadp.identity = 'NIC1'
+            netadp.controllers = [netadp_ctrl]
+            net_adapters = mock.MagicMock()
+            net_adapters.get_members.return_value = [netadp]
+            chassis_mock.return_value.network_adapters = net_adapters
             task.driver.firmware.cache_firmware_components(task)
 
             log_mock.warning.assert_not_called()
@@ -203,14 +226,46 @@ class RedfishFirmwareTestCase(db_base.DbTestCase):
             fw_cmp_list_mock.sync_firmware_components.assert_called_once_with(
                 task.context, task.node.id,
                 [{'component': 'bios', 'current_version': 'v1.0.0'},
-                 {'component': 'bmc', 'current_version': 'v1.0.0'}])
+                 {'component': 'bmc', 'current_version': 'v1.0.0'},
+                 {'component': 'nic:NIC1', 'current_version': '1'}])
             fw_cmp_calls = [
                 mock.call(task.context, **bios_component),
                 mock.call().create(),
                 mock.call(task.context, **bmc_component),
                 mock.call().create(),
+                mock.call(task.context, **nic_component),
+                mock.call().create()
             ]
             fw_cmp_mock.assert_has_calls(fw_cmp_calls)
+
+    @mock.patch.object(redfish_fw, 'LOG', autospec=True)
+    @mock.patch.object(redfish_utils, 'get_chassis', autospec=True)
+    @mock.patch.object(redfish_utils, 'get_manager', autospec=True)
+    @mock.patch.object(redfish_utils, 'get_system', autospec=True)
+    @mock.patch.object(objects, 'FirmwareComponentList', autospec=True)
+    def test_get_chassis_redfish_error(self, sync_fw_cmp_mock, system_mock,
+                                       manager_mock, chassis_mock, log_mock):
+        system_mock.return_value.identity = "System1"
+        system_mock.return_value.bios_version = '1.0.0'
+        manager_mock.return_value.identity = "Manager1"
+        manager_mock.return_value.firmware_version = '1.0.0'
+
+        chassis_mock.side_effect = exception.RedfishError('not found')
+
+        sync_fw_cmp_mock.sync_firmware_components.return_value = (
+            [{'component': 'bios', 'current_version': '1.0.0'},
+             {'component': 'bmc', 'current_version': '1.0.0'},],
+            [], [])
+
+        with task_manager.acquire(self.context, self.node.uuid,
+                                  shared=True) as task:
+            task.driver.firmware.cache_firmware_components(task)
+
+        log_mock.warning.assert_any_call(
+            'No chassis available to retrieve NetworkAdapters firmware '
+            'information on node %(node_uuid)s',
+            {'node_uuid': self.node.uuid}
+        )
 
     @mock.patch.object(redfish_utils, 'LOG', autospec=True)
     @mock.patch.object(redfish_utils, '_get_connection', autospec=True)
@@ -298,7 +353,7 @@ class RedfishFirmwareTestCase(db_base.DbTestCase):
 
     def test_invalid_component_in_settings(self):
         argsinfo = {'settings': [
-            {'component': 'nic', 'url': 'https://nic-update/v1.1.0'}
+            {'component': 'something', 'url': 'https://nic-update/v1.1.0'}
         ]}
         self.node.clean_step = {'priority': 100, 'interface': 'firmware',
                                 'step': 'update',
@@ -308,7 +363,7 @@ class RedfishFirmwareTestCase(db_base.DbTestCase):
 
     def test_invalid_component_in_settings_service(self):
         argsinfo = {'settings': [
-            {'component': 'nic', 'url': 'https://nic-update/v1.1.0'}
+            {'component': 'something', 'url': 'https://nic-update/v1.1.0'}
         ]}
         self.node.service_step = {'priority': 100, 'interface': 'firmware',
                                   'step': 'update',

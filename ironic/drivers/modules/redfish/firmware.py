@@ -110,6 +110,14 @@ class RedfishFirmware(base.FirmwareInterface):
             LOG.warning('No manager available to retrieve Firmware '
                         'from the bmc of node %s', task.node.uuid)
 
+        nic_components = self.retrieve_nic_components(task, system)
+        if nic_components == []:
+            LOG.debug('Could not retrieve Firmware Package Version from '
+                      'NetworkAdapters on node %(node_uuid)s',
+                      {'node_uuid': task.node.uuid})
+        else:
+            settings.extend(nic_components)
+
         if not settings:
             error_msg = (_('Cannot retrieve firmware for node %s: no '
                            'supported components') % task.node.uuid)
@@ -139,6 +147,31 @@ class RedfishFirmware(base.FirmwareInterface):
                 up_fw_cmp.last_version_flashed = up_fw.get('current_version')
                 up_fw_cmp.current_version = up_fw.get('current_version')
                 up_fw_cmp.save()
+
+    def retrieve_nic_components(self, task, system):
+        """Helper function to retrieve all NICs components on a given node.
+
+        :param task: a TaskManager instance.
+        :param system: a Redfish System object
+        :returns: a list of NIC components
+        """
+        nic_list = []
+        try:
+            chassis = redfish_utils.get_chassis(task.node, system)
+        except exception.RedfishError:
+            LOG.warning('No chassis available to retrieve NetworkAdapters '
+                        'firmware information on node %(node_uuid)s',
+                        {'node_uuid': task.node.uuid})
+            return nic_list
+
+        for net_adp in chassis.network_adapters.get_members():
+            for net_adp_ctrl in net_adp.controllers:
+                fw_pkg_v = net_adp_ctrl.firmware_package_version
+                net_adp_fw = {'component': redfish_utils.NIC_COMPONENT_PREFIX
+                              + net_adp.identity, 'current_version': fw_pkg_v}
+                nic_list.append(net_adp_fw)
+
+        return nic_list
 
     @METRICS.timer('RedfishFirmware.update')
     @base.deploy_step(priority=0, argsinfo=_FW_SETTINGS_ARGSINFO)
