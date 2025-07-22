@@ -32,14 +32,13 @@ More installation projects are developed by other OpenStack teams:
 
    install-rdo.rst
    install-ubuntu.rst
-   install-obs.rst
 
 .. include:: include/common-prerequisites.inc
 
 Install and configure components
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-Using DNF on RHEL/CentOS Stream and RDO_ packages:
+Using DNF on RHEL/CentOS Stream and RDO packages:
 
 .. code-block:: console
 
@@ -54,15 +53,6 @@ On Ubuntu_/Debian:
    # apt-get install ironic-api ironic-conductor ironic-novncproxy python3-ironicclient
 
 .. _ubuntu: https://docs.openstack.org/install-guide/environment-packages-ubuntu.html
-
-On openSUSE/SLES:
-
-.. code-block:: console
-
-   # zypper install openstack-ironic-api openstack-ironic-conductor ironic-novncproxy python3-ironicclient
-
-.. warning::
-   Support for SUSE systems is best effort, it is not tested in the CI.
 
 .. include:: include/common-configure.inc
 

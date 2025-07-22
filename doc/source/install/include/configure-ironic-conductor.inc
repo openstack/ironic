@@ -262,7 +262,7 @@ Configuring ironic-conductor service
 
 #. Restart the ironic-conductor service:
 
-   RHEL/CentOS/SUSE::
+   RHEL/CentOS::
 
        sudo systemctl restart openstack-ironic-conductor
 
