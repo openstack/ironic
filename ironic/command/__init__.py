@@ -21,9 +21,9 @@ backend.init_backend(backend.BackendType.THREADING)
 
 from ironic.common import i18n  # noqa
 
-# NOTE(TheJulia): We are setting a default thread stack size to for all
+# NOTE(TheJulia): We are setting a default thread stack size for all the
 # following thread invocations. Ultimately, while the python minimum is
-# any positive number with a minimum of 32760 Bytes, in 4096 Byte
+# any positive number with a minimum of 32768 Bytes, in 4096 Byte
 # increments, this appears to work well in basic benchmarking.
 threading.stack_size(
     os.environ.get('IRONIC_THREAD_STACK_SIZE', 65536))

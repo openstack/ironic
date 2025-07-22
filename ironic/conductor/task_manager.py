@@ -638,11 +638,9 @@ class TaskManager(object):
             #   - background task finished with no errors.
             #   - background task has crashed with exception.
             #   - callback was added after the background task has
-            #     finished or crashed. While eventlet currently doesn't
-            #     schedule the new thread until the current thread blocks
-            #     for some reason, this is true.
+            #     finished or crashed.
             # All of the above are asserted in tests such that we'll
-            # catch if eventlet ever changes this behavior.
+            # catch if the behavior changes.
             fut = None
             try:
                 fut = self._spawn_method(*self._spawn_args,
@@ -655,7 +653,7 @@ class TaskManager(object):
                 # Don't unlock! The unlock will occur when the
                 # thread finishes.
                 # NOTE(yuriyz): A race condition with process_event()
-                # in callback is possible here if eventlet changes behavior.
+                # in callback is possible here.
                 # E.g., if the execution of the new thread (that handles the
                 # event processing) finishes before we get here, that new
                 # thread may emit the "end" notification before we emit the

@@ -156,7 +156,8 @@ class ServiceSetUpMixin(object):
         """Stand up a service, much like conductor base_manager.
 
         Ironic is a complex service, and the reality is that threading
-        in a post-eventlet world makes things far more complicated.
+        makes things far more complicated.
+
         The fun thing is that it is not actually that more complicated,
         but that we need to do things sanely and different for service
         startup than we need to do to predicate test setup. Largely around

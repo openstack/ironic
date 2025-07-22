@@ -14,15 +14,6 @@
 import os
 import sys
 
-import eventlet
-
-# NOTE(dims): monkey patch subprocess to prevent failures in latest eventlet
-# See https://github.com/eventlet/eventlet/issues/398
-try:
-    eventlet.monkey_patch(subprocess=True)
-except TypeError:
-    pass
-
 # -- General configuration ----------------------------------------------------
 
 # If extensions (or modules to document with autodoc) are in another directory,
