@@ -81,10 +81,6 @@ set up on the Bare Metal service nodes which run the ``ironic-conductor``.
 
        sudo dnf install tftp-server xinetd
 
-   SUSE::
-
-       sudo zypper install tftp xinetd
-
 #. Using xinetd to provide a tftp server setup to serve ``/tftpboot``.
    Create or edit ``/etc/xinetd.d/tftp`` as below::
 
@@ -109,7 +105,7 @@ set up on the Bare Metal service nodes which run the ``ironic-conductor``.
 
        sudo service xinetd restart
 
-   Fedora/RHEL8/CentOS8/SUSE::
+   Fedora/RHEL8/CentOS8::
 
        sudo systemctl restart xinetd
 
@@ -153,9 +149,6 @@ the PXE UEFI environment.
 
        sudo dnf install grub2-efi shim
 
-   SUSE::
-
-       sudo zypper install grub2-x86_64-efi shim
 
 #. Copy grub and shim boot loader images to ``/tftpboot`` directory:
 
@@ -174,10 +167,6 @@ the PXE UEFI environment.
        sudo cp /boot/efi/EFI/centos/shim.efi /tftpboot/bootx64.efi
        sudo cp /boot/efi/EFI/centos/grubx64.efi /tftpboot/grubx64.efi
 
-   SUSE::
-
-       sudo cp /usr/lib64/efi/shim.efi /tftpboot/bootx64.efi
-       sudo cp /usr/lib/grub2/x86_64-efi/grub.efi /tftpboot/grubx64.efi
 
 #. Update the bare metal node with ``boot_mode:uefi`` capability in
    node's properties field. See :ref:`boot_mode_support` for details.
@@ -256,12 +245,6 @@ on the Bare Metal service node(s) where ``ironic-conductor`` is running.
    RHEL8/CentOS8/Fedora::
 
        dnf install ipxe-bootimgs
-
-   .. note::
-      SUSE does not provide a package containing iPXE boot images. If you are
-      using SUSE or if the packaged version of the iPXE boot image doesn't
-      work, you can download a prebuilt one from http://boot.ipxe.org or build
-      one image from source, see http://ipxe.org/download for more information.
 
 .. note::
    The Ironic project is unaware of any vendor signed iPXE binaries to enable
@@ -374,7 +357,7 @@ on the Bare Metal service node(s) where ``ironic-conductor`` is running.
 
 #. Restart the ``ironic-conductor`` process:
 
-   Fedora/RHEL8/CentOS8/SUSE::
+   Fedora/RHEL/CentOS::
 
      sudo systemctl restart openstack-ironic-conductor
 
