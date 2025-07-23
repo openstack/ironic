@@ -290,7 +290,7 @@ def get_test_port(**kw):
         'name': kw.get('name'),
         'description': kw.get('description'),
         'vendor': kw.get('vendor'),
-        'category': kw.get('category'),
+        'category': kw.get('category')
     }
 
 
@@ -467,7 +467,8 @@ def get_test_portgroup(**kw):
                                              True),
         'mode': kw.get('mode'),
         'properties': kw.get('properties', {}),
-        'physical_network': kw.get('physical_network', None)
+        'physical_network': kw.get('physical_network'),
+        'category': kw.get('category')
     }
 
 

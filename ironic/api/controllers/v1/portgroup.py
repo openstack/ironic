@@ -37,6 +37,7 @@ PORTGROUP_SCHEMA = {
     'type': 'object',
     'properties': {
         'address': {'type': ['string', 'null']},
+        'category': {'type': ['string', 'null'], 'maxLength': 80},
         'extra': {'type': ['object', 'null']},
         'mode': {'type': ['string', 'null']},
         'name': {'type': ['string', 'null']},
@@ -76,7 +77,8 @@ PATCH_ALLOWED_FIELDS = [
     'node_uuid',
     'properties',
     'standalone_ports_supported',
-    'physical_network'
+    'physical_network',
+    'category'
 ]
 
 
@@ -88,6 +90,9 @@ def hide_fields_in_newer_versions(portgroup):
     # if requested version is < 1.102, hide physical_network
     if not api_utils.allow_portgroup_physical_network():
         portgroup.pop('physical_network', None)
+    # if requested version is < 1.103, hide category
+    if not api_utils.allow_portgroup_category():
+        portgroup.pop('category', None)
 
 
 def portgroup_sanitize(portgroup, fields=None):
@@ -117,7 +122,8 @@ def convert_with_links(rpc_portgroup, fields=None, sanitize=True):
             'properties',
             'standalone_ports_supported',
             'node_uuid',
-            'physical_network'
+            'physical_network',
+            'category'
         )
     )
     url = api.request.public_url
