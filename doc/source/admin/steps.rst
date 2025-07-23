@@ -127,3 +127,52 @@ existing known state of the system.
    the ``has_dedicated_power_supply`` option is set for the child node.
    This pattern of behavior prevents parent nodes from being automatically
    powered back on should a child node be left online.
+
+BMC Clock Verification Step (Verify Phase)
+===========================================
+
+The Redfish management interface includes a verify step called
+``verify_bmc_clock`` which automatically checks and sets the BMC
+clock during node registration.
+
+This step compares the system time on the conductor with the BMC's
+time reported via Redfish. If the clock differs by more than one
+second, Ironic updates the BMC's clock to match the conductor's UTC time.
+
+This step runs automatically if enabled and the node
+supports the Redfish interface.
+
+How to Enable
+---------------
+ The feature is controlled by the following configuration option
+ in `` ironic.conf``:
+
+ .. code-block:: ini
+
+    [redfish]
+    enable_verify_bmc_clock = true
+
+ By default, this option is set to ``false``. To enable it, set it to ``true`` and
+ restart the ``ironic conductor``.
+
+When It Runs
+---------------
+
+``verify_bmc_clock`` step is triggered during the automated verify step of the
+node registration, before inspection and deployment.
+
+ Note:
+
+- If the BMC does not support setting the clock via Redfish,
+  the step will fail.
+
+- If the time cannot be synchronized within 1 second, the step will
+  raise a ``NodeVerifyFailure``.
+
+- If the configuration option is disabled, the step is skipped.
+
+- ``verify_bmc_clock`` is defined with a priority of 1 and
+  is not interruptible.
+
+- This is different from the manual ``clean`` step ``set_bmc_clock``
+  which allows explicit datatime setting through the API.
