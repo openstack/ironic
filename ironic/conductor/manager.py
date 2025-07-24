@@ -1538,6 +1538,7 @@ class ConductorManager(base_manager.BaseConductorManager):
     def _sync_power_states(self, context):
         """Periodic task to sync power states for the nodes."""
         filters = {'maintenance': False}
+        started = time.time()
 
         # NOTE(etingof): prioritize non-responding nodes to fail them fast
         nodes = sorted(
@@ -1578,8 +1579,9 @@ class ConductorManager(base_manager.BaseConductorManager):
             'ConductorManager.PowerSyncNodesCount',
             len(nodes))
 
-        LOG.debug('Completed power state sync operation, evaluated %s '
-                  'nodes.', len(futures))
+        LOG.debug('Completed power state sync operation, evaluated %d '
+                  'nodes with %d workers in %.2f seconds',
+                  len(futures), number_of_workers, time.time() - started)
 
     def _sync_power_state_nodes_task(self, context, nodes):
         """Invokes power state sync on nodes from synchronized queue.
@@ -2878,6 +2880,7 @@ class ConductorManager(base_manager.BaseConductorManager):
         if not CONF.sensor_data.enable_for_undeployed_nodes:
             filters['provision_state'] = states.ACTIVE
 
+        started = time.time()
         nodes = queue.Queue()
         for node_info in self.iter_nodes(fields=['instance_uuid'],
                                          filters=filters):
@@ -2903,6 +2906,9 @@ class ConductorManager(base_manager.BaseConductorManager):
         if not_done:
             LOG.warning("%d workers for send sensors data did not complete",
                         len(not_done))
+        LOG.debug('Completed sending sensor data, evaluated %d '
+                  'nodes with %d workers in %.2f seconds',
+                  len(done), number_of_threads, time.time() - started)
 
     def _filter_out_unsupported_types(self, sensors_data):
         """Filters out sensor data types that aren't specified in the config.
