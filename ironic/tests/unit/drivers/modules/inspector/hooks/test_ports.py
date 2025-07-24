@@ -32,7 +32,7 @@ class AddPortsTestCase(db_base.DbTestCase):
         self.node = obj_utils.create_test_node(self.context,
                                                inspect_interface='agent')
         self.interfaces = {key: value.copy() for key, value in _VALID.items()
-                           if key not in ('lo', 'em4')}
+                           if key not in ('lo', 'em4', 'ib0')}
         self.macs = {
             _PXE_INTERFACE,
             '11:11:11:11:11:11',
@@ -74,6 +74,7 @@ class UpdatePortsTestCase(db_base.DbTestCase):
             '11:11:11:11:11:11',
             '22:22:22:22:22:22',
             '33:33:33:33:33:33',
+            '55:55:55:55:55:55',
         }
         self.present_macs = {i['mac_address'] for i in _VALID.values()}
         self.extra_mac = '00:11:00:11:00:11'
@@ -123,3 +124,14 @@ class UpdatePortsTestCase(db_base.DbTestCase):
             {port.address: port.pxe_enabled for port in ports},
             # Extra port removed, pxe_enabled updated
             {mac: (mac == _PXE_INTERFACE) for mac in self.present_macs})
+
+    def test_update_client_id(self):
+        with task_manager.acquire(self.context, self.node.id) as task:
+            ports_hook.update_ports(task, _VALID, self.macs)
+        ports = objects.Port.list_by_node_id(self.context, self.node.id)
+        expected_client_ids = {mac: {} for mac in self.all_macs}
+        ib_mac = '55:55:55:55:55:55'
+        expected_client_ids[ib_mac] = {'client-id': 'fake-client-id'}
+        self.assertEqual(
+            {port.address: port.extra for port in ports},
+            expected_client_ids)
