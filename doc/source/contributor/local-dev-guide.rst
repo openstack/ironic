@@ -99,10 +99,6 @@ a MySQL server on it all the time).
        sudo dnf install mariadb mariadb-server
        sudo systemctl start mariadb.service
 
-   openSUSE/SLE::
-       sudo zypper install mariadb
-       sudo systemctl start mysql.service
-
    If using MySQL, you need to create the initial database::
 
        mysql -u root -pMYSQL_ROOT_PWD -e "create schema ironic"

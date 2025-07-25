@@ -137,7 +137,7 @@ service's controller nodes and compute nodes.
 
    .. code-block:: console
 
-       Fedora/RHEL8/CentOS8/SUSE:
+       Fedora/RHEL/CentOS:
          sudo systemctl restart openstack-nova-scheduler
 
        Ubuntu:
@@ -148,7 +148,7 @@ service's controller nodes and compute nodes.
 
    .. code-block:: console
 
-       Fedora/RHEL8/CentOS8/SUSE:
+       Fedora/RHEL/CentOS:
          sudo systemctl restart openstack-nova-compute
 
        Ubuntu:

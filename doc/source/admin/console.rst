@@ -75,7 +75,7 @@ The web console can be configured in Bare Metal service in the following way:
 
       sudo apt-get install shellinabox
 
-  RHEL8/CentOS8/Fedora::
+  RHEL/CentOS/Fedora::
 
        sudo dnf install shellinabox
 
@@ -90,7 +90,7 @@ The web console can be configured in Bare Metal service in the following way:
 
          sudo apt-get install openssl
 
-     RHEL8/CentOS8/Fedora::
+     RHEL/CentOS/Fedora::
 
          sudo dnf install openssl
 
@@ -231,7 +231,7 @@ Serial consoles can be configured in the Bare Metal service as follows:
 
       sudo apt-get install socat
 
-  RHEL8/CentOS8/Fedora::
+  RHEL/CentOS/Fedora::
 
       sudo dnf install socat
 

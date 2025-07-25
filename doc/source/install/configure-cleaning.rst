@@ -29,7 +29,7 @@ Configure the Bare Metal service for cleaning
 
    .. code-block:: console
 
-      Fedora/RHEL8/CentOS8/SUSE:
+      Fedora/RHEL/CentOS:
         sudo systemctl restart openstack-ironic-conductor
 
       Ubuntu:
