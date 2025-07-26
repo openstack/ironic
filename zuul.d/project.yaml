@@ -21,7 +21,10 @@
             voting: false
         - ironic-tempest-bios-redfish-pxe
         - ironic-tempest-uefi-redfish-vmedia
-        - ironic-tempest-ramdisk-bios-snmp-pxe
+        # NOTE(TheJulia): Non-voting due to
+        # https://bugs.launchpad.net/ironic/+bug/2106674
+        - ironic-tempest-ramdisk-bios-snmp-pxe:
+            voting: false
         - ironic-tempest-uefi-redfish-https
         - ironic-tempest-ovn-uefi-ipmi-pxe
         - ironic-tempest-ovn-uefi-ipxe-ipv6
@@ -45,7 +48,10 @@
         # Grenade should be removed in advance of the unmaintained branches #
         # as it doesn't know how to upgrade from an unmaintained branch.    #
         #####################################################################
-        - ironic-grenade
+        # NOTE(TheJulia): Non-voting as of 20250725 due to
+        # https://bugs.launchpad.net/ironic/+bug/2118780
+        - ironic-grenade:
+            voting: false
         - ironic-grenade-skip-level:
             voting: false
         ###############################################################
@@ -75,13 +81,17 @@
         - ironic-tox-unit-mysql-migrations
         - ironic-tox-unit-with-driver-libs
         - ironic-tempest-functional-python3
-        - ironic-grenade
+        # NOTE(TheJulia) 20250725 - Disabling ironic-grenade due to
+        # https://bugs.launchpad.net/ironic/+bug/2118780
+        # - ironic-grenade
         # NOTE(JayF): Disabling standalone jobs on 20240228 from voting, there's a
         # dnsmasq bug only exposed on these jobs.
         #- ironic-standalone-redfish
         - ironic-tempest-bios-redfish-pxe
         - ironic-tempest-uefi-redfish-vmedia
-        - ironic-tempest-ramdisk-bios-snmp-pxe
+        # NOTE(TheJulia): 20250725 - Disabling CI job for snmp due to
+        # https://bugs.launchpad.net/ironic/+bug/2106674
+        # - ironic-tempest-ramdisk-bios-snmp-pxe
         - ironic-tempest-uefi-redfish-https
         - ironic-tempest-ovn-uefi-ipmi-pxe
         - ironic-tempest-ovn-uefi-ipxe-ipv6
