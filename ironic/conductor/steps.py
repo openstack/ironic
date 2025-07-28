@@ -496,9 +496,11 @@ def set_node_service_steps(task, disable_ramdisk=False):
         are accepted.
     :raises: InvalidParameterValue if there is a problem with the user's
              clean steps.
-    :raises: NodeCleaningFailure if there was a problem getting the
+    :raises: NodeServicingFailure if there was a problem getting the
              service steps.
     """
+    # FIXME(janders) it seems NodeServicingFailure is never actually raised,
+    # perhaps we should remove it?
     node = task.node
     steps = _validate_user_service_steps(
         task, node.driver_internal_info.get('service_steps', []),

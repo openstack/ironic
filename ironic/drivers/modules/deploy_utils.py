@@ -1750,7 +1750,7 @@ def prepare_agent_boot(task):
     task.driver.boot.prepare_ramdisk(task, deploy_opts)
 
 
-def reboot_to_finish_step(task, timeout=None):
+def reboot_to_finish_step(task, timeout=None, disable_ramdisk=None):
     """Reboot the node into IPA to finish a deploy/clean step.
 
     :param task: a TaskManager instance.
@@ -1759,8 +1759,14 @@ def reboot_to_finish_step(task, timeout=None):
     :returns: states.CLEANWAIT if cleaning operation in progress
               or states.DEPLOYWAIT if deploy operation in progress.
     """
-    disable_ramdisk = task.node.driver_internal_info.get(
-        'cleaning_disable_ramdisk')
+    if disable_ramdisk is None:
+        if task.node.provision_state in [states.CLEANING, states.CLEANWAIT]:
+            disable_ramdisk = task.node.driver_internal_info.get(
+                'cleaning_disable_ramdisk')
+        elif task.node.provision_state in [states.SERVICING,
+                                           states.SERVICEWAIT]:
+            disable_ramdisk = task.node.driver_internal_info.get(
+                'service_disable_ramdisk')
     if not disable_ramdisk:
         if (manager_utils.is_fast_track(task)
                 and not task.node.disable_power_off):

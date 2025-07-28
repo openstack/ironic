@@ -1,0 +1,7 @@
+---
+fixes:
+  - |
+    Removes initial, unconditional reboot into ramdisk during servicing when
+    not required by specified service steps. This reduces the total number of
+    reboots needed when performing servicing, speeding up the process.
+
