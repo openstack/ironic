@@ -48,6 +48,10 @@ ACTIONS = {
 
 def get_action(op_name):
     """Get operator class by name."""
+    if op_name not in ACTIONS:
+        raise exception.Invalid(
+            _("Unsupported action '%s'.") % op_name
+        )
     class_name = ACTIONS[op_name]
     return globals()[class_name]
 

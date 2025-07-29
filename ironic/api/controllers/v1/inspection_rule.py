@@ -212,6 +212,7 @@ class InspectionRuleController(rest.RestController):
     @METRICS.timer('InspectionRuleController.post')
     @method.expose(status_code=http_client.CREATED)
     @method.body('inspection_rule')
+    @args.validate(inspection_rule=validation.VALIDATOR)
     def post(self, inspection_rule):
         """Create a new inspection rule.
 
@@ -238,7 +239,7 @@ class InspectionRuleController(rest.RestController):
     @METRICS.timer('InspectionRuleController.patch')
     @method.expose()
     @method.body('patch')
-    @args.validate(inspection_rule_uuid=args.uuid)
+    @args.validate(inspection_rule_uuid=args.uuid, patch=args.patch)
     def patch(self, inspection_rule_uuid, patch=None):
         """Update an existing inspection rule.
 

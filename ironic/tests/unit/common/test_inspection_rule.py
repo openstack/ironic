@@ -19,6 +19,7 @@ from ironic.common import inspection_rules
 from ironic.common.inspection_rules import base
 from ironic.common.inspection_rules import engine
 from ironic.common.inspection_rules import utils
+from ironic.common.inspection_rules import validation
 from ironic.conductor import task_manager
 from ironic.tests.unit.db import base as db_base
 from ironic.tests.unit.objects import utils as obj_utils
@@ -462,11 +463,23 @@ class TestOperators(TestInspectionRules):
                 {'values': [5, 5]},
                 {'values': [5, 10]}
             ],
+            inspection_rules.operators.NeOperator: [
+                {'values': [5, 10]},
+                {'values': [5, 5]}
+            ],
             inspection_rules.operators.LtOperator: [
                 {'values': [5, 10]},
                 {'values': [10, 5]}
             ],
+            inspection_rules.operators.LeOperator: [
+                {'values': [5, 10]},
+                {'values': [10, 5]}
+            ],
             inspection_rules.operators.GtOperator: [
+                {'values': [10, 5]},
+                {'values': [5, 10]}
+            ],
+            inspection_rules.operators.GeOperator: [
                 {'values': [10, 5]},
                 {'values': [5, 10]}
             ],
@@ -491,7 +504,7 @@ class TestOperators(TestInspectionRules):
                 {'value': 'z', 'values': ['a', 'b', 'c']}
             ],
             inspection_rules.operators.IsNoneOperator: [
-                {'value': 'None'},
+                {'value': None},
                 {'value': 'something'}
             ],
             inspection_rules.operators.IsTrueOperator: [
@@ -1013,3 +1026,30 @@ class TestInterpolation(TestInspectionRules):
             result = base.Base.interpolate_variables(
                 value, task.node, self.inventory, self.plugin_data)
             self.assertEqual(value, result)
+
+
+class TestValidation(TestInspectionRules):
+    def test_unsupported_operator_rejected(self):
+        """Unsupported operator (even inverted) must raise Invalid."""
+        rule = {
+            'actions': [{'op': 'noop', 'args': {}}],
+            'conditions': [{'op': '!unknown', 'args': {}}]
+        }
+
+        self.assertRaises(exception.Invalid, validation.validate_rule, rule)
+
+    def test_conditions_not_list_raises_invalid(self):
+        rule = {
+            'actions': [{'op': 'noop', 'args': {}}],
+            'conditions': {'op': 'eq', 'args': [1, 1]}  # not a list
+        }
+
+        self.assertRaises(exception.Invalid, validation.validate_rule, rule)
+
+    def test_missing_actions_key_raises_invalid(self):
+        rule = {
+            'conditions': [{'op': 'eq', 'args': [1, 1]}]
+            # 'actions' is missing
+        }
+
+        self.assertRaises(exception.Invalid, validation.validate_rule, rule)

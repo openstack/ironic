@@ -41,6 +41,10 @@ OPERATORS = {
 
 def get_operator(op_name):
     """Get operator class by name."""
+    if op_name not in OPERATORS:
+        raise exception.Invalid(
+            _("Unsupported operator '%s'.") % op_name
+        )
     class_name = OPERATORS[op_name]
     return globals()[class_name]
 
@@ -145,6 +149,18 @@ class SimpleOperator(OperatorBase):
                    for i in range(len(values) - 1))
 
 
+class LeOperator(SimpleOperator):
+    op = operator.le
+
+
+class GeOperator(SimpleOperator):
+    op = operator.ge
+
+
+class NeOperator(SimpleOperator):
+    op = operator.ne
+
+
 class EqOperator(SimpleOperator):
     op = operator.eq
 
@@ -211,7 +227,7 @@ class IsNoneOperator(OperatorBase):
     FORMATTED_ARGS = ['value']
 
     def __call__(self, task, value):
-        return str(value) == 'None'
+        return value is None
 
 
 class OneOfOperator(OperatorBase):
