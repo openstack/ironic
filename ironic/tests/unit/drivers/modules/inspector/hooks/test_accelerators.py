@@ -78,3 +78,27 @@ class AcceleratorsTestCase(db_base.DbTestCase):
                          'device_info': 'NVIDIA Corporation Tesla T4',
                          'pci_address': '0000:00:01.2'}]
             self.assertEqual(result, expected)
+
+    def test_accelerators_cleanup(self):
+        with task_manager.acquire(self.context, self.node.id) as task:
+            prop = self.node.properties
+            prop['accelerators'] = [
+                {'vendor_id': '0de',
+                 'device_id': '1eb8',
+                 'type': 'GPU',
+                 'device_info': 'NVIDIA Corporation Tesla T4',
+                 'pci_address': '0000:00:01.2'}
+            ]
+            self.node.properties = prop
+            self.node.save()
+            self.plugin_data = {'pci_devices': [{
+                "vendor_id": "8086",
+                "product_id": "324c",
+                "class": "088000",
+                "revision": "00",
+                "bus": "0000:ff:00.7"
+            }]}
+            self.accelerators_hook.__call__(task, self.inventory,
+                                            self.plugin_data)
+            self.node.refresh()
+            self.assertEqual(self.node.properties.get('accelerators'), [])

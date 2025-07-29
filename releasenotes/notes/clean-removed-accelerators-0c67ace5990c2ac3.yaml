@@ -1,0 +1,6 @@
+---
+fixes:
+  - |
+    Fixes an issue that when accelerator devices were removed from node,
+    a re-introspection does not remove previous accelerator device
+    information from the node.
