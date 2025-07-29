@@ -760,6 +760,7 @@
         placement-api: False
         # NOTE(TheJulia): This job runs neutron so neutron dependent
         # tests can also exercised as part of CI.
+
 - job:
     name: ironic-tempest-ipa-wholedisk-direct-multinode
     description: Utilizes multiple devstack nodes to test
@@ -913,7 +914,7 @@
           ovn-controller: False
           ovn-northd: False
           q-ovn-metadata-agent: False
-          n-cpu: True
+          n-cpu: False
           tls-proxy: False
           ir-novnc: False
         devstack_localrc:
