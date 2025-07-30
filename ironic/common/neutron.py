@@ -412,8 +412,7 @@ def add_ports_to_network(task, network_uuid, security_groups=None):
             is_neutron_iface = node.network_interface == 'neutron'
 
             if is_neutron_iface:
-                binding_fail_fatal = getattr(
-                    CONF.neutron, 'fail_on_port_binding_failure', False)
+                binding_fail_fatal = CONF.neutron.fail_on_port_binding_failure
 
             default_failure_behavior = is_smart_nic or binding_fail_fatal
 
