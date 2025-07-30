@@ -106,7 +106,7 @@ You should make the following changes to ``/etc/ironic/ironic.conf``:
     console_image=<image reference>
 
 #. Starting with the Yoga release series, you can use a combined
-   API+conductor+novncproxy service and completely disable the RPC. Set
+   API+conductor+novncproxy service with the local RPC. Set
 
    .. code-block:: ini
 

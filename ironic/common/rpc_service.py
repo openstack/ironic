@@ -73,13 +73,13 @@ class BaseRPCService(service.Service):
         serializer = objects_base.IronicObjectSerializer(is_server=True)
         # Perform preparatory actions before starting the RPC listener
         self.manager.prepare_host()
-        if CONF.rpc_transport == 'json-rpc':
-            self.rpcserver = json_rpc.WSGIService(
-                self.manager, serializer, context.RequestContext.from_dict)
-        elif CONF.rpc_transport != 'none':
+        if CONF.rpc_transport == 'oslo':
             target = messaging.Target(topic=self.topic, server=self.host)
             endpoints = [self.manager]
             self.rpcserver = rpc.get_server(target, endpoints, serializer)
+        else:
+            self.rpcserver = json_rpc.WSGIService(
+                self.manager, serializer, context.RequestContext.from_dict)
 
         if self.rpcserver is not None:
             self.rpcserver.start()

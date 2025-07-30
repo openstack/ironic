@@ -17,8 +17,8 @@ resources and low number of nodes to handle.
       Any RPC settings will only take effect if you have more than one combined
       service started or if you have additional conductors.
 
-      If you don't plan to have more than one conductor, you can disable the
-      RPC completely:
+      If you don't plan to have more than one conductor, you can switch to
+      the local RPC:
 
       .. code-block:: ini
 

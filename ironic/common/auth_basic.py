@@ -201,3 +201,10 @@ def unauthorized(message=None):
     if not message:
         message = _('Incorrect username or password')
     raise exception.Unauthorized(message)
+
+
+def write_password(fileobj, username, password):
+    """Write a record with the username and password to the file."""
+    pw_hash = bcrypt.hashpw(
+        password.encode('utf-8'), bcrypt.gensalt()).decode('utf-8')
+    fileobj.write(f"{username}:{pw_hash}\n")

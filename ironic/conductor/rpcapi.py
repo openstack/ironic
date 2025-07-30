@@ -29,6 +29,7 @@ from ironic.common.i18n import _
 from ironic.common.json_rpc import client as json_rpc
 from ironic.common import release_mappings as versions
 from ironic.common import rpc
+from ironic.conductor import local_rpc
 from ironic.conf import CONF
 from ironic.db import api as dbapi
 from ironic.objects import base as objects_base
@@ -37,46 +38,6 @@ from ironic.objects import base as objects_base
 LOG = log.getLogger(__name__)
 
 DBAPI = dbapi.get_instance()
-
-
-class LocalContext:
-    """Context to make calls to a local conductor."""
-
-    __slots__ = ()
-
-    def call(self, context, rpc_call_name, **kwargs):
-        """Make a local conductor call."""
-        if rpc.GLOBAL_MANAGER is None:
-            raise exception.ServiceUnavailable(
-                _("The built-in conductor is not available, it might have "
-                  "crashed. Please check the logs and correct the "
-                  "configuration, if required."))
-        try:
-            return getattr(rpc.GLOBAL_MANAGER, rpc_call_name)(context,
-                                                              **kwargs)
-        # FIXME(dtantsur): can we somehow avoid wrapping the exception?
-        except messaging.ExpectedException as exc:
-            exc_value, exc_tb = exc.exc_info[1:]
-            raise exc_value.with_traceback(exc_tb) from None
-
-    def cast(self, context, rpc_call_name, **kwargs):
-        """Make a local conductor call.
-
-        It is expected that the underlying call uses a thread to avoid
-        blocking the caller.
-
-        Any exceptions are logged and ignored.
-        """
-        try:
-            return self.call(context, rpc_call_name, **kwargs)
-        except Exception:
-            # In real RPC, casts are completely asynchronous and never return
-            # actual errors.
-            LOG.exception('Ignoring unhandled exception from RPC cast %s',
-                          rpc_call_name)
-
-
-_LOCAL_CONTEXT = LocalContext()
 
 
 class ConductorAPI(object):
@@ -182,12 +143,13 @@ class ConductorAPI(object):
             self.client = json_rpc.Client(serializer=serializer,
                                           version_cap=version_cap)
             self.topic = ''
-        elif CONF.rpc_transport != 'none':
+        elif CONF.rpc_transport == 'none':
+            self.client = local_rpc.LocalClient(serializer=serializer,
+                                                version_cap=version_cap)
+        else:
             target = messaging.Target(topic=self.topic, version='1.0')
             self.client = rpc.get_client(target, version_cap=version_cap,
                                          serializer=serializer)
-        else:
-            self.client = None
 
         # NOTE(tenbrae): this is going to be buggy
         self.ring_manager = hash_ring.HashRingManager()
@@ -204,23 +166,6 @@ class ConductorAPI(object):
         # FIXME(dtantsur): this doesn't work with either JSON RPC or local
         # conductor. Do we even need this fallback?
         topic = topic or self.topic
-        # Normally a topic is a <topic prefix>.<hostname>, we need to extract
-        # the hostname to match it against the current host.
-        host = topic[len(self.topic) + 1:]
-
-        if self.client is None and host == CONF.host:
-            # Short-cut to a local function call if there is a built-in
-            # conductor.
-            return _LOCAL_CONTEXT
-
-        # A safeguard for the case someone uses rpc_transport=None with no
-        # built-in conductor.
-        if self.client is None:
-            raise exception.ServiceUnavailable(
-                _("Cannot use 'none' RPC to connect to remote conductor %s")
-                % host)
-
-        # Normal RPC path
         return self.client.prepare(topic=topic, version=version)
 
     def get_conductor_for(self, node):

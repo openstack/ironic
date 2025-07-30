@@ -41,6 +41,7 @@ from ironic.conf import inventory
 from ironic.conf import ipmi
 from ironic.conf import irmc
 from ironic.conf import json_rpc
+from ironic.conf import local_rpc
 from ironic.conf import mdns
 from ironic.conf import metrics
 from ironic.conf import molds
@@ -83,6 +84,7 @@ inventory.register_opts(CONF)
 ipmi.register_opts(CONF)
 irmc.register_opts(CONF)
 json_rpc.register_opts(CONF)
+local_rpc.register_opts(CONF)
 mdns.register_opts(CONF)
 metrics.register_opts(CONF)
 molds.register_opts(CONF)
