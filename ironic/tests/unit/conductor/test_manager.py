@@ -5803,6 +5803,49 @@ class ManagerDoSyncPowerStateTestCase(db_base.DbTestCase):
             self.task.context, self.node.instance_uuid, states.POWER_OFF)
         self.assertEqual("Fake Inc.", self.node.properties['vendor'])
 
+    def test_last_error_cleared_when_node_history_enabled(
+            self, node_power_action):
+        self.config(group='conductor', node_history=True)
+        self.node.last_error = 'BMC unreachable'
+        self._do_sync_power_state(states.POWER_ON, states.POWER_ON)
+        self.assertIsNone(self.node.last_error)
+
+    def test_last_error_not_cleared_when_node_history_disabled(
+            self, node_power_action):
+        self.config(group='conductor', node_history=False)
+        self.node.last_error = 'BMC unreachable'
+        self._do_sync_power_state(states.POWER_ON, states.POWER_ON)
+        self.assertEqual('BMC unreachable', self.node.last_error)
+
+    @mock.patch.object(nova, 'power_update', autospec=True)
+    def test_clears_last_error_on_unknown_to_known_with_history(
+            self, mock_power_update, node_power_action):
+        self.config(group='conductor', node_history=True)
+        self.node.power_state = None
+        self.node.last_error = "Failed to fetch"
+        self._do_sync_power_state(None, states.POWER_ON)
+        self.assertIsNone(self.node.last_error)
+
+    @mock.patch.object(nova, 'power_update', autospec=True)
+    def test_does_not_clear_last_error_on_unknown_with_history_disabled(
+            self, mock_power_update, node_power_action):
+        self.config(group='conductor', node_history=False)
+        self.node.power_state = None
+        self.node.last_error = "Failed to fetch"
+        self._do_sync_power_state(None, states.POWER_ON)
+        self.assertEqual("Failed to fetch", self.node.last_error)
+
+    @mock.patch.object(nova, 'power_update', autospec=True)
+    def test_last_error_not_cleared_when_power_states_do_not_match(
+            self, mock_power_update, node_power_action):
+        self.config(group='conductor', node_history=True)
+        self.node.power_state = states.POWER_ON
+        self.node.last_error = "BMC timeout"
+
+        self._do_sync_power_state(states.POWER_ON, states.POWER_OFF)
+
+        self.assertEqual("BMC timeout", self.node.last_error)
+
 
 @mock.patch.object(waiters, 'wait_for_all',
                    new=mock.MagicMock(return_value=(0, 0)))
