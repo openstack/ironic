@@ -129,6 +129,17 @@ opts = [
     cfg.StrOpt('verify_ca',
                help=_('The default verify_ca path when redfish_verify_ca '
                       'in driver_info is missing or set to True.')),
+    cfg.BoolOpt('enable_verify_bmc_clock',
+                default=False,
+                help=_('Whether to enable the automated verify step '
+                       'that checks and sets the BMC clock. '
+                       'When enabled, Ironic will automatically attempt '
+                       'to set the BMC\'s clock during node registration '
+                       '(in the verify phase) using Redfish\'s '
+                       'DateTime fields. '
+                       'This helps avoid TLS certificate issues '
+                       'caused by incorrect BMC time.')),
+
 ]
 
 

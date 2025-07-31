@@ -555,6 +555,140 @@ class RedfishManagementTestCase(db_base.DbTestCase):
             expected = boot_modes.LEGACY_BIOS
             self.assertEqual(expected, response)
 
+    @mock.patch.object(redfish_utils, 'get_manager', autospec=True)
+    @mock.patch.object(redfish_utils, 'get_system', autospec=True)
+    def test_set_bmc_clock_success(self, mock_get_system, mock_get_manager):
+        with task_manager.acquire(self.context, self.node.uuid,
+                                  shared=False) as task:
+            mock_system = mock.Mock()
+            mock_manager = mock.Mock()
+            mock_manager.datetime = '2025-06-27T12:00:00'
+
+            mock_get_system.return_value = mock_system
+            mock_get_manager.return_value = mock_manager
+
+            target_datetime = '2025-06-27T12:00:00'
+            task.driver.management.set_bmc_clock(
+                task, target_datetime=target_datetime)
+
+            mock_manager.set_datetime.assert_called_once_with(
+                target_datetime, None)
+            mock_manager.refresh.assert_called_once()
+
+    @mock.patch.object(redfish_utils, 'get_manager', autospec=True)
+    @mock.patch.object(redfish_utils, 'get_system', autospec=True)
+    def test_set_bmc_clock_datetime_mismatch_raises(self, mock_get_system,
+                                                    mock_get_manager):
+        with task_manager.acquire(self.context, self.node.uuid,
+                                  shared=False) as task:
+            mock_system = mock.Mock()
+            mock_manager = mock.Mock()
+            mock_manager.datetime = 'wrong-time'
+
+            mock_get_system.return_value = mock_system
+            mock_get_manager.return_value = mock_manager
+
+            with self.assertRaisesRegex(
+                    exception.RedfishError,
+                    'BMC clock update failed: mismatch after setting '
+                    'datetime'):
+                task.driver.management.set_bmc_clock(
+                    task, target_datetime='2025-06-27T12:00:00')
+
+            mock_manager.set_datetime.assert_called_once()
+            mock_manager.refresh.assert_called_once()
+
+    @mock.patch.object(redfish_utils, 'get_manager', autospec=True)
+    @mock.patch.object(redfish_utils, 'get_system', autospec=True)
+    @mock.patch.object(CONF.redfish, 'enable_verify_bmc_clock', new=False)
+    def test_verify_bmc_clock_disabled_in_config(self, mock_get_system,
+                                                 mock_get_manager):
+
+        with task_manager.acquire(self.context, self.node.uuid,
+                                  shared=False) as task:
+            task.driver.management.verify_bmc_clock(task)
+
+        # Ensure Redfish was never called
+        mock_get_system.assert_not_called()
+        mock_get_manager.assert_not_called()
+
+    @mock.patch.object(redfish_utils, 'get_manager', autospec=True)
+    @mock.patch.object(redfish_utils, 'get_system', autospec=True)
+    @mock.patch.object(timeutils, 'utcnow', autospec=True)
+    def test_verify_bmc_clock_success_when_time_matches(self, mock_utcnow,
+                                                        mock_get_system,
+                                                        mock_get_manager):
+
+        self.config(enable_verify_bmc_clock=True, group='redfish')
+        current_datetime = datetime.datetime(2025, 7, 13, 3, 0, 0)
+        mock_utcnow.return_value = current_datetime
+
+        self.node.updated_at = datetime.datetime.utcnow()
+        self.node.save()
+
+        with task_manager.acquire(self.context, self.node.uuid,
+                                  shared=False) as task:
+            mock_system = mock.Mock()
+            mock_manager = mock.Mock()
+
+            mock_manager.datetime = current_datetime.replace(
+                tzinfo=datetime.timezone.utc).isoformat()
+            mock_manager.datetimelocaloffset = '+00:00'
+
+            mock_get_system.return_value = mock_system
+            mock_get_manager.return_value = mock_manager
+
+            task.driver.management.verify_bmc_clock(task)
+
+            mock_manager.set_datetime.assert_not_called()
+            mock_manager.refresh.assert_called_once()
+
+    @mock.patch.object(redfish_utils, 'get_manager', autospec=True)
+    @mock.patch.object(redfish_utils, 'get_system', autospec=True)
+    @mock.patch.object(timeutils, 'utcnow', autospec=True)
+    def test_verify_bmc_clock_fails_on_mismatch(self, mock_utcnow,
+                                                mock_get_system,
+                                                mock_get_manager):
+        self.config(enable_verify_bmc_clock=True, group='redfish')
+
+        current_datetime = datetime.datetime(2025, 7, 13, 3, 0, 0)
+        mock_utcnow.return_value = current_datetime
+
+        self.node.updated_at = datetime.datetime.utcnow()
+        self.node.save()
+
+        with task_manager.acquire(self.context, self.node.uuid,
+                                  shared=False) as task:
+
+            if task.node is None:
+                task.node = self.node
+            if not getattr(task.node, 'uuid', None):
+                task.node.uuid = self.node.uuid
+
+            mock_system = mock.Mock()
+            mock_manager = mock.Mock()
+
+            # Mismatched time (e.g., 5 seconds later)
+            mock_manager.datetime = (
+                current_datetime + datetime.timedelta(seconds=5)).replace(
+                    tzinfo=datetime.timezone.utc).isoformat()
+            mock_manager.datetimelocaloffset = "+00:00"
+
+            mock_get_system.return_value = mock_system
+            mock_get_manager.return_value = mock_manager
+
+            management = redfish_mgmt.RedfishManagement()
+
+        with self.assertRaisesRegex(exception.NodeVerifyFailure,
+                                    "BMC clock verify step failed"):
+            management.verify_bmc_clock(task)
+
+        self.assertEqual(mock_manager.refresh.call_count, 2)
+        mock_manager.set_datetime.assert_called_once_with(
+            current_datetime.replace(
+                tzinfo=datetime.timezone.utc).isoformat(),
+            datetime_local_offset="+00:00")
+
     @mock.patch.object(redfish_utils, 'get_system', autospec=True)
     def test_inject_nmi(self, mock_get_system):
         fake_system = mock.Mock()
