@@ -59,27 +59,26 @@ A DHCP server is required for network boot clients. You need to follow steps bel
     Replace eth2 with the interface on the network node which you are using to
     connect to the Bare Metal service.
 
-TFTP server setup
+TFTP Server Setup
 -----------------
 
 In order to deploy instances via PXE, a TFTP server needs to be
 set up on the Bare Metal service nodes which run the ``ironic-conductor``.
 
-#. Make sure the tftp root directory exist and can be written to by the
+Debian or Ubuntu
+~~~~~~~~~~~~~~~~
+
+In Debian or Ubuntu, xinetd can be used to run tftp server service.
+
+#. Make sure the tftp root directory exists and can be written to by the
    user the ``ironic-conductor`` is running as. For example::
 
     sudo mkdir -p /tftpboot
     sudo chown -R ironic /tftpboot
 
-#. Install tftp server:
+#. Install tftp server::
 
-   Ubuntu::
-
-       sudo apt-get install xinetd tftpd-hpa
-
-   RHEL8/CentOS8/Fedora::
-
-       sudo dnf install tftp-server xinetd
+    sudo apt-get install xinetd tftpd-hpa
 
 #. Using xinetd to provide a tftp server setup to serve ``/tftpboot``.
    Create or edit ``/etc/xinetd.d/tftp`` as below::
@@ -99,15 +98,9 @@ set up on the Bare Metal service nodes which run the ``ironic-conductor``.
       flags           = IPv4
     }
 
-   and restart the ``xinetd`` service:
+   and restart the ``xinetd`` service::
 
-   Ubuntu::
-
-       sudo service xinetd restart
-
-   Fedora/RHEL8/CentOS8::
-
-       sudo systemctl restart xinetd
+    sudo systemctl restart xinetd
 
    .. note::
 
@@ -119,6 +112,41 @@ set up on the Bare Metal service nodes which run the ``ironic-conductor``.
     additional option in the server_args above::
 
       --blocksize <MAX MTU minus 32>
+
+#. Create a map file in the tftp boot directory (``/tftpboot``)::
+
+    echo 're ^(/tftpboot/) /tftpboot/\2' > /tftpboot/map-file
+    echo 're ^/tftpboot/ /tftpboot/' >> /tftpboot/map-file
+    echo 're ^(^/) /tftpboot/\1' >> /tftpboot/map-file
+    echo 're ^([^/]) /tftpboot/\1' >> /tftpboot/map-file
+
+RHEL or CentOS
+~~~~~~~~~~~~~~
+
+In RHEL or CentOS, xinetd is not available. So use a dedicated dnsmasq instance
+to run tftp server service.
+
+#. Make sure the tftp root directory exists and can be written to by the
+   user the ``ironic-conductor`` is running as. For example::
+
+    sudo mkdir -p /tftpboot
+    sudo chown -R ironic /tftpboot
+
+#. Install tftp server::
+
+    sudo dnf install openstack-ironic-dnsmasq-tftp-server
+
+#. Using dndmasq to provide a tftp server setup to serve ``/tftpboot``.
+   Edit ``/etc/ironic/dnsmasq-tftp-server.conf`` as below::
+
+    port=0
+    bind-interfaces
+    enable-tftp
+    tftp-root=/tftproot
+
+   and restart the ``openstack-ironic-dnsmasq-tftp-server`` service::
+
+    sudo systemctl restart openstack-ironic-dnsmasq-tftp-server
 
 #. Create a map file in the tftp boot directory (``/tftpboot``)::
 
