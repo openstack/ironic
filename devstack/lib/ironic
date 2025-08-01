@@ -1701,6 +1701,7 @@ function configure_ironic {
     rm -f $IRONIC_CONF_FILE
 
     iniset $IRONIC_CONF_FILE DEFAULT debug True
+    iniset $IRONIC_CONF_FILE api response_validation error
     inicomment $IRONIC_CONF_FILE DEFAULT log_file
     iniset $IRONIC_CONF_FILE database connection `database_connection_url ironic`
     iniset $IRONIC_CONF_FILE DEFAULT state_path $IRONIC_STATE_PATH

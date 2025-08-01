@@ -111,6 +111,40 @@ opts = [
                     "the server securely."),
 ]
 
+
+validation_opts = [
+    cfg.StrOpt(
+        'response_validation',
+        choices=(
+            (
+                'error',
+                'Raise a HTTP 500 (Server Error) for responses that fail '
+                'response body schema validation',
+            ),
+            (
+                'warn',
+                'Log a warning for responses that fail response body schema '
+                'validation',
+            ),
+            (
+                'ignore',
+                'Ignore response body schema validation failures',
+            ),
+        ),
+        default='warn',
+        help=_("""\
+Configure validation of API responses.
+
+``warn`` is the current recommendation for production environments and
+``error`` should only be used in testing environments.
+
+If you find it necessary to enable the ``ignore`` option, please report the
+issues you are seeing to the Nova team so we can improve our schemas.
+"""),
+    ),
+]
+
+
 opt_group = cfg.OptGroup(name='api',
                          title='Options for the ironic-api service')
 
@@ -118,3 +152,4 @@ opt_group = cfg.OptGroup(name='api',
 def register_opts(conf):
     conf.register_group(opt_group)
     conf.register_opts(opts, group=opt_group)
+    conf.register_opts(validation_opts, group=opt_group)
