@@ -360,6 +360,21 @@ In the above example, the node's RAID interface would configure hardware
 RAID without non-root volumes, and then all devices would be erased
 (in that order).
 
+An example is setting the BMC clock using the Redfish management interface::
+
+  {
+    "target": "clean",
+    "clean_steps": [{
+      "interface": "management",
+      "step": "set_bmc_clock",
+      "args": {"datetime": "2025-07-22T12:34:56+00:00"}
+    }]
+  }
+
+This step requires the node to use the ``redfish`` management interface
+and that the Redfish service exposes the ``DateTime`` and ``DateTimeLocalOffset``
+fields under the Manager Resource.
+
 Alternatively, you can specify a runbook instead of clean_steps::
 
   {
