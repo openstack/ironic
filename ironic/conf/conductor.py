@@ -404,6 +404,32 @@ opts = [
                       'node_history_max_entries setting as users of '
                       'this setting are anticipated to need to retain '
                       'history by policy.')),
+    cfg.IntOpt('conductor_cleanup_interval',
+               min=0,
+               default=86400,
+               mutable=False,
+               help=_('Interval in seconds at which stale conductor entries '
+                      'can be cleaned up from the database. Setting to 0 '
+                      'disables the periodic task. Defaults to 86400 (1 day).'
+                      )),
+    cfg.IntOpt('conductor_cleanup_timeout',
+               min=60,
+               default=1209600,
+               mutable=True,
+               help=_('Timeout in seconds after which offline conductors '
+                      'are considered stale and can be cleaned up from the '
+                      'database. It defaults to two weeks (1209600 seconds) '
+                      'and is always required to be at least 3x larger than '
+                      '[conductor]heartbeat_timeout since if otherwise, '
+                      'active conductors might be mistakenly removed from '
+                      'the database.')),
+    cfg.IntOpt('conductor_cleanup_batch_size',
+               min=1,
+               default=50,
+               mutable=True,
+               help=_('The maximum number of stale conductor records to clean '
+                      'up from the database in a single cleanup operation. '
+                      'Defaults to 50.')),
     cfg.MultiOpt('verify_step_priority_override',
                  item_type=types.Dict(),
                  default={},

@@ -9229,3 +9229,92 @@ class VirtualMediaTestCase(mgr_utils.ServiceSetUpMixin, db_base.DbTestCase):
         self.node.refresh()
         self.assertIn("Could not attach device cdrom", self.node.last_error)
         self.assertIn("disabled or not implemented", self.node.last_error)
+
+
+class ConductorCleanupTestCase(mgr_utils.ServiceSetUpMixin,
+                               db_base.DbTestCase):
+    """Test stale conductors cleanup."""
+    def test_cleanup_stale_conductors(self):
+        """Test the periodic cleanup of stale conductors."""
+        self._start_service()
+
+        self.conductor1 = self.dbapi.register_conductor({
+            'hostname': 'conductor-1',
+            'drivers': ['fake'],
+            'conductor_group': 'group1'
+        })
+        self.conductor2 = self.dbapi.register_conductor({
+            'hostname': 'conductor-2',
+            'drivers': ['fake'],
+            'conductor_group': 'group2'
+        })
+
+        self.dbapi.touch_conductor('conductor-1', online=False)
+
+        with mock.patch.object(self.dbapi, 'get_offline_conductors',
+                               return_value=['conductor-1'], autospec=True):
+            self.service._cleanup_stale_conductors(self.context)
+
+        self.assertRaises(exception.ConductorNotFound,
+                          self.dbapi.get_conductor, 'conductor-1')
+
+        conductor2 = self.dbapi.get_conductor('conductor-2')
+        self.assertEqual('conductor-2', conductor2.hostname)
+
+    def test_cleanup_stale_conductors_disabled(self):
+        """Test that cleanup is disabled when configured to do so."""
+        self._start_service()
+
+        conductors = []
+        for i in range(5):
+            self.dbapi.register_conductor({
+                'hostname': 'conductor-%d' % i,
+                'drivers': ['fake'],
+                'conductor_group': 'group%d' % i
+            })
+            self.dbapi.touch_conductor('conductor-%d' % i, online=False)
+            conductors.append('conductor-%d' % i)
+
+        self.config(conductor_cleanup_batch_size=2, group='conductor')
+
+        with mock.patch.object(self.dbapi, 'get_offline_conductors',
+                               return_value=conductors, autospec=True):
+            with mock.patch.object(self.dbapi, 'delete_conductor',
+                                   autospec=True) as mock_delete:
+                self.service._cleanup_stale_conductors(self.context)
+
+                self.assertEqual(2, mock_delete.call_count)
+
+    def _run_cleanup_stale_conductors_and_check_warning(
+            self, heartbeat_timeout, conductor_cleanup_timeout,
+            expected_warning_substring=None):
+        self._start_service()
+        self.config(heartbeat_timeout=heartbeat_timeout, group='conductor')
+        self.config(conductor_cleanup_timeout=conductor_cleanup_timeout,
+                    group='conductor')
+        self.config(conductor_cleanup_batch_size=2, group='conductor')
+        with mock.patch.object(self.dbapi, 'get_offline_conductors',
+                               return_value=[], autospec=True):
+            with mock.patch('ironic.conductor.manager.LOG',
+                            autospec=True) as mock_log:
+                self.service.cleanup_stale_conductors(self.context)
+                if expected_warning_substring is None:
+                    mock_log.warning.assert_not_called()
+                else:
+                    mock_log.warning.assert_called_once()
+                    self.assertIn(expected_warning_substring,
+                                  mock_log.warning.call_args[0][0])
+
+    def test_cleanup_stale_conductors_configs_validation(self):
+        test_cases = [
+            (60, 180, None),  # valid: exactly 3x
+            (60, 200, None),  # valid: greater than 3x
+            (0, 180, 'heartbeat_timeout is invalid'),
+            (60, 120, 'conductor_cleanup_timeout (120) must be at least 3x'),
+        ]
+        for heartbeat_timeout, cleanup_timeout, expected_warning in test_cases:
+            self._run_cleanup_stale_conductors_and_check_warning(
+                heartbeat_timeout=heartbeat_timeout,
+                conductor_cleanup_timeout=cleanup_timeout,
+                expected_warning_substring=expected_warning
+            )
