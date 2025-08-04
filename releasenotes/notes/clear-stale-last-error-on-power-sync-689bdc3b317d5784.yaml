@@ -1,0 +1,9 @@
+---
+fixes:
+  - |
+    When power state synchronization confirms or restores the expected state,
+    the ``last_error`` field may retain stale messages, giving a misleading
+    impression of failure on an otherwise healthy node. If
+    ``[conductor]node_history`` is enabled, the field is now cleared,
+    ensuring status reflects current node health while preserving error
+    history.
