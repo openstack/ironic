@@ -20,7 +20,8 @@ from ironic.objects import fields as object_fields
 @base.IronicObjectRegistry.register
 class Trait(base.IronicObject):
     # Version 1.0: Initial version
-    VERSION = '1.0'
+    # Version 1.1: Relevant methods changed to be remotable methods.
+    VERSION = '1.1'
 
     dbapi = db_api.get_instance()
 
@@ -29,11 +30,7 @@ class Trait(base.IronicObject):
         'trait': object_fields.StringField(),
     }
 
-    # NOTE(mgoddard): We don't want to enable RPC on this call just yet.
-    # Remotable methods can be used in the future to replace current explicit
-    # RPC calls.  Implications of calling new remote procedures should be
-    # thought through.
-    # @object_base.remotable
+    @object_base.remotable
     def create(self, context=None):
         """Create a Trait record in the DB.
 
@@ -52,12 +49,7 @@ class Trait(base.IronicObject):
             values['node_id'], values['trait'], values['version'])
         self._from_db_object(self._context, self, db_trait)
 
-    # NOTE(mgoddard): We don't want to enable RPC on this call just yet.
-    # Remotable methods can be used in the future to replace current explicit
-    # RPC calls.  Implications of calling new remote procedures should be
-    # thought through.
-    # @object_base.remotable_classmethod
-    @classmethod
+    @object_base.remotable_classmethod
     def destroy(cls, context, node_id, trait):
         """Delete the Trait from the DB.
 
@@ -74,12 +66,7 @@ class Trait(base.IronicObject):
         """
         cls.dbapi.delete_node_trait(node_id, trait)
 
-    # NOTE(mgoddard): We don't want to enable RPC on this call just yet.
-    # Remotable methods can be used in the future to replace current explicit
-    # RPC calls.  Implications of calling new remote procedures should be
-    # thought through.
-    # @object_base.remotable_classmethod
-    @classmethod
+    @object_base.remotable_classmethod
     def exists(cls, context, node_id, trait):
         """Check whether a Trait exists in the DB.
 
@@ -100,7 +87,8 @@ class Trait(base.IronicObject):
 @base.IronicObjectRegistry.register
 class TraitList(base.IronicObjectListBase, base.IronicObject):
     # Version 1.0: Initial version
-    VERSION = '1.0'
+    # Version 1.1: Relevant methods changed to be remotable methods.
+    VERSION = '1.1'
 
     dbapi = db_api.get_instance()
 
@@ -108,12 +96,7 @@ class TraitList(base.IronicObjectListBase, base.IronicObject):
         'objects': object_fields.ListOfObjectsField('Trait'),
     }
 
-    # NOTE(mgoddard): We don't want to enable RPC on this call just yet.
-    # Remotable methods can be used in the future to replace current explicit
-    # RPC calls.  Implications of calling new remote procedures should be
-    # thought through.
-    # @object_base.remotable_classmethod
-    @classmethod
+    @object_base.remotable_classmethod
     def get_by_node_id(cls, context, node_id):
         """Return all traits for the specified node.
 
@@ -129,12 +112,7 @@ class TraitList(base.IronicObjectListBase, base.IronicObject):
         db_traits = cls.dbapi.get_node_traits_by_node_id(node_id)
         return object_base.obj_make_list(context, cls(), Trait, db_traits)
 
-    # NOTE(mgoddard): We don't want to enable RPC on this call just yet.
-    # Remotable methods can be used in the future to replace current explicit
-    # RPC calls.  Implications of calling new remote procedures should be
-    # thought through.
-    # @object_base.remotable_classmethod
-    @classmethod
+    @object_base.remotable_classmethod
     def create(cls, context, node_id, traits):
         """Replace all existing traits with the specified list.
 
@@ -154,12 +132,7 @@ class TraitList(base.IronicObjectListBase, base.IronicObject):
         db_traits = cls.dbapi.set_node_traits(node_id, traits, version)
         return object_base.obj_make_list(context, cls(), Trait, db_traits)
 
-    # NOTE(mgoddard): We don't want to enable RPC on this call just yet.
-    # Remotable methods can be used in the future to replace current explicit
-    # RPC calls.  Implications of calling new remote procedures should be
-    # thought through.
-    # @object_base.remotable_classmethod
-    @classmethod
+    @object_base.remotable_classmethod
     def destroy(cls, context, node_id):
         """Delete all traits for the specified node.
 
@@ -174,6 +147,7 @@ class TraitList(base.IronicObjectListBase, base.IronicObject):
         """
         cls.dbapi.unset_node_traits(node_id)
 
-    def get_trait_names(self):
+    @object_base.remotable
+    def get_trait_names(self, context=None):
         """Return a list of names of the traits in this list."""
         return [t.trait for t in self.objects]

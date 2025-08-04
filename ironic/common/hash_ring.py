@@ -19,12 +19,12 @@ import time
 from oslo_log import log
 from tooz import hashring
 
+from ironic.common import context
 from ironic.common import exception
 from ironic.common.i18n import _
 from ironic.common import utils
 from ironic.conf import CONF
-from ironic.db import api as dbapi
-
+from ironic import objects
 
 LOG = log.getLogger(__name__)
 
@@ -34,7 +34,6 @@ class HashRingManager(object):
     _lock = threading.Lock()
 
     def __init__(self, use_groups=True, cache=True):
-        self.dbapi = dbapi.get_instance()
         self.use_groups = use_groups
         self.cache = cache
 
@@ -68,7 +67,11 @@ class HashRingManager(object):
 
     def _load_hash_rings(self):
         rings = {}
-        d2c = self.dbapi.get_active_hardware_type_dict(
+        # NOTE(TheJulia): Do not use the dbapi interface directly
+        # as hash_ring code is common code with the API, and want
+        # the overall flow respected.
+        d2c = objects.Conductor.get_active_hardware_type_dict(
+            context.get_admin_context(),
             use_groups=self.use_groups)
 
         for driver_name, hosts in d2c.items():

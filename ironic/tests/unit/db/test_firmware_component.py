@@ -63,7 +63,7 @@ class DbFirmwareComponentTestCase(base.DbTestCase):
         self.assertEqual(result[0]['node_id'], self.node.id)
         self.assertEqual(result[0]['component'], 'bmc')
         self.assertEqual(result[0]['initial_version'], 'v1.0.0')
-        self.assertEqual(result[0]['version'], '1.0')
+        self.assertEqual(result[0]['version'], '1.1')
         self.assertEqual(len(result), 1)
 
     def test_get_firmware_component_list_node_not_exist(self):

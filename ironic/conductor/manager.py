@@ -3473,6 +3473,11 @@ class ConductorManager(base_manager.BaseConductorManager):
         try:
             # NOTE(danms): Keep the getattr inside the try block since
             # a missing method is really a client problem
+            # NOTE(TheJulia): Explicitly set the indirection_api to None
+            # because we don't want to recurse into calling ourselves as
+            # a side-effect in single process mode -- i.e. if we have a
+            # request on this end, we've already routed through the layers.
+            target.indirection_api = None
             return getattr(target, method)(context, *args, **kwargs)
         except Exception:
             # NOTE(danms): This is oslo.messaging fu. ExpectedException()

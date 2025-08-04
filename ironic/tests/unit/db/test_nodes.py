@@ -798,7 +798,7 @@ class DbNodeTestCase(base.DbTestCase):
                                            created_at=second_timestamp,
                                            plugin_data={"pdata":
                                                         {"plugin": "data"}},
-                                           version='1.0')
+                                           version='1.1')
         self.assertJsonEqual(expected_inventory, node_inventory)
 
     def test_inventory_get_destroyed_after_destroying_a_node_by_uuid(self):

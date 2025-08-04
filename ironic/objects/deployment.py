@@ -23,7 +23,8 @@ from ironic.objects import node as node_obj
 @base.IronicObjectRegistry.register
 class Deployment(base.IronicObject, object_base.VersionedObjectDictCompat):
     # Version 1.0: Initial version
-    VERSION = '1.0'
+    # Version 1.1: Relevant methods changed to be remotable methods.
+    VERSION = '1.1'
 
     dbapi = dbapi.get_instance()
 
@@ -118,11 +119,7 @@ class Deployment(base.IronicObject, object_base.VersionedObjectDictCompat):
         node.instance_info = instance_info
         return node
 
-    # NOTE(xek): We don't want to enable RPC on this call just yet. Remotable
-    # methods can be used in the future to replace current explicit RPC calls.
-    # Implications of calling new remote procedures should be thought through.
-    # @object_base.remotable_classmethod
-    @classmethod
+    @object_base.remotable_classmethod
     def get_by_uuid(cls, context, uuid):
         """Find a deployment by its UUID.
 
@@ -136,11 +133,7 @@ class Deployment(base.IronicObject, object_base.VersionedObjectDictCompat):
         node = node_obj.Node.get_by_instance_uuid(context, uuid)
         return cls._from_node_object(context, node)
 
-    # NOTE(xek): We don't want to enable RPC on this call just yet. Remotable
-    # methods can be used in the future to replace current explicit RPC calls.
-    # Implications of calling new remote procedures should be thought through.
-    # @object_base.remotable_classmethod
-    @classmethod
+    @object_base.remotable_classmethod
     def get_by_node_uuid(cls, context, node_uuid):
         """Find a deployment based by its node's UUID.
 
@@ -154,11 +147,7 @@ class Deployment(base.IronicObject, object_base.VersionedObjectDictCompat):
         node = node_obj.Node.get_by_uuid(context, node_uuid)
         return cls._from_node_object(context, node)
 
-    # NOTE(xek): We don't want to enable RPC on this call just yet. Remotable
-    # methods can be used in the future to replace current explicit RPC calls.
-    # Implications of calling new remote procedures should be thought through.
-    # @object_base.remotable_classmethod
-    @classmethod
+    @object_base.remotable_classmethod
     def list(cls, context, filters=None, limit=None, marker=None,
              sort_key=None, sort_dir=None):
         """Return a list of Deployment objects.
@@ -179,10 +168,7 @@ class Deployment(base.IronicObject, object_base.VersionedObjectDictCompat):
                                    sort_dir=sort_dir)
         return [cls._from_node_object(context, node) for node in nodes]
 
-    # NOTE(xek): We don't want to enable RPC on this call just yet. Remotable
-    # methods can be used in the future to replace current explicit RPC calls.
-    # Implications of calling new remote procedures should be thought through.
-    # @object_base.remotable
+    @object_base.remotable
     def create(self, context=None, node=None):
         """Create a Deployment.
 
@@ -213,10 +199,7 @@ class Deployment(base.IronicObject, object_base.VersionedObjectDictCompat):
         self._update_from_node_object(node)
         self.obj_reset_changes()
 
-    # NOTE(xek): We don't want to enable RPC on this call just yet. Remotable
-    # methods can be used in the future to replace current explicit RPC calls.
-    # Implications of calling new remote procedures should be thought through.
-    # @object_base.remotable
+    @object_base.remotable
     def destroy(self, context=None, node=None):
         """Delete the Deployment.
 
@@ -240,10 +223,7 @@ class Deployment(base.IronicObject, object_base.VersionedObjectDictCompat):
         self._update_from_node_object(node)
         self.obj_reset_changes()
 
-    # NOTE(xek): We don't want to enable RPC on this call just yet. Remotable
-    # methods can be used in the future to replace current explicit RPC calls.
-    # Implications of calling new remote procedures should be thought through.
-    # @object_base.remotable
+    @object_base.remotable
     def refresh(self, context=None):
         """Refresh the object by re-fetching from the DB.
 

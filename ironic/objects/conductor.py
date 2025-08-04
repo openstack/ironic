@@ -37,7 +37,9 @@ class Conductor(base.IronicObject, object_base.VersionedObjectDictCompat):
     # Version 1.5: Add new remotable methods
     #              get_shard_list, list_hardware_type_interfaces,
     #              and get_active_hardware_type_dict
-    VERSION = '1.5'
+    # Version 1.6: Updates methods numerous conductor methods to
+    #              to be remotable calls.
+    VERSION = '1.6'
 
     dbapi = db_api.get_instance()
 
@@ -49,7 +51,7 @@ class Conductor(base.IronicObject, object_base.VersionedObjectDictCompat):
         'online': object_fields.BooleanField(),
     }
 
-    @classmethod
+    @object_base.remotable_classmethod
     def list(cls, context, limit=None, marker=None, sort_key=None,
              sort_dir=None):
         """Return a list of Conductor objects.
@@ -68,11 +70,7 @@ class Conductor(base.IronicObject, object_base.VersionedObjectDictCompat):
                                                      sort_dir=sort_dir)
         return cls._from_db_object_list(context, db_conductors)
 
-    # NOTE(xek): We don't want to enable RPC on this call just yet. Remotable
-    # methods can be used in the future to replace current explicit RPC calls.
-    # Implications of calling new remote procedures should be thought through.
-    # @object_base.remotable_classmethod
-    @classmethod
+    @object_base.remotable_classmethod
     def get_by_hostname(cls, context, hostname, online=True):
         """Get a Conductor record by its hostname.
 
@@ -88,15 +86,13 @@ class Conductor(base.IronicObject, object_base.VersionedObjectDictCompat):
         conductor = cls._from_db_object(context, cls(), db_obj)
         return conductor
 
+    @object_base.remotable
     def save(self, context):
         """Save is not supported by Conductor objects."""
         raise NotImplementedError(
             _('Cannot update a conductor record directly.'))
 
-    # NOTE(xek): We don't want to enable RPC on this call just yet. Remotable
-    # methods can be used in the future to replace current explicit RPC calls.
-    # Implications of calling new remote procedures should be thought through.
-    # @object_base.remotable
+    @object_base.remotable
     def refresh(self, context=None):
         """Loads and applies updates for this Conductor.
 
@@ -114,18 +110,10 @@ class Conductor(base.IronicObject, object_base.VersionedObjectDictCompat):
         current = self.get_by_hostname(self._context, hostname=self.hostname)
         self.obj_refresh(current)
 
-    # NOTE(xek): We don't want to enable RPC on this call just yet. Remotable
-    # methods can be used in the future to replace current explicit RPC calls.
-    # Implications of calling new remote procedures should be thought through.
-    # @object_base.remotable
     def touch(self, context=None, online=True):
         """Touch this conductor's DB record, marking it as up-to-date."""
         self.dbapi.touch_conductor(self.hostname, online=online)
 
-    # NOTE(xek): We don't want to enable RPC on this call just yet. Remotable
-    # methods can be used in the future to replace current explicit RPC calls.
-    # Implications of calling new remote procedures should be thought through.
-    # @object_base.remotable
     @classmethod
     def register(cls, context, hostname, drivers, conductor_group,
                  update_existing=False):
@@ -154,10 +142,6 @@ class Conductor(base.IronicObject, object_base.VersionedObjectDictCompat):
             update_existing=update_existing)
         return cls._from_db_object(context, cls(), db_cond)
 
-    # NOTE(xek): We don't want to enable RPC on this call just yet. Remotable
-    # methods can be used in the future to replace current explicit RPC calls.
-    # Implications of calling new remote procedures should be thought through.
-    # @object_base.remotable
     def unregister(self, context=None):
         """Remove this conductor from the service registry."""
         self.unregister_all_hardware_interfaces()
@@ -187,7 +171,10 @@ class Conductor(base.IronicObject, object_base.VersionedObjectDictCompat):
         and does so as a direct call for compatibility with lightweight
         API method.
         """
-        return cls.dbapi.get_active_hardware_type_dict(use_groups=use_groups)
+        # NOTE(TheJulia): Return a dict object instead of a collection object
+        # because the indirection layer cannot handle a collection class.
+        return dict(
+            cls.dbapi.get_active_hardware_type_dict(use_groups=use_groups))
 
     @base.remotable_classmethod
     def list_hardware_type_interfaces_dict(cls, context, names):
@@ -227,4 +214,6 @@ class Conductor(base.IronicObject, object_base.VersionedObjectDictCompat):
         indirection_api call usage instead of trying to directly invoke the
         database.
         """
+        # FIXME(TheJulia): Ideally this should be a formal object, but the
+        # calling method expects json, so it works.
         return cls.dbapi.get_shard_list()

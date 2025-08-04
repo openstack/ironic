@@ -1,0 +1,23 @@
+---
+features:
+  - |
+    Adds the capability for the Ironic API services to operate without
+    a direct connection to the Ironic database backend. Instead the
+    RPC Object model through the concept of remotable objects.
+    The ``[default]use_rpc_for_database`` setting can be utilized to
+    leverage this mode of operation, however it is also implied when
+    the ``[default]rpc_transport`` option is set to ``none`` or ``local``.
+upgrade:
+  - |
+    The introduction of the capability to utilize remotable objects with
+    the API has resulted in object versions internally being incremented
+    without actual schema changes. This may result in an upgrade taking
+    a little longer, depending on the size of the database,
+    as object versions are updated during the upgrade sequence.
+deprecations:
+  - |
+    Use of the API DBHook feature, i.e. the resulting ``api.request.dbapi``
+    pattern in API service code is deprecated and the DBHook will be removed
+    in a future release of Ironic. Any downstream maintainers which utilize
+    this pattern are encouraged to utilize an object to serve as an
+    intermediary stepping stone between the API and the database.

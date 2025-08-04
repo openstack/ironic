@@ -49,7 +49,7 @@ class TestTraitObject(db_base.DbTestCase, obj_utils.SchemasTestMixIn):
 
         result = objects.TraitList.create(self.context, self.node_id, traits)
 
-        mock_set_traits.assert_called_once_with(self.node_id, traits, '1.0')
+        mock_set_traits.assert_called_once_with(self.node_id, traits, '1.1')
         self.assertEqual(self.context, result._context)
         self.assertEqual(2, len(result))
         self.assertEqual(self.fake_trait['node_id'], result[0].node_id)
@@ -72,7 +72,7 @@ class TestTraitObject(db_base.DbTestCase, obj_utils.SchemasTestMixIn):
 
         trait.create()
 
-        mock_add_trait.assert_called_once_with(self.node_id, 'fake', '1.0')
+        mock_add_trait.assert_called_once_with(self.node_id, 'fake', '1.1')
 
         self.assertEqual(self.fake_trait['trait'], trait.trait)
         self.assertEqual(self.fake_trait['node_id'], trait.node_id)

@@ -38,6 +38,8 @@ ID_FORMAT = (r'^req-[a-f0-9]{8}-[a-f0-9]{4}-'
 # a ton of extra overhead.
 DBAPI = dbapi.get_instance()
 
+CONF = cfg.CONF
+
 
 def policy_deprecation_check():
     global CHECKED_DEPRECATED_POLICY_ARGS
@@ -80,8 +82,16 @@ class ConfigHook(hooks.PecanHook):
 class DBHook(hooks.PecanHook):
     """Attach the dbapi object to the request so controllers can get to it."""
 
+    # NOTE(TheJulia): This hook is deprecated, and should be expected to be
+    # removed after the 2026.2 Ironic release.
     def before(self, state):
-        state.request.dbapi = DBAPI
+        if CONF.rpc_transport == 'none' or CONF.use_rpc_for_database:
+            # If the transport is disabled, the request is not to use
+            # the database, and as such it doesn't need to be attached
+            # to the request.
+            state.request.dbapi = None
+        else:
+            state.request.dbapi = DBAPI
 
     def after(self, state):
         # Explicitly set to None since we don't need the DB connection

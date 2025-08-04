@@ -18,6 +18,8 @@ from oslo_service import service
 
 from ironic.common import rpc_service
 from ironic.common import service as ironic_service
+from ironic.objects import base as objects_base
+from ironic.objects import indirection
 
 CONF = cfg.CONF
 LOG = log.getLogger(__name__)
@@ -55,6 +57,12 @@ def main():
         raise RuntimeError("This service is not designed to work with "
                            "rpc_transport = json-rpc. Please use another "
                            "RPC transport.")
+
+    # Sets the indirection API to direct API calls for objects across the
+    # RPC layer.
+    if CONF.rpc_transport in ['local', 'none'] or CONF.use_rpc_for_database:
+        objects_base.IronicObject.indirection_api = \
+            indirection.IronicObjectIndirectionAPI()
 
     mgr = RPCService(
         CONF.host, 'ironic.pxe_filter.service', 'PXEFilterManager')

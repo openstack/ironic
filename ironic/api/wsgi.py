@@ -19,6 +19,8 @@ from oslo_log import log
 from ironic.api import app
 from ironic.common import i18n
 from ironic.common import service
+from ironic.objects import base as objects_base
+from ironic.objects import indirection
 
 
 CONF = cfg.CONF
@@ -31,6 +33,10 @@ def initialize_wsgi_app(argv=sys.argv):
 
     service.prepare_command(argv)
     service.ensure_rpc_transport()
+
+    if CONF.rpc_transport in ['local', 'none'] or CONF.use_rpc_for_database:
+        objects_base.IronicObject.indirection_api = \
+            indirection.IronicObjectIndirectionAPI()
 
     LOG.debug("Configuration:")
     CONF.log_opt_values(LOG, log.DEBUG)

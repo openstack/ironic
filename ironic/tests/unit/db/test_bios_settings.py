@@ -29,7 +29,7 @@ class DbBIOSSettingTestCase(base.DbTestCase):
         self.assertEqual(result['node_id'], self.node.id)
         self.assertEqual(result['name'], 'virtualization')
         self.assertEqual(result['value'], 'on')
-        self.assertEqual(result['version'], '1.1')
+        self.assertEqual(result['version'], '1.2')
 
     def test_get_bios_setting_node_not_exist(self):
         self.assertRaises(exception.NodeNotFound,
@@ -50,7 +50,7 @@ class DbBIOSSettingTestCase(base.DbTestCase):
         self.assertEqual(result[0]['node_id'], self.node.id)
         self.assertEqual(result[0]['name'], 'virtualization')
         self.assertEqual(result[0]['value'], 'on')
-        self.assertEqual(result[0]['version'], '1.1')
+        self.assertEqual(result[0]['version'], '1.2')
         self.assertEqual(len(result), 1)
 
     def test_get_bios_setting_list_node_not_exist(self):

@@ -27,7 +27,8 @@ from ironic.objects import notification
 class VolumeConnector(base.IronicObject,
                       object_base.VersionedObjectDictCompat):
     # Version 1.0: Initial version
-    VERSION = '1.0'
+    # Version 1.1: Relevant methods changed to be remotable methods.
+    VERSION = '1.1'
 
     dbapi = db_api.get_instance()
 
@@ -40,11 +41,7 @@ class VolumeConnector(base.IronicObject,
         'extra': object_fields.FlexibleDictField(nullable=True),
     }
 
-    # NOTE(xek): We don't want to enable RPC on this call just yet. Remotable
-    # methods can be used in the future to replace current explicit RPC calls.
-    # Implications of calling new remote procedures should be thought through.
-    # @object_base.remotable_classmethod
-    @classmethod
+    @object_base.remotable_classmethod
     def get(cls, context, ident):
         """Find a volume connector based on its ID or UUID.
 
@@ -63,11 +60,7 @@ class VolumeConnector(base.IronicObject,
         else:
             raise exception.InvalidIdentity(identity=ident)
 
-    # NOTE(xek): We don't want to enable RPC on this call just yet. Remotable
-    # methods can be used in the future to replace current explicit RPC calls.
-    # Implications of calling new remote procedures should be thought through.
-    # @object_base.remotable_classmethod
-    @classmethod
+    @object_base.remotable_classmethod
     def get_by_id(cls, context, db_id):
         """Find a volume connector based on its integer ID.
 
@@ -83,11 +76,7 @@ class VolumeConnector(base.IronicObject,
         connector = cls._from_db_object(context, cls(), db_connector)
         return connector
 
-    # NOTE(xek): We don't want to enable RPC on this call just yet. Remotable
-    # methods can be used in the future to replace current explicit RPC calls.
-    # Implications of calling new remote procedures should be thought through.
-    # @object_base.remotable_classmethod
-    @classmethod
+    @object_base.remotable_classmethod
     def get_by_uuid(cls, context, uuid):
         """Find a volume connector based on its UUID.
 
@@ -102,11 +91,7 @@ class VolumeConnector(base.IronicObject,
         connector = cls._from_db_object(context, cls(), db_connector)
         return connector
 
-    # NOTE(xek): We don't want to enable RPC on this call just yet. Remotable
-    # methods can be used in the future to replace current explicit RPC calls.
-    # Implications of calling new remote procedures should be thought through.
-    # @object_base.remotable_classmethod
-    @classmethod
+    @object_base.remotable_classmethod
     def list(cls, context, limit=None, marker=None,
              sort_key=None, sort_dir=None, project=None):
         """Return a list of VolumeConnector objects.
@@ -127,11 +112,7 @@ class VolumeConnector(base.IronicObject,
                                                             project=project)
         return cls._from_db_object_list(context, db_connectors)
 
-    # NOTE(xek): We don't want to enable RPC on this call just yet. Remotable
-    # methods can be used in the future to replace current explicit RPC calls.
-    # Implications of calling new remote procedures should be thought through.
-    # @object_base.remotable_classmethod
-    @classmethod
+    @object_base.remotable_classmethod
     def list_by_node_id(cls, context, node_id, limit=None, marker=None,
                         sort_key=None, sort_dir=None, project=None):
         """Return a list of VolumeConnector objects related to a given node ID.
@@ -156,10 +137,7 @@ class VolumeConnector(base.IronicObject,
             project=project)
         return cls._from_db_object_list(context, db_connectors)
 
-    # NOTE(xek): We don't want to enable RPC on this call just yet. Remotable
-    # methods can be used in the future to replace current explicit RPC calls.
-    # Implications of calling new remote procedures should be thought through.
-    # @object_base.remotable
+    @object_base.remotable
     def create(self, context=None):
         """Create a VolumeConnector record in the DB.
 
@@ -178,10 +156,7 @@ class VolumeConnector(base.IronicObject,
         db_connector = self.dbapi.create_volume_connector(values)
         self._from_db_object(self._context, self, db_connector)
 
-    # NOTE(xek): We don't want to enable RPC on this call just yet. Remotable
-    # methods can be used in the future to replace current explicit RPC calls.
-    # Implications of calling new remote procedures should be thought through.
-    # @object_base.remotable
+    @object_base.remotable
     def destroy(self, context=None):
         """Delete the VolumeConnector from the DB.
 
@@ -197,10 +172,7 @@ class VolumeConnector(base.IronicObject,
         self.dbapi.destroy_volume_connector(self.uuid)
         self.obj_reset_changes()
 
-    # NOTE(xek): We don't want to enable RPC on this call just yet. Remotable
-    # methods can be used in the future to replace current explicit RPC calls.
-    # Implications of calling new remote procedures should be thought through.
-    # @object_base.remotable
+    @object_base.remotable
     def save(self, context=None):
         """Save updates to this VolumeConnector.
 
@@ -225,10 +197,7 @@ class VolumeConnector(base.IronicObject,
                                                                updates)
         self._from_db_object(self._context, self, updated_connector)
 
-    # NOTE(xek): We don't want to enable RPC on this call just yet. Remotable
-    # methods can be used in the future to replace current explicit RPC calls.
-    # Implications of calling new remote procedures should be thought through.
-    # @object_base.remotable
+    @object_base.remotable
     def refresh(self, context=None):
         """Load updates for this VolumeConnector.
 
