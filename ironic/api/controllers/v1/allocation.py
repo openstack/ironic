@@ -446,7 +446,8 @@ class AllocationsController(pecan.rest.RestController):
                 # if any. The result is processes authenticating with system
                 # scope will not be impacted, where as project scoped requests
                 # will need additional authorization.
-                converted = api.request.dbapi.check_node_list(
+                converted = objects.Allocation.check_node_list(
+                    context,
                     allocation['candidate_nodes'],
                     project=owner)
             except exception.NodeNotFound as exc:

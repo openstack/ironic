@@ -27,7 +27,8 @@ from ironic.objects import notification
 class Allocation(base.IronicObject, object_base.VersionedObjectDictCompat):
     # Version 1.0: Initial version
     # Version 1.1: Add owner field
-    VERSION = '1.1'
+    # Version 1.2: Add remotable method check_node_list
+    VERSION = '1.2'
 
     dbapi = dbapi.get_instance()
 
@@ -271,6 +272,17 @@ class Allocation(base.IronicObject, object_base.VersionedObjectDictCompat):
         current = self.get_by_uuid(self._context, uuid=self.uuid)
         self.obj_refresh(current)
         self.obj_reset_changes()
+
+    @base.remotable_classmethod
+    def check_node_list(cls, context, candidate_nodes, project):
+        """Provides a pass-through to the database for allocation node lists.
+
+        Calls the database directly as opposed to allowing the API to directly
+        call the database when an indirection API is set.
+        """
+        return cls.dbapi.check_node_list(
+            candidate_nodes,
+            project=project)
 
 
 @base.IronicObjectRegistry.register

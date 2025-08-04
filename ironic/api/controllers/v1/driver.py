@@ -26,7 +26,7 @@ from ironic.common import exception
 from ironic.common.i18n import _
 from ironic.common import metrics_utils
 from ironic.drivers import base as driver_base
-
+from ironic import objects
 
 METRICS = metrics_utils.get_metrics_logger(__name__)
 
@@ -130,8 +130,10 @@ def convert_with_links(name, hosts, detail=False, interface_info=None,
         if detail:
             if interface_info is None:
                 # TODO(jroll) objectify this
-                interface_info = (api.request.dbapi
-                                  .list_hardware_type_interfaces([name]))
+                interface_info = (objects.Conductor
+                                  .list_hardware_type_interfaces_dict(
+                                      api.request.context,
+                                      [name]))
             for iface_type in driver_base.ALL_INTERFACES:
                 default = None
                 enabled = set()
@@ -191,7 +193,8 @@ def list_convert_with_links(hardware_types, detail=False, fields=None):
     # This is checked in Driver.convert_with_links(), however also
     # checking here can save us a DB query.
     if api_utils.allow_dynamic_drivers() and detail:
-        iface_info = api.request.dbapi.list_hardware_type_interfaces(
+        iface_info = objects.Conductor.list_hardware_type_interfaces_dict(
+            api.request.context,
             list(hardware_types))
     else:
         iface_info = []
@@ -348,7 +351,8 @@ class DriversController(rest.RestController):
                 'if specified.'))
 
         if type is None or type == 'dynamic':
-            hw_type_dict = api.request.dbapi.get_active_hardware_type_dict()
+            hw_type_dict = objects.Conductor.get_active_hardware_type_dict(
+                api.request.context)
         else:
             # NOTE(dtantsur): we don't support classic drivers starting with
             # the Rocky release.
@@ -369,7 +373,8 @@ class DriversController(rest.RestController):
 
         _check_allow_driver_fields(fields)
 
-        hw_type_dict = api.request.dbapi.get_active_hardware_type_dict()
+        hw_type_dict = objects.Conductor.get_active_hardware_type_dict(
+            api.request.context)
         for name, hosts in hw_type_dict.items():
             if name == driver_name:
                 return convert_with_links(name, list(hosts),
