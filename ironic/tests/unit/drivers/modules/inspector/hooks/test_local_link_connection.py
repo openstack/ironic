@@ -176,3 +176,19 @@ class LocalLinkConnectionTestCase(db_base.DbTestCase):
             self.assertTrue(mock_port_save.called)
             self.assertEqual({'port_id': 'Ethernet1/18'},
                              self.port.local_link_connection)
+
+    @mock.patch.object(port.Port, 'save', autospec=True)
+    @mock.patch.object(port.Port, 'get_by_address', autospec=True)
+    def test_valid_system_info(self, mock_get_port, mock_port_save):
+        # Add a system name to the LLDP data
+        self.inventory['interfaces'][0]['lldp'].append(
+            (5, "737730312d646973742d31622d623132"))
+        mock_get_port.return_value = self.port
+        with task_manager.acquire(self.context, self.node.id) as task:
+            hook.LocalLinkConnectionHook().__call__(task, self.inventory,
+                                                    self.plugin_data)
+            self.assertTrue(mock_port_save.called)
+            self.assertEqual(self.port.local_link_connection,
+                             {'port_id': 'Ethernet1/18',
+                              'switch_id': '88:5a:92:ec:54:59',
+                              'switch_info': 'sw01-dist-1b-b12'})

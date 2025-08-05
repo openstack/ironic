@@ -26,6 +26,7 @@ import ironic.objects.port as ironic_port
 LOG = logging.getLogger(__name__)
 PORT_ID_ITEM_NAME = "port_id"
 SWITCH_ID_ITEM_NAME = "switch_id"
+SWITCH_INFO_ITEM_NAME = "switch_info"
 
 
 class LocalLinkConnectionHook(base.InspectionHook):
@@ -69,6 +70,16 @@ class LocalLinkConnectionHook(base.InspectionHook):
                 if 'mac_address' in chassis_id.subtype:
                     item = SWITCH_ID_ITEM_NAME
                     value = chassis_id.value.value
+            elif tlv_type == tlv.LLDP_TLV_SYS_NAME:
+                try:
+                    switch_info = tlv.SysName.parse(data)
+                except (core.MappingError, netaddr.AddrFormatError) as e:
+                    LOG.warning('TLV parse error for Sys Name for node %s: '
+                                '%s', node_uuid, e)
+                    return
+
+                item = SWITCH_INFO_ITEM_NAME
+                value = switch_info.value
 
             if item is None or value is None:
                 continue
