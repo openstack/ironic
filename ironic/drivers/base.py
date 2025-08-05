@@ -295,7 +295,7 @@ class BaseInterface(object, metaclass=abc.ABCMeta):
         if instance.verify_steps:
             LOG.debug('Found verify steps %(steps)s for interface '
                       '%(interface)s',
-                      {'steps': instance.deploy_steps,
+                      {'steps': instance.verify_steps,
                        'interface': instance.interface_type})
         if instance.service_steps:
             LOG.debug('Found service steps %(steps)s for interface '
