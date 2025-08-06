@@ -9,6 +9,7 @@ Add ability to filter on node conductor group when listing ports and
 portgroups.
 
 1.98 (Flamingo)
+-----------------------
 
 Add support for patching object attributes with keys containing ~ or /.
 
