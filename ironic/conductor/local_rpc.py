@@ -11,8 +11,8 @@
 # limitations under the License.
 
 import atexit
-import os
 import secrets
+import socket
 import tempfile
 
 from keystoneauth1 import loading as ks_loading
@@ -34,10 +34,15 @@ _USERNAME = 'ironic'
 
 
 def _lo_has_ipv6():
-    return (
-        os.path.exists("/proc/sys/net/ipv6/conf/lo/disable_ipv6")
-        and open("/proc/sys/net/ipv6/conf/lo/disable_ipv6").read() != "1"
-    )
+    """Check if IPv6 is available by attempting to bind to ::1."""
+    try:
+        with socket.socket(socket.AF_INET6, socket.SOCK_STREAM) as sock:
+            sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+            sock.bind(('::1', 0))
+            return True
+    except (OSError, socket.error) as e:
+        LOG.debug('IPv6 is not available on localhost: %s', e)
+        return False
 
 
 def _create_tls_files(ip):
