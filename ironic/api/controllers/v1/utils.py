@@ -2024,6 +2024,7 @@ def check_volume_policy_and_retrieve(policy_name, vol_ident, target=False):
     """
     context = api.request.context
     cdict = context.to_policy_values()
+    rpc_node = None
     owner = None
     lessee = None
     try:
