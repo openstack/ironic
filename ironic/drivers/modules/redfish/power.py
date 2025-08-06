@@ -123,6 +123,31 @@ class RedfishPower(base.PowerInterface):
 
         try:
             _set_power_state(task, system, power_state, timeout=timeout)
+        except sushy.exceptions.BadRequestError as e:
+
+            target_state = TARGET_STATE_MAP.get(power_state, power_state)
+            current_state = GET_POWER_STATE_MAP.get(system.power_state)
+
+            # If current state is undetermined, check for hints in the error
+            # message.
+            if current_state is None:
+                error_msg = str(e).lower()
+                if (target_state == states.POWER_OFF
+                    and 'host is powered off' in error_msg):
+                    current_state = states.POWER_OFF
+                elif (target_state == states.POWER_ON
+                      and 'host is powered on' in error_msg):
+                    current_state = states.POWER_ON
+
+            if current_state == target_state:
+                LOG.info('Node %(node)s power operation (%(requested)s) '
+                         'failed with BadRequest, but node is already in '
+                         'the expected final state (%(final)s). Treating '
+                         'as successful. Error was: %(error)s',
+                         {'node': task.node.uuid, 'requested': power_state,
+                          'final': target_state, 'error': e})
+                return  # Success - already in desired final state
+            raise
         except sushy.exceptions.SushyError as e:
             error_msg = (_('Setting power state to %(state)s failed for node '
                            '%(node)s. Error: %(error)s') %
