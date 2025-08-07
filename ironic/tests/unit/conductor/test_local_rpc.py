@@ -12,6 +12,7 @@
 
 import ipaddress
 import os
+import socket
 from unittest import mock
 
 import bcrypt
@@ -95,3 +96,74 @@ class ConfigureTestCase(tests_base.TestCase):
         self.assertEqual('127.0.0.1', CONF.json_rpc.host_ip)
         self._verify_password()
         self._verify_tls(ipv6=False)
+
+
+@mock.patch('socket.socket', autospec=True)
+class LoHasIpv6TestCase(tests_base.TestCase):
+
+    def test_ipv6_available(self, mock_socket):
+        # Mock successful IPv6 socket creation and bind
+        mock_sock = mock.Mock()
+        mock_sock.__enter__ = mock.Mock(return_value=mock_sock)
+        mock_sock.__exit__ = mock.Mock(return_value=False)
+        mock_socket.return_value = mock_sock
+
+        result = local_rpc._lo_has_ipv6()
+
+        # Verify socket operations
+        mock_socket.assert_called_once_with(socket.AF_INET6,
+                                            socket.SOCK_STREAM)
+        mock_sock.setsockopt.assert_called_once_with(socket.SOL_SOCKET,
+                                                     socket.SO_REUSEADDR,
+                                                     1)
+        mock_sock.bind.assert_called_once_with(('::1', 0))
+        self.assertTrue(result)
+
+    def test_ipv6_not_available_os_error(self, mock_socket):
+        # Mock failed IPv6 socket bind (IPv6 not available)
+        mock_sock = mock.Mock()
+        mock_sock.__enter__ = mock.Mock(return_value=mock_sock)
+        mock_sock.__exit__ = mock.Mock(return_value=False)
+        mock_socket.return_value = mock_sock
+        mock_sock.bind.side_effect = OSError("Cannot assign requested address")
+
+        result = local_rpc._lo_has_ipv6()
+
+        # Verify socket operations attempted
+        mock_socket.assert_called_once_with(socket.AF_INET6,
+                                            socket.SOCK_STREAM)
+        mock_sock.setsockopt.assert_called_once_with(socket.SOL_SOCKET,
+                                                     socket.SO_REUSEADDR,
+                                                     1)
+        mock_sock.bind.assert_called_once_with(('::1', 0))
+        self.assertFalse(result)
+
+    def test_ipv6_not_available_socket_error(self, mock_socket):
+        # Mock socket.error during bind
+        mock_sock = mock.Mock()
+        mock_sock.__enter__ = mock.Mock(return_value=mock_sock)
+        mock_sock.__exit__ = mock.Mock(return_value=False)
+        mock_socket.return_value = mock_sock
+        mock_sock.bind.side_effect = socket.error("Network unreachable")
+
+        result = local_rpc._lo_has_ipv6()
+
+        # Verify socket operations attempted
+        mock_socket.assert_called_once_with(socket.AF_INET6,
+                                            socket.SOCK_STREAM)
+        mock_sock.setsockopt.assert_called_once_with(socket.SOL_SOCKET,
+                                                     socket.SO_REUSEADDR,
+                                                     1)
+        mock_sock.bind.assert_called_once_with(('::1', 0))
+        self.assertFalse(result)
+
+    def test_ipv6_not_available_socket_creation_fails(self, mock_socket):
+        # Mock socket creation failure
+        mock_socket.side_effect = OSError("Address family not supported")
+
+        result = local_rpc._lo_has_ipv6()
+
+        # Verify socket creation attempted
+        mock_socket.assert_called_once_with(socket.AF_INET6,
+                                            socket.SOCK_STREAM)
+        self.assertFalse(result)
