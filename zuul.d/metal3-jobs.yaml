@@ -3,7 +3,7 @@
     name: metal3-base
     abstract: true
     description: Base job for metal3-dev-env based ironic jobs.
-    nodeset: openstack-single-node-noble
+    nodeset: ironic-single-node-noble
     run: playbooks/metal3-ci/run.yaml
     post-run: playbooks/metal3-ci/post.yaml
     timeout: 5400
