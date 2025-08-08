@@ -182,6 +182,30 @@ class InspectHardwareTestCase(BaseTestCase):
     @mock.patch.object(redfish_utils, 'get_system', autospec=True)
     @mock.patch.object(inspect_utils, 'create_ports_if_not_exist',
                        autospec=True)
+    def test_managed_force_dhcp(self,
+                                mock_create_ports_if_not_exist,
+                                mock_get_system, mock_client):
+        # Enable the new toggle
+        CONF.set_override('force_dhcp', True, group='inspector')
+        endpoint = 'http://192.169.0.42:5050/v1'
+        mock_client.return_value.get_endpoint.return_value = endpoint
+        mock_introspect = mock_client.return_value.start_introspection
+        self.assertEqual(states.INSPECTWAIT,
+                         self.iface.inspect_hardware(self.task))
+        mock_introspect.assert_called_once_with(self.node.uuid,
+                                                manage_boot=False)
+        # Ensure both DHCP on all interfaces and LLDP collection are present
+        self.driver.boot.prepare_ramdisk.assert_called_once_with(
+            self.task, ramdisk_params={
+                'ipa-inspection-callback-url': endpoint + '/continue',
+                'ipa-collect-lldp': '1',
+            })
+        self.driver.network.add_inspection_network.assert_called_once_with(
+            self.task)
+
+    @mock.patch.object(redfish_utils, 'get_system', autospec=True)
+    @mock.patch.object(inspect_utils, 'create_ports_if_not_exist',
+                       autospec=True)
     def test_managed_custom_params(self, mock_get_system,
                                    mock_create_ports_if_not_exist,
                                    mock_client):
