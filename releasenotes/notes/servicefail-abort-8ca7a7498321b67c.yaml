@@ -1,0 +1,7 @@
+---
+fixes:
+  - |
+    Fixes the ability to invoke the ``abort`` API verb when a node is in
+    ``service fail`` state, allowing the user to back out of a failure state.
+    For more information see
+    `bug 2119989 <https://bugs.launchpad.net/ironic/+bug/2119989>`_.

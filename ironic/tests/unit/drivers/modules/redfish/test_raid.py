@@ -231,8 +231,10 @@ class RedfishRAIDTestCase(db_base.DbTestCase):
             self.mock_storage]
         self.node.target_raid_config = target_raid_config
         self.node.save()
+        mock_sdii = mock.Mock()
         with task_manager.acquire(self.context, self.node.uuid,
                                   shared=True) as task:
+            task.node.set_driver_internal_info = mock_sdii
             task.driver.raid.create_configuration(task)
             pre = '/redfish/v1/Systems/1/Storage/1/Drives/'
             expected_payload = {
@@ -251,6 +253,7 @@ class RedfishRAIDTestCase(db_base.DbTestCase):
             )
             # Async operation, raid_config shouldn't be updated yet
             self.assertEqual({}, task.node.raid_config)
+        self.assertEqual(2, mock_sdii.call_count)
 
     @mock.patch.object(redfish_boot.RedfishVirtualMediaBoot, 'prepare_ramdisk',
                        spec_set=True, autospec=True)
@@ -585,8 +588,10 @@ class RedfishRAIDTestCase(db_base.DbTestCase):
             self.mock_storage]
         self.node.target_raid_config = target_raid_config
         self.node.save()
+        sdii_mock = mock.Mock()
         with task_manager.acquire(self.context, self.node.uuid,
                                   shared=True) as task:
+            task.node.set_driver_internal_info = sdii_mock
             task.driver.raid.create_configuration(task)
             pre = '/redfish/v1/Systems/1/Storage/1/Drives/'
             expected_payload = {
@@ -605,6 +610,11 @@ class RedfishRAIDTestCase(db_base.DbTestCase):
             )
             # Async operation, raid_config shouldn't be updated yet
             self.assertEqual({}, task.node.raid_config)
+        sdii_mock.assert_has_calls([
+            mock.call('raid_configs', {'operation': 'create',
+                                       'pending': {},
+                                       'task_monitor_uri': mock.ANY}),
+            mock.call('agent_start_attempted', True)])
 
     @mock.patch.object(redfish_boot.RedfishVirtualMediaBoot, 'prepare_ramdisk',
                        spec_set=True, autospec=True)

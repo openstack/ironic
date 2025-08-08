@@ -1017,6 +1017,7 @@ class DoNodeServiceAbortTestCase(db_base.DbTestCase):
             driver_internal_info={
                 'agent_url': 'some url',
                 'agent_secret_token': 'token',
+                'agent_start_attempted': True,
                 'service_step_index': 2,
                 'servicing_reboot': True,
                 'servicing_polling': True,
@@ -1086,6 +1087,46 @@ class DoNodeServiceAbortTestCase(db_base.DbTestCase):
             self.assertIsNotNone(task.node.maintenance_reason)
             self.assertTrue(task.node.maintenance)
             self.assertEqual('service failure', task.node.fault)
+
+    @mock.patch.object(fake.FakeBoot, 'prepare_instance', autospec=True)
+    @mock.patch.object(fake.FakePower, 'set_power_state', autospec=True)
+    @mock.patch.object(fake.FakeDeploy, 'tear_down_service', autospec=True)
+    def test_do_node_service_abort_agent_attempted(self, tear_mock, power_mock,
+                                                   prepare_mock):
+        node = obj_utils.create_test_node(
+            self.context, driver='fake-hardware',
+            provision_state=states.SERVICEWAIT,
+            target_provision_state=states.AVAILABLE,
+            driver_internal_info={
+                'agent_start_attempted': True,
+                'service_step_index': 2})
+
+        with task_manager.acquire(self.context, node.uuid) as task:
+            servicing.do_node_service_abort(task)
+            tear_mock.assert_called_once_with(mock.ANY, task)
+            prepare_mock.assert_called_once_with(mock.ANY, task)
+            power_mock.assert_has_calls([
+                mock.call(mock.ANY, task, 'power off'),
+                mock.call(mock.ANY, task, 'power on')])
+
+    @mock.patch.object(fake.FakeBoot, 'prepare_instance', autospec=True)
+    @mock.patch.object(fake.FakePower, 'set_power_state', autospec=True)
+    @mock.patch.object(fake.FakeDeploy, 'tear_down_service', autospec=True)
+    def test_do_node_service_abort_agent_not_attempted(self, tear_mock,
+                                                       power_mock,
+                                                       prepare_mock):
+        node = obj_utils.create_test_node(
+            self.context, driver='fake-hardware',
+            provision_state=states.SERVICEWAIT,
+            target_provision_state=states.AVAILABLE,
+            driver_internal_info={
+                'service_step_index': 2})
+
+        with task_manager.acquire(self.context, node.uuid) as task:
+            servicing.do_node_service_abort(task)
+            tear_mock.assert_called_once_with(mock.ANY, task)
+            prepare_mock.assert_not_called()
+            power_mock.assert_not_called()
 
 
 class DoNodeCleanTestChildNodes(db_base.DbTestCase):

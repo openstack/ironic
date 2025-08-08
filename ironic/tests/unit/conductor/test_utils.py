@@ -2655,9 +2655,16 @@ class AgentTokenUtilsTestCase(tests_base.TestCase):
 
     def test_wipe_deploy_internal_info(self):
         conductor_utils.add_secret_token(self.node)
-        self.assertIn('agent_secret_token', self.node.driver_internal_info)
+        self.node.set_driver_internal_info('agent_start_attempted', True)
+        dii = self.node.driver_internal_info
+        self.assertIn('agent_secret_token', dii)
+        self.assertIn('agent_start_attempted', dii)
+
         conductor_utils.wipe_deploy_internal_info(mock.Mock(node=self.node))
-        self.assertNotIn('agent_secret_token', self.node.driver_internal_info)
+
+        dii = self.node.driver_internal_info
+        self.assertNotIn('agent_secret_token', dii)
+        self.assertNotIn('agent_start_attempted', dii)
 
     def test_is_agent_token_present(self):
         # This should always be False as the token has not been added yet.
@@ -3222,8 +3229,9 @@ class ServiceUtilsTestCase(db_base.DbTestCase):
             'servicing_polling': 1,
             'service_disable_ramdisk': False,
             'skip_current_service_step': False,
-            'steps_validated': 'meow'
-            'agent_secret_token',
+            'steps_validated': 'meow',
+            'agent_secret_token': 'token',
+            'agent_start_attempted': True,
             'image_source': 'image_ref'}
         self.node.save()
         not_in_list = ['agent_cached_service_steps',
@@ -3232,7 +3240,8 @@ class ServiceUtilsTestCase(db_base.DbTestCase):
                        'service_disable_ramdisk',
                        'skip_current_service_step',
                        'steps_validated',
-                       'agent_secret_token'
+                       'agent_secret_token',
+                       'agent_start_attempted',
                        'image_source']
         with task_manager.acquire(self.context, self.node.id,
                                   shared=True) as task:

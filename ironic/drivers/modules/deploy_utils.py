@@ -1746,6 +1746,12 @@ def prepare_agent_boot(task):
 
     :param task: a TaskManager instance.
     """
+    # Record that we're attempting to start the agent, because this
+    # is the *central* location where we trigger ramdisk launches
+    # for actions outside of inspection.
+    task.node.set_driver_internal_info('agent_start_attempted', True)
+    task.node.save()
+
     deploy_opts = build_agent_options(task.node)
     task.driver.boot.prepare_ramdisk(task, deploy_opts)
 

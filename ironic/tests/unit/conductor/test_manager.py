@@ -2835,6 +2835,37 @@ class DoProvisioningActionTestCase(mgr_utils.ServiceSetUpMixin,
             states.DEPLOYHOLD)
         self.assertNotIn('agent_url', node.driver_internal_info)
 
+    @mock.patch('ironic.conductor.manager.ConductorManager._spawn_worker',
+                autospec=True)
+    def test_do_provision_action_abort_from_servicefail(self, mock_spawn):
+        node = obj_utils.create_test_node(
+            self.context, driver='fake-hardware',
+            provision_state=states.SERVICEFAIL,
+            target_provision_state=states.ACTIVE)
+
+        self._start_service()
+        self.service.do_provisioning_action(self.context, node.uuid, 'abort')
+        mock_spawn.assert_called_with(
+            self.service,
+            servicing.do_node_service_abort,
+            mock.ANY)
+
+    @mock.patch('ironic.conductor.manager.ConductorManager._spawn_worker',
+                autospec=True)
+    def test_do_provision_action_abort_from_servicefail_maintenance(
+            self, mock_spawn):
+        node = obj_utils.create_test_node(
+            self.context, driver='fake-hardware',
+            provision_state=states.SERVICEFAIL,
+            target_provision_state=states.ACTIVE,
+            maintenance=True)
+
+        self._start_service()
+        self.assertRaises(
+            exception.InvalidState,
+            self.service.do_provisioning_action,
+            self.context, node.uuid, 'abort')
+
 
 @mgr_utils.mock_record_keepalive
 class DoNodeCleanTestCase(mgr_utils.ServiceSetUpMixin, db_base.DbTestCase):

@@ -1440,7 +1440,8 @@ class ConductorManager(base_manager.BaseConductorManager):
                                                  states.RESCUEWAIT,
                                                  states.INSPECTWAIT,
                                                  states.CLEANHOLD,
-                                                 states.DEPLOYHOLD)):
+                                                 states.DEPLOYHOLD,
+                                                 states.SERVICEFAIL)):
                 self._do_abort(task)
                 return
 
@@ -1530,6 +1531,22 @@ class ConductorManager(base_manager.BaseConductorManager):
                 callback=self._spawn_worker,
                 call_args=(self._do_node_tear_down, task,
                            task.node.provision_state),
+                err_handler=utils.provisioning_error_handler)
+
+        if node.provision_state == states.SERVICEFAIL:
+            if task.node.maintenance:
+                msg = (_('Can not abort service on node "%(node)s" while it '
+                         'is in maintenance mode. Please remove the node '
+                         'from maintenance prior to issuing the request to '
+                         'abort the service operation.') %
+                       {'node': node.uuid})
+                raise exception.InvalidState(msg)
+            # When someone is in service fail, its okay to abort.
+            task.process_event(
+                'abort',
+                callback=self._spawn_worker,
+                call_args=(servicing.do_node_service_abort,
+                           task),
                 err_handler=utils.provisioning_error_handler)
 
     @METRICS.timer('ConductorManager._sync_power_states')

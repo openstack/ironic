@@ -162,7 +162,8 @@ class DracRedfishManagementTestCase(test_utils.BaseDracTest):
         mock_get_configuration.return_value = json.loads(
             '{"oem": {"interface": "idrac-redfish", '
             '"data": {"prop1": "value1", "prop2": 2}}}')
-
+        mock_sdii = mock.Mock()
+        task.node.set_driver_internal_info = mock_sdii
         result = self.management.import_configuration(task, 'edge')
         self.assertEqual(states.DEPLOYWAIT, result)
 
@@ -175,6 +176,7 @@ class DracRedfishManagementTestCase(test_utils.BaseDracTest):
         mock_build_agent_options.assert_called_once_with(task.node)
         task.driver.boot.prepare_ramdisk.assert_called_once_with(
             task, deploy_opts)
+        self.assertEqual(2, mock_sdii.call_count)
 
     @mock.patch.object(drac_mgmt.DracRedfishManagement,
                        'import_configuration', autospec=True)
