@@ -76,15 +76,28 @@ opts = [
 ]
 
 
-def register_opts(conf):
-    conf.register_opts(opts, group='json_rpc')
-    keystone.register_auth_opts(conf, 'json_rpc')
-    conf.set_default('timeout', 120, group='json_rpc')
+def register_opts(conf, group='json_rpc'):
+    """Register JSON-RPC options.
+
+    :param conf: The global oslo.config object.
+    :param group: Configuration group name to register options under.
+                  Defaults to 'json_rpc'. Allows reusing the same option
+                  set for different JSON-RPC clients (e.g., networking).
+    """
+    conf.register_opts(opts, group=group)
+    keystone.register_auth_opts(conf, group)
+    conf.set_default('timeout', 120, group=group)
 
 
 def list_opts():
+    """Return options for sample configuration generation."""
     return keystone.add_auth_opts(opts)
 
 
-def auth_strategy():
-    return CONF.json_rpc.auth_strategy or CONF.auth_strategy
+def auth_strategy(group='json_rpc'):
+    """Return effective auth strategy for a given group.
+
+    :param group: Configuration group name. Defaults to 'json_rpc'.
+    :returns: Authentication strategy string.
+    """
+    return getattr(CONF, group).auth_strategy or CONF.auth_strategy

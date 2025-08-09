@@ -62,8 +62,11 @@ class BaseRPCService(service.Service):
         # Perform preparatory actions before starting the RPC listener
         self.manager.prepare_host()
         if CONF.rpc_transport == 'json-rpc':
+            conf_group = getattr(self.manager, 'json_rpc_conf_group',
+                                 'json_rpc')
             self.rpcserver = json_rpc.WSGIService(
-                self.manager, serializer, context.RequestContext.from_dict)
+                self.manager, serializer, context.RequestContext.from_dict,
+                conf_group=conf_group)
         elif CONF.rpc_transport != 'none':
             target = messaging.Target(topic=self.topic, server=self.host)
             endpoints = [self.manager]

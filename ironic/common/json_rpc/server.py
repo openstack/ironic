@@ -12,7 +12,7 @@
 
 """Implementation of JSON RPC for communication between API and conductors.
 
-This module implementa a subset of JSON RPC 2.0 as defined in
+This module implements a subset of JSON RPC 2.0 as defined in
 https://www.jsonrpc.org/specification. Main differences:
 * No support for batched requests.
 * No support for positional arguments passing.
@@ -96,7 +96,8 @@ class EmptyContext:
 class WSGIService(wsgi_service.BaseWSGIService):
     """Provides ability to launch JSON RPC as a WSGI application."""
 
-    def __init__(self, manager, serializer, context_class=EmptyContext):
+    def __init__(self, manager, serializer, context_class=EmptyContext,
+                 conf_group: str = 'json_rpc'):
         """Create a JSON RPC service.
 
         :param manager: Object from which to expose methods.
@@ -104,22 +105,25 @@ class WSGIService(wsgi_service.BaseWSGIService):
             and deserialize_entity.
         :param context_class: A context class - a callable accepting a dict
             received from network.
+        :param conf_group: oslo.config group name to source settings from.
+            Defaults to 'json_rpc'.
         """
         self.manager = manager
         self.serializer = serializer
         self.context_class = context_class
         self._method_map = _build_method_map(manager)
-        auth_strategy = json_rpc.auth_strategy()
+        self._conf_group = conf_group
+        auth_strategy = json_rpc.auth_strategy(group=conf_group)
         if auth_strategy == 'keystone':
             conf = dict(CONF.keystone_authtoken)
             app = auth_token.AuthProtocol(self._application, conf)
         elif auth_strategy == 'http_basic':
             app = auth_basic.BasicAuthMiddleware(
                 self._application,
-                cfg.CONF.json_rpc.http_basic_auth_user_file)
+                getattr(CONF, conf_group).http_basic_auth_user_file)
         else:
             app = self._application
-        super().__init__('ironic-json-rpc', app, CONF.json_rpc)
+        super().__init__('ironic-json-rpc', app, getattr(CONF, conf_group))
         self._debug = CONF.rpc_transport != 'none'
 
     def _application(self, environment, start_response):
@@ -131,9 +135,9 @@ class WSGIService(wsgi_service.BaseWSGIService):
             return webob.Response(status_code=405, json_body=body)(
                 environment, start_response)
 
-        if json_rpc.auth_strategy() == 'keystone':
+        if json_rpc.auth_strategy(group=self._conf_group) == 'keystone':
             roles = (request.headers.get('X-Roles') or '').split(',')
-            allowed_roles = CONF.json_rpc.allowed_roles
+            allowed_roles = getattr(CONF, self._conf_group).allowed_roles
             if set(roles).isdisjoint(allowed_roles):
                 LOG.debug('Roles %s do not contain any of %s, rejecting '
                           'request', roles, allowed_roles)

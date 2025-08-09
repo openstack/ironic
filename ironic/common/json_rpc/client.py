@@ -31,38 +31,45 @@ from ironic.conf import json_rpc
 
 CONF = cfg.CONF
 LOG = logging.getLogger(__name__)
-_SESSION = None
+# Session cache per configuration group
+_SESSIONS = {}
 
 
-def _get_session():
-    global _SESSION
+def _get_session(group: str = 'json_rpc'):
+    """Get or create a session/adapter for a configuration group.
 
-    if _SESSION is None:
+    :param group: Configuration group name. Defaults to 'json_rpc'.
+    :returns: A keystone Adapter configured for the group.
+    """
+    global _SESSIONS
+
+    if group not in _SESSIONS:
         kwargs = {}
-        auth_strategy = json_rpc.auth_strategy()
+        auth_strategy = json_rpc.auth_strategy(group)
         if auth_strategy != 'keystone':
             auth_type = 'none' if auth_strategy == 'noauth' else auth_strategy
-            CONF.set_default('auth_type', auth_type, group='json_rpc')
+            CONF.set_default('auth_type', auth_type, group=group)
 
             # Deprecated, remove in W
+            group_conf = getattr(CONF, group)
             if auth_strategy == 'http_basic':
-                if CONF.json_rpc.http_basic_username:
-                    kwargs['username'] = CONF.json_rpc.http_basic_username
-                if CONF.json_rpc.http_basic_password:
-                    kwargs['password'] = CONF.json_rpc.http_basic_password
+                if getattr(group_conf, 'http_basic_username', None):
+                    kwargs['username'] = group_conf.http_basic_username
+                if getattr(group_conf, 'http_basic_password', None):
+                    kwargs['password'] = group_conf.http_basic_password
 
-        auth = keystone.get_auth('json_rpc', **kwargs)
+        auth = keystone.get_auth(group, **kwargs)
 
-        session = keystone.get_session('json_rpc', auth=auth)
+        session = keystone.get_session(group, auth=auth)
         headers = {
             'Content-Type': 'application/json'
         }
 
         # Adds options like connect_retries
-        _SESSION = keystone.get_adapter('json_rpc', session=session,
-                                        additional_headers=headers)
+        _SESSIONS[group] = keystone.get_adapter(
+            group, session=session, additional_headers=headers)
 
-    return _SESSION
+    return _SESSIONS[group]
 
 
 class Client(object):
@@ -73,9 +80,11 @@ class Client(object):
         "ironic_inspector.utils.",
     ]
 
-    def __init__(self, serializer, version_cap=None):
+    def __init__(self, serializer, version_cap=None,
+                 conf_group: str = 'json_rpc'):
         self.serializer = serializer
         self.version_cap = version_cap
+        self.conf_group = conf_group
 
     def can_send_version(self, version):
         return _can_send_version(version, self.version_cap)
@@ -94,16 +103,19 @@ class Client(object):
             host, self.serializer, version=version,
             version_cap=self.version_cap,
             allowed_exception_namespaces=self.allowed_exception_namespaces,
-            port=port)
+            port=port, conf_group=self.conf_group)
 
 
 class _CallContext(object):
     """Wrapper object for compatibility with oslo.messaging API."""
 
     def __init__(self, host, serializer, version=None, version_cap=None,
-                 allowed_exception_namespaces=(), port=None):
+                 allowed_exception_namespaces=(), port=None,
+                 conf_group: str = 'json_rpc'):
+        self.conf_group = conf_group
         if not port:
-            self.port = CONF.json_rpc.port
+            group_conf = getattr(CONF, self.conf_group)
+            self.port = group_conf.port
         else:
             self.port = int(port)
         self.host = host
@@ -198,7 +210,8 @@ class _CallContext(object):
                           or uuidutils.generate_uuid())
 
         scheme = 'http'
-        if CONF.json_rpc.client_use_ssl or CONF.json_rpc.use_ssl:
+        group_conf = getattr(CONF, self.conf_group)
+        if group_conf.client_use_ssl or group_conf.use_ssl:
             scheme = 'https'
         url = '%s://%s:%d' % (scheme,
                               netutils.escape_ipv6(self.host),
@@ -206,7 +219,7 @@ class _CallContext(object):
         LOG.debug("RPC %s to %s with %s", method, url,
                   strutils.mask_dict_password(body))
         try:
-            result = _get_session().post(url, json=body)
+            result = _get_session(self.conf_group).post(url, json=body)
         except Exception as exc:
             LOG.debug('RPC %s to %s failed with %s', method, url, exc)
             raise
