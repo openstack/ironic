@@ -5684,6 +5684,38 @@ class ManagerDoSyncPowerStateTestCase(db_base.DbTestCase):
         mock_power_update.assert_called_once_with(
             self.task.context, self.node.instance_uuid, states.POWER_OFF)
 
+    @mock.patch.object(nova, 'power_update', autospec=True)
+    def test_max_retries_exceeded_preserve_admin_intent(self,
+                                                        mock_power_update,
+                                                        node_power_action):
+        self.config(force_power_state_during_sync=True, group='conductor')
+        self.config(power_state_sync_max_retries=1, group='conductor')
+
+        self.node.maintenance = True
+        self.node.maintenance_reason = 'admin set maintenance'
+        self.node.fault = None
+
+        self._do_sync_power_state(
+            states.POWER_ON,
+            [exception.IronicException('foo'),
+             exception.IronicException('foo')]
+        )
+
+        self.assertFalse(self.power.validate.called)
+        power_exp_calls = [mock.call(self.task)] * 2
+        self.assertEqual(power_exp_calls,
+                         self.power.get_power_state.call_args_list)
+        node_power_action.assert_not_called()
+        self.assertIsNone(self.node.power_state)
+        self.assertEqual(2,
+                         self.service.power_state_sync_count[self.node.uuid])
+
+        self.assertTrue(self.node.maintenance)
+        self.assertEqual('admin set maintenance', self.node.maintenance_reason)
+        self.assertIsNone(self.node.fault)
+        mock_power_update.assert_called_once_with(
+            self.task.context, self.node.instance_uuid, None)
+
     @mock.patch('ironic.objects.node.NodeCorrectedPowerStateNotification',
                 autospec=True)
     @mock.patch.object(nova, 'power_update', autospec=True)
