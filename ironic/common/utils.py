@@ -953,7 +953,12 @@ def parse_root_device_hints(root_device):
 
     for name, expression in root_device.items():
         hint_type = VALID_ROOT_DEVICE_HINTS[name]
-        if hint_type is str:
+        hint_info = _extract_hint_operator_and_values(expression,
+                                                      name)
+        operator = hint_info['op']
+        if name == 'size' and operator == '<range-in>':
+            pass
+        elif hint_type is str:
             if not isinstance(expression, str):
                 raise ValueError(
                     _('Root device hint "%(name)s" is not a string value. '
@@ -1049,6 +1054,8 @@ def find_devices_by_hints(devices, root_device_hints):
                 # Since we don't support units yet we expect the size
                 # in GiB for now
                 device_value = device_value / units.Gi
+                if hint_value.startswith('<range-in>'):
+                    device_value = str(device_value)
 
             LOG.debug('Trying to match the device hint "%(hint)s" '
                       'with a value of "%(hint_value)s" against the same '

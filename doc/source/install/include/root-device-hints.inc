@@ -15,7 +15,11 @@ which disk it should pick for the deployment. The list of supported hints is:
     provided to the operating system which do not match or align to physical
     disks in a system.
 
-* size (INT): size of the device in GiB
+* size (INT or range): size of the device in GiB or range boundaries in GiB
+  size accepts a single int value representing the size of the device in
+  GiB, or a range of two values representing the lower and higher acceptable
+  sizes in GiB for the device using the special operator <range-in>, e.g.
+  size: <range-in> ( 10 100 )
 
   .. note::
     A node's 'local_gb' property is often set to a value 1 GiB less than the
@@ -103,6 +107,8 @@ and ``s==`` (for string values). The supported operators are:
 
   * ``<all-in>`` all elements contained in collection
   * ``<or>`` find one of these
+  * ``<range-in>`` range boundaries in GiB, boundary condition could be
+    inclusive \'[\' or exclusive \'(\'.
 
 Examples are:
 
