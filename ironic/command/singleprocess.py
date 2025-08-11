@@ -43,7 +43,11 @@ def main():
 
     local_rpc.configure()
 
-    launcher = service.ServiceLauncher(CONF, restart_method='mutate')
+    # Choose the launcher based upon if vnc is enabled or not.
+    # The VNC proxy has to be run in the parent process, not
+    # a sub-process.
+    launcher = service.ServiceLauncher(CONF, restart_method='mutate',
+                                       no_fork=CONF.vnc.enabled)
 
     mgr = rpc_service.RPCService(CONF.host,
                                  'ironic.conductor.manager',
@@ -54,8 +58,15 @@ def main():
     wsgi = wsgi_service.WSGIService('ironic_api', CONF.api.enable_ssl_api)
     launcher.launch_service(wsgi)
 
+    # NOTE(TheJulia): By default, vnc is disabled, and depending on that
+    # overall process behavior will change. i.e. we're not going to force
+    # single process which breaks systemd process launch detection.
+    # Which is because you cannot directly invoke multiple services
+    # with different launchers.
     if CONF.vnc.enabled:
         # Build and start the websocket proxy
+        # NOTE(TheJulia): Single-process doesn't really *need*
+        # the vnc proxy per stevebaker.
         novncproxy = novncproxy_service.NoVNCProxyService()
         launcher.launch_service(novncproxy)
 

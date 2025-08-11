@@ -46,7 +46,7 @@ def main():
                                       "[vnc]enabled = True")
 
     # Build and start the websocket proxy
-    launcher = ironic_service.process_launcher()
+    launcher = ironic_service.process_launcher(no_fork=True)
     server = novncproxy_service.NoVNCProxyService()
     launcher.launch_service(server)
     sys.exit(launcher.wait())
