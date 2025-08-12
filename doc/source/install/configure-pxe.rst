@@ -4,8 +4,8 @@ Configuring Network Boot
 Ironic's primary means of booting hardware to perform actions or work on a
 baremetal node is to perform network booting. Traditionally, this has meant
 the use of Preboot Execution Environment, or PXE. This support and
-and functionality has evolve as time has gone on to include support for not
-just the ``pxe`` ``boot_interface`` in concert with hardware vendor specific
+functionality has evolve as time has gone on to include support for not
+just the ``pxe`` ``boot_interface`` in concern with hardware vendor specific
 variations, but also a distinct ``ipxe`` setting for ``boot_interface`` with
 default values to enable use of `iPXE <https://ipxe.org/>`_.
 
