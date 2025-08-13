@@ -655,6 +655,9 @@ machine.add_transition(SERVICEWAIT, SERVICING, 'resume')
 # A node in service wait can failed
 machine.add_transition(SERVICEWAIT, SERVICEFAIL, 'fail')
 
+# A node in service hold can failed
+machine.add_transition(SERVICEHOLD, SERVICEFAIL, 'fail')
+
 # A node in service wait can be aborted
 machine.add_transition(SERVICEWAIT, SERVICEFAIL, 'abort')
 

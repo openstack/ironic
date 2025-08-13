@@ -1,0 +1,9 @@
+---
+fixes:
+  - |
+    Fixes servicing abort handling to respect the `abortable` flag of service steps.
+    Previously, servicing steps could be aborted regardless of their `abortable` flag
+    setting. Now, if a service step has `abortable` set to `False`, the abort will
+    be deferred until the current step completes, similar to how cleaning steps work.
+    This ensures service steps that cannot be safely interrupted are allowed to complete
+    before the abort takes effect.
