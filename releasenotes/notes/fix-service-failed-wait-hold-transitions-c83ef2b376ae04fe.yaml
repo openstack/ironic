@@ -1,0 +1,9 @@
+---
+fixes:
+  - |
+    Fixes bug where reserved service steps (wait, hold) executed on nodes in
+    "service failed" state would incorrectly transition the node directly to
+    "active" state, bypassing the expected intermediate wait/hold states.
+    Now nodes in "service failed" state properly transition to "service wait"
+    or "service hold" when wait/hold steps are executed, maintaining the
+    expected state machine flow.

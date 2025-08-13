@@ -949,6 +949,32 @@ class DoNodeServiceTestCase(db_base.DbTestCase):
         # Start is the continuation from a heartbeat.
         self._test_do_next_service_step_handles_hold(states.SERVICEWAIT)
 
+    def test_do_next_service_step_handles_hold_from_failed(self):
+        # Test that hold step from SERVICEFAIL transitions to SERVICEHOLD
+        self._test_do_next_service_step_handles_hold(states.SERVICEFAIL)
+
+    def test_do_next_service_step_handles_wait_from_failed(self):
+        # Test that wait step from SERVICEFAIL transitions to SERVICEWAIT
+        node = obj_utils.create_test_node(
+            self.context, driver='fake-hardware',
+            provision_state=states.SERVICEFAIL,
+            driver_internal_info={
+                'service_steps': [
+                    {
+                        'step': 'wait',
+                        'priority': 10,
+                        'interface': 'power'
+                    }
+                ],
+                'service_step_index': None},
+            service_step=None)
+
+        with task_manager.acquire(
+                self.context, node.uuid, shared=False) as task:
+            servicing.do_next_service_step(task, 0)
+        node.refresh()
+        self.assertEqual(states.SERVICEWAIT, node.provision_state)
+
     @mock.patch.object(servicing, 'do_next_service_step', autospec=True)
     def _continue_node_service(self, mock_next_step, skip=True):
         # test that skipping current step mechanism works
