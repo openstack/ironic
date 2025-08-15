@@ -248,6 +248,8 @@ class AllocationsController(pecan.rest.RestController):
     )
     @validation.request_query_schema(schema.index_request_query, None, 59)
     @validation.request_query_schema(schema.index_request_query_v60, 60)
+    @validation.response_body_schema(schema.index_response_body, None, 59)
+    @validation.response_body_schema(schema.index_response_body_v60, 60)
     def get_all(self, node=None, resource_class=None, state=None, marker=None,
                 limit=None, sort_key='id', sort_dir='asc', fields=None,
                 owner=None):
@@ -300,6 +302,8 @@ class AllocationsController(pecan.rest.RestController):
     @validation.request_parameter_schema(schema.show_request_parameter)
     @validation.request_query_schema(schema.show_request_query, None, 59)
     @validation.request_query_schema(schema.show_request_query_v60, 60)
+    @validation.response_body_schema(schema.show_response_body, None, 59)
+    @validation.response_body_schema(schema.show_response_body_v60, 60)
     def get_one(self, allocation_ident, fields=None):
         """Retrieve information about the given allocation.
 
@@ -356,6 +360,8 @@ class AllocationsController(pecan.rest.RestController):
     )
     @validation.request_body_schema(schema.create_request_body, None, 57)
     @validation.request_body_schema(schema.create_request_body_v58, 58)
+    @validation.response_body_schema(schema.create_response_body, None, 59)
+    @validation.response_body_schema(schema.create_response_body_v60, 60)
     def post(self, allocation):
         """Create a new allocation.
 
@@ -483,6 +489,8 @@ class AllocationsController(pecan.rest.RestController):
     def _validate_patch(self, patch):
         fields = api_utils.patch_validate_allowed_fields(
             patch, PATCH_ALLOWED_FIELDS)
+        # FIXME(stephenfin): This checks for 'owner', but 'owner' is not one of
+        # the fields in PATCH_ALLOWED_FIELDS?
         self._check_allowed_allocation_fields(fields)
 
     @METRICS.timer('AllocationsController.patch')
@@ -496,6 +504,8 @@ class AllocationsController(pecan.rest.RestController):
     @validation.request_parameter_schema(schema.update_request_parameter)
     @validation.request_body_schema(schema.update_request_body, None, 59)
     @validation.request_body_schema(schema.update_request_body_v60, 60)
+    @validation.response_body_schema(schema.update_response_body, None, 60)
+    @validation.response_body_schema(schema.update_response_body_v60, 60)
     def patch(self, allocation_ident, patch):
         """Update an existing allocation.
 

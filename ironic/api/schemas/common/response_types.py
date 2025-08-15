@@ -25,3 +25,22 @@ traits = {
         {'enum': STANDARD_TRAITS},
     ]
 }
+
+links = {
+    'type': 'array',
+    'items': {
+        'type': 'object',
+        'properties': {
+            'rel': {
+                'type': 'string',
+                'enum': ['self', 'bookmark'],
+            },
+            'href': {
+                'type': 'string',
+                'format': 'uri',
+            },
+        },
+        'required': ['rel', 'href'],
+        'additionalProperties': False,
+    },
+}

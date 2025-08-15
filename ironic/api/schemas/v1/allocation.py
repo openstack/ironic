@@ -171,3 +171,70 @@ update_request_body = {
 # TODO(stephenfin): The code suggests that we should be allowing 'owner' here,
 # but it's not included in PATCH_ALLOWED_FIELDS so I have ignored it for now
 update_request_body_v60 = copy.deepcopy(update_request_body)
+
+# response body schemas
+
+_allocation_response_body = {
+    'type': 'object',
+    'properties': {
+        'candidate_nodes': {
+            'type': ['array', 'null'],
+            'items': {'type': 'string'}
+        },
+        'created_at': {'type': 'string', 'format': 'date-time'},
+        # TODO(stephenfin): I assume this can be stricter?
+        'extra': {'type': ['object', 'null']},
+        'last_error': {'type': ['string', 'null']},
+        'links': response_types.links,
+        'name': {'type': ['string', 'null']},
+        'node_uuid': {'type': ['string', 'null'], 'format': 'uuid'},
+        'resource_class': {'type': ['string', 'null'], 'maxLength': 80},
+        'state': {
+            'type': 'string',
+            'enum': ['allocating', 'active', 'error']
+        },
+        'traits': {
+            'type': ['array', 'null'],
+            'items': response_types.traits,
+        },
+        'updated_at': {'type': ['string', 'null'], 'format': 'date-time'},
+        'uuid': {'type': ['string', 'null'], 'format': 'uuid'},
+    },
+    # NOTE(stephenfin): The 'fields' parameter means nothing is required
+    'required': [],
+    'additionalProperties': False,
+}
+
+_allocation_response_body_v60 = copy.deepcopy(_allocation_response_body)
+_allocation_response_body_v60['properties'].update({
+    'owner': {'type': ['string', 'null']},
+})
+
+index_response_body = {
+    'type': 'object',
+    'properties': {
+        'allocations': {
+            'type': 'array',
+            'items': copy.deepcopy(_allocation_response_body),
+        },
+    },
+    'required': ['allocations'],
+    'additionalProperties': False,
+}
+index_response_body['properties'].update({
+    'next': {'type': 'string'},
+})
+
+index_response_body_v60 = copy.deepcopy(index_response_body)
+index_response_body_v60['properties']['allocations']['items'] = (
+    _allocation_response_body_v60
+)
+
+show_response_body = copy.deepcopy(_allocation_response_body)
+show_response_body_v60 = copy.deepcopy(_allocation_response_body_v60)
+
+create_response_body = copy.deepcopy(_allocation_response_body)
+create_response_body_v60 = copy.deepcopy(_allocation_response_body_v60)
+
+update_response_body = copy.deepcopy(_allocation_response_body)
+update_response_body_v60 = copy.deepcopy(_allocation_response_body_v60)
