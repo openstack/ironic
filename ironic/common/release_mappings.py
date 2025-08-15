@@ -843,6 +843,30 @@ RELEASE_MAPPING = {
             'InspectionRule': ['1.0'],
         }
     },
+    '30.0': {
+        'api': '1.99',
+        'rpc': '1.61',
+        'objects': {
+            'Allocation': ['1.1'],
+            'BIOSSetting': ['1.1'],
+            'Node': ['1.41'],
+            'NodeHistory': ['1.0'],
+            'NodeInventory': ['1.0'],
+            'Conductor': ['1.4'],
+            'Chassis': ['1.3'],
+            'Deployment': ['1.0'],
+            'DeployTemplate': ['1.1'],
+            'Port': ['1.12'],
+            'Portgroup': ['1.5'],
+            'Trait': ['1.0'],
+            'TraitList': ['1.0'],
+            'VolumeConnector': ['1.0'],
+            'VolumeTarget': ['1.0'],
+            'FirmwareComponent': ['1.0'],
+            'Runbook': ['1.0'],
+            'InspectionRule': ['1.0'],
+        }
+    },
     # NOTE(TheJulia): Items above this line are for shipped versions
     # for the mappings. If your making a non-release related change,
     # make it below. To release, we will preserve a version matching
