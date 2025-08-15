@@ -1,0 +1,6 @@
+---
+features:
+  - |
+    A new "vendor" field has been added to the Port object. This field is meant
+    to help distinguish between different types of Ports. Relevant to trait
+    based port scheduling feature.

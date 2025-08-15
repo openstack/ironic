@@ -2243,3 +2243,11 @@ def allow_port_description():
     Version 1.97 of the API added description field to the port object.
     """
     return api.request.version.minor >= versions.MINOR_97_PORT_DESCRIPTION
+
+
+def allow_port_vendor():
+    """Check if vendor is allowed for ports.
+
+    Version 1.100 of the API added description field to the port object.
+    """
+    return api.request.version.minor >= versions.MINOR_100_PORT_VENDOR

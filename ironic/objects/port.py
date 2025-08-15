@@ -46,7 +46,8 @@ class Port(base.IronicObject, object_base.VersionedObjectDictCompat):
     # Version 1.10: Add name field
     # Version 1.11: Add node_uuid field
     # Version 1.12: Add description field
-    VERSION = '1.12'
+    # Version 1.13: Add vendor field
+    VERSION = '1.13'
 
     dbapi = dbapi.get_instance()
 
@@ -67,6 +68,7 @@ class Port(base.IronicObject, object_base.VersionedObjectDictCompat):
                                                   default=False),
         'name': object_fields.StringField(nullable=True),
         'description': object_fields.StringField(nullable=True),
+        'vendor': object_fields.StringField(nullable=True),
     }
 
     def _convert_field_by_version(self, field_name, introduced_version,
@@ -120,6 +122,12 @@ class Port(base.IronicObject, object_base.VersionedObjectDictCompat):
         Version 1.10: remove name field for unsupported versions if
             remove_unavailable_fields is True.
 
+        Version 1.12: remove description for unsupported versions if
+            remove_unavailable_fields is True.
+
+        Version 1.13: remove vendor for unsupported versions if
+            remove_unavailable_fields is True.
+
         :param target_version: the desired version of the object
         :param remove_unavailable_fields: True to remove fields that are
             unavailable in the target version; set this to True when
@@ -150,6 +158,9 @@ class Port(base.IronicObject, object_base.VersionedObjectDictCompat):
                                        remove_unavailable_fields)
         # Convert the description field.
         self._convert_field_by_version('description', (1, 12), target_version,
+                                       remove_unavailable_fields)
+        # Convert the vendor field.
+        self._convert_field_by_version('vendor', (1, 13), target_version,
                                        remove_unavailable_fields)
 
     # NOTE(xek): We don't want to enable RPC on this call just yet. Remotable
@@ -526,7 +537,8 @@ class PortCRUDPayload(notification.NotificationPayloadBase):
     # Version 1.3: Add "is_smartnic" field
     # Version 1.4: Add "name" field
     # Version 1.5: Add "description" field
-    VERSION = '1.5'
+    # Version 1.6: Add "vendor" field
+    VERSION = '1.6'
 
     SCHEMA = {
         'address': ('port', 'address'),
@@ -540,6 +552,7 @@ class PortCRUDPayload(notification.NotificationPayloadBase):
         'is_smartnic': ('port', 'is_smartnic'),
         'name': ('port', 'name'),
         'description': ('port', 'description'),
+        'vendor': ('port', 'vendor'),
     }
 
     fields = {
@@ -558,6 +571,7 @@ class PortCRUDPayload(notification.NotificationPayloadBase):
                                                   default=False),
         'name': object_fields.StringField(nullable=True),
         'description': object_fields.StringField(nullable=True),
+        'vendor': object_fields.StringField(nullable=True),
     }
 
     def __init__(self, port, node_uuid, portgroup_uuid):

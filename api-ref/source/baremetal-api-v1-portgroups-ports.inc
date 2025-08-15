@@ -28,6 +28,15 @@ Response to include only the specified fields, rather than the default set.
 .. versionadded:: 1.53
   Added the ``is_smartnic`` response fields.
 
+.. versionadded:: 1.88
+  Added the ``name`` field.
+
+.. versionadded:: 1.97
+  Added the ``description`` field.
+
+.. versionadded:: 1.100
+  Added the ``vendor`` field.
+
 Normal response code: 200
 
 Error codes: 400,401,403,404
@@ -72,6 +81,15 @@ Return a detailed list of bare metal Ports associated with ``portgroup_ident``.
 .. versionadded:: 1.53
   Added the ``is_smartnic`` response fields.
 
+.. versionadded:: 1.88
+  Added the ``name`` field.
+
+.. versionadded:: 1.97
+  Added the ``description`` field.
+
+.. versionadded:: 1.100
+  Added the ``vendor`` field.
+
 Normal response code: 200
 
 Error codes: 400,401,403,404
@@ -106,6 +124,9 @@ Response
     - updated_at: updated_at
     - links: links
     - is_smartnic: is_smartnic
+    - name: port_name
+    - description: port_description
+    - vendor: port_vendor
 
 **Example details of a Portgroup's Ports:**
 

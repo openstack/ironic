@@ -54,6 +54,7 @@ PORT_SCHEMA = {
         'uuid': {'type': ['string', 'null']},
         'name': {'type': ['string', 'null']},
         'description': {'type': ['string', 'null'], 'maxLength': 255},
+        'vendor': {'type': ['string', 'null'], 'maxLength': 32},
     },
     'required': ['address'],
     'oneOf': [
@@ -78,6 +79,7 @@ PATCH_ALLOWED_FIELDS = [
     'pxe_enabled',
     'name',
     'description',
+    'vendor',
 ]
 
 PORT_VALIDATOR_EXTRA = args.dict_valid(
@@ -139,6 +141,9 @@ def hide_fields_in_newer_versions(port):
     # if requested version is < 1.97, hide description field.
     if not api_utils.allow_port_description():
         port.pop('description', None)
+    # if requested version is < 1.100, hide vendor field.
+    if not api_utils.allow_port_vendor():
+        port.pop('vendor', None)
 
 
 def convert_with_links(rpc_port, fields=None, sanitize=True):
@@ -404,6 +409,9 @@ class PortsController(rest.RestController):
             raise exception.NotAcceptable()
         if ('description' in fields
                 and not api_utils.allow_port_description()):
+            raise exception.NotAcceptable()
+        if ('vendor' in fields
+                and not api_utils.allow_port_vendor()):
             raise exception.NotAcceptable()
 
     @METRICS.timer('PortsController.get_all')

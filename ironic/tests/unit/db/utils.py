@@ -289,6 +289,7 @@ def get_test_port(**kw):
         'is_smartnic': kw.get('is_smartnic', False),
         'name': kw.get('name'),
         'description': kw.get('description'),
+        'vendor': kw.get('vendor'),
     }
 
 

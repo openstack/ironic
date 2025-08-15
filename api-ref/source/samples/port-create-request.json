@@ -3,6 +3,7 @@
     "portgroup_uuid": "e43c722c-248e-4c6e-8ce8-0d8ff129387a",
     "name": "port1",
     "description": "Physical Network",
+    "vendor": "splitrock",
     "address": "11:11:11:11:11:11",
     "is_smartnic": true,
     "local_link_connection": {
