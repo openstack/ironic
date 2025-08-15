@@ -72,6 +72,14 @@ graphviz [!platform:gentoo test doc]
 # libsrvg2 is needed for sphinxcontrib-svg2pdfconverter in docs builds.
 librsvg2-tools [doc platform:rpm]
 librsvg2-bin [doc platform:dpkg]
+latexmk [doc]
+texlive-collection-fontsrecommended [doc platform:rpm]
+tex-gyre [doc platform:dpkg]
+texlive-latex-extra [doc platform:dpkg]
+texlive-collection-latexextra [doc platform:rpm]
+texlive-fonts-extra-links [doc platform:dpkg]
+texlive-collection-fontsextra [doc platform:rpm]
+
 
 # these are needed to build images
 
