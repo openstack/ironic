@@ -1,0 +1,5 @@
+---
+features:
+  - |
+    The redfish inspection interface can now utilize inspection rules as well
+    as inspection hooks.
