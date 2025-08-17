@@ -1358,6 +1358,41 @@ class DeployingErrorHandlerTestCase(db_base.DbTestCase):
         self.assertNotIn('deploy_step_index', self.node.driver_internal_info)
         self.task.process_event.assert_called_once_with('fail')
 
+    @mock.patch.object(conductor_utils.deploy_utils, 'destroy_images',
+                       autospec=True)
+    @mock.patch.object(conductor_utils, 'LOG', autospec=True)
+    def test_deploying_error_handler_clears_img_cache(self,
+                                                      mock_log, mock_destroy):
+        """Test that instance images are cleaned up even when clean_up=False.
+
+        """
+        self.config(clear_image_cache_on_deploy_failure=True,
+                    group='conductor')
+        mock_destroy.side_effect = exception.IronicException('moocow')
+        conductor_utils.deploying_error_handler(
+            self.task, self.logmsg, self.errmsg, clean_up=False)
+
+        self.assertFalse(self.task.driver.deploy.clean_up.called)
+        mock_log.warning.assert_called_once()
+        mock_destroy.assert_called_once_with(self.node.uuid)
+        self.assertEqual([mock.call()] * 2, self.node.save.call_args_list)
+        self.assertEqual(self.errmsg, self.node.last_error)
+        self.assertEqual({}, self.node.deploy_step)
+        self.assertNotIn('deploy_step_index', self.node.driver_internal_info)
+        self.task.process_event.assert_called_once_with('fail')
+
+    def test_deploying_error_handler_skips_img_cache_cleanup(self):
+        """Test skip instance images clean up when disabled via config."""
+        conductor_utils.deploying_error_handler(
+            self.task, self.logmsg, self.errmsg, clean_up=False)
+
+        self.assertFalse(self.task.driver.deploy.clean_up.called)
+        self.assertEqual([mock.call()] * 2, self.node.save.call_args_list)
+        self.assertEqual(self.errmsg, self.node.last_error)
+        self.assertEqual({}, self.node.deploy_step)
+        self.assertNotIn('deploy_step_index', self.node.driver_internal_info)
+        self.task.process_event.assert_called_once_with('fail')
+
     def test_deploying_error_handler_not_deploy(self):
         # Not in a deploy state
         self.node.provision_state = states.AVAILABLE
