@@ -1,0 +1,6 @@
+---
+upgrade:
+  - |
+    The minimum version of the ``futurist`` library is now ``3.2.0``.
+    This change is being made to support the removal of the Eventlet
+    library from use in Ironic.
