@@ -67,7 +67,6 @@ class TestRPCService(db_base.DbTestCase):
         self.assertIs(rpc.GLOBAL_MANAGER, self.rpc_svc.manager)
         self.assertTrue(self.rpc_svc._started)
         self.assertFalse(self.rpc_svc._failure)
-        self.rpc_svc.wait_for_start()  # should be no-op
 
     @mock.patch.object(manager.ConductorManager, 'prepare_host', autospec=True)
     @mock.patch.object(oslo_messaging, 'Target', autospec=True)
@@ -93,7 +92,6 @@ class TestRPCService(db_base.DbTestCase):
         self.assertIsNone(rpc.GLOBAL_MANAGER)
         self.assertFalse(self.rpc_svc._started)
         self.assertIn("boom", self.rpc_svc._failure)
-        self.assertRaises(SystemExit, self.rpc_svc.wait_for_start)
 
     @mock.patch.object(timeutils, 'utcnow', autospec=True)
     @mock.patch.object(time, 'sleep', autospec=True)
@@ -207,30 +205,6 @@ class TestRPCService(db_base.DbTestCase):
             [mock.call(15), mock.call(1), mock.call(1)])
 
     @mock.patch.object(timeutils, 'utcnow', autospec=True)
-    @mock.patch.object(time, 'sleep', autospec=True)
-    def test_drain_has_reserved(self, mock_sleep, mock_utcnow):
-        mock_utcnow.return_value = datetime.datetime(2023, 2, 2, 21, 10, 0)
-        conductor1 = db_utils.get_test_conductor(hostname='fake_host')
-        conductor2 = db_utils.get_test_conductor(hostname='other_fake_host')
-
-        with mock.patch.object(self.dbapi, 'get_online_conductors',
-                               autospec=True) as mock_cond_list:
-            # multiple conductors, so wait for hash_ring_reset_interval
-            mock_cond_list.return_value = [conductor1, conductor2]
-            with mock.patch.object(self.dbapi, 'get_nodeinfo_list',
-                                   autospec=True) as mock_nodeinfo_list:
-                # 3 calls to manager has_reserved until all reservation locks
-                # are released
-                mock_nodeinfo_list.side_effect = [['a', 'b'], ['a'], []]
-                self.rpc_svc._handle_drain(None, None)
-                self.assertEqual(3, mock_nodeinfo_list.call_count)
-
-        # wait the remaining 15 seconds, then wait until has_reserved
-        # returns False
-        mock_sleep.assert_has_calls(
-            [mock.call(15), mock.call(1), mock.call(1)])
-
-    @mock.patch.object(timeutils, 'utcnow', autospec=True)
     def test_shutdown_timeout_reached(self, mock_utcnow):
 
         initial_time = datetime.datetime(2023, 2, 2, 21, 10, 0)
@@ -245,14 +219,24 @@ class TestRPCService(db_base.DbTestCase):
         mock_utcnow.return_value = after_graceful
         self.assertTrue(self.rpc_svc._shutdown_timeout_reached(initial_time))
 
-        self.rpc_svc.draining = True
-        self.assertFalse(self.rpc_svc._shutdown_timeout_reached(initial_time))
+        with mock.patch.object(self.rpc_svc, 'is_draining',
+                               return_value=True,
+                               autospec=True) as mock_drain:
+            self.assertFalse(
+                self.rpc_svc._shutdown_timeout_reached(initial_time))
+            self.assertEqual(1, mock_drain.call_count)
 
-        mock_utcnow.return_value = before_drain
-        self.assertFalse(self.rpc_svc._shutdown_timeout_reached(initial_time))
+            mock_utcnow.return_value = before_drain
+            self.assertFalse(
+                self.rpc_svc._shutdown_timeout_reached(initial_time))
+            self.assertEqual(2, mock_drain.call_count)
 
-        mock_utcnow.return_value = after_drain
-        self.assertTrue(self.rpc_svc._shutdown_timeout_reached(initial_time))
+            mock_utcnow.return_value = after_drain
+            self.assertTrue(
+                self.rpc_svc._shutdown_timeout_reached(initial_time))
+            self.assertEqual(3, mock_drain.call_count)
 
-        CONF.set_override('drain_shutdown_timeout', 0)
-        self.assertFalse(self.rpc_svc._shutdown_timeout_reached(initial_time))
+            CONF.set_override('drain_shutdown_timeout', 0)
+            self.assertFalse(
+                self.rpc_svc._shutdown_timeout_reached(initial_time))
+            self.assertEqual(4, mock_drain.call_count)

@@ -1,0 +1,34 @@
+---
+features:
+  - |
+    Ironic now utilizes native OS threads for all periodic and background
+    activities. This change is not configurable, and should any issues be
+    observed with Ironic's operation, please do not hesitate to report them
+    to the developer community.
+critical:
+  - |
+    With the move to the use of native threading, the required memory
+    footprint of Ironic has increased. This is a result of both threading
+    being used combined with process model changes which were necessary
+    to remove the ``eventlet`` library from Ironic. The new process model
+    consists of a launcher process with a sub-process which represents the
+    actual application workload. In the case of single-process Ironic,
+    a single launcher process with two workers is what operators should
+    expect.
+
+    As for memory utilization, it is generally tracked by two
+    measurements. A Virtual Memory Size (VSZ) which represents memory an
+    application has allocated, but may not actively using. The more relevant
+    masurement is the Resident Set Size (RSS), which is the amount of memory
+    in actual use. Due to the process changes, Operators can expect a 2-3x
+    increase in the amount overall system memory in use (RSS). The VSZ
+    can be expected to be upwards of 10x larger, and will closely
+    track with the current number of active threads being executed upon.
+
+    The Ironic project is aware this may require some operator tuning of
+    resource constraints applied to Ironic. However, the improved
+    concurrency and performance should be an appropriate trade-off.
+fixes:
+  - |
+    The ``eventlet`` library is no longer invoked by Ironic for the management
+    of threads.

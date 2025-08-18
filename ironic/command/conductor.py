@@ -25,6 +25,7 @@ from oslo_config import cfg
 from oslo_log import log
 from oslo_service import service
 
+from ironic.command import utils as command_utils
 from ironic.common import service as ironic_service
 from ironic.common import utils
 from ironic.conductor import rpc_service
@@ -146,13 +147,29 @@ def main():
 
     issue_startup_warnings(CONF)
 
+    # Ultimately this returns a ServiceLauncher class which has a _manager
+    # object (cotyledon), and where launch_service has been invoked which
+    # adds an instance of the service to the _manager object.
     launcher = service.launch(CONF, mgr, restart_method='mutate')
 
-    # NOTE(dtantsur): handling start-up failures before launcher.wait() helps
-    # notify systemd about them. Otherwise the launcher will report successful
-    # service start-up before checking the threads.
-    mgr.wait_for_start()
+    # The approach above also is for a single application where we then start a
+    # worker process.
 
+    # TODO(TheJulia): At this location, we're missing signaling, but where
+    # the signaling needs to be is past a spawn() call triggered by wait().
+    # What signaling here would make sense is signal handling to force this
+    # process to exit.
+
+    # TODO(TheJulia): So, the tl;dr of execution is wait() triggers the
+    # process launch, fork, and then other actions.
+    # This is in cotyledon where the Service Manager run() method is called
+    # https://github.com/sileht/cotyledon/blob/main/cotyledon/_service_manager.py#L240
+    # which then will wait forever and never return.
+
+    # Set override signals.
+    command_utils.handle_signal()
+
+    # Start the processes!
     sys.exit(launcher.wait())
 
 

@@ -28,11 +28,11 @@ from ironic.conf import types as ir_types
 opts = [
     cfg.IntOpt('workers_pool_size',
                default=300, min=3,
-               help=_('The size of the workers greenthread pool. '
+               help=_('The size of the workers thread pool. '
                       'Note that 2 threads will be reserved by the conductor '
                       'itself for handling heart beats and periodic tasks. '
                       'On top of that, `sync_power_state_workers` will take '
-                      'up to 7 green threads with the default value of 8.')),
+                      'up to 7 threads with the default value of 8.')),
     cfg.IntOpt('reserved_workers_pool_percentage',
                default=5, min=0, max=50,
                help=_('The percentage of the whole workers pool that will be '

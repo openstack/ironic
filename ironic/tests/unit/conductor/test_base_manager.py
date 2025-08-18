@@ -268,9 +268,9 @@ class StartStopTestCase(mgr_utils.ServiceSetUpMixin, db_base.DbTestCase):
 
     def test_conductor_shutdown_flag(self):
         self._start_service()
-        self.assertFalse(self.service._shutdown)
+        self.assertFalse(self.service._shutdown.is_set())
         self.service.del_host()
-        self.assertTrue(self.service._shutdown)
+        self.assertTrue(self.service._shutdown.is_set())
 
     @mock.patch.object(deploy_utils, 'get_ironic_api_url', autospec=True)
     @mock.patch.object(mdns, 'Zeroconf', autospec=True)
@@ -456,6 +456,7 @@ class RegisterInterfacesTestCase(mgr_utils.ServiceSetUpMixin,
     def setUp(self):
         super(RegisterInterfacesTestCase, self).setUp()
         self._start_service()
+        self._executor = futurist.SynchronousExecutor()
 
     def test__register_and_validate_hardware_interfaces(self,
                                                         esi_mock,

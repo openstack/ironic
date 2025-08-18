@@ -17,6 +17,7 @@ from oslo_log import log
 from oslo_service import service
 
 from ironic.command import conductor as conductor_cmd
+from ironic.command import utils
 from ironic.common import service as ironic_service
 from ironic.common import wsgi_service
 from ironic.conductor import local_rpc
@@ -50,11 +51,6 @@ def main():
     conductor_cmd.issue_startup_warnings(CONF)
     launcher.launch_service(mgr)
 
-    # NOTE(dtantsur): handling start-up failures before launcher.wait() helps
-    # notify systemd about them. Otherwise the launcher will report successful
-    # service start-up before checking the threads.
-    mgr.wait_for_start()
-
     wsgi = wsgi_service.WSGIService('ironic_api', CONF.api.enable_ssl_api)
     launcher.launch_service(wsgi)
 
@@ -63,4 +59,8 @@ def main():
         novncproxy = novncproxy_service.NoVNCProxyService()
         launcher.launch_service(novncproxy)
 
+    # Register our signal overrides before launching the processes
+    utils.handle_signal()
+
+    # Start the processes!
     sys.exit(launcher.wait())

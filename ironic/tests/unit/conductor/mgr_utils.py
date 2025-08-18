@@ -167,7 +167,7 @@ class ServiceSetUpMixin(object):
         ensure a similar piece goes into ironic/conductor/base_manager.py.
         """
 
-        self.service._shutdown = False
+        self.service._shutdown = threading.Event()
 
         # Test class structure sets up self.dbapi, attaching it to
         # self.service for executing code to be able to leverage

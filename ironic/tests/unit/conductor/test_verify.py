@@ -46,7 +46,6 @@ class DoNodeVerifyTestCase(mgr_utils.ServiceSetUpMixin, db_base.DbTestCase):
                 autospec=True)
     def test__do_node_verify(self, mock_validate, mock_get_power_state,
                              mock_notif, mock_cache_vendor):
-        self._start_service()
         mock_get_power_state.return_value = states.POWER_OFF
         # Required for exception handling
         mock_notif.__name__ = 'NodeCorrectedPowerStateNotification'
@@ -85,7 +84,6 @@ class DoNodeVerifyTestCase(mgr_utils.ServiceSetUpMixin, db_base.DbTestCase):
                 autospec=True)
     def test__do_node_verify_validation_fails(self, mock_validate,
                                               mock_get_power_state):
-        self._start_service()
         node = obj_utils.create_test_node(
             self.context, driver='fake-hardware',
             provision_state=states.VERIFYING,
@@ -114,20 +112,17 @@ class DoNodeVerifyTestCase(mgr_utils.ServiceSetUpMixin, db_base.DbTestCase):
                 autospec=True)
     def test__do_node_verify_get_state_fails(self, mock_validate,
                                              mock_get_power_state):
-        self._start_service()
         node = obj_utils.create_test_node(
             self.context, driver='fake-hardware',
             provision_state=states.VERIFYING,
             target_provision_state=states.MANAGEABLE,
             last_error=None,
             power_state=states.NOSTATE)
-
         mock_get_power_state.side_effect = RuntimeError("boom")
 
         with task_manager.acquire(
                 self.context, node['id'], shared=False) as task:
             verify.do_node_verify(task)
-
         node.refresh()
 
         mock_get_power_state.assert_called_once_with(mock.ANY, task)
