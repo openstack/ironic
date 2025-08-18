@@ -67,8 +67,8 @@ def prepare_service(name, argv=None, conf=CONF):
     profiler.setup(name, CONF.host)
 
 
-def process_launcher():
-    return service.ProcessLauncher(CONF, restart_method='mutate')
+def process_launcher(**kwargs):
+    return service.ProcessLauncher(CONF, restart_method='mutate', **kwargs)
 
 
 def ensure_rpc_transport(conf=CONF):
