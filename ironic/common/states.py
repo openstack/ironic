@@ -667,6 +667,12 @@ machine.add_transition(SERVICEFAIL, SERVICING, 'service')
 # A node in service fail can be rescued
 machine.add_transition(SERVICEFAIL, RESCUING, 'rescue')
 
+# A node in service fail can enter wait state
+machine.add_transition(SERVICEFAIL, SERVICEWAIT, 'wait')
+
+# A node in service fail can be held
+machine.add_transition(SERVICEFAIL, SERVICEHOLD, 'hold')
+
 # A node in service fail may be deleted.
 machine.add_transition(SERVICEFAIL, DELETING, 'delete')
 
