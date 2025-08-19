@@ -580,10 +580,13 @@ to do this.
 Stopping the operation
 ----------------------
 
-Cleaning, inspection and rescuing can be stopped while in ``clean wait``,
-``inspect wait`` and ``rescue wait`` states using the ``abort`` command.
-It will move the node to the corresponding failure state (``clean failed``,
-``inspect failed`` or ``rescue failed``)::
+Cleaning, inspection, servicing and rescuing can be stopped while in
+``clean wait``, ``inspect wait``, ``service wait`` and ``rescue wait`` states
+using the ``abort`` command. If the step running at the time has ``abortable``
+parameter set to ``True``, the abort will happen instantly, otherwise the
+process will be aborted once the currently running step is finished.
+The node will be moved to the corresponding failure state (``clean failed``,
+``inspect failed``, ``service failed`` or ``rescue failed``)::
 
     baremetal node abort <node>
 

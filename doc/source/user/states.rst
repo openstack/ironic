@@ -294,3 +294,14 @@ service failed
     using the ``service`` verb.
   * ``rescue`` (through ``rescuing``) by setting the node's provision state
     using the ``rescue`` verb.
+  * ``active`` by setting the node's provision state using the ``abort`` verb.
+
+.. note::
+   Prior to attempting aborting a servicing operation on a node either in
+   ``service wait`` or ``service failed`` state, the user must check the
+   remote console of the machine as a precaution and ensure there is no active
+   firmware update running on the node. Aborting service may result in a power
+   cycle operation which may interrupt the running update, causing
+   irreversible damage to the hardware.
+   Once it is confirmed no update operation is running, using ``abort`` verb
+   is not expected to cause any issues.
