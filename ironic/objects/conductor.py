@@ -14,6 +14,8 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
+import datetime
+
 from oslo_versionedobjects import base as object_base
 
 from ironic.common.i18n import _
@@ -32,7 +34,10 @@ class Conductor(base.IronicObject, object_base.VersionedObjectDictCompat):
     #              unregister_all_hardware_interfaces()
     # Version 1.3: Add conductor_group field.
     # Version 1.4: Add online field.
-    VERSION = '1.4'
+    # Version 1.5: Add new remotable methods
+    #              get_shard_list, list_hardware_type_interfaces,
+    #              and get_active_hardware_type_dict
+    VERSION = '1.5'
 
     dbapi = db_api.get_instance()
 
@@ -172,3 +177,54 @@ class Conductor(base.IronicObject, object_base.VersionedObjectDictCompat):
     def unregister_all_hardware_interfaces(self):
         """Unregister all hardware interfaces for this conductor."""
         self.dbapi.unregister_conductor_hardware_interfaces(self.id)
+
+    @base.remotable_classmethod
+    def get_active_hardware_type_dict(cls, context, use_groups=False):
+        """Provides a hardware type list as it relates to the conductors.
+
+        This method provides a pass-through call mechanism on an attached
+        object for insight into the state of hardware managers by conductors
+        and does so as a direct call for compatibility with lightweight
+        API method.
+        """
+        return cls.dbapi.get_active_hardware_type_dict(use_groups=use_groups)
+
+    @base.remotable_classmethod
+    def list_hardware_type_interfaces_dict(cls, context, names):
+        """Provides a list of hardware type interface names from conductors.
+
+        This method provides a pass-through call mechanism on an object as
+        opposed to direct API call functionality.
+        """
+        # NOTE(TheJulia): SQLAlchemy hands us a hybrid object which also
+        # works like a dictionary, and the consumer of this call treats
+        # it as such but we can't hand it across the message bus as a
+        # DB object.
+        db_resp = cls.dbapi.list_hardware_type_interfaces(names)
+        resp = []
+        for row in db_resp:
+            entry = {}
+            for col_key in row.keys():
+                if isinstance(row[col_key], datetime.datetime):
+                    # SQLAclchemy hands response objects with nested
+                    # datetime objects, so they need to be converted
+                    # before trying to serialize as opposed before
+                    # sending the API response out.
+                    entry[col_key] = row[col_key].isoformat()
+                else:
+                    entry[col_key] = row[col_key]
+            resp.append(entry)
+        return resp
+
+    @base.remotable_classmethod
+    def get_shard_list(cls, context):
+        """Provides a shard list as it relates to conductors.
+
+        This method provides a pass-through all mechanism on an attached
+        object for insight into the list of represented shards in a deployment
+        which is sourced in the database combined with runtime configurations.
+        The primary prupose of this being be lightweight and enable
+        indirection_api call usage instead of trying to directly invoke the
+        database.
+        """
+        return cls.dbapi.get_shard_list()

@@ -21,6 +21,7 @@ from ironic.api.schemas.v1 import shard as schema
 from ironic.api import validation
 from ironic.common.i18n import _
 from ironic.common import metrics_utils
+from ironic import objects
 
 
 CONF = cfg.CONF
@@ -47,7 +48,7 @@ class ShardController(pecan.rest.RestController):
         api_utils.check_policy('baremetal:shards:get')
 
         return {
-            'shards': api.request.dbapi.get_shard_list(),
+            'shards': objects.Conductor.get_shard_list(api.request.context),
         }
 
     @METRICS.timer('ShardController.get_one')
