@@ -24,6 +24,8 @@ from oslo_log import log
 
 from ironic.common import service as ironic_service
 from ironic.common import wsgi_service
+from ironic.objects import base as objects_base
+from ironic.objects import indirection
 
 CONF = cfg.CONF
 
@@ -45,6 +47,12 @@ def main():
     # Parse config file and command line options, then start logging
     ironic_service.prepare_service('ironic_api', sys.argv)
     ironic_service.ensure_rpc_transport()
+
+    # Sets the indirection API to direct API calls for objects across the
+    # RPC layer.
+    if CONF.rpc_transport in ['local', 'none'] or CONF.use_rpc_for_database:
+        objects_base.IronicObject.indirection_api = \
+            indirection.IronicObjectIndirectionAPI()
 
     # Build and start the WSGI app
     launcher = ironic_service.process_launcher()

@@ -1008,7 +1008,9 @@ class NodeStatesController(rest.RestController):
             policy_name='baremetal:runbook:use',
             runbook_ident=runbook)
 
-        node_traits = rpc_node.traits.get_trait_names() or []
+        traits = objects.TraitList.get_by_node_id(api.request.context,
+                                                  rpc_node.id)
+        node_traits = traits.get_trait_names() or []
         if rpc_runbook.name not in node_traits:
             msg = (_('This runbook has not been approved for '
                      'use on this node %s. Please ask an administrator '
@@ -1649,7 +1651,9 @@ def node_convert_with_links(rpc_node, fields=None, sanitize=True):
         fields=_get_fields_for_node_query(fields))
 
     if node.get('traits') is not None:
-        node['traits'] = rpc_node.traits.get_trait_names()
+        traits = objects.TraitList.get_by_node_id(api.request.context,
+                                                  rpc_node.id)
+        node['traits'] = traits.get_trait_names()
 
     if (api_utils.allow_expose_conductors()
             and (fields is None or 'conductor' in fields)):

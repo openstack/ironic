@@ -37,7 +37,8 @@ class Portgroup(base.IronicObject, object_base.VersionedObjectDictCompat):
     #              internal_info['tenant_vif_port_id'] (not an explicit db
     #              change)
     # Version 1.5: Add node_uuid field
-    VERSION = '1.5'
+    # Version 1.6: Relevant methods changed to be remotable methods.
+    VERSION = '1.6'
 
     dbapi = dbapi.get_instance()
 
@@ -86,11 +87,7 @@ class Portgroup(base.IronicObject, object_base.VersionedObjectDictCompat):
                         internal_info['tenant_vif_port_id'] = vif
                         self.internal_info = internal_info
 
-    # NOTE(xek): We don't want to enable RPC on this call just yet. Remotable
-    # methods can be used in the future to replace current explicit RPC calls.
-    # Implications of calling new remote procedures should be thought through.
-    # @object_base.remotable_classmethod
-    @classmethod
+    @object_base.remotable_classmethod
     def get(cls, context, portgroup_ident):
         """Find a portgroup based on its id, uuid, name or address.
 
@@ -111,11 +108,7 @@ class Portgroup(base.IronicObject, object_base.VersionedObjectDictCompat):
         else:
             raise exception.InvalidIdentity(identity=portgroup_ident)
 
-    # NOTE(xek): We don't want to enable RPC on this call just yet. Remotable
-    # methods can be used in the future to replace current explicit RPC calls.
-    # Implications of calling new remote procedures should be thought through.
-    # @object_base.remotable_classmethod
-    @classmethod
+    @object_base.remotable_classmethod
     def get_by_id(cls, context, portgroup_id):
         """Find a portgroup by its integer ID and return a Portgroup object.
 
@@ -130,11 +123,7 @@ class Portgroup(base.IronicObject, object_base.VersionedObjectDictCompat):
         portgroup = cls._from_db_object(context, cls(), db_portgroup)
         return portgroup
 
-    # NOTE(xek): We don't want to enable RPC on this call just yet. Remotable
-    # methods can be used in the future to replace current explicit RPC calls.
-    # Implications of calling new remote procedures should be thought through.
-    # @object_base.remotable_classmethod
-    @classmethod
+    @object_base.remotable_classmethod
     def get_by_uuid(cls, context, uuid):
         """Find a portgroup by UUID and return a :class:`Portgroup` object.
 
@@ -149,11 +138,7 @@ class Portgroup(base.IronicObject, object_base.VersionedObjectDictCompat):
         portgroup = cls._from_db_object(context, cls(), db_portgroup)
         return portgroup
 
-    # NOTE(xek): We don't want to enable RPC on this call just yet. Remotable
-    # methods can be used in the future to replace current explicit RPC calls.
-    # Implications of calling new remote procedures should be thought through.
-    # @object_base.remotable_classmethod
-    @classmethod
+    @object_base.remotable_classmethod
     def get_by_address(cls, context, address, project=None):
         """Find portgroup by address and return a :class:`Portgroup` object.
 
@@ -170,11 +155,7 @@ class Portgroup(base.IronicObject, object_base.VersionedObjectDictCompat):
         portgroup = cls._from_db_object(context, cls(), db_portgroup)
         return portgroup
 
-    # NOTE(xek): We don't want to enable RPC on this call just yet. Remotable
-    # methods can be used in the future to replace current explicit RPC calls.
-    # Implications of calling new remote procedures should be thought through.
-    # @object_base.remotable_classmethod
-    @classmethod
+    @object_base.remotable_classmethod
     def get_by_name(cls, context, name):
         """Find portgroup based on name and return a :class:`Portgroup` object.
 
@@ -189,11 +170,7 @@ class Portgroup(base.IronicObject, object_base.VersionedObjectDictCompat):
         portgroup = cls._from_db_object(context, cls(), db_portgroup)
         return portgroup
 
-    # NOTE(xek): We don't want to enable RPC on this call just yet. Remotable
-    # methods can be used in the future to replace current explicit RPC calls.
-    # Implications of calling new remote procedures should be thought through.
-    # @object_base.remotable_classmethod
-    @classmethod
+    @object_base.remotable_classmethod
     def list(cls, context, limit=None, marker=None,
              sort_key=None, sort_dir=None, project=None,
              conductor_groups=None, filters=None):
@@ -223,11 +200,7 @@ class Portgroup(base.IronicObject, object_base.VersionedObjectDictCompat):
             conductor_groups=conductor_groups)
         return cls._from_db_object_list(context, db_portgroups)
 
-    # NOTE(xek): We don't want to enable RPC on this call just yet. Remotable
-    # methods can be used in the future to replace current explicit RPC calls.
-    # Implications of calling new remote procedures should be thought through.
-    # @object_base.remotable_classmethod
-    @classmethod
+    @object_base.remotable_classmethod
     def list_by_node_id(cls, context, node_id, limit=None, marker=None,
                         sort_key=None, sort_dir=None, project=None):
         """Return a list of Portgroup objects associated with a given node ID.
@@ -252,10 +225,7 @@ class Portgroup(base.IronicObject, object_base.VersionedObjectDictCompat):
                                                             project=project)
         return cls._from_db_object_list(context, db_portgroups)
 
-    # NOTE(xek): We don't want to enable RPC on this call just yet. Remotable
-    # methods can be used in the future to replace current explicit RPC calls.
-    # Implications of calling new remote procedures should be thought through.
-    # @object_base.remotable
+    @object_base.remotable
     def create(self, context=None):
         """Create a Portgroup record in the DB.
 
@@ -276,10 +246,7 @@ class Portgroup(base.IronicObject, object_base.VersionedObjectDictCompat):
         db_portgroup = self.dbapi.get_portgroup_by_id(db_portgroup['id'])
         self._from_db_object(self._context, self, db_portgroup)
 
-    # NOTE(xek): We don't want to enable RPC on this call just yet. Remotable
-    # methods can be used in the future to replace current explicit RPC calls.
-    # Implications of calling new remote procedures should be thought through.
-    # @object_base.remotable
+    @object_base.remotable
     def destroy(self, context=None):
         """Delete the Portgroup from the DB.
 
@@ -295,10 +262,7 @@ class Portgroup(base.IronicObject, object_base.VersionedObjectDictCompat):
         self.dbapi.destroy_portgroup(self.id)
         self.obj_reset_changes()
 
-    # NOTE(xek): We don't want to enable RPC on this call just yet. Remotable
-    # methods can be used in the future to replace current explicit RPC calls.
-    # Implications of calling new remote procedures should be thought through.
-    # @object_base.remotable
+    @object_base.remotable
     def save(self, context=None):
         """Save updates to this Portgroup.
 
@@ -318,10 +282,7 @@ class Portgroup(base.IronicObject, object_base.VersionedObjectDictCompat):
         updated_portgroup = self.dbapi.update_portgroup(self.uuid, updates)
         self._from_db_object(self._context, self, updated_portgroup)
 
-    # NOTE(xek): We don't want to enable RPC on this call just yet. Remotable
-    # methods can be used in the future to replace current explicit RPC calls.
-    # Implications of calling new remote procedures should be thought through.
-    # @object_base.remotable
+    @object_base.remotable
     def refresh(self, context=None):
         """Loads updates for this Portgroup.
 

@@ -20,7 +20,8 @@ from ironic.objects import notification
 @base.IronicObjectRegistry.register
 class InspectionRule(base.IronicObject, object_base.VersionedObjectDictCompat):
     # Version 1.0: Initial version
-    VERSION = '1.0'
+    # Version 1.1: Relevant methods changed to be remotable methods.
+    VERSION = '1.1'
 
     dbapi = db_api.get_instance()
 
@@ -36,11 +37,7 @@ class InspectionRule(base.IronicObject, object_base.VersionedObjectDictCompat):
         'conditions': object_fields.ListOfFlexibleDictsField(nullable=True),
     }
 
-    # NOTE(mgoddard): We don't want to enable RPC on this call just yet.
-    # Remotable methods can be used in the future to replace current explicit
-    # RPC calls.  Implications of calling new remote procedures should be
-    # thought through.
-    # @object_base.remotable
+    @object_base.remotable
     def create(self, context=None):
         """Create a InspectionRule record in the DB.
 
@@ -59,6 +56,7 @@ class InspectionRule(base.IronicObject, object_base.VersionedObjectDictCompat):
         db_rule = self.dbapi.create_inspection_rule(values)
         self._from_db_object(self._context, self, db_rule)
 
+    @object_base.remotable
     def save(self, context=None):
         """Save updates to this InspectionRule.
 
@@ -77,6 +75,7 @@ class InspectionRule(base.IronicObject, object_base.VersionedObjectDictCompat):
         db_rule = self.dbapi.update_inspection_rule(self.uuid, updates)
         self._from_db_object(self._context, self, db_rule)
 
+    @object_base.remotable
     def destroy(self):
         """Delete the InspectionRule from the DB.
 
@@ -92,12 +91,7 @@ class InspectionRule(base.IronicObject, object_base.VersionedObjectDictCompat):
         self.dbapi.destroy_inspection_rule(self.id)
         self.obj_reset_changes()
 
-    # NOTE(mgoddard): We don't want to enable RPC on this call just yet.
-    # Remotable methods can be used in the future to replace current explicit
-    # RPC calls.  Implications of calling new remote procedures should be
-    # thought through.
-    # @object_base.remotable_classmethod
-    @classmethod
+    @object_base.remotable_classmethod
     def get_by_uuid(cls, context, uuid):
         """Find a inspection rule based on its UUID.
 
@@ -116,12 +110,7 @@ class InspectionRule(base.IronicObject, object_base.VersionedObjectDictCompat):
         rule = cls._from_db_object(context, cls(), db_rule)
         return rule
 
-    # NOTE(mgoddard): We don't want to enable RPC on this call just yet.
-    # Remotable methods can be used in the future to replace current explicit
-    # RPC calls.  Implications of calling new remote procedures should be
-    # thought through.
-    # @object_base.remotable_classmethod
-    @classmethod
+    @object_base.remotable_classmethod
     def list(cls, context, limit=None, marker=None, sort_key=None,
              sort_dir=None, filters=None):
         """Return a list of InspectionRule objects.
@@ -143,6 +132,7 @@ class InspectionRule(base.IronicObject, object_base.VersionedObjectDictCompat):
             filters=filters)
         return cls._from_db_object_list(context, db_rules)
 
+    @object_base.remotable
     def refresh(self, context=None):
         """Loads updates for this inspection rule.
 

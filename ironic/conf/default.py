@@ -99,6 +99,14 @@ api_opts = [
                default="",
                help=_('The conductor_group to use for new nodes when no '
                       'conductor_group was defined in the creation request.')),
+    cfg.BoolOpt('use_rpc_for_database',
+                default=False,
+                mutable=False,
+                help=_('If the Ironic API should utilize the RPC layer for '
+                       'database interactions as opposed to directly '
+                       'connecting to the database API endpoint. Defaults '
+                       'to False, however is implied when the '
+                       '[default]rpc_transport option is set to \'none\'.')),
 ]
 
 driver_opts = [

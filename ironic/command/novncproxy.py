@@ -26,6 +26,8 @@ import oslo_middleware.cors as cors_middleware
 from ironic.common import exception
 from ironic.common import service as ironic_service
 from ironic.console import novncproxy_service
+from ironic.objects import base as objects_base
+from ironic.objects import indirection
 
 
 CONF = cfg.CONF
@@ -44,6 +46,12 @@ def main():
     if not CONF.vnc.enabled:
         raise exception.ConfigInvalid("To allow this service to start, set "
                                       "[vnc]enabled = True")
+
+    # Sets the indirection API to direct API calls for objects across the
+    # RPC layer.
+    if CONF.rpc_transport in ['local', 'none'] or CONF.use_rpc_for_database:
+        objects_base.IronicObject.indirection_api = \
+            indirection.IronicObjectIndirectionAPI()
 
     # Build and start the websocket proxy
     launcher = ironic_service.process_launcher(no_fork=True)

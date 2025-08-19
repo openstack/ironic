@@ -23,7 +23,8 @@ from ironic.objects import fields as object_fields
 @base.IronicObjectRegistry.register
 class FirmwareComponent(base.IronicObject):
     # Version 1.0: Initial version
-    VERSION = '1.0'
+    # Version 1.1: Relevant methods changed to be remotable methods.
+    VERSION = '1.1'
 
     dbapi = dbapi.get_instance()
 
@@ -36,6 +37,7 @@ class FirmwareComponent(base.IronicObject):
         'last_version_flashed': object_fields.StringField(nullable=True),
     }
 
+    @object_base.remotable
     def create(self, context=None):
         """Create a Firmware record in the DB.
 
@@ -50,6 +52,7 @@ class FirmwareComponent(base.IronicObject):
         db_fwcmp = self.dbapi.create_firmware_component(values)
         self._from_db_object(self._context, self, db_fwcmp)
 
+    @object_base.remotable
     def save(self, context=None):
         """Save updates  to this Firmware Component.
 
@@ -74,7 +77,7 @@ class FirmwareComponent(base.IronicObject):
             self.node_id, self.component, updates)
         self._from_db_object(self._context, self, up_fwcmp)
 
-    @classmethod
+    @object_base.remotable_classmethod
     def get(cls, context, node_id, name):
         """Get a FirmwareComponent based on its node_id and name.
 
@@ -94,7 +97,8 @@ class FirmwareComponent(base.IronicObject):
 @base.IronicObjectRegistry.register
 class FirmwareComponentList(base.IronicObjectListBase, base.IronicObject):
     # Version 1.0: Initial version
-    VERSION = '1.0'
+    # Version 1.1: Relevant methods changed to be remotable methods.
+    VERSION = '1.1'
 
     dbapi = dbapi.get_instance()
 
@@ -102,7 +106,7 @@ class FirmwareComponentList(base.IronicObjectListBase, base.IronicObject):
         'objects': object_fields.ListOfObjectsField('FirmwareComponent'),
     }
 
-    @classmethod
+    @object_base.remotable_classmethod
     def get_by_node_id(cls, context, node_id):
         """Get FirmwareComponent based on node_id.
 

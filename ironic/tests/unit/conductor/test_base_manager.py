@@ -309,7 +309,10 @@ class StartStopTestCase(mgr_utils.ServiceSetUpMixin, db_base.DbTestCase):
     @mock.patch.object(dbapi, 'get_instance', autospec=True)
     def test_start_dbapi_single_call(self, mock_dbapi):
         self._start_service()
-        self.assertEqual(1, mock_dbapi.call_count)
+        # NOTE(TheJulia): This counts the dbapi instance count
+        # from starting the hash_ring, but since the hashring is
+        # common code, it shouldn't invoke a db call directly.
+        self.assertEqual(0, mock_dbapi.call_count)
 
     def test_start_with_json_rpc(self):
         CONF.set_override('rpc_transport', 'json-rpc')

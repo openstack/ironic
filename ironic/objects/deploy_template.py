@@ -22,7 +22,8 @@ from ironic.objects import notification
 class DeployTemplate(base.IronicObject, object_base.VersionedObjectDictCompat):
     # Version 1.0: Initial version
     # Version 1.1: Added 'extra' field
-    VERSION = '1.1'
+    # Version 1.2: Relevant methods changed to be remotable methods.
+    VERSION = '1.2'
 
     dbapi = db_api.get_instance()
 
@@ -34,11 +35,7 @@ class DeployTemplate(base.IronicObject, object_base.VersionedObjectDictCompat):
         'extra': object_fields.FlexibleDictField(nullable=True),
     }
 
-    # NOTE(mgoddard): We don't want to enable RPC on this call just yet.
-    # Remotable methods can be used in the future to replace current explicit
-    # RPC calls.  Implications of calling new remote procedures should be
-    # thought through.
-    # @object_base.remotable
+    @object_base.remotable
     def create(self, context=None):
         """Create a DeployTemplate record in the DB.
 
@@ -57,11 +54,7 @@ class DeployTemplate(base.IronicObject, object_base.VersionedObjectDictCompat):
         db_template = self.dbapi.create_deploy_template(values)
         self._from_db_object(self._context, self, db_template)
 
-    # NOTE(mgoddard): We don't want to enable RPC on this call just yet.
-    # Remotable methods can be used in the future to replace current explicit
-    # RPC calls.  Implications of calling new remote procedures should be
-    # thought through.
-    # @object_base.remotable
+    @object_base.remotable
     def save(self, context=None):
         """Save updates to this DeployTemplate.
 
@@ -82,11 +75,7 @@ class DeployTemplate(base.IronicObject, object_base.VersionedObjectDictCompat):
         db_template = self.dbapi.update_deploy_template(self.uuid, updates)
         self._from_db_object(self._context, self, db_template)
 
-    # NOTE(mgoddard): We don't want to enable RPC on this call just yet.
-    # Remotable methods can be used in the future to replace current explicit
-    # RPC calls.  Implications of calling new remote procedures should be
-    # thought through.
-    # @object_base.remotable_classmethod
+    @object_base.remotable
     def destroy(self):
         """Delete the DeployTemplate from the DB.
 
@@ -102,12 +91,7 @@ class DeployTemplate(base.IronicObject, object_base.VersionedObjectDictCompat):
         self.dbapi.destroy_deploy_template(self.id)
         self.obj_reset_changes()
 
-    # NOTE(mgoddard): We don't want to enable RPC on this call just yet.
-    # Remotable methods can be used in the future to replace current explicit
-    # RPC calls.  Implications of calling new remote procedures should be
-    # thought through.
-    # @object_base.remotable_classmethod
-    @classmethod
+    @object_base.remotable_classmethod
     def get_by_id(cls, context, template_id):
         """Find a deploy template based on its integer ID.
 
@@ -126,12 +110,7 @@ class DeployTemplate(base.IronicObject, object_base.VersionedObjectDictCompat):
         template = cls._from_db_object(context, cls(), db_template)
         return template
 
-    # NOTE(mgoddard): We don't want to enable RPC on this call just yet.
-    # Remotable methods can be used in the future to replace current explicit
-    # RPC calls.  Implications of calling new remote procedures should be
-    # thought through.
-    # @object_base.remotable_classmethod
-    @classmethod
+    @object_base.remotable_classmethod
     def get_by_uuid(cls, context, uuid):
         """Find a deploy template based on its UUID.
 
@@ -150,12 +129,7 @@ class DeployTemplate(base.IronicObject, object_base.VersionedObjectDictCompat):
         template = cls._from_db_object(context, cls(), db_template)
         return template
 
-    # NOTE(mgoddard): We don't want to enable RPC on this call just yet.
-    # Remotable methods can be used in the future to replace current explicit
-    # RPC calls.  Implications of calling new remote procedures should be
-    # thought through.
-    # @object_base.remotable_classmethod
-    @classmethod
+    @object_base.remotable_classmethod
     def get_by_name(cls, context, name):
         """Find a deploy template based on its name.
 
@@ -174,12 +148,7 @@ class DeployTemplate(base.IronicObject, object_base.VersionedObjectDictCompat):
         template = cls._from_db_object(context, cls(), db_template)
         return template
 
-    # NOTE(mgoddard): We don't want to enable RPC on this call just yet.
-    # Remotable methods can be used in the future to replace current explicit
-    # RPC calls.  Implications of calling new remote procedures should be
-    # thought through.
-    # @object_base.remotable_classmethod
-    @classmethod
+    @object_base.remotable_classmethod
     def list(cls, context, limit=None, marker=None, sort_key=None,
              sort_dir=None):
         """Return a list of DeployTemplate objects.
@@ -200,12 +169,7 @@ class DeployTemplate(base.IronicObject, object_base.VersionedObjectDictCompat):
             limit=limit, marker=marker, sort_key=sort_key, sort_dir=sort_dir)
         return cls._from_db_object_list(context, db_templates)
 
-    # NOTE(mgoddard): We don't want to enable RPC on this call just yet.
-    # Remotable methods can be used in the future to replace current explicit
-    # RPC calls.  Implications of calling new remote procedures should be
-    # thought through.
-    # @object_base.remotable_classmethod
-    @classmethod
+    @object_base.remotable_classmethod
     def list_by_names(cls, context, names):
         """Return a list of DeployTemplate objects matching a set of names.
 
@@ -221,6 +185,7 @@ class DeployTemplate(base.IronicObject, object_base.VersionedObjectDictCompat):
         db_templates = cls.dbapi.get_deploy_template_list_by_names(names)
         return cls._from_db_object_list(context, db_templates)
 
+    @object_base.remotable
     def refresh(self, context=None):
         """Loads updates for this deploy template.
 

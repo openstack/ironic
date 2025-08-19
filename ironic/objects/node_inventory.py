@@ -20,7 +20,8 @@ from ironic.objects import fields as object_fields
 @base.IronicObjectRegistry.register
 class NodeInventory(base.IronicObject, object_base.VersionedObjectDictCompat):
     # Version 1.0: Initial version
-    VERSION = '1.0'
+    # Version 1.1: Relevant methods changed to be remotable methods.
+    VERSION = '1.1'
 
     dbapi = dbapi.get_instance()
 
@@ -45,7 +46,7 @@ class NodeInventory(base.IronicObject, object_base.VersionedObjectDictCompat):
         for src, dest in self.instance_info_mapping.items():
             setattr(self, dest, node.instance_info.get(src))
 
-    @classmethod
+    @object_base.remotable_classmethod
     def get_by_node_id(cls, context, node_id):
         """Get a NodeInventory object by its node ID.
 
@@ -60,6 +61,7 @@ class NodeInventory(base.IronicObject, object_base.VersionedObjectDictCompat):
         inventory = cls._from_db_object(context, cls(), db_inventory)
         return inventory
 
+    @object_base.remotable
     def create(self, context=None):
         """Create a NodeInventory record in the DB.
 
@@ -74,6 +76,7 @@ class NodeInventory(base.IronicObject, object_base.VersionedObjectDictCompat):
         db_inventory = self.dbapi.create_node_inventory(values)
         self._from_db_object(self._context, self, db_inventory)
 
+    @object_base.remotable
     def destroy(self, context=None):
         """Delete the NodeInventory from the DB.
 

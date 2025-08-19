@@ -151,7 +151,7 @@ class TestBIOSSettingObject(db_base.DbTestCase, obj_utils.SchemasTestMixIn):
             self.context, self.node_id, settings)
 
         mock_create_list.assert_called_once_with(mock.ANY, self.node_id,
-                                                 settings, '1.1')
+                                                 settings, '1.2')
         self.assertEqual(self.context, bios_obj_list._context)
         self.assertEqual(2, len(bios_obj_list))
         self.assertEqual(self.bios_setting['node_id'],
@@ -171,7 +171,7 @@ class TestBIOSSettingObject(db_base.DbTestCase, obj_utils.SchemasTestMixIn):
             self.context, self.node_id, settings)
 
         mock_update_list.assert_called_once_with(mock.ANY, self.node_id,
-                                                 settings, '1.1')
+                                                 settings, '1.2')
         self.assertEqual(self.context, bios_obj_list._context)
         self.assertEqual(2, len(bios_obj_list))
         self.assertEqual(self.bios_setting['node_id'],

@@ -47,7 +47,8 @@ class Port(base.IronicObject, object_base.VersionedObjectDictCompat):
     # Version 1.11: Add node_uuid field
     # Version 1.12: Add description field
     # Version 1.13: Add vendor field
-    VERSION = '1.13'
+    # Version 1.14: Mark multiple methods as remotable methods.
+    VERSION = '1.14'
 
     dbapi = dbapi.get_instance()
 
@@ -163,11 +164,7 @@ class Port(base.IronicObject, object_base.VersionedObjectDictCompat):
         self._convert_field_by_version('vendor', (1, 13), target_version,
                                        remove_unavailable_fields)
 
-    # NOTE(xek): We don't want to enable RPC on this call just yet. Remotable
-    # methods can be used in the future to replace current explicit RPC calls.
-    # Implications of calling new remote procedures should be thought through.
-    # @object_base.remotable_classmethod
-    @classmethod
+    @object_base.remotable_classmethod
     def get(cls, context, port_id):
         """Find a port.
 
@@ -191,11 +188,7 @@ class Port(base.IronicObject, object_base.VersionedObjectDictCompat):
         else:
             raise exception.InvalidIdentity(identity=port_id)
 
-    # NOTE(xek): We don't want to enable RPC on this call just yet. Remotable
-    # methods can be used in the future to replace current explicit RPC calls.
-    # Implications of calling new remote procedures should be thought through.
-    # @object_base.remotable_classmethod
-    @classmethod
+    @object_base.remotable_classmethod
     def get_by_id(cls, context, port_id):
         """Find a port based on its integer ID and return a Port object.
 
@@ -210,11 +203,7 @@ class Port(base.IronicObject, object_base.VersionedObjectDictCompat):
         port = cls._from_db_object(context, cls(), db_port)
         return port
 
-    # NOTE(xek): We don't want to enable RPC on this call just yet. Remotable
-    # methods can be used in the future to replace current explicit RPC calls.
-    # Implications of calling new remote procedures should be thought through.
-    # @object_base.remotable_classmethod
-    @classmethod
+    @object_base.remotable_classmethod
     def get_by_uuid(cls, context, uuid):
         """Find a port based on UUID and return a :class:`Port` object.
 
@@ -229,11 +218,7 @@ class Port(base.IronicObject, object_base.VersionedObjectDictCompat):
         port = cls._from_db_object(context, cls(), db_port)
         return port
 
-    # NOTE(xek): We don't want to enable RPC on this call just yet. Remotable
-    # methods can be used in the future to replace current explicit RPC calls.
-    # Implications of calling new remote procedures should be thought through.
-    # @object_base.remotable_classmethod
-    @classmethod
+    @object_base.remotable_classmethod
     def get_by_address(cls, context, address, owner=None, project=None):
         """Find a port based on address and return a :class:`Port` object.
 
@@ -252,11 +237,7 @@ class Port(base.IronicObject, object_base.VersionedObjectDictCompat):
         port = cls._from_db_object(context, cls(), db_port)
         return port
 
-    # NOTE(xek): We don't want to enable RPC on this call just yet. Remotable
-    # methods can be used in the future to replace current explicit RPC calls.
-    # Implications of calling new remote procedures should be thought through.
-    # @object_base.remotable_classmethod
-    @classmethod
+    @object_base.remotable_classmethod
     def get_by_name(cls, context, name):
         """Find a port based on name and return a :class:`Port` object.
 
@@ -271,11 +252,7 @@ class Port(base.IronicObject, object_base.VersionedObjectDictCompat):
         port = cls._from_db_object(context, cls(), db_port)
         return port
 
-    # NOTE(xek): We don't want to enable RPC on this call just yet. Remotable
-    # methods can be used in the future to replace current explicit RPC calls.
-    # Implications of calling new remote procedures should be thought through.
-    # @object_base.remotable_classmethod
-    @classmethod
+    @object_base.remotable_classmethod
     def list(cls, context, limit=None, marker=None, sort_key=None,
              sort_dir=None, owner=None, project=None, conductor_groups=None,
              filters=None):
@@ -330,11 +307,7 @@ class Port(base.IronicObject, object_base.VersionedObjectDictCompat):
                                                  filters=filters)
         return cls._from_db_object_list(context, db_ports)
 
-    # NOTE(xek): We don't want to enable RPC on this call just yet. Remotable
-    # methods can be used in the future to replace current explicit RPC calls.
-    # Implications of calling new remote procedures should be thought through.
-    # @object_base.remotable_classmethod
-    @classmethod
+    @object_base.remotable_classmethod
     def list_by_node_id(cls, context, node_id, limit=None, marker=None,
                         sort_key=None, sort_dir=None, owner=None,
                         project=None, filters=None):
@@ -362,11 +335,7 @@ class Port(base.IronicObject, object_base.VersionedObjectDictCompat):
                                                   filters=filters)
         return cls._from_db_object_list(context, db_ports)
 
-    # NOTE(xek): We don't want to enable RPC on this call just yet. Remotable
-    # methods can be used in the future to replace current explicit RPC calls.
-    # Implications of calling new remote procedures should be thought through.
-    # @object_base.remotable_classmethod
-    @classmethod
+    @object_base.remotable_classmethod
     def list_by_portgroup_id(cls, context, portgroup_id, limit=None,
                              marker=None, sort_key=None, sort_dir=None,
                              owner=None, project=None, filters=None):
@@ -395,10 +364,7 @@ class Port(base.IronicObject, object_base.VersionedObjectDictCompat):
                                                        filters=filters)
         return cls._from_db_object_list(context, db_ports)
 
-    # NOTE(xek): We don't want to enable RPC on this call just yet. Remotable
-    # methods can be used in the future to replace current explicit RPC calls.
-    # Implications of calling new remote procedures should be thought through.
-    # @object_base.remotable
+    @object_base.remotable
     def create(self, context=None):
         """Create a Port record in the DB.
 
@@ -420,10 +386,7 @@ class Port(base.IronicObject, object_base.VersionedObjectDictCompat):
         db_port = self.dbapi.get_port_by_id(db_port['id'])
         self._from_db_object(self._context, self, db_port)
 
-    # NOTE(xek): We don't want to enable RPC on this call just yet. Remotable
-    # methods can be used in the future to replace current explicit RPC calls.
-    # Implications of calling new remote procedures should be thought through.
-    # @object_base.remotable
+    @object_base.remotable
     def destroy(self, context=None):
         """Delete the Port from the DB.
 
@@ -439,10 +402,7 @@ class Port(base.IronicObject, object_base.VersionedObjectDictCompat):
         self.dbapi.destroy_port(self.uuid)
         self.obj_reset_changes()
 
-    # NOTE(xek): We don't want to enable RPC on this call just yet. Remotable
-    # methods can be used in the future to replace current explicit RPC calls.
-    # Implications of calling new remote procedures should be thought through.
-    # @object_base.remotable
+    @object_base.remotable
     def save(self, context=None):
         """Save updates to this Port.
 
@@ -463,10 +423,7 @@ class Port(base.IronicObject, object_base.VersionedObjectDictCompat):
         updated_port = self.dbapi.update_port(self.uuid, updates)
         self._from_db_object(self._context, self, updated_port)
 
-    # NOTE(xek): We don't want to enable RPC on this call just yet. Remotable
-    # methods can be used in the future to replace current explicit RPC calls.
-    # Implications of calling new remote procedures should be thought through.
-    # @object_base.remotable
+    @object_base.remotable
     def refresh(self, context=None):
         """Loads updates for this Port.
 

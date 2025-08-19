@@ -21,7 +21,8 @@ from ironic.objects import notification
 @base.IronicObjectRegistry.register
 class Runbook(base.IronicObject, object_base.VersionedObjectDictCompat):
     # Version 1.0: Initial version
-    VERSION = '1.0'
+    # Version 1.1: Relevant methods changed to be remotable methods.
+    VERSION = '1.1'
 
     dbapi = db_api.get_instance()
 
@@ -36,6 +37,7 @@ class Runbook(base.IronicObject, object_base.VersionedObjectDictCompat):
         'owner': object_fields.StringField(nullable=True),
     }
 
+    @object_base.remotable
     def create(self, context=None):
         """Create a Runbook record in the DB.
 
@@ -54,6 +56,7 @@ class Runbook(base.IronicObject, object_base.VersionedObjectDictCompat):
         db_template = self.dbapi.create_runbook(values)
         self._from_db_object(self._context, self, db_template)
 
+    @object_base.remotable
     def save(self, context=None):
         """Save updates to this Runbook.
 
@@ -74,6 +77,7 @@ class Runbook(base.IronicObject, object_base.VersionedObjectDictCompat):
         db_template = self.dbapi.update_runbook(self.uuid, updates)
         self._from_db_object(self._context, self, db_template)
 
+    @object_base.remotable
     def destroy(self):
         """Delete the Runbook from the DB.
 
@@ -89,7 +93,7 @@ class Runbook(base.IronicObject, object_base.VersionedObjectDictCompat):
         self.dbapi.destroy_runbook(self.id)
         self.obj_reset_changes()
 
-    @classmethod
+    @object_base.remotable_classmethod
     def get_by_id(cls, context, runbook_id):
         """Find a runbook based on its integer ID.
 
@@ -108,7 +112,7 @@ class Runbook(base.IronicObject, object_base.VersionedObjectDictCompat):
         template = cls._from_db_object(context, cls(), db_template)
         return template
 
-    @classmethod
+    @object_base.remotable_classmethod
     def get_by_uuid(cls, context, uuid):
         """Find a runbook based on its UUID.
 
@@ -127,7 +131,7 @@ class Runbook(base.IronicObject, object_base.VersionedObjectDictCompat):
         template = cls._from_db_object(context, cls(), db_template)
         return template
 
-    @classmethod
+    @object_base.remotable_classmethod
     def get_by_name(cls, context, name):
         """Find a runbook based on its name.
 
@@ -146,7 +150,7 @@ class Runbook(base.IronicObject, object_base.VersionedObjectDictCompat):
         template = cls._from_db_object(context, cls(), db_template)
         return template
 
-    @classmethod
+    @object_base.remotable_classmethod
     def list(cls, context, limit=None, marker=None, sort_key=None,
              sort_dir=None, filters=None):
         """Return a list of Runbook objects.
@@ -170,7 +174,7 @@ class Runbook(base.IronicObject, object_base.VersionedObjectDictCompat):
                                                   filters=filters)
         return cls._from_db_object_list(context, db_templates)
 
-    @classmethod
+    @object_base.remotable_classmethod
     def list_by_names(cls, context, names):
         """Return a list of Runbook objects matching a set of names.
 
@@ -186,6 +190,7 @@ class Runbook(base.IronicObject, object_base.VersionedObjectDictCompat):
         db_templates = cls.dbapi.get_runbook_list_by_names(names)
         return cls._from_db_object_list(context, db_templates)
 
+    @object_base.remotable
     def refresh(self, context=None):
         """Loads updates for this runbook.
 

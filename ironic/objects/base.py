@@ -27,6 +27,7 @@ from ironic.objects import fields as object_fields
 LOG = log.getLogger(__name__)
 
 remotable_classmethod = object_base.remotable_classmethod
+remotable = object_base.remotable
 
 
 def max_version(versions):

@@ -23,7 +23,8 @@ from ironic.objects import fields as object_fields
 @base.IronicObjectRegistry.register
 class NodeHistory(base.IronicObject, object_base.VersionedObjectDictCompat):
     # Version 1.0: Initial version
-    VERSION = '1.0'
+    # Version 1.1: Relevant methods changed to be remotable methods.
+    VERSION = '1.1'
 
     dbapi = dbapi.get_instance()
 
@@ -38,11 +39,7 @@ class NodeHistory(base.IronicObject, object_base.VersionedObjectDictCompat):
         'severity': object_fields.StringField(nullable=True),
     }
 
-    # NOTE(xek): We don't want to enable RPC on this call just yet. Remotable
-    # methods can be used in the future to replace current explicit RPC calls.
-    # Implications of calling new remote procedures should be thought through.
-    # @object_base.remotable_classmethod
-    @classmethod
+    @object_base.remotable_classmethod
     def get(cls, context, history_ident):
         """Get a history based on its id or uuid.
 
@@ -59,11 +56,7 @@ class NodeHistory(base.IronicObject, object_base.VersionedObjectDictCompat):
         else:
             raise exception.InvalidIdentity(identity=history_ident)
 
-    # NOTE(xek): We don't want to enable RPC on this call just yet. Remotable
-    # methods can be used in the future to replace current explicit RPC calls.
-    # Implications of calling new remote procedures should be thought through.
-    # @object_base.remotable_classmethod
-    @classmethod
+    @object_base.remotable_classmethod
     def get_by_id(cls, context, history_id):
         """Get a NodeHistory object by its integer ID.
 
@@ -78,11 +71,7 @@ class NodeHistory(base.IronicObject, object_base.VersionedObjectDictCompat):
         history = cls._from_db_object(context, cls(), db_history)
         return history
 
-    # NOTE(xek): We don't want to enable RPC on this call just yet. Remotable
-    # methods can be used in the future to replace current explicit RPC calls.
-    # Implications of calling new remote procedures should be thought through.
-    # @object_base.remotable_classmethod
-    @classmethod
+    @object_base.remotable_classmethod
     def get_by_uuid(cls, context, uuid):
         """Get a NodeHistory object by its UUID.
 
@@ -97,11 +86,7 @@ class NodeHistory(base.IronicObject, object_base.VersionedObjectDictCompat):
         history = cls._from_db_object(context, cls(), db_history)
         return history
 
-    # NOTE(xek): We don't want to enable RPC on this call just yet. Remotable
-    # methods can be used in the future to replace current explicit RPC calls.
-    # Implications of calling new remote procedures should be thought through.
-    # @object_base.remotable_classmethod
-    @classmethod
+    @object_base.remotable_classmethod
     def list(cls, context, limit=None, marker=None, sort_key=None,
              sort_dir=None):
         """Return a list of NodeHistory objects.
@@ -122,11 +107,7 @@ class NodeHistory(base.IronicObject, object_base.VersionedObjectDictCompat):
                                                        sort_dir=sort_dir)
         return cls._from_db_object_list(context, db_histories)
 
-    # NOTE(xek): We don't want to enable RPC on this call just yet. Remotable
-    # methods can be used in the future to replace current explicit RPC calls.
-    # Implications of calling new remote procedures should be thought through.
-    # @object_base.remotable_classmethod
-    @classmethod
+    @object_base.remotable_classmethod
     def list_by_node_id(cls, context, node_id, limit=None, marker=None,
                         sort_key=None, sort_dir=None):
         """Return a list of NodeHistory objects belongs to a given node ID.
@@ -147,10 +128,6 @@ class NodeHistory(base.IronicObject, object_base.VersionedObjectDictCompat):
             sort_dir=sort_dir)
         return cls._from_db_object_list(context, db_histories)
 
-    # NOTE(xek): We don't want to enable RPC on this call just yet. Remotable
-    # methods can be used in the future to replace current explicit RPC calls.
-    # Implications of calling new remote procedures should be thought through.
-    # @object_base.remotable
     def create(self, context=None):
         """Create a NodeHistory record in the DB.
 
@@ -165,10 +142,6 @@ class NodeHistory(base.IronicObject, object_base.VersionedObjectDictCompat):
         db_history = self.dbapi.create_node_history(values)
         self._from_db_object(self._context, self, db_history)
 
-    # NOTE(xek): We don't want to enable RPC on this call just yet. Remotable
-    # methods can be used in the future to replace current explicit RPC calls.
-    # Implications of calling new remote procedures should be thought through.
-    # @object_base.remotable
     def destroy(self, context=None):
         """Delete the NodeHistory from the DB.
 
