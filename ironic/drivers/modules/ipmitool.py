@@ -36,7 +36,6 @@ import subprocess
 import tempfile
 import time
 
-from eventlet.green import subprocess as green_subprocess
 from oslo_concurrency import processutils
 from oslo_log import log as logging
 from oslo_utils import excutils
@@ -752,10 +751,7 @@ def _set_and_wait(task, power_action, driver_info, timeout=None):
         _exec_ipmitool(driver_info, cmd)
     except (exception.PasswordFileFailedToCreate,
             processutils.ProcessExecutionError,
-            subprocess.TimeoutExpired,
-            # NOTE(TheJulia): Remove once we remove the eventlet support.
-            # https://github.com/eventlet/eventlet/issues/624
-            green_subprocess.TimeoutExpired) as e:
+            subprocess.TimeoutExpired) as e:
         LOG.warning("IPMI power action %(cmd)s failed for node %(node_id)s "
                     "with error: %(error)s.",
                     {'node_id': driver_info['uuid'], 'cmd': cmd, 'error': e})

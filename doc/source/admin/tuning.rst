@@ -53,9 +53,8 @@ trade-offs.
   as prior requests complete. In environments with long running synchronous
   calls, such as use of the vendor passthru interface, this can be very
   problematic.
-* As a combined ``ironic`` process. In this case, green threads_ are used,
-  which allows for a smaller memory footprint at the expense of only using
-  one CPU core.
+* As a combined ``ironic`` process. In this case, a single primary process
+  with two worker sub-processes are used.
 
 When the webserver is launched by the API process directly, the default is
 based upon the number of CPU sockets in your machine.
@@ -63,8 +62,7 @@ based upon the number of CPU sockets in your machine.
 When launching using uwsgi, this will entirely vary upon your configuration,
 but balancing workers/threads based upon your load and needs is highly
 advisable. Each worker process is unique and consumes far more memory than
-a comparable number of worker threads. At the same time, the scheduler will
-focus on worker processes as the threads are greenthreads.
+a comparable number of worker threads.
 
 .. note::
    Host operating systems featuring in-memory de-duplication should see
@@ -121,12 +119,12 @@ structure and layout, and what deploy interface is being used.
 Threads
 -------
 
-The conductor uses green threads based on Eventlet_ project to allow a very
-high concurrency while keeping the memory footprint low. When a request comes
-from the API to the conductor over the RPC, the conductor verifies it, acquires
-a node-level lock (if needed) and launches a processing thread for further
-handling. The maximum number of such threads is limited to the value of
-:oslo.config:option:`conductor.workers_pool_size` configuration option.
+The conductor uses python threads to enable concurrency. When a
+request comes from the API to the conductor over the RPC, the conductor
+verifies it, acquires a node-level lock (if needed) and launches a processing
+thread for further handling. The maximum number of such threads is limited to
+the value of :oslo.config:option:`conductor.workers_pool_size`
+configuration option.
 
 .. note::
    Some workers are always or regularly occupied by internal processes, e.g.
@@ -155,8 +153,6 @@ threads (specified by the
 reserved for API requests and other critical tasks. Periodic tasks and agent
 heartbeats cannot use them. This ensures that the API stays responsive even
 under extreme internal load.
-
-.. _eventlet: https://eventlet.net/
 
 Database
 ========

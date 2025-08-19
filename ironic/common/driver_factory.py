@@ -392,8 +392,8 @@ class BaseDriverFactory(object):
 
     @classmethod
     def _init_extension_manager(cls):
-        # NOTE(tenbrae): Use lockutils to avoid a potential race in eventlet
-        #             that might try to create two driver factories.
+        # NOTE(tenbrae): Use lockutils to avoid a potential race
+        # that might try to create two driver factories.
         with lockutils.lock(cls._entrypoint_name, do_log=False):
             # NOTE(tenbrae): In case multiple greenthreads queue up on this
             # lock before _extension_manager is initialized, prevent

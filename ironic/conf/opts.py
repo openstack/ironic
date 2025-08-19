@@ -86,7 +86,6 @@ def update_opt_defaults():
             'oslo.messaging=INFO',
             'oslo_messaging=INFO',
             'stevedore=INFO',
-            'eventlet.wsgi.server=INFO',
             'iso8601=WARNING',
             'requests=WARNING',
             'urllib3.connectionpool=WARNING',
