@@ -73,6 +73,14 @@ opts = [
     cfg.Opt('unix_socket_mode', type=Octal(),
             help=_('File mode (an octal number) of the unix socket to '
                    'listen on. Ignored if unix_socket is not set.')),
+    cfg.BoolOpt('debug_log_request_id_only',
+                mutable=True,
+                default=True,
+                help=_('When debug logging is enabled, log only the request '
+                       'ID instead of the full request and response for JSON '
+                       'RPC calls. This reduces log verbosity while still '
+                       'providing some traceability for performance '
+                       'analysis.')),
 ]
 
 
