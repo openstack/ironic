@@ -120,6 +120,7 @@ class WSGIService(wsgi_service.BaseWSGIService):
         else:
             app = self._application
         super().__init__('ironic-json-rpc', app, CONF.json_rpc)
+        self._debug = CONF.rpc_transport != 'none'
 
     def _application(self, environment, start_response):
         """WSGI application for conductor JSON RPC."""
@@ -262,7 +263,9 @@ class WSGIService(wsgi_service.BaseWSGIService):
                       for key, value in params.items()}
             params['context'] = context
 
-        LOG.debug('RPC %s with %s', name, logged_params)
+        if self._debug:
+            LOG.debug('RPC %s with %s', name, logged_params)
+
         try:
             result = func(**params)
         # FIXME(dtantsur): we could use the inspect module, but
@@ -275,7 +278,9 @@ class WSGIService(wsgi_service.BaseWSGIService):
             # Currently it seems that we can serialize even with invalid
             # context, but I'm not sure it's guaranteed to be the case.
             result = self.serializer.serialize_entity(context, result)
-        LOG.debug('RPC %s returned %s', name,
-                  strutils.mask_dict_password(result)
-                  if isinstance(result, dict) else result)
+
+        if self._debug:
+            LOG.debug('RPC %s returned %s', name,
+                      strutils.mask_dict_password(result)
+                      if isinstance(result, dict) else result)
         return result
