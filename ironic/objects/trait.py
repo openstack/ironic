@@ -88,7 +88,8 @@ class Trait(base.IronicObject):
 class TraitList(base.IronicObjectListBase, base.IronicObject):
     # Version 1.0: Initial version
     # Version 1.1: Relevant methods changed to be remotable methods.
-    VERSION = '1.1'
+    # Version 1.2: Revert get_trait_names to a normal method.
+    VERSION = '1.2'
 
     dbapi = db_api.get_instance()
 
@@ -147,7 +148,6 @@ class TraitList(base.IronicObjectListBase, base.IronicObject):
         """
         cls.dbapi.unset_node_traits(node_id)
 
-    @object_base.remotable
-    def get_trait_names(self, context=None):
+    def get_trait_names(self):
         """Return a list of names of the traits in this list."""
         return [t.trait for t in self.objects]

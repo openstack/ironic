@@ -911,7 +911,7 @@ RELEASE_MAPPING = {
             'Port': ['1.14', '1.13', '1.12'],
             'Portgroup': ['1.6', '1.5'],
             'Trait': ['1.1', '1.0'],
-            'TraitList': ['1.1', '1.0'],
+            'TraitList': ['1.2', '1.1', '1.0'],
             'VolumeConnector': ['1.1', '1.0'],
             'VolumeTarget': ['1.1', '1.0'],
             'FirmwareComponent': ['1.1', '1.0'],

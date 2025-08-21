@@ -709,7 +709,7 @@ expected_object_fingerprints = {
     'VolumeTargetCRUDNotification': '1.0-59acc533c11d306f149846f922739c15',
     'VolumeTargetCRUDPayload': '1.0-30dcc4735512c104a3a36a2ae1e2aeb2',
     'Trait': '1.1-ae534208fc5ade27700db7202b5b6b82',
-    'TraitList': '1.1-1e938b9a94cba59f5ac35a5db0a6dc0f',
+    'TraitList': '1.2-120fedaa212ddbcf9f6148a64c550946',
     'BIOSSetting': '1.2-a0c2924d8ffef7ed872e48435a569a83',
     'BIOSSettingList': '1.1-6e606655643a9a5fa116ce771cbebe59',
     'Allocation': '1.3-91102bce67725a4ee924c6b2f213bcde',
