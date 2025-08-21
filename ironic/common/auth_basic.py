@@ -15,6 +15,7 @@
 
 import base64
 import binascii
+import functools
 import logging
 
 import bcrypt
@@ -91,6 +92,16 @@ def authenticate(auth_file, username, password):
     unauthorized()
 
 
+@functools.lru_cache(maxsize=256)
+def _checkpw(password, hashed):
+    """Wrapped bcrypt.checkpw for caching
+
+    Keep an in-memory cache of bcrypt.checkpw responses to avoid the
+    high CPU cost of repeatedly checking the same values
+    """
+    return bcrypt.checkpw(password, hashed)
+
+
 def auth_entry(entry, password):
     """Compare a password with a single user auth file entry
 
@@ -102,7 +113,7 @@ def auth_entry(entry, password):
     """
     username, encrypted = parse_entry(entry)
 
-    if not bcrypt.checkpw(password, encrypted):
+    if not _checkpw(password, encrypted):
         LOG.info('Password for %s does not match', username)
         unauthorized()
 
