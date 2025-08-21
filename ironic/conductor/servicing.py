@@ -336,6 +336,11 @@ def get_last_error(node):
     return last_error
 
 
+def _was_agent_attempted(task):
+    """Check if agent start was attempted (vs. successfully heartbeated)."""
+    return task.node.driver_internal_info.get('agent_start_attempted', False)
+
+
 @task_manager.require_exclusive_lock
 def do_node_service_abort(task):
     """Internal method to abort an ongoing operation.
@@ -344,7 +349,14 @@ def do_node_service_abort(task):
     """
     node = task.node
     try:
+        # Use attempt-based logic instead of heartbeat-based
+        agent_attempted = _was_agent_attempted(task)
+        if agent_attempted:
+            task.driver.power.set_power_state(task, states.POWER_OFF)
         task.driver.deploy.tear_down_service(task)
+        if agent_attempted:
+            task.driver.boot.prepare_instance(task)
+            task.driver.power.set_power_state(task, states.POWER_ON)
     except Exception as e:
         log_msg = (_('Failed to tear down service for node %(node)s '
                      'after aborting the operation. Error: %(err)s') %

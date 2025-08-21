@@ -6229,6 +6229,27 @@ ORHMKeXMO8fcK0By7CiMKwHSXCoEQgfQhWwpMdSsO8LgHCjh87DQc= """
         self.assertEqual(urlparse.urlparse(ret.location).path,
                          expected_location)
 
+    @mock.patch.object(rpcapi.ConductorAPI, 'do_provisioning_action',
+                       autospec=True)
+    def test_provision_with_abort_after_service_failed(self,
+                                                       mock_dpa):
+        node = self.node
+        node.provision_state = states.SERVICEFAIL
+        node.target_provision_state = states.ACTIVE
+        node.save()
+        ret = self.put_json('/nodes/%s/states/provision' % node.uuid,
+                            {'target': states.VERBS['abort']},
+                            headers={api_base.Version.string: "1.13"})
+        self.assertEqual(http_client.ACCEPTED, ret.status_code)
+        self.assertEqual(b'', ret.body)
+        # Check location header
+        self.assertIsNotNone(ret.location)
+        expected_location = '/v1/nodes/%s/states' % node.uuid
+        self.assertEqual(urlparse.urlparse(ret.location).path,
+                         expected_location)
+        mock_dpa.assert_called_once_with(
+            mock.ANY, mock.ANY, node.uuid, 'abort', 'test-topic')
+
     def test_provision_with_unprovision_in_service_wait(self):
         node = self.node
         node.provision_state = states.SERVICEWAIT

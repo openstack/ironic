@@ -676,5 +676,8 @@ machine.add_transition(SERVICEFAIL, SERVICEHOLD, 'hold')
 # A node in service fail may be deleted.
 machine.add_transition(SERVICEFAIL, DELETING, 'delete')
 
+# A node in service fail may be aborted (returned to active)
+machine.add_transition(SERVICEFAIL, ACTIVE, 'abort')
+
 # A node in service wait may be deleted.
 machine.add_transition(SERVICEWAIT, DELETING, 'delete')

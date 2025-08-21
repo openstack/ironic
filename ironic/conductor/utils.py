@@ -645,6 +645,8 @@ def wipe_internal_info_on_power_off(node):
     node.del_driver_internal_info('agent_cached_clean_steps')
     # Remove TLS certificate since it's regenerated on each run.
     node.del_driver_internal_info('agent_verify_ca')
+    # Remove agent start attempt tracking since it doesn't survive power off.
+    node.del_driver_internal_info('agent_start_attempted')
 
 
 def wipe_token_and_url(task):
@@ -671,6 +673,8 @@ def wipe_deploy_internal_info(task):
     node.del_driver_internal_info('deploy_step_index')
     node.del_driver_internal_info('steps_validated')
     node.del_driver_internal_info('image_source')
+    # Remove agent start attempt tracking since deployment is complete/aborted
+    node.del_driver_internal_info('agent_start_attempted')
     async_steps.remove_node_flags(node)
 
 
@@ -685,6 +689,8 @@ def wipe_cleaning_internal_info(task):
     node.del_driver_internal_info('cleaning_disable_ramdisk')
     node.del_driver_internal_info('steps_validated')
     node.del_driver_internal_info('declarative_cleaning')
+    # Remove agent start attempt tracking since cleaning is complete/aborted
+    node.del_driver_internal_info('agent_start_attempted')
     async_steps.remove_node_flags(node)
 
 
@@ -698,6 +704,8 @@ def wipe_service_internal_info(task):
     node.del_driver_internal_info('service_disable_ramdisk')
     node.del_driver_internal_info('steps_validated')
     node.del_driver_internal_info('image_source')
+    # Remove agent start attempt tracking since servicing is complete/aborted
+    node.del_driver_internal_info('agent_start_attempted')
     async_steps.remove_node_flags(node)
 
 

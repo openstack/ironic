@@ -1198,6 +1198,22 @@ class AgentMethodsTestCase(db_base.DbTestCase):
         options = utils.build_agent_options(self.node)
         self.assertEqual('https://api-url', options['ipa-api-url'])
 
+    @mock.patch.object(utils, 'build_agent_options', autospec=True)
+    def test_prepare_agent_boot(self, mock_build_opts):
+        mock_build_opts.return_value = {'ipa-api-url': 'https://api-url'}
+
+        with task_manager.acquire(self.context, self.node.uuid) as task:
+            mock_pr = mock.Mock()
+            task.driver.boot.prepare_ramdisk = mock_pr
+            utils.prepare_agent_boot(task)
+            # Verify attempt tracking is set
+            self.assertTrue(
+                task.node.driver_internal_info.get('agent_start_attempted'))
+
+            # Verify boot preparation was called
+            mock_pr.assert_called_once_with(
+                task, {'ipa-api-url': 'https://api-url'})
+
     def test_direct_deploy_should_convert_raw_image_true(self):
         cfg.CONF.set_override('force_raw_images', True)
         cfg.CONF.set_override('stream_raw_images', True, group='agent')
