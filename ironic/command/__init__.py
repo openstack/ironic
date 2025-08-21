@@ -26,5 +26,5 @@ from ironic.common import i18n  # noqa
 # any positive number with a minimum of 32768 Bytes, in 4096 Byte
 # increments, this appears to work well in basic benchmarking.
 threading.stack_size(
-    os.environ.get('IRONIC_THREAD_STACK_SIZE', 65536))
+    int(os.environ.get('IRONIC_THREAD_STACK_SIZE', 65536)))
 i18n.install('ironic')
