@@ -1,0 +1,7 @@
+---
+fixes:
+  - |
+    Performance of Basic HTTP authentication has been improved by keeping a
+    memory cache of bcrypt password checks. This improves the performance of
+    Ironic conductor with JSON-RPC, and API access when using Basic HTTP
+    authentication.
