@@ -161,7 +161,9 @@ update_request_body = {
         'properties': {
             'op': {'enum': ['add', 'replace', 'remove']},
             'path': {'type': 'string'},
-            'value': {'type': ['string', 'object', 'null']},
+            'value': {
+                'type': ['string', 'object', 'null', 'integer', 'boolean']
+            },
         },
         'required': ['op', 'path'],
         'additionalProperties': False,
