@@ -69,6 +69,9 @@ def make_controller_links(name):
     ]
 
 
+# TODO(stephenfin): Once all controllers are using jsonschema validation (the
+# openapi-compatible kind), we should switch from callables to use of version
+# constants
 VERSIONED_CONTROLLERS = {
     'portgroups': utils.allow_portgroups,
     'volume': utils.allow_volume,
