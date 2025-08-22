@@ -174,6 +174,74 @@ class RedfishPowerTestCase(db_base.DbTestCase):
                 sushy.RESET_ON)
             mock_get_system.assert_called_once_with(task.node)
 
+    @mock.patch.object(redfish_utils, 'get_system', autospec=True)
+    def test_set_power_state_race_condition_handling(
+            self, mock_get_system):
+
+        fake_system = mock_get_system.return_value
+        mock_response = mock.Mock(status_code=400)
+        mock_response.json.return_value = {
+            'error': {
+                'message': 'Host is powered OFF. Power On host and try again',
+            }
+        }
+
+        fake_system.reset_system.side_effect = (
+            sushy.exceptions.BadRequestError(
+                method='POST', url='test', response=mock_response))
+
+        success_scenarios = [
+            (
+                states.SOFT_POWER_OFF,
+                states.POWER_OFF,
+                sushy.RESET_GRACEFUL_SHUTDOWN,
+            ),
+            (
+                states.SOFT_REBOOT,
+                states.POWER_ON,
+                sushy.RESET_GRACEFUL_RESTART
+            ),
+            (states.POWER_OFF, states.POWER_OFF, sushy.RESET_FORCE_OFF),
+            (states.POWER_ON, states.POWER_ON, sushy.RESET_ON),
+            (states.REBOOT, states.POWER_ON, sushy.RESET_FORCE_RESTART),
+            (states.POWER_OFF, None, sushy.RESET_FORCE_OFF),
+        ]
+
+        failure_scenarios = [
+            (states.POWER_OFF, states.POWER_ON),
+            (states.POWER_ON, states.POWER_OFF),
+        ]
+
+        for target_state, final_state, expected_reset in success_scenarios:
+            fake_system.power_state = None
+            if final_state == states.POWER_OFF:
+                fake_system.power_state = sushy.SYSTEM_POWER_STATE_OFF
+            elif final_state == states.POWER_ON:
+                fake_system.power_state = sushy.SYSTEM_POWER_STATE_ON
+
+            with task_manager.acquire(self.context, self.node.uuid,
+                                      shared=False) as task:
+                task.driver.power.set_power_state(task, target_state)
+
+                fake_system.reset_system.assert_called_with(expected_reset)
+
+            fake_system.reset_mock()
+
+        for target_state, actual_state in failure_scenarios:
+            fake_system.power_state = None
+            if actual_state == states.POWER_OFF:
+                fake_system.power_state = sushy.SYSTEM_POWER_STATE_OFF
+            elif actual_state == states.POWER_ON:
+                fake_system.power_state = sushy.SYSTEM_POWER_STATE_ON
+
+            with task_manager.acquire(self.context, self.node.uuid,
+                                      shared=False) as task:
+                self.assertRaises(
+                    sushy.exceptions.BadRequestError,
+                    task.driver.power.set_power_state, task, target_state)
+
+            fake_system.reset_mock()
+
     @mock.patch.object(redfish_mgmt.RedfishManagement, 'restore_boot_device',
                        autospec=True)
     @mock.patch.object(redfish_utils, 'get_system', autospec=True)
