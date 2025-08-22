@@ -48,7 +48,8 @@ class Port(base.IronicObject, object_base.VersionedObjectDictCompat):
     # Version 1.12: Add description field
     # Version 1.13: Add vendor field
     # Version 1.14: Mark multiple methods as remotable methods.
-    VERSION = '1.14'
+    # Version 1.15: Add category field
+    VERSION = '1.15'
 
     dbapi = dbapi.get_instance()
 
@@ -70,6 +71,7 @@ class Port(base.IronicObject, object_base.VersionedObjectDictCompat):
         'name': object_fields.StringField(nullable=True),
         'description': object_fields.StringField(nullable=True),
         'vendor': object_fields.StringField(nullable=True),
+        'category': object_fields.StringField(nullable=True),
     }
 
     def _convert_field_by_version(self, field_name, introduced_version,
@@ -129,6 +131,9 @@ class Port(base.IronicObject, object_base.VersionedObjectDictCompat):
         Version 1.13: remove vendor for unsupported versions if
             remove_unavailable_fields is True.
 
+        Version 1.15: remove category for unsupported versions if
+            remove_unavailable_fields is True.
+
         :param target_version: the desired version of the object
         :param remove_unavailable_fields: True to remove fields that are
             unavailable in the target version; set this to True when
@@ -162,6 +167,9 @@ class Port(base.IronicObject, object_base.VersionedObjectDictCompat):
                                        remove_unavailable_fields)
         # Convert the vendor field.
         self._convert_field_by_version('vendor', (1, 13), target_version,
+                                       remove_unavailable_fields)
+        # Convert the category field.
+        self._convert_field_by_version('category', (1, 15), target_version,
                                        remove_unavailable_fields)
 
     @object_base.remotable_classmethod
@@ -495,7 +503,8 @@ class PortCRUDPayload(notification.NotificationPayloadBase):
     # Version 1.4: Add "name" field
     # Version 1.5: Add "description" field
     # Version 1.6: Add "vendor" field
-    VERSION = '1.6'
+    # Version 1.7: Add "category" field
+    VERSION = '1.7'
 
     SCHEMA = {
         'address': ('port', 'address'),
@@ -510,6 +519,7 @@ class PortCRUDPayload(notification.NotificationPayloadBase):
         'name': ('port', 'name'),
         'description': ('port', 'description'),
         'vendor': ('port', 'vendor'),
+        'category': ('port', 'category'),
     }
 
     fields = {
@@ -529,6 +539,7 @@ class PortCRUDPayload(notification.NotificationPayloadBase):
         'name': object_fields.StringField(nullable=True),
         'description': object_fields.StringField(nullable=True),
         'vendor': object_fields.StringField(nullable=True),
+        'category': object_fields.StringField(nullable=True),
     }
 
     def __init__(self, port, node_uuid, portgroup_uuid):

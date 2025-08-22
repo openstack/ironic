@@ -4,6 +4,7 @@
     "name": "port1",
     "description": "Physical Network",
     "vendor": "splitrock",
+    "category": "hypernet",
     "address": "11:11:11:11:11:11",
     "is_smartnic": true,
     "local_link_connection": {

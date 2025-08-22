@@ -271,6 +271,7 @@ class Port(Base):
     name = Column(String(255), nullable=True)
     description = Column(String(255), nullable=True)
     vendor = Column(String(32), nullable=True)
+    category = Column(String(80), nullable=True)
 
     _node_uuid = orm.relationship(
         "Node",

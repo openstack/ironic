@@ -2248,6 +2248,14 @@ def allow_port_description():
 def allow_port_vendor():
     """Check if vendor is allowed for ports.
 
-    Version 1.100 of the API added description field to the port object.
+    Version 1.100 of the API added vendor field to the port object.
     """
     return api.request.version.minor >= versions.MINOR_100_PORT_VENDOR
+
+
+def allow_port_category():
+    """Check if category is allowed for ports.
+
+    Version 1.101 of the API added category field to the port object.
+    """
+    return api.request.version.minor >= versions.MINOR_101_PORT_CATEGORY
