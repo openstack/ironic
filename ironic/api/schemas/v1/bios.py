@@ -13,6 +13,7 @@
 import copy
 
 from ironic.api.schemas.common import request_types
+from ironic.api.schemas.common import response_types
 
 
 # request parameter schemas
@@ -71,3 +72,73 @@ show_request_query = {
     'required': [],
     'additionalProperties': False,
 }
+
+# response body schemas
+
+_bios_response_body = {
+    'type': 'object',
+    'properties': {
+        'created_at': {'type': 'string', 'format': 'date-time'},
+        'links': response_types.links,
+        'name': {'type': 'string'},
+        'updated_at': {'type': ['string', 'null'], 'format': 'date-time'},
+        'value': {'type': 'string'},
+    },
+    'required': ['created_at', 'links', 'name', 'value', 'updated_at'],
+    'additionalProperties': False,
+}
+
+_bios_response_body_v74 = {
+    'type': 'object',
+    'properties': {
+        'allowable_values': {
+            'type': ['null', 'array'], 'items': {'type': 'string'}
+        },
+        'attribute_type': {'type': ['null', 'string']},
+        'created_at': {'type': 'string', 'format': 'date-time'},
+        'links': response_types.links,
+        'lower_bound': {'type': ['null', 'integer'], 'minimum': 0},
+        'max_length': {'type': ['null', 'integer'], 'minimum': 0},
+        'min_length': {'type': ['null', 'integer'], 'minimum': 0},
+        'name': {'type': 'string'},
+        'read_only': {'type': ['null', 'boolean']},
+        'reset_required': {'type': ['null', 'boolean']},
+        'unique': {'type': ['null', 'boolean']},
+        'updated_at': {'type': ['string', 'null'], 'format': 'date-time'},
+        'upper_bound': {'type': ['null', 'integer'], 'minimum': 0},
+        'value': {'type': 'string'},
+    },
+    # NOTE(stephenfin): The 'fields' parameter means only a minimal set of
+    # fields are required
+    'required': ['created_at', 'links', 'updated_at'],
+    'additionalProperties': False,
+}
+
+index_response_body = {
+    'type': 'object',
+    'properties': {
+        'bios': {
+            'type': 'array',
+            'items': copy.deepcopy(_bios_response_body),
+        },
+    },
+    'required': ['bios'],
+    'additionalProperties': False,
+}
+index_response_body_v74 = copy.deepcopy(index_response_body)
+index_response_body_v74['properties']['bios']['items'] = copy.deepcopy(
+    _bios_response_body_v74
+)
+
+show_response_body = {
+    'type': 'object',
+    'patternProperties': {
+        r'(?i)^[A-Z0-9-._~]+$': copy.deepcopy(_bios_response_body),
+    },
+    'minProperties': 1,
+    'maxProperties': 1,
+}
+show_response_body_v74 = copy.deepcopy(show_response_body)
+show_response_body_v74['patternProperties'][
+    r'(?i)^[A-Z0-9-._~]+$'
+] = copy.deepcopy(_bios_response_body_v74)

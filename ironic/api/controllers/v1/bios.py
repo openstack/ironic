@@ -75,6 +75,8 @@ class NodeBiosController(rest.RestController):
     @args.validate(fields=args.string_list, detail=args.boolean)
     @validation.request_query_schema(schema.index_request_query, None, 73)
     @validation.request_query_schema(schema.index_request_query_v74, 74)
+    @validation.response_body_schema(schema.index_response_body, None, 73)
+    @validation.response_body_schema(schema.index_response_body_v74, 74)
     def get_all(self, detail=None, fields=None):
         """List node bios settings."""
         node = api_utils.check_node_policy_and_retrieve(
@@ -97,6 +99,8 @@ class NodeBiosController(rest.RestController):
     @validation.api_version(min_version=versions.MINOR_40_BIOS_INTERFACE)
     @validation.request_parameter_schema(schema.show_request_parameter)
     @validation.request_query_schema(schema.show_request_query)
+    @validation.response_body_schema(schema.show_response_body, None, 73)
+    @validation.response_body_schema(schema.show_response_body_v74, 74)
     def get_one(self, setting_name):
         """Retrieve information about the given bios setting.
 
