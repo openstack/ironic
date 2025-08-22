@@ -595,6 +595,14 @@ class Connection(object, metaclass=abc.ABCMeta):
         """
 
     @abc.abstractmethod
+    def delete_conductor(self, hostname):
+        """Delete a conductor from the database.
+
+        :param hostname: The hostname of this conductor service.
+        :raises: ConductorNotFound if the conductor doesn't exist.
+        """
+
+    @abc.abstractmethod
     def touch_conductor(self, hostname, online=True):
         """Mark a conductor as active by updating its 'updated_at' property.
 

@@ -41,6 +41,7 @@ notifying Neutron of a change, etc.
 """
 
 import collections
+import datetime
 import queue
 import time
 
@@ -62,6 +63,7 @@ from ironic.common import network
 from ironic.common import nova
 from ironic.common import rpc
 from ironic.common import states
+from ironic.common import utils as common_utils
 from ironic.conductor import allocations
 from ironic.conductor import base_manager
 from ironic.conductor import cleaning
@@ -3838,6 +3840,116 @@ class ConductorManager(base_manager.BaseConductorManager):
         except Exception as e:
             LOG.error('Encountered error while cleaning node '
                       'history records: %s', e)
+
+    @METRICS.timer('ConductorManager.cleanup_stale_conductors')
+    @periodics.periodic(
+        spacing=CONF.conductor.conductor_cleanup_interval,
+        enabled=CONF.conductor.conductor_cleanup_interval > 0
+    )
+    def cleanup_stale_conductors(self, context):
+        """Periodically clean up stale conductors from the database.
+
+        This task removes conductors that have been offline for longer than
+        the configured timeout period. This helps prevent accumulation of
+        stale conductor records in the database.
+        """
+        try:
+            cleanup_timeout = CONF.conductor.conductor_cleanup_timeout
+            heartbeat_timeout = CONF.conductor.heartbeat_timeout
+
+            if heartbeat_timeout <= 0:
+                LOG.warning(
+                    'Skipping stale conductor cleanup due to invalid '
+                    'configuration: heartbeat_timeout is invalid (%s).',
+                    heartbeat_timeout
+                )
+                return
+
+            # We require conductor_cleanup_timeout to be at least 3x
+            # heartbeat_timeout to provide a significant safety margin.
+            # This ensures that active conductors won't be mistakenly
+            # removed from the database.
+            min_required = heartbeat_timeout * 3
+
+            if cleanup_timeout < min_required:
+                error_msg = _(
+                    'Skipping stale conductor cleanup due to invalid '
+                    'configuration: [conductor]conductor_cleanup_timeout '
+                    '(%(cleanup_timeout)s) must be at least 3x '
+                    '[conductor]heartbeat_timeout (%(heartbeat_timeout)s) '
+                    '(recommended minimum: %(min_required)s). This is '
+                    'required to prevent active conductors from being '
+                    'mistakenly removed.') % {
+                        'cleanup_timeout': cleanup_timeout,
+                        'heartbeat_timeout': heartbeat_timeout,
+                        'min_required': min_required}
+                LOG.warning(error_msg)
+                return
+
+            self._cleanup_stale_conductors(context)
+        except Exception as e:
+            LOG.error(
+                'Encountered error while cleaning up stale conductors: %s', e)
+
+    def _cleanup_stale_conductors(self, context):
+        """Clean up stale conductors from the database.
+
+        :param context: request context.
+        """
+        timeout = CONF.conductor.conductor_cleanup_timeout
+        batch_size = CONF.conductor.conductor_cleanup_batch_size
+
+        # Get conductors that have been offline for longer than the timeout
+        if not common_utils.is_ironic_using_sqlite():
+
+            # For non-SQLite databases, we need to check the updated_at
+            # timestamp because the database may be shared by multiple
+            # conductors and we want to avoid deleting records for conductors
+            # that may still be alive but have not updated their heartbeat
+            # recently enough.
+            limit = (timeutils.utcnow() - datetime.timedelta(seconds=timeout))
+            stale_conductors = self.dbapi.get_offline_conductors()
+
+            # Filter by timestamp
+            conductors_to_delete = []
+            for hostname in stale_conductors:
+                try:
+                    conductor = objects.Conductor.get_by_hostname(
+                        context, hostname, online=None)
+                    if conductor.updated_at < limit:
+                        conductors_to_delete.append(hostname)
+                        if len(conductors_to_delete) >= batch_size:
+                            break
+                except exception.ConductorNotFound:
+                    # Conductor was already deleted, skip
+                    continue
+        else:
+            # For SQLite, just get offline conductors
+            stale_conductors = self.dbapi.get_offline_conductors()
+            conductors_to_delete = stale_conductors[:batch_size]
+
+        if not conductors_to_delete:
+            return
+
+        LOG.info('Cleaning up %(count)d stale conductors: %(conductors)s',
+                 {'count': len(conductors_to_delete),
+                  'conductors': conductors_to_delete})
+
+        deleted_count = 0
+        for hostname in conductors_to_delete:
+            try:
+                self.dbapi.delete_conductor(hostname)
+                deleted_count += 1
+            except exception.ConductorNotFound:
+                # Conductor was already deleted by another process
+                continue
+            except Exception as e:
+                LOG.error('Failed to delete conductor %(hostname)s: %(error)s',
+                          {'hostname': hostname, 'error': e})
+
+        if deleted_count > 0:
+            LOG.info('Successfully cleaned up %(count)d stale conductors',
+                     {'count': deleted_count})
 
     def _manage_node_history(self, context):
         """Periodic task to keep the node history tidy."""

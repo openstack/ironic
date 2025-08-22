@@ -1458,6 +1458,41 @@ class Connection(api.Connection):
                 raise exception.ConductorNotFound(conductor=hostname)
 
     @oslo_db_api.retry_on_deadlock
+    def delete_conductor(self, hostname):
+        with _session_for_write() as session:
+
+            # Before deleting the conductor, we clear any node
+            # reservations to prevent nodes from being left in a reserved
+            # state by a non-existent conductor which could block other
+            # conductors from managing those nodes.
+            self.clear_node_reservations_for_conductor(hostname)
+
+            # Reset state to prevent transitional or inconsistent states and
+            # orphaned power state requests after deletion.
+            self.clear_node_target_power_state(hostname)
+
+            # Delete conductor hardware interfaces
+            query = sa.delete(models.ConductorHardwareInterfaces).where(
+                models.ConductorHardwareInterfaces.conductor_id == (
+                    session.query(models.Conductor.id).where(
+                        models.Conductor.hostname == hostname
+                    ).scalar_subquery()
+                )
+            )
+            session.execute(query)
+
+            query = sa.delete(models.Conductor).where(
+                models.Conductor.hostname == hostname
+            )
+            result = session.execute(query)
+            count = result.rowcount
+            if count == 0:
+                raise exception.ConductorNotFound(conductor=hostname)
+
+            LOG.info('Deleted conductor with hostname %(hostname)s',
+                     {'hostname': hostname})
+
+    @oslo_db_api.retry_on_deadlock
     def touch_conductor(self, hostname, online=True):
         with _session_for_write() as session:
             query = sa.update(models.Conductor).where(

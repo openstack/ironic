@@ -498,3 +498,60 @@ class DbConductorTestCase(base.DbTestCase):
         # default for all unit tests running.
         result = self.dbapi.list_hardware_type_interfaces([ht1, ht2])
         self.assertEqual(4, len(result))
+
+    def test_delete_conductor(self):
+        self.dbapi.register_conductor(
+            {'hostname': 'test-conductor',
+             'drivers': ['fake'],
+             'conductor_group': 'test-group'})
+
+        self.dbapi.get_conductor('test-conductor')
+        self.dbapi.delete_conductor('test-conductor')
+
+        self.assertRaises(exception.ConductorNotFound,
+                          self.dbapi.get_conductor, 'test-conductor')
+
+    def test_delete_conductor_not_found(self):
+        self.assertRaises(exception.ConductorNotFound,
+                          self.dbapi.delete_conductor,
+                          'fake-hostname')
+
+    def test_delete_conductor_clears_reservations(self):
+        self.dbapi.register_conductor(
+            {'hostname': 'test-conductor',
+             'drivers': ['fake'],
+             'conductor_group': 'test-group'})
+
+        node = self.dbapi.create_node({
+            'uuid': 'test-node-uuid',
+            'driver': 'fake',
+            'reservation': 'test-conductor'
+        })
+
+        self.assertEqual('test-conductor', node.reservation)
+        self.dbapi.delete_conductor('test-conductor')
+
+        node = self.dbapi.get_node_by_uuid('test-node-uuid')
+        self.assertIsNone(node.reservation)
+
+    def test_delete_conductor_clears_hardware_interfaces(self):
+        conductor = self.dbapi.register_conductor(
+            {'hostname': 'test-conductor',
+             'drivers': ['fake'],
+             'conductor_group': 'test-group'})
+
+        self.dbapi.register_conductor_hardware_interfaces(
+            conductor['id'],
+            [{'hardware_type': 'fake',
+              'interface_type': 'deploy',
+              'interface_name': 'direct',
+              'default': True}])
+
+        interfaces = self.dbapi.list_conductor_hardware_interfaces(
+            conductor['id'])
+        self.assertEqual(1, len(interfaces))
+
+        self.dbapi.delete_conductor('test-conductor')
+        interfaces = self.dbapi.list_conductor_hardware_interfaces(
+            conductor['id'])
+        self.assertEqual([], interfaces)

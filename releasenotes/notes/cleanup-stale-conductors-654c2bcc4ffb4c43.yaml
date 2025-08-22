@@ -1,0 +1,32 @@
+---
+features:
+  - |
+    Adds periodic cleanup of stale conductor entries from the database.
+    A new periodic task automatically removes conductor records that have
+    been offline for longer than the configured timeout period, helping
+    prevent accumulation of stale conductor entries.
+
+    Three new configuration options have been added to the ``[conductor]``
+    section:
+
+    * ``conductor_cleanup_interval`` - The interval in seconds of how often
+      to run the cleanup task (default: 86400 seconds - 1 day).
+      For example: 86400 seconds = 1 day, 604800 seconds = 1 week,
+      2592000 seconds = 30 days (approx. 1 month).
+    * ``conductor_cleanup_timeout`` - How long a conductor must be offline
+      before it's considered stale and eligible for cleanup
+      (default: 1209600 seconds - 2 weeks). This value is always required to be
+      at least 3x larger than ``[conductor]heartbeat_timeout`` since if
+      otherwise, active conductors might be mistakenly removed from the
+      database. The cleanup task will skip execution and log a warning if
+      this requirement is not met.
+    * ``conductor_cleanup_batch_size`` - Maximum number of stale conductors
+      to clean up in a single operation (default: 50).
+
+fixes:
+  - |
+    [`Bug 2069771 <https://bugs.launchpad.net/ironic/+bug/2069771>`_]
+    Fixes an issue where deleted or decommissioned conductors would remain
+    in ``openstack baremetal conductor list`` indefinitely with
+    ``Alive = False`` status. The new periodic cleanup task automatically
+    removes these stale entries after the configured timeout period.

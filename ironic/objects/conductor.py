@@ -147,6 +147,17 @@ class Conductor(base.IronicObject, object_base.VersionedObjectDictCompat):
         self.unregister_all_hardware_interfaces()
         self.dbapi.unregister_conductor(self.hostname)
 
+    @classmethod
+    def delete(cls, context, hostname):
+        """Delete a conductor from the database.
+
+        :param cls: the :class:`Conductor`
+        :param context: Security context
+        :param hostname: the hostname of the conductor to delete
+        :raises: ConductorNotFound if the conductor doesn't exist
+        """
+        cls.dbapi.delete_conductor(hostname)
+
     def register_hardware_interfaces(self, interfaces):
         """Register hardware interfaces with the conductor.
 
