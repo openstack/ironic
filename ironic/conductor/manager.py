@@ -1441,6 +1441,8 @@ class ConductorManager(base_manager.BaseConductorManager):
                                                  states.INSPECTWAIT,
                                                  states.CLEANHOLD,
                                                  states.DEPLOYHOLD,
+                                                 states.SERVICEWAIT,
+                                                 states.SERVICEHOLD,
                                                  states.SERVICEFAIL)):
                 self._do_abort(task)
                 return
@@ -1507,6 +1509,41 @@ class ConductorManager(base_manager.BaseConductorManager):
                 err_handler=utils.provisioning_error_handler,
                 target_state=target_state,
                 last_error=cleaning.get_last_error(node))
+            return
+
+        if node.provision_state in (states.SERVICEWAIT, states.SERVICEHOLD):
+            # Check if the service step is abortable; if so abort it.
+            # Otherwise, indicate in that service step, that servicing
+            # should be aborted after that step is done.
+            if (node.service_step and not
+                    node.service_step.get('abortable')):
+                LOG.info('The current service step "%(service_step)s" for '
+                         'node %(node)s is not abortable. Adding a '
+                         'flag to abort the servicing after the service '
+                         'step is completed.',
+                         {'service_step': node.service_step['step'],
+                          'node': node.uuid})
+                service_step = node.service_step
+                if not service_step.get('abort_after'):
+                    service_step['abort_after'] = True
+                    node.service_step = service_step
+                    node.save()
+                return
+
+            LOG.debug('Aborting the servicing operation during service step '
+                      '"%(step)s" for node %(node)s in provision state '
+                      '"%(prov)s".',
+                      {'node': node.uuid,
+                       'prov': node.provision_state,
+                       'step': node.service_step.get('step')})
+            # First transition to SERVICEFAIL
+            task.process_event('fail')
+            # Then abort from SERVICEFAIL to ACTIVE
+            task.process_event(
+                'abort',
+                callback=self._spawn_worker,
+                call_args=(servicing.do_node_service_abort, task),
+                err_handler=utils.provisioning_error_handler)
             return
 
         if node.provision_state == states.RESCUEWAIT:
