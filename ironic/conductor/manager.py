@@ -4308,9 +4308,14 @@ def handle_sync_power_state_max_retries_exceeded(task, actual_power_state,
     utils.node_history_record(task.node, event=msg,
                               event_type=states.MONITORING,
                               error=True)
-    node.maintenance = True
-    node.maintenance_reason = msg
-    node.fault = faults.POWER_FAILURE
+
+    # Only set maintenance and fault due to power sync failure if the node
+    # was not already placed into maintenance (e.g., by an administrator).
+    # This avoids auto-clearing admin-set maintenance during recovery.
+    if not node.maintenance:
+        node.maintenance = True
+        node.maintenance_reason = msg
+        node.fault = faults.POWER_FAILURE
     node.save()
     if old_power_state != actual_power_state:
         if node.instance_uuid:
