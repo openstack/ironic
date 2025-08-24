@@ -173,37 +173,39 @@ class RedfishInspectTestCase(db_base.DbTestCase):
             task.driver.inspect.inspect_hardware(task)
             self.assertEqual(1, mock_create_ports_if_not_exist.call_count)
             mock_get_system.assert_called_once_with(task.node)
-            self.assertEqual(expected_properties, task.node.properties)
 
-            inventory = inspect_utils.get_inspection_data(task.node,
-                                                          self.context)
+        self.node.refresh()
+        self.assertEqual(expected_properties, self.node.properties)
 
-            system_vendor = inventory['inventory']['system_vendor']
-            expected_product_name = 'System1'
-            expected_serial_number = '123456'
-            expected_manufacturer = 'Sushy Emulator'
-            self.assertEqual(expected_product_name,
-                             system_vendor['product_name'])
-            self.assertEqual(expected_serial_number,
-                             system_vendor['serial_number'])
-            self.assertEqual(expected_manufacturer,
-                             system_vendor['manufacturer'])
+        inventory = inspect_utils.get_inspection_data(self.node,
+                                                      self.context)
 
-            expected_interfaces = [{'mac_address': '00:11:22:33:44:55',
-                                    'name': 'NIC.Integrated.1-1'},
-                                   {'mac_address': '66:77:88:99:AA:BB',
-                                    'name': 'NIC.Integrated.2-1'}]
-            self.assertEqual(expected_interfaces,
-                             inventory['inventory']['interfaces'])
+        system_vendor = inventory['inventory']['system_vendor']
+        expected_product_name = 'System1'
+        expected_serial_number = '123456'
+        expected_manufacturer = 'Sushy Emulator'
+        self.assertEqual(expected_product_name,
+                         system_vendor['product_name'])
+        self.assertEqual(expected_serial_number,
+                         system_vendor['serial_number'])
+        self.assertEqual(expected_manufacturer,
+                         system_vendor['manufacturer'])
 
-            expected_cpu = {'count': 8, 'model_name': 'test',
-                            'frequency': 1234, 'architecture': 'x86_64'}
-            self.assertEqual(expected_cpu,
-                             inventory['inventory']['cpu'])
+        expected_interfaces = [{'mac_address': '00:11:22:33:44:55',
+                                'name': 'NIC.Integrated.1-1'},
+                               {'mac_address': '66:77:88:99:AA:BB',
+                                'name': 'NIC.Integrated.2-1'}]
+        self.assertEqual(expected_interfaces,
+                         inventory['inventory']['interfaces'])
 
-            expected_disks = [{'name': 'storage-drive', 'size': '128'}]
-            self.assertEqual(expected_disks,
-                             inventory["inventory"]['disks'])
+        expected_cpu = {'count': 8, 'model_name': 'test',
+                        'frequency': 1234, 'architecture': 'x86_64'}
+        self.assertEqual(expected_cpu,
+                         inventory['inventory']['cpu'])
+
+        expected_disks = [{'name': 'storage-drive', 'size': '128'}]
+        self.assertEqual(expected_disks,
+                         inventory["inventory"]['disks'])
 
     @mock.patch.object(redfish_utils, 'get_enabled_macs', autospec=True)
     @mock.patch.object(redfish_utils, 'get_system', autospec=True)
@@ -247,19 +249,22 @@ class RedfishInspectTestCase(db_base.DbTestCase):
         mock_processor = system_mock.processors.get_members.return_value[0]
         mock_processor.total_threads = 0
 
+        expected_properties = {
+            'capabilities': 'boot_mode:uefi',
+            'cpu_arch': 'x86_64', 'local_gb': '3', 'memory_mb': 2048
+        }
+
         with task_manager.acquire(self.context, self.node.uuid,
                                   shared=True) as task:
-            expected_properties = {
-                'capabilities': 'boot_mode:uefi',
-                'cpu_arch': 'x86_64', 'local_gb': '3', 'memory_mb': 2048
-            }
             task.driver.inspect.inspect_hardware(task)
-            self.assertEqual(expected_properties, task.node.properties)
 
-            inventory = inspect_utils.get_inspection_data(task.node,
-                                                          self.context)
-            self.assertIn('count', inventory['inventory']['cpu'])
-            self.assertEqual(0, inventory['inventory']['cpu']['count'])
+        self.node.refresh()
+        self.assertEqual(expected_properties, self.node.properties)
+
+        inventory = inspect_utils.get_inspection_data(self.node,
+                                                      self.context)
+        self.assertIn('count', inventory['inventory']['cpu'])
+        self.assertEqual(0, inventory['inventory']['cpu']['count'])
 
     @mock.patch.object(redfish_utils, 'get_enabled_macs', autospec=True)
     @mock.patch.object(redfish_utils, 'get_system', autospec=True)
@@ -269,19 +274,22 @@ class RedfishInspectTestCase(db_base.DbTestCase):
         mock_processor = system_mock.processors.get_members.return_value[0]
         mock_processor.model = None
 
+        expected_properties = {
+            'capabilities': 'boot_mode:uefi',
+            'cpu_arch': 'x86_64',
+            'local_gb': '3', 'memory_mb': 2048
+        }
+
         with task_manager.acquire(self.context, self.node.uuid,
                                   shared=True) as task:
-            expected_properties = {
-                'capabilities': 'boot_mode:uefi',
-                'cpu_arch': 'x86_64',
-                'local_gb': '3', 'memory_mb': 2048
-            }
             task.driver.inspect.inspect_hardware(task)
-            self.assertEqual(expected_properties, task.node.properties)
 
-            inventory = inspect_utils.get_inspection_data(task.node,
-                                                          self.context)
-            self.assertNotIn('model', inventory['inventory']['cpu'])
+        self.node.refresh()
+        self.assertEqual(expected_properties, self.node.properties)
+
+        inventory = inspect_utils.get_inspection_data(self.node,
+                                                      self.context)
+        self.assertNotIn('model', inventory['inventory']['cpu'])
 
     @mock.patch.object(redfish_utils, 'get_enabled_macs', autospec=True)
     @mock.patch.object(redfish_utils, 'get_system', autospec=True)
@@ -291,19 +299,22 @@ class RedfishInspectTestCase(db_base.DbTestCase):
         mock_processor = system_mock.processors.get_members.return_value[0]
         mock_processor.max_speed_mhz = None
 
+        expected_properties = {
+            'capabilities': 'boot_mode:uefi',
+            'cpu_arch': 'x86_64',
+            'local_gb': '3', 'memory_mb': 2048
+        }
+
         with task_manager.acquire(self.context, self.node.uuid,
                                   shared=True) as task:
-            expected_properties = {
-                'capabilities': 'boot_mode:uefi',
-                'cpu_arch': 'x86_64',
-                'local_gb': '3', 'memory_mb': 2048
-            }
             task.driver.inspect.inspect_hardware(task)
-            self.assertEqual(expected_properties, task.node.properties)
 
-            inventory = inspect_utils.get_inspection_data(task.node,
-                                                          self.context)
-            self.assertNotIn('frequency', inventory['inventory']['cpu'])
+        self.node.refresh()
+        self.assertEqual(expected_properties, self.node.properties)
+
+        inventory = inspect_utils.get_inspection_data(self.node,
+                                                      self.context)
+        self.assertNotIn('frequency', inventory['inventory']['cpu'])
 
     @mock.patch.object(redfish_utils, 'get_enabled_macs', autospec=True)
     @mock.patch.object(redfish_utils, 'get_system', autospec=True)
@@ -313,20 +324,23 @@ class RedfishInspectTestCase(db_base.DbTestCase):
         mock_processor = system_mock.processors.get_members.return_value[0]
         mock_processor.instruction_set = None
 
+        expected_properties = {
+            'capabilities': 'boot_mode:uefi',
+            'cpu_arch': '',
+            'local_gb': '3', 'memory_mb': 2048
+        }
+
         with task_manager.acquire(self.context, self.node.uuid,
                                   shared=True) as task:
-            expected_properties = {
-                'capabilities': 'boot_mode:uefi',
-                'cpu_arch': '',
-                'local_gb': '3', 'memory_mb': 2048
-            }
             task.driver.inspect.inspect_hardware(task)
-            self.assertEqual(expected_properties, task.node.properties)
 
-            inventory = inspect_utils.get_inspection_data(task.node,
-                                                          self.context)
-            self.assertIn('architecture', inventory['inventory']['cpu'])
-            self.assertEqual('', inventory['inventory']['cpu']['architecture'])
+        self.node.refresh()
+        self.assertEqual(expected_properties, self.node.properties)
+
+        inventory = inspect_utils.get_inspection_data(self.node,
+                                                      self.context)
+        self.assertIn('architecture', inventory['inventory']['cpu'])
+        self.assertEqual('', inventory['inventory']['cpu']['architecture'])
 
     @mock.patch.object(redfish_utils, 'get_enabled_macs', autospec=True)
     @mock.patch.object(redfish_utils, 'get_system', autospec=True)
@@ -336,15 +350,18 @@ class RedfishInspectTestCase(db_base.DbTestCase):
         system_mock.simple_storage.disks_sizes_bytes = None
         system_mock.storage.volumes_sizes_bytes = None
 
+        expected_properties = {
+            'capabilities': 'boot_mode:uefi',
+            'cpu_arch': 'x86_64',
+            'local_gb': '0', 'memory_mb': 2048
+        }
+
         with task_manager.acquire(self.context, self.node.uuid,
                                   shared=True) as task:
-            expected_properties = {
-                'capabilities': 'boot_mode:uefi',
-                'cpu_arch': 'x86_64',
-                'local_gb': '0', 'memory_mb': 2048
-            }
             task.driver.inspect.inspect_hardware(task)
-            self.assertEqual(expected_properties, task.node.properties)
+
+        self.node.refresh()
+        self.assertEqual(expected_properties, self.node.properties)
 
     @mock.patch.object(redfish_utils, 'get_enabled_macs', autospec=True)
     @mock.patch.object(redfish_utils, 'get_system', autospec=True)
@@ -354,19 +371,22 @@ class RedfishInspectTestCase(db_base.DbTestCase):
         system_mock.simple_storage = {}
         system_mock.storage = {}
 
+        expected_properties = {
+            'capabilities': 'boot_mode:uefi',
+            'cpu_arch': 'x86_64',
+            'local_gb': '0', 'memory_mb': 2048
+        }
+
         with task_manager.acquire(self.context, self.node.uuid,
                                   shared=True) as task:
-            expected_properties = {
-                'capabilities': 'boot_mode:uefi',
-                'cpu_arch': 'x86_64',
-                'local_gb': '0', 'memory_mb': 2048
-            }
             task.driver.inspect.inspect_hardware(task)
-            self.assertEqual(expected_properties, task.node.properties)
 
-            inventory = inspect_utils.get_inspection_data(task.node,
-                                                          self.context)
-            self.assertNotIn('disks', inventory['inventory'])
+        self.node.refresh()
+        self.assertEqual(expected_properties, self.node.properties)
+
+        inventory = inspect_utils.get_inspection_data(self.node,
+                                                      self.context)
+        self.assertNotIn('disks', inventory['inventory'])
 
     @mock.patch.object(redfish_utils, 'get_enabled_macs', autospec=True)
     @mock.patch.object(redfish_utils, 'get_system', autospec=True)
@@ -375,19 +395,22 @@ class RedfishInspectTestCase(db_base.DbTestCase):
         system_mock = self.init_system_mock(mock_get_system.return_value)
         system_mock.simple_storage = {}
 
+        expected_properties = {
+            'capabilities': 'boot_mode:uefi',
+            'cpu_arch': 'x86_64',
+            'local_gb': '3', 'memory_mb': 2048
+        }
+
         with task_manager.acquire(self.context, self.node.uuid,
                                   shared=True) as task:
-            expected_properties = {
-                'capabilities': 'boot_mode:uefi',
-                'cpu_arch': 'x86_64',
-                'local_gb': '3', 'memory_mb': 2048
-            }
             task.driver.inspect.inspect_hardware(task)
-            self.assertEqual(expected_properties, task.node.properties)
 
-            inventory = inspect_utils.get_inspection_data(task.node,
-                                                          self.context)
-            self.assertIn('disks', inventory['inventory'])
+        self.node.refresh()
+        self.assertEqual(expected_properties, self.node.properties)
+
+        inventory = inspect_utils.get_inspection_data(self.node,
+                                                      self.context)
+        self.assertIn('disks', inventory['inventory'])
 
     @mock.patch.object(redfish_utils, 'get_enabled_macs', autospec=True)
     @mock.patch.object(redfish_utils, 'get_system', autospec=True)
@@ -396,19 +419,22 @@ class RedfishInspectTestCase(db_base.DbTestCase):
         system_mock = self.init_system_mock(mock_get_system.return_value)
         system_mock.storage = {}
 
+        expected_properties = {
+            'capabilities': 'boot_mode:uefi',
+            'cpu_arch': 'x86_64',
+            'local_gb': '4', 'memory_mb': 2048
+        }
+
         with task_manager.acquire(self.context, self.node.uuid,
                                   shared=True) as task:
-            expected_properties = {
-                'capabilities': 'boot_mode:uefi',
-                'cpu_arch': 'x86_64',
-                'local_gb': '4', 'memory_mb': 2048
-            }
             task.driver.inspect.inspect_hardware(task)
-            self.assertEqual(expected_properties, task.node.properties)
 
-            inventory = inspect_utils.get_inspection_data(task.node,
-                                                          self.context)
-            self.assertIn('disks', inventory['inventory'])
+        self.node.refresh()
+        self.assertEqual(expected_properties, self.node.properties)
+
+        inventory = inspect_utils.get_inspection_data(self.node,
+                                                      self.context)
+        self.assertIn('disks', inventory['inventory'])
 
     @mock.patch.object(redfish_utils, 'get_system', autospec=True)
     def test_inspect_hardware_fail_missing_memory_mb(self, mock_get_system):
@@ -428,19 +454,22 @@ class RedfishInspectTestCase(db_base.DbTestCase):
         system_mock = self.init_system_mock(mock_get_system.return_value)
         system_mock.memory_summary.size_gib = None
 
+        expected_properties = {
+            'capabilities': 'boot_mode:uefi',
+            'cpu_arch': 'x86_64',
+            'local_gb': '3', 'memory_mb': '4096'
+        }
+
         with task_manager.acquire(self.context, self.node.uuid,
                                   shared=True) as task:
-            expected_properties = {
-                'capabilities': 'boot_mode:uefi',
-                'cpu_arch': 'x86_64',
-                'local_gb': '3', 'memory_mb': '4096'
-            }
             task.driver.inspect.inspect_hardware(task)
-            self.assertEqual(expected_properties, task.node.properties)
 
-            inventory = inspect_utils.get_inspection_data(task.node,
-                                                          self.context)
-            self.assertNotIn('memory', inventory['inventory'])
+        self.node.refresh()
+        self.assertEqual(expected_properties, self.node.properties)
+
+        inventory = inspect_utils.get_inspection_data(self.node,
+                                                      self.context)
+        self.assertNotIn('memory', inventory['inventory'])
 
     @mock.patch.object(redfish_utils, 'get_system', autospec=True)
     @mock.patch.object(inspect_utils, 'create_ports_if_not_exist',
@@ -466,9 +495,11 @@ class RedfishInspectTestCase(db_base.DbTestCase):
         with task_manager.acquire(self.context, self.node.uuid,
                                   shared=True) as task:
             task.driver.inspect.inspect_hardware(task)
-            inventory = inspect_utils.get_inspection_data(task.node,
-                                                          self.context)
-            self.assertIn('cpu', inventory['inventory'])
+
+        self.node.refresh()
+        inventory = inspect_utils.get_inspection_data(self.node,
+                                                      self.context)
+        self.assertIn('cpu', inventory['inventory'])
 
     @mock.patch.object(redfish_utils, 'get_enabled_macs', autospec=True)
     @mock.patch.object(redfish_utils, 'get_system', autospec=True)
@@ -476,25 +507,28 @@ class RedfishInspectTestCase(db_base.DbTestCase):
                                                  mock_get_enabled_macs):
         self.init_system_mock(mock_get_system.return_value)
 
+        expected_properties = {
+            'capabilities': 'boot_mode:bios',
+            'cpu_arch': 'x86_64',
+            'local_gb': '3', 'memory_mb': 2048
+        }
+
         with task_manager.acquire(self.context, self.node.uuid,
                                   shared=True) as task:
             task.node.properties = {
                 'capabilities': 'boot_mode:bios'
             }
-            expected_properties = {
-                'capabilities': 'boot_mode:bios',
-                'cpu_arch': 'x86_64',
-                'local_gb': '3', 'memory_mb': 2048
-            }
 
             task.driver.inspect.inspect_hardware(task)
-            self.assertEqual(expected_properties, task.node.properties)
 
-            inventory = inspect_utils.get_inspection_data(task.node,
-                                                          self.context)
-            expected_boot_mode = {'current_boot_mode': 'uefi'}
-            self.assertEqual(expected_boot_mode,
-                             inventory['inventory']['boot'])
+        self.node.refresh()
+        self.assertEqual(expected_properties, self.node.properties)
+
+        inventory = inspect_utils.get_inspection_data(self.node,
+                                                      self.context)
+        expected_boot_mode = {'current_boot_mode': 'uefi'}
+        self.assertEqual(expected_boot_mode,
+                         inventory['inventory']['boot'])
 
     @mock.patch.object(redfish_utils, 'get_enabled_macs', autospec=True)
     @mock.patch.object(redfish_utils, 'get_system', autospec=True)
@@ -510,10 +544,12 @@ class RedfishInspectTestCase(db_base.DbTestCase):
                 'local_gb': '3', 'memory_mb': 2048
             }
             task.driver.inspect.inspect_hardware(task)
-            self.assertEqual(expected_properties, task.node.properties)
-            inventory = inspect_utils.get_inspection_data(task.node,
-                                                          self.context)
-            self.assertNotIn('boot', inventory['inventory'])
+
+        self.node.refresh()
+        self.assertEqual(expected_properties, self.node.properties)
+        inventory = inspect_utils.get_inspection_data(self.node,
+                                                      self.context)
+        self.assertNotIn('boot', inventory['inventory'])
 
     @mock.patch.object(redfish_utils, 'get_enabled_macs', autospec=True)
     @mock.patch.object(objects.Port, 'list_by_node_id') # noqa
@@ -667,9 +703,10 @@ class RedfishInspectTestCase(db_base.DbTestCase):
         with task_manager.acquire(self.context, self.node.uuid,
                                   shared=True) as task:
             task.driver.inspect.inspect_hardware(task)
-            inventory = inspect_utils.get_inspection_data(task.node,
-                                                          self.context)
-            self.assertNotIn('system_vendor', inventory['inventory'])
+
+        inventory = inspect_utils.get_inspection_data(self.node,
+                                                      self.context)
+        self.assertNotIn('system_vendor', inventory['inventory'])
 
     def test_get_pxe_port_macs(self):
         expected_properties = None
