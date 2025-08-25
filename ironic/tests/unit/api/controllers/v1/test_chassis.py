@@ -458,7 +458,7 @@ class TestPatch(test_api_base.BaseApiTest):
         response = self.patch_json('/chassis/%s/nodes' % chassis.uuid,
                                    [{'path': '/extra/foo', 'value': 'bar',
                                      'op': 'add'}], expect_errors=True)
-        self.assertEqual(http_client.FORBIDDEN, response.status_int)
+        self.assertEqual(http_client.BAD_REQUEST, response.status_int)
 
     def test_remove_uuid(self):
         chassis = obj_utils.get_test_chassis(self.context)
@@ -544,7 +544,7 @@ class TestPost(test_api_base.BaseApiTest):
         ndict['chassis_uuid'] = chassis.uuid
         response = self.post_json('/chassis/nodes', ndict,
                                   expect_errors=True)
-        self.assertEqual(http_client.FORBIDDEN, response.status_int)
+        self.assertEqual(http_client.BAD_REQUEST, response.status_int)
 
     def test_create_chassis_valid_extra(self):
         cdict = apiutils.chassis_post_data(extra={'str': 'foo', 'int': 123,
@@ -629,4 +629,4 @@ class TestDelete(test_api_base.BaseApiTest):
         chassis = obj_utils.create_test_chassis(self.context)
         response = self.delete('/chassis/%s/nodes' % chassis.uuid,
                                expect_errors=True)
-        self.assertEqual(http_client.FORBIDDEN, response.status_int)
+        self.assertEqual(http_client.BAD_REQUEST, response.status_int)

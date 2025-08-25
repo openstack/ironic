@@ -364,7 +364,7 @@ class PortgroupsController(pecan.rest.RestController):
             'baremetal:portgroup:get', portgroup_ident, portgroup=True)
 
         if self.parent_node_ident:
-            raise exception.OperationNotPermitted()
+            raise exception.Invalid(_("Malformed request URI."))
 
         api_utils.check_allowed_portgroup_fields(fields)
 
@@ -411,7 +411,7 @@ class PortgroupsController(pecan.rest.RestController):
         context = api.request.context
 
         if self.parent_node_ident:
-            raise exception.OperationNotPermitted()
+            raise exception.Invalid(_("Malformed request URI."))
 
         if (not api_utils.allow_portgroup_mode_properties()
                 and (portgroup.get('mode') or portgroup.get('properties'))):
@@ -462,7 +462,7 @@ class PortgroupsController(pecan.rest.RestController):
             'baremetal:portgroup:update', portgroup_ident, portgroup=True)
 
         if self.parent_node_ident:
-            raise exception.OperationNotPermitted()
+            raise exception.Invalid(_("Malformed request URI."))
 
         if (not api_utils.allow_portgroup_mode_properties()
                 and (api_utils.is_path_updated(patch, '/mode')
@@ -554,7 +554,7 @@ class PortgroupsController(pecan.rest.RestController):
         context = api.request.context
 
         if self.parent_node_ident:
-            raise exception.OperationNotPermitted()
+            raise exception.Invalid(_("Malformed request URI."))
 
         notify.emit_start_notification(context, rpc_portgroup, 'delete',
                                        node_uuid=rpc_node.uuid)

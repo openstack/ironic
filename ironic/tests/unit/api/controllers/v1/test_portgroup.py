@@ -410,7 +410,7 @@ class TestListPortgroups(test_api_base.BaseApiTest):
             '/portgroups/%s/ports/%s' % (pg.uuid, uuidutils.generate_uuid()),
             headers={api_base.Version.string: str(api_v1.max_version())},
             expect_errors=True)
-        self.assertEqual(http_client.FORBIDDEN, response.status_int)
+        self.assertEqual(http_client.BAD_REQUEST, response.status_int)
 
     def test_ports_subresource_no_portgroups_allowed(self):
         pg = obj_utils.create_test_portgroup(self.context,

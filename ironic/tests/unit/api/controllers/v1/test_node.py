@@ -3170,7 +3170,7 @@ class TestPatch(test_api_base.BaseApiTest):
             self.node.uuid,
             [{'path': '/extra/foo', 'value': 'bar',
               'op': 'add'}], expect_errors=True)
-        self.assertEqual(http_client.FORBIDDEN, response.status_int)
+        self.assertEqual(http_client.BAD_REQUEST, response.status_int)
 
     def test_patch_portgroups_subresource(self):
         response = self.patch_json(
@@ -3179,7 +3179,7 @@ class TestPatch(test_api_base.BaseApiTest):
             [{'path': '/extra/foo', 'value': 'bar',
               'op': 'add'}], expect_errors=True,
             headers={'X-OpenStack-Ironic-API-Version': '1.24'})
-        self.assertEqual(http_client.FORBIDDEN, response.status_int)
+        self.assertEqual(http_client.BAD_REQUEST, response.status_int)
 
     def test_patch_volume_connectors_subresource_no_connector_id(self):
         response = self.patch_json(
@@ -3199,7 +3199,7 @@ class TestPatch(test_api_base.BaseApiTest):
             [{'path': '/extra/foo', 'value': 'bar', 'op': 'add'}],
             expect_errors=True,
             headers={api_base.Version.string: str(api_v1.max_version())})
-        self.assertEqual(http_client.FORBIDDEN, response.status_int)
+        self.assertEqual(http_client.BAD_REQUEST, response.status_int)
 
     def test_patch_volume_targets_subresource(self):
         target = obj_utils.create_test_volume_target(self.context,
@@ -3210,7 +3210,7 @@ class TestPatch(test_api_base.BaseApiTest):
             [{'path': '/extra/foo', 'value': 'bar', 'op': 'add'}],
             expect_errors=True,
             headers={api_base.Version.string: str(api_v1.max_version())})
-        self.assertEqual(http_client.FORBIDDEN, response.status_int)
+        self.assertEqual(http_client.BAD_REQUEST, response.status_int)
 
     def test_remove_uuid(self):
         response = self.patch_json('/nodes/%s' % self.node.uuid,
@@ -4933,7 +4933,7 @@ class TestPost(test_api_base.BaseApiTest):
         pdict['node_uuid'] = node.uuid
         response = self.post_json('/nodes/%s/ports' % node.uuid, pdict,
                                   expect_errors=True)
-        self.assertEqual(http_client.FORBIDDEN, response.status_int)
+        self.assertEqual(http_client.BAD_REQUEST, response.status_int)
 
     def test_post_portgroups_subresource(self):
         node = obj_utils.create_test_node(self.context)
@@ -4942,7 +4942,7 @@ class TestPost(test_api_base.BaseApiTest):
         response = self.post_json(
             '/nodes/%s/portgroups' % node.uuid, pgdict, expect_errors=True,
             headers={'X-OpenStack-Ironic-API-Version': '1.24'})
-        self.assertEqual(http_client.FORBIDDEN, response.status_int)
+        self.assertEqual(http_client.BAD_REQUEST, response.status_int)
 
     def test_post_volume_connectors_subresource_no_node_id(self):
         node = obj_utils.create_test_node(self.context)
@@ -4962,7 +4962,7 @@ class TestPost(test_api_base.BaseApiTest):
             '/nodes/%s/volume/connectors' % node.uuid, pdict,
             expect_errors=True,
             headers={api_base.Version.string: str(api_v1.max_version())})
-        self.assertEqual(http_client.FORBIDDEN, response.status_int)
+        self.assertEqual(http_client.BAD_REQUEST, response.status_int)
 
     def test_post_volume_targets_subresource(self):
         node = obj_utils.create_test_node(self.context)
@@ -4972,7 +4972,7 @@ class TestPost(test_api_base.BaseApiTest):
             '/nodes/%s/volume/targets' % node.uuid, pdict,
             expect_errors=True,
             headers={api_base.Version.string: str(api_v1.max_version())})
-        self.assertEqual(http_client.FORBIDDEN, response.status_int)
+        self.assertEqual(http_client.BAD_REQUEST, response.status_int)
 
     def test_create_node_no_mandatory_field_driver(self):
         ndict = test_api_utils.post_get_test_node()
@@ -5367,7 +5367,7 @@ class TestDelete(test_api_base.BaseApiTest):
             '/nodes/%(node_uuid)s/ports/%(port_uuid)s' %
             {'node_uuid': node.uuid, 'port_uuid': port.uuid},
             expect_errors=True)
-        self.assertEqual(http_client.FORBIDDEN, response.status_int)
+        self.assertEqual(http_client.BAD_REQUEST, response.status_int)
 
     def test_delete_portgroup_subresource(self):
         node = obj_utils.create_test_node(self.context)
@@ -5377,7 +5377,7 @@ class TestDelete(test_api_base.BaseApiTest):
             {'node_uuid': node.uuid, 'pg_uuid': pg.uuid},
             expect_errors=True,
             headers={'X-OpenStack-Ironic-API-Version': '1.24'})
-        self.assertEqual(http_client.FORBIDDEN, response.status_int)
+        self.assertEqual(http_client.BAD_REQUEST, response.status_int)
 
     def test_delete_volume_connectors_subresource_no_connector_id(self):
         node = obj_utils.create_test_node(self.context)
@@ -5395,7 +5395,7 @@ class TestDelete(test_api_base.BaseApiTest):
             '/nodes/%s/volume/connectors/%s' % (node.uuid, connector.uuid),
             expect_errors=True,
             headers={api_base.Version.string: str(api_v1.max_version())})
-        self.assertEqual(http_client.FORBIDDEN, response.status_int)
+        self.assertEqual(http_client.BAD_REQUEST, response.status_int)
 
     def test_delete_volume_targets_subresource(self):
         node = obj_utils.create_test_node(self.context)
@@ -5405,7 +5405,7 @@ class TestDelete(test_api_base.BaseApiTest):
             '/nodes/%s/volume/targets/%s' % (node.uuid, target.uuid),
             expect_errors=True,
             headers={api_base.Version.string: str(api_v1.max_version())})
-        self.assertEqual(http_client.FORBIDDEN, response.status_int)
+        self.assertEqual(http_client.BAD_REQUEST, response.status_int)
 
     @mock.patch.object(notification_utils, '_emit_api_notification',
                        autospec=True)
