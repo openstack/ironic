@@ -24,7 +24,8 @@ from ironic.common import i18n  # noqa
 # NOTE(TheJulia): We are setting a default thread stack size for all the
 # following thread invocations. Ultimately, while the python minimum is
 # any positive number with a minimum of 32768 Bytes, in 4096 Byte
-# increments, this appears to work well in basic benchmarking.
+# increments. On some distributions/kernel configs this value can be
+# smaller, however, this works on every tested linux distribution.
 threading.stack_size(
-    int(os.environ.get('IRONIC_THREAD_STACK_SIZE', 65536)))
+    int(os.environ.get('IRONIC_THREAD_STACK_SIZE', 131072)))
 i18n.install('ironic')
