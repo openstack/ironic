@@ -9370,6 +9370,32 @@ class VirtualMediaTestCase(mgr_utils.ServiceSetUpMixin, db_base.DbTestCase):
         self.assertIn("Could not attach device cdrom", self.node.last_error)
         self.assertIn("disabled or not implemented", self.node.last_error)
 
+    @mock.patch.object(redfish.management.RedfishManagement, 'validate',
+                       autospec=True)
+    def test_attach_virtual_media_power_failure(self, mock_validate):
+        CONF.set_override('use_swift', 'false', group='redfish')
+        self.node.maintenance = True
+        self.node.fault = faults.POWER_FAILURE
+        self.node.save()
+        self.assertRaises(
+            exception.TemporaryFailure,
+            self.service.attach_virtual_media, self.context, self.node.id,
+            boot_devices.CDROM, 'https://url')
+        mock_validate.assert_called_once_with(mock.ANY, mock.ANY)
+
+    @mock.patch.object(redfish.management.RedfishManagement, 'validate',
+                       autospec=True)
+    def test_detach_virtual_media_power_failure(self, mock_validate):
+        CONF.set_override('use_swift', 'false', group='redfish')
+        self.node.maintenance = True
+        self.node.fault = faults.POWER_FAILURE
+        self.node.save()
+        self.assertRaises(
+            exception.TemporaryFailure,
+            self.service.attach_virtual_media, self.context, self.node.id,
+            boot_devices.CDROM, 'https://url')
+        mock_validate.assert_called_once_with(mock.ANY, mock.ANY)
+
 
 class ConductorCleanupTestCase(mgr_utils.ServiceSetUpMixin,
                                db_base.DbTestCase):

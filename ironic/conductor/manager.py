@@ -4195,6 +4195,13 @@ class ConductorManager(base_manager.BaseConductorManager):
         with task_manager.acquire(context, node_id, shared=False,
                                   purpose='attaching virtual media') as task:
             task.driver.management.validate(task)
+
+            if (task.node.maintenance
+                    and task.node.fault == faults.POWER_FAILURE):
+                raise exception.TemporaryFailure(
+                    'Unable to attach virtual media for node %s due to power '
+                    'failure state' % task.node.uuid)
+
             # Starting new operation, so clear the previous error.
             # We'll be putting an error here soon if we fail task.
             task.node.last_error = None
@@ -4230,6 +4237,13 @@ class ConductorManager(base_manager.BaseConductorManager):
         with task_manager.acquire(context, node_id, shared=False,
                                   purpose='detaching virtual media') as task:
             task.driver.management.validate(task)
+
+            if (task.node.maintenance
+                    and task.node.fault == faults.POWER_FAILURE):
+                raise exception.TemporaryFailure(
+                    'Unable to detach virtual media for node %s due to power '
+                    'failure state' % task.node.uuid)
+
             # Starting new operation, so clear the previous error.
             # We'll be putting an error here soon if we fail task.
             task.node.last_error = None
