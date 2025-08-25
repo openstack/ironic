@@ -164,8 +164,6 @@ def get_inspection_data(node, context):
     :raises: NodeInventoryNotFound if no inventory has been saved
     """
     store_data = CONF.inventory.data_backend
-    if store_data == 'none':
-        raise exception.NodeInventoryNotFound(node=node.uuid)
     if store_data == 'database':
         node_inventory = objects.NodeInventory.get_by_node_id(
             context, node.id)
@@ -176,6 +174,8 @@ def get_inspection_data(node, context):
             return _get_inspection_data_from_swift(node.uuid)
         except exception.SwiftObjectNotFoundError:
             raise exception.NodeInventoryNotFound(node=node.uuid)
+    # all other cases should not return any data
+    raise exception.NodeInventoryNotFound(node=node.uuid)
 
 
 def _store_inspection_data_in_swift(node_uuid, inventory_data, plugin_data):
