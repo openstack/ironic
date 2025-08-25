@@ -78,3 +78,5 @@ class AcceleratorsHook(base.InspectionHook):
         else:
             LOG.info('No known accelerator devices found for node %s',
                      task.node.uuid)
+            task.node.set_property('accelerators', accelerators)
+            task.node.save()
