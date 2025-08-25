@@ -30,6 +30,7 @@ from ironic.api import hooks
 from ironic.api import middleware
 from ironic.api.middleware import auth_public_routes
 from ironic.api.middleware import json_ext
+from ironic.api.middleware import request_log
 from ironic.common import auth_basic
 from ironic.common import exception
 from ironic.conf import CONF
@@ -138,6 +139,9 @@ def setup_app(pecan_config=None, extra_hooks=None):
     )
 
     app = json_ext.JsonExtensionMiddleware(app)
+
+    # Add request logging middleware
+    app = request_log.RequestLogMiddleware(app)
 
     return app
 
