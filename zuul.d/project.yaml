@@ -76,8 +76,6 @@
             voting: false
         - bifrost-integration-redfish-vmedia-uefi-centos-9:
             voting: false
-        - ironic-tempest-uefi-redfish-vmedia-4k:
-            voting: false
     gate:
       jobs:
         - ironic-tox-unit-mysql-migrations
@@ -103,7 +101,7 @@
         - ironic-tempest-bios-ipmi-direct-tinyipa
         - ironic-tempest-bfv
         - ironic-tempest-ipa-partition-uefi-pxe-grub2
-        # - ironic-tempest-uefi-redfish-vmedia-4k
+        - ironic-tempest-uefi-redfish-vmedia-4k
         # NOTE(rpittau): Currently broken because of an issue with parted
         #- metalsmith-integration-glance-centos9-uefi
         # NOTE(TheJulia): At present, metal3 doesn't leverage
