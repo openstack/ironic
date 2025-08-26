@@ -1908,7 +1908,7 @@ class TestPatch(test_api_base.BaseApiTest):
             {'portgroup': portgroup.uuid, 'port': port.uuid},
             [{'path': '/address', 'value': '00:00:00:00:00:00',
               'op': 'replace'}], headers=headers, expect_errors=True)
-        self.assertEqual(http_client.FORBIDDEN, response.status_int)
+        self.assertEqual(http_client.BAD_REQUEST, response.status_int)
         self.assertEqual('application/json', response.content_type)
 
     def test_update_in_inspecting_not_allowed(self, mock_upd):
@@ -2448,7 +2448,7 @@ class TestPost(test_api_base.BaseApiTest):
         response = self.post_json('/portgroups/%s/ports' % self.portgroup.uuid,
                                   pdict, headers=headers, expect_errors=True)
         self.assertEqual('application/json', response.content_type)
-        self.assertEqual(http_client.FORBIDDEN, response.status_int)
+        self.assertEqual(http_client.BAD_REQUEST, response.status_int)
         self.assertFalse(mock_create.called)
 
     def _test_create_port(self, mock_create, in_portgroup=False,
@@ -2711,5 +2711,5 @@ class TestDelete(test_api_base.BaseApiTest):
             '/portgroups/%(portgroup)s/ports/%(port)s' %
             {'portgroup': portgroup.uuid, 'port': port.uuid},
             headers=headers, expect_errors=True)
-        self.assertEqual(http_client.FORBIDDEN, response.status_int)
+        self.assertEqual(http_client.BAD_REQUEST, response.status_int)
         self.assertEqual('application/json', response.content_type)

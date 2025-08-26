@@ -2870,7 +2870,7 @@ class NodesController(rest.RestController):
             of the resource to be returned.
         """
         if self.from_chassis:
-            raise exception.OperationNotPermitted()
+            raise exception.Invalid(_("Malformed request URI."))
 
         rpc_node = api_utils.check_node_policy_and_retrieve(
             'baremetal:node:get', node_ident, with_suffix=True)
@@ -2896,7 +2896,7 @@ class NodesController(rest.RestController):
            :language: javascript
         """
         if self.from_chassis:
-            raise exception.OperationNotPermitted()
+            raise exception.Invalid(_("Malformed request URI."))
 
         node_capabilities = node.get('properties', {}).get('capabilities', '')
         # ``check_allow_boot_mode`` expects ``node_capabilities`` to be a list
@@ -2997,7 +2997,7 @@ class NodesController(rest.RestController):
     def _validate_patch(self, patch, reset_interfaces):
         corrected_values = {}
         if self.from_chassis:
-            raise exception.OperationNotPermitted()
+            raise exception.Invalid(_("Malformed request URI."))
 
         node_capabilities = api_utils.get_patch_values(
             patch, '/properties/capabilities')
@@ -3253,7 +3253,7 @@ class NodesController(rest.RestController):
             raise exception.NotFound()
 
         if self.from_chassis:
-            raise exception.OperationNotPermitted()
+            raise exception.Invalid(_("Malformed request URI."))
 
         context = api.request.context
         try:
