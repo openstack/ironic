@@ -1,0 +1,25 @@
+---
+- name: IrSO Functional Tests
+  hosts: all
+  vars:
+    local_install_path: /usr/local
+    logdir: "{{ ansible_user_dir }}/metal3-logs"
+  environment:
+    CLUSTER_TYPE: minikube
+    CONTAINER_RUNTIME: docker
+    IRONIC_CUSTOM_IMAGE: localhost/ironic:test
+    IRONIC_CUSTOM_VERSION: latest
+    IRONIC_SOURCE: "{{ ansible_user_dir }}/{{ zuul.projects['opendev.org/openstack/ironic'].src_dir }}"
+    LOGDIR: "{{ logdir }}"
+    PATH: "{{ local_install_path }}/go/bin:{{ local_install_path }}/bin:{{ ansible_env.PATH }}"
+    JUNIT_OUTPUT: "{{ logdir }}/report.xml"
+
+  tasks:
+    - name: Prepare tests
+      command: "{{ irso_source }}/test/prepare.sh"
+
+    - name: Build and load the image
+      command: "{{ ironic_image_source }}/hack/prepare-irso-tests.sh"
+
+    - name: Run tests
+      command: "{{ irso_source }}/test/run.sh"

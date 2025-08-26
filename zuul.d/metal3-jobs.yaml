@@ -4,12 +4,9 @@
     abstract: true
     description: Base job for metal3-dev-env based ironic jobs.
     nodeset: ironic-single-node-noble
-    run: playbooks/metal3-ci/run.yaml
-    post-run: playbooks/metal3-ci/post.yaml
     timeout: 5400
     required-projects:
       - opendev.org/openstack/ironic
-      - opendev.org/openstack/ironic-inspector
     irrelevant-files:
       - ^.*\.rst$
       - ^api-ref/.*$
@@ -18,8 +15,6 @@
       - ^install-guide/.*$
       - ^ironic/locale/.*$
       - ^ironic/tests/.*$
-      - ^ironic_inspector/locale/.*$
-      - ^ironic_inspector/test/.*$
       - ^releasenotes/.*$
       - ^setup.cfg$
       - ^test-requirements.txt$
@@ -29,3 +24,34 @@
     name: metal3-integration
     description: Run metal3 CI on ironic.
     parent: metal3-base
+    run: playbooks/metal3-ci/run.yaml
+    post-run: playbooks/metal3-ci/post.yaml
+
+- job:
+    name: metal3-ironic-standalone-operator-functional
+    description: |
+      Ironic Standalone Operator functional tests.
+
+      These tests set up a Minikube cluster and create Ironic installations in
+      various configurations supported by IrSO. The operator itself is only
+      installed once, its logs are saved in the "controller" directory. Each
+      test gets its own logs directory based on its name. This directory
+      contains logs from all created pods, as well as dumps of various helpful
+      Kubernetes resources.
+
+      Upgrade tests are not currently run by this job because it uses a custom
+      ironic-image container.
+    parent: metal3-base
+    pre-run: playbooks/irso-ci/pre.yaml
+    run: playbooks/irso-ci/run.yaml
+    post-run: playbooks/irso-ci/post.yaml
+    timeout: 7200
+    nodeset: ironic-single-node-noble
+    required-projects:
+      - opendev.org/openstack/ironic
+      # FIXME(dtantsur): add these to zuul config and stop cloning manually
+      # - github.com/metal3-io/ironic-image
+      # - github.com/metal3-io/ironic-standalone-operator
+    vars:
+      ironic_image_source: "{{ ansible_user_dir }}/ironic-image"
+      irso_source: "{{ ansible_user_dir }}/ironic-standalone-operator"
