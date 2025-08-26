@@ -58,7 +58,7 @@ On Ubuntu_/Debian:
 
 .. include:: include/configure-ironic-api.inc
 
-.. include:: include/configure-ironic-api-mod_wsgi.inc
+.. include:: include/configure-ironic-api-wsgi.inc
 
 .. include:: include/configure-ironic-conductor.inc
 

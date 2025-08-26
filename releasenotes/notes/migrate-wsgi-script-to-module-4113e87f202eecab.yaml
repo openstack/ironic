@@ -1,0 +1,27 @@
+---
+upgrade:
+  - |
+    The ``wsgi_scripts`` entry point ``ironic-api-wsgi`` has been removed
+    from ``setup.cfg``. WSGI servers should now use the module path
+    ``ironic.wsgi:application`` directly instead of the generated script.
+    This change aligns with the OpenStack goal to migrate from WSGI scripts
+    to module paths and is compatible with modern Python packaging tools.
+
+    For example, with gunicorn::
+
+        gunicorn ironic.wsgi:application
+
+    Or with uwsgi::
+
+        [uwsgi]
+        module = ironic.wsgi:application
+  - |
+    The Apache mod_wsgi sample configuration has been removed. Operators
+    should use modern WSGI servers like uWSGI or Gunicorn instead, which
+    provide better performance and are simpler to configure. See the
+    updated deployment documentation for examples.
+deprecations:
+  - |
+    While the legacy ``ironic.api.wsgi:initialize_wsgi_app()`` function
+    remains available for backward compatibility, new deployments should
+    use ``ironic.wsgi:application`` instead.
