@@ -377,8 +377,6 @@ def check_dir(directory_to_check=None, required_space=1):
     if directory_to_check is None:
         directory_to_check = CONF.tempdir
 
-    LOG.debug("checking directory: %s", directory_to_check)
-
     if not os.path.exists(directory_to_check):
         raise exception.PathNotFound(dir=directory_to_check)
 
