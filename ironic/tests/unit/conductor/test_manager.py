@@ -9392,8 +9392,8 @@ class VirtualMediaTestCase(mgr_utils.ServiceSetUpMixin, db_base.DbTestCase):
         self.node.save()
         self.assertRaises(
             exception.TemporaryFailure,
-            self.service.attach_virtual_media, self.context, self.node.id,
-            boot_devices.CDROM, 'https://url')
+            self.service.detach_virtual_media, self.context, self.node.id,
+            boot_devices.CDROM)
         mock_validate.assert_called_once_with(mock.ANY, mock.ANY)
 
 
