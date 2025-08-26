@@ -47,7 +47,8 @@ class RedfishInspectTestCase(db_base.DbTestCase):
                     enabled_management_interfaces=['redfish'],
                     enabled_inspect_interfaces=['redfish'])
         self.node = obj_utils.create_test_node(
-            self.context, driver='redfish', driver_info=INFO_DICT)
+            self.context, driver='redfish', driver_info=INFO_DICT,
+            provision_state=states.MANAGEABLE)
 
     def init_system_mock(self, system_mock, **properties):
 

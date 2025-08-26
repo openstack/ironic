@@ -20,6 +20,7 @@ import sushy
 from ironic.common import boot_modes
 from ironic.common import exception
 from ironic.common.i18n import _
+from ironic.common.inspection_rules import engine
 from ironic.common import states
 from ironic.common import utils
 from ironic.conf import CONF
@@ -185,6 +186,7 @@ class RedfishInspect(base.InspectInterface):
                                             inventory,
                                             plugin_data,
                                             task.context)
+        engine.apply_rules(task, inventory, plugin_data, 'main')
 
         valid_keys = self.ESSENTIAL_PROPERTIES
         missing_keys = valid_keys - set(inspected_properties)
