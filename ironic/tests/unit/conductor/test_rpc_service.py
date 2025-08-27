@@ -19,6 +19,7 @@ import oslo_messaging
 from oslo_service import service as base_service
 from oslo_utils import timeutils
 
+from ironic.common import console_factory
 from ironic.common import context
 from ironic.common import rpc
 from ironic.common import service as ironic_service
@@ -44,6 +45,8 @@ class TestRPCService(db_base.DbTestCase):
         ironic_service.process_launcher()
         self.rpc_svc.manager.dbapi = self.dbapi
 
+    @mock.patch.object(console_factory, 'ConsoleContainerFactory',
+                       autospec=True)
     @mock.patch.object(manager.ConductorManager, 'prepare_host', autospec=True)
     @mock.patch.object(oslo_messaging, 'Target', autospec=True)
     @mock.patch.object(objects_base, 'IronicObjectSerializer', autospec=True)
@@ -51,8 +54,11 @@ class TestRPCService(db_base.DbTestCase):
     @mock.patch.object(manager.ConductorManager, 'init_host', autospec=True)
     @mock.patch.object(context, 'get_admin_context', autospec=True)
     def test_start(self, mock_ctx, mock_init_method,
-                   mock_rpc, mock_ios, mock_target, mock_prepare_method):
+                   mock_rpc, mock_ios, mock_target, mock_prepare_method,
+                   mock_console_factory):
         mock_rpc.return_value.start = mock.MagicMock()
+        mock_console_factory.return_value.provider.stop_all_containers = (
+            mock.MagicMock())
         self.rpc_svc.handle_signal = mock.MagicMock()
         self.assertFalse(self.rpc_svc._started)
         self.assertFalse(self.rpc_svc._failure)
@@ -68,6 +74,8 @@ class TestRPCService(db_base.DbTestCase):
         self.assertTrue(self.rpc_svc._started)
         self.assertFalse(self.rpc_svc._failure)
 
+    @mock.patch.object(console_factory, 'ConsoleContainerFactory',
+                       autospec=True)
     @mock.patch.object(manager.ConductorManager, 'prepare_host', autospec=True)
     @mock.patch.object(oslo_messaging, 'Target', autospec=True)
     @mock.patch.object(objects_base, 'IronicObjectSerializer', autospec=True)
@@ -75,8 +83,11 @@ class TestRPCService(db_base.DbTestCase):
     @mock.patch.object(manager.ConductorManager, 'init_host', autospec=True)
     @mock.patch.object(context, 'get_admin_context', autospec=True)
     def test_start_failure(self, mock_ctx, mock_init_method, mock_rpc,
-                           mock_ios, mock_target, mock_prepare_method):
+                           mock_ios, mock_target, mock_prepare_method,
+                           mock_console_factory):
         mock_rpc.return_value.start = mock.MagicMock()
+        mock_console_factory.return_value.provider.stop_all_containers = (
+            mock.MagicMock())
         self.rpc_svc.handle_signal = mock.MagicMock()
         mock_init_method.side_effect = RuntimeError("boom")
         self.assertFalse(self.rpc_svc._started)
@@ -93,11 +104,16 @@ class TestRPCService(db_base.DbTestCase):
         self.assertFalse(self.rpc_svc._started)
         self.assertIn("boom", self.rpc_svc._failure)
 
+    @mock.patch.object(console_factory, 'ConsoleContainerFactory',
+                       autospec=True)
     @mock.patch.object(timeutils, 'utcnow', autospec=True)
     @mock.patch.object(time, 'sleep', autospec=True)
-    def test_stop_instant(self, mock_sleep, mock_utcnow):
+    def test_stop_instant(self, mock_sleep, mock_utcnow,
+                          mock_console_factory):
         # del_host returns instantly
         mock_utcnow.return_value = datetime.datetime(2023, 2, 2, 21, 10, 0)
+        mock_console_factory.return_value.provider.stop_all_containers = (
+            mock.MagicMock())
         conductor1 = db_utils.get_test_conductor(hostname='fake_host')
         with mock.patch.object(self.dbapi, 'get_online_conductors',
                                autospec=True) as mock_cond_list:
@@ -110,11 +126,16 @@ class TestRPCService(db_base.DbTestCase):
         # single conductor so exit immediately without waiting
         mock_sleep.assert_not_called()
 
+    @mock.patch.object(console_factory, 'ConsoleContainerFactory',
+                       autospec=True)
     @mock.patch.object(timeutils, 'utcnow', autospec=True)
     @mock.patch.object(time, 'sleep', autospec=True)
-    def test_stop_after_full_reset_interval(self, mock_sleep, mock_utcnow):
+    def test_stop_after_full_reset_interval(self, mock_sleep, mock_utcnow,
+                                            mock_console_factory):
         # del_host returns instantly
         mock_utcnow.return_value = datetime.datetime(2023, 2, 2, 21, 10, 0)
+        mock_console_factory.return_value.provider.stop_all_containers = (
+            mock.MagicMock())
         conductor1 = db_utils.get_test_conductor(hostname='fake_host')
         conductor2 = db_utils.get_test_conductor(hostname='other_fake_host')
         with mock.patch.object(self.dbapi, 'get_online_conductors',
@@ -130,10 +151,15 @@ class TestRPCService(db_base.DbTestCase):
         # wait the total CONF.hash_ring_reset_interval 15 seconds
         mock_sleep.assert_has_calls([mock.call(15)])
 
+    @mock.patch.object(console_factory, 'ConsoleContainerFactory',
+                       autospec=True)
     @mock.patch.object(timeutils, 'utcnow', autospec=True)
     @mock.patch.object(time, 'sleep', autospec=True)
-    def test_stop_after_remaining_interval(self, mock_sleep, mock_utcnow):
+    def test_stop_after_remaining_interval(self, mock_sleep, mock_utcnow,
+                                           mock_console_factory):
         mock_utcnow.return_value = datetime.datetime(2023, 2, 2, 21, 10, 0)
+        mock_console_factory.return_value.provider.stop_all_containers = (
+            mock.MagicMock())
         conductor1 = db_utils.get_test_conductor(hostname='fake_host')
         conductor2 = db_utils.get_test_conductor(hostname='other_fake_host')
 
@@ -155,10 +181,15 @@ class TestRPCService(db_base.DbTestCase):
         # wait the remaining 10 seconds
         mock_sleep.assert_has_calls([mock.call(10)])
 
+    @mock.patch.object(console_factory, 'ConsoleContainerFactory',
+                       autospec=True)
     @mock.patch.object(timeutils, 'utcnow', autospec=True)
     @mock.patch.object(time, 'sleep', autospec=True)
-    def test_stop_slow(self, mock_sleep, mock_utcnow):
+    def test_stop_slow(self, mock_sleep, mock_utcnow,
+                       mock_console_factory):
         mock_utcnow.return_value = datetime.datetime(2023, 2, 2, 21, 10, 0)
+        mock_console_factory.return_value.provider.stop_all_containers = (
+            mock.MagicMock())
         conductor1 = db_utils.get_test_conductor(hostname='fake_host')
         conductor2 = db_utils.get_test_conductor(hostname='other_fake_host')
 
@@ -180,10 +211,15 @@ class TestRPCService(db_base.DbTestCase):
         # no wait required, CONF.hash_ring_reset_interval already exceeded
         mock_sleep.assert_not_called()
 
+    @mock.patch.object(console_factory, 'ConsoleContainerFactory',
+                       autospec=True)
     @mock.patch.object(timeutils, 'utcnow', autospec=True)
     @mock.patch.object(time, 'sleep', autospec=True)
-    def test_stop_has_reserved(self, mock_sleep, mock_utcnow):
+    def test_stop_has_reserved(self, mock_sleep, mock_utcnow,
+                               mock_console_factory):
         mock_utcnow.return_value = datetime.datetime(2023, 2, 2, 21, 10, 0)
+        mock_console_factory.return_value.provider.stop_all_containers = (
+            mock.MagicMock())
         conductor1 = db_utils.get_test_conductor(hostname='fake_host')
         conductor2 = db_utils.get_test_conductor(hostname='other_fake_host')
 
