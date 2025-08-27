@@ -1651,8 +1651,11 @@ def node_convert_with_links(rpc_node, fields=None, sanitize=True):
         fields=_get_fields_for_node_query(fields))
 
     if node.get('traits') is not None:
-        traits = objects.TraitList.get_by_node_id(api.request.context,
-                                                  rpc_node.id)
+        if isinstance(node['traits'], objects.TraitList):
+            traits = node['traits']
+        else:
+            traits = objects.TraitList.get_by_node_id(api.request.context,
+                                                      rpc_node.id)
         node['traits'] = traits.get_trait_names()
 
     if (api_utils.allow_expose_conductors()
