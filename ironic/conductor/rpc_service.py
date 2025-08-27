@@ -21,6 +21,7 @@ from oslo_utils import timeutils
 from ironic.common import console_factory
 from ironic.common import rpc
 from ironic.common import rpc_service
+from ironic.common import wsgi_service
 
 LOG = log.getLogger(__name__)
 CONF = cfg.CONF
@@ -43,8 +44,11 @@ DRAIN = multiprocessing.Event()
 
 class RPCService(rpc_service.BaseRPCService):
 
-    def __init__(self, host, manager_module, manager_class):
+    def __init__(self, host, manager_module, manager_class,
+                 embed_api=False):
         super().__init__(host, manager_module, manager_class)
+        self.apiserver = None
+        self._embed_api = embed_api
 
     @property
     def deregister_on_shutdown(self):
@@ -57,6 +61,11 @@ class RPCService(rpc_service.BaseRPCService):
         super()._real_start()
         rpc.set_global_manager(self.manager)
 
+        if self._embed_api:
+            self.apiserver = wsgi_service.WSGIService(
+                'ironic_api', CONF.api.enable_ssl_api)
+            self.apiserver.start()
+
         # Start in a known state of no console containers running.
         # Any enabled console managed by this conductor will be started
         # after this
@@ -66,6 +75,14 @@ class RPCService(rpc_service.BaseRPCService):
         initial_time = timeutils.utcnow()
         extend_time = initial_time + datetime.timedelta(
             seconds=CONF.hash_ring_reset_interval)
+
+        # Stop serving the embedded API first to avoid any new requests
+        try:
+            if self.apiserver is not None:
+                self.apiserver.stop()
+                self.apiserver.wait()
+        except Exception:
+            LOG.exception('Service error occurred when stopping the API')
 
         try:
             self.manager.del_host(

@@ -19,12 +19,9 @@ from oslo_service import service
 from ironic.command import conductor as conductor_cmd
 from ironic.command import utils
 from ironic.common import service as ironic_service
-from ironic.common import wsgi_service
 from ironic.conductor import local_rpc
 from ironic.conductor import rpc_service
 from ironic.console import novncproxy_service
-from ironic.objects import base as objects_base
-from ironic.objects import indirection
 
 CONF = cfg.CONF
 
@@ -53,18 +50,10 @@ def main():
 
     mgr = rpc_service.RPCService(CONF.host,
                                  'ironic.conductor.manager',
-                                 'ConductorManager')
+                                 'ConductorManager',
+                                 embed_api=True)
     conductor_cmd.issue_startup_warnings(CONF)
     launcher.launch_service(mgr)
-
-    # Sets the indirection API to direct API calls for objects across the
-    # RPC layer.
-    if CONF.rpc_transport in ['local', 'none'] or CONF.use_rpc_for_database:
-        objects_base.IronicObject.indirection_api = \
-            indirection.IronicObjectIndirectionAPI()
-
-    wsgi = wsgi_service.WSGIService('ironic_api', CONF.api.enable_ssl_api)
-    launcher.launch_service(wsgi)
 
     # NOTE(TheJulia): By default, vnc is disabled, and depending on that
     # overall process behavior will change. i.e. we're not going to force
