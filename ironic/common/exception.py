@@ -140,6 +140,10 @@ class Invalid(IronicException):
     code = http_client.BAD_REQUEST
 
 
+class MalformedRequestURI(Invalid):
+    _msg_fmt = _("Malformed request URI.")
+
+
 class Conflict(IronicException):
     _msg_fmt = _('Conflict.')
     code = http_client.CONFLICT
@@ -523,10 +527,6 @@ class CatalogNotFound(IronicException):
 
 class ServiceUnavailable(IronicException):
     _msg_fmt = _("Connection failed")
-
-
-class Forbidden(IronicException):
-    _msg_fmt = _("Requested OpenStack Baremetal API is forbidden")
 
 
 # TODO(dtantsur): leave only one variant
