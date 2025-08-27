@@ -870,6 +870,8 @@
         c-vol: False
         cinder: False
 
+        ir-novnc: False
+
         s-account: True
         s-container: True
         s-object: True
@@ -913,6 +915,7 @@
           q-ovn-metadata-agent: False
           n-cpu: True
           tls-proxy: False
+          ir-novnc: False
         devstack_localrc:
           ENABLE_TENANT_TUNNELS: False
           ENABLE_TENANT_VLANS: True
