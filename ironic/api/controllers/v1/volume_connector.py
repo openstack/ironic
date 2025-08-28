@@ -209,7 +209,7 @@ class VolumeConnectorsController(rest.RestController):
 
         :returns: API-serializable volume connector object.
 
-        :raises: Invalid if accessed with specifying a parent
+        :raises: MalformedRequestURI if accessed with specifying a parent
                  node.
         :raises: VolumeConnectorNotFound if no volume connector exists with
                  the specified UUID.
@@ -221,7 +221,7 @@ class VolumeConnectorsController(rest.RestController):
             target=False)
 
         if self.parent_node_ident:
-            raise exception.Invalid(_("Malformed request URI."))
+            raise exception.MalformedRequestURI()
 
         return convert_with_links(rpc_connector, fields=fields)
 
@@ -236,7 +236,7 @@ class VolumeConnectorsController(rest.RestController):
 
         :returns: API-serializable volume connector object.
 
-        :raises: Invalid if accessed with specifying a parent
+        :raises: MalformedRequestURI if accessed with specifying a parent
                  node.
         :raises: VolumeConnectorTypeAndIdAlreadyExists if a volume
                  connector already exists with the same type and connector_id
@@ -263,7 +263,7 @@ class VolumeConnectorsController(rest.RestController):
                                          value=node_uuid)
 
         if self.parent_node_ident:
-            raise exception.Invalid(_("Malformed request URI."))
+            raise exception.MalformedRequestURI()
 
         # NOTE(hshiina): UUID is mandatory for notification payload
         if not connector.get('uuid'):
@@ -296,7 +296,7 @@ class VolumeConnectorsController(rest.RestController):
 
         :returns: API-serializable volume connector object.
 
-        :raises: Invalid if accessed with specifying a
+        :raises: MalformedRequestURI if accessed with specifying a
                  parent node.
         :raises: PatchError if a given patch can not be applied.
         :raises: VolumeConnectorNotFound if no volume connector exists with
@@ -321,7 +321,7 @@ class VolumeConnectorsController(rest.RestController):
             target=False)
 
         if self.parent_node_ident:
-            raise exception.Invalid(_("Malformed request URI."))
+            raise exception.MalformedRequestURI()
 
         api_utils.patch_validate_allowed_fields(patch, PATCH_ALLOWED_FIELDS)
 
@@ -380,7 +380,7 @@ class VolumeConnectorsController(rest.RestController):
 
         :param connector_uuid: UUID of a volume connector.
 
-        :raises: Invalid if accessed with specifying a
+        :raises: MalformedRequestURI if accessed with specifying a
                  parent node.
         :raises: NodeLocked if node is locked by another conductor
         :raises: NodeNotFound if the node associated with the connector does
@@ -397,7 +397,7 @@ class VolumeConnectorsController(rest.RestController):
             connector_uuid,
             target=False)
         if self.parent_node_ident:
-            raise exception.Invalid(_("Malformed request URI."))
+            raise exception.MalformedRequestURI()
 
         notify.emit_start_notification(context, rpc_connector, 'delete',
                                        node_uuid=rpc_node.uuid)

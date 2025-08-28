@@ -239,7 +239,7 @@ class VolumeTargetsController(rest.RestController):
 
         :returns: API-serializable volume target object.
 
-        :raises: Invalid if accessed with specifying a parent
+        :raises: MalformedRequestURI if accessed with specifying a parent
                  node.
         :raises: VolumeTargetNotFound if no volume target with this UUID exists
         """
@@ -250,7 +250,7 @@ class VolumeTargetsController(rest.RestController):
             target=True)
 
         if self.parent_node_ident:
-            raise exception.Invalid(_("Malformed request URI."))
+            raise exception.MalformedRequestURI()
 
         cdict = api.request.context.to_policy_values()
         if not policy.check_policy('baremetal:volume:view_target_properties',
@@ -270,7 +270,7 @@ class VolumeTargetsController(rest.RestController):
 
         :returns: API-serializable volume target object.
 
-        :raises: Invalid if accessed with specifying a parent
+        :raises: MalformedRequestURI if accessed with specifying a parent
                  node.
         :raises: VolumeTargetBootIndexAlreadyExists if a volume target already
                  exists with the same node ID and boot index
@@ -297,7 +297,7 @@ class VolumeTargetsController(rest.RestController):
                                          value=node_uuid)
 
         if self.parent_node_ident:
-            raise exception.Invalid(_("Malformed request URI."))
+            raise exception.MalformedRequestURI()
 
         # NOTE(hshiina): UUID is mandatory for notification payload
         if not target.get('uuid'):
@@ -328,7 +328,7 @@ class VolumeTargetsController(rest.RestController):
 
         :returns: API-serializable volume target object.
 
-        :raises: Invalid if accessed with specifying a
+        :raises: MalformedRequestURI if accessed with specifying a
                  parent node.
         :raises: PatchError if a given patch can not be applied.
         :raises: InvalidParameterValue if the volume target's UUID is being
@@ -350,7 +350,7 @@ class VolumeTargetsController(rest.RestController):
                                                    target=True)
 
         if self.parent_node_ident:
-            raise exception.Invalid(_("Malformed request URI."))
+            raise exception.MalformedRequestURI()
 
         api_utils.patch_validate_allowed_fields(patch, PATCH_ALLOWED_FIELDS)
 
@@ -414,7 +414,7 @@ class VolumeTargetsController(rest.RestController):
 
         :param target_uuid: UUID of a volume target.
 
-        :raises: Invalid if accessed with specifying a
+        :raises: MalformedRequestURI if accessed with specifying a
                  parent node.
         :raises: NodeLocked if node is locked by another conductor
         :raises: NodeNotFound if the node associated with the target does
@@ -430,7 +430,7 @@ class VolumeTargetsController(rest.RestController):
                                                    target=True)
 
         if self.parent_node_ident:
-            raise exception.Invalid(_("Malformed request URI."))
+            raise exception.MalformedRequestURI()
 
         rpc_target = objects.VolumeTarget.get_by_uuid(context, target_uuid)
         rpc_node = objects.Node.get_by_id(context, rpc_target.node_id)
