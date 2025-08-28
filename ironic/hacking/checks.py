@@ -31,6 +31,10 @@ underscore_import_check = re.compile(r"(.)*import _(.)*")
 custom_underscore_check = re.compile(r"(.)*_\s*=\s*(.)*")
 
 
+# I319: eventlet import not allowed
+_eventlet_re = re.compile(r"\b(import|from)\s+eventlet\b")
+
+
 @core.flake8ext
 def check_explicit_underscore_import(logical_line, filename):
     """Check for explicit import of the _ function
@@ -52,3 +56,10 @@ def check_explicit_underscore_import(logical_line, filename):
     elif (translated_log.match(logical_line)
           or string_translation.match(logical_line)):
         yield (0, "N323: Found use of _() without explicit import of _!")
+
+
+@core.flake8ext
+def no_eventlet_imports(logical_line):
+    """Check for eventlet imports."""
+    if _eventlet_re.search(logical_line):
+        yield 0, "I319: eventlet import not allowed"
