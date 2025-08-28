@@ -19,7 +19,6 @@ from oslo_service import service
 from ironic.command import conductor as conductor_cmd
 from ironic.command import utils
 from ironic.common import service as ironic_service
-from ironic.conductor import local_rpc
 from ironic.conductor import rpc_service
 from ironic.console import novncproxy_service
 
@@ -39,8 +38,6 @@ def main():
 
     # Parse config file and command line options, then start logging
     ironic_service.prepare_service('ironic', sys.argv)
-
-    local_rpc.configure()
 
     # Choose the launcher based upon if vnc is enabled or not.
     # The VNC proxy has to be run in the parent process, not

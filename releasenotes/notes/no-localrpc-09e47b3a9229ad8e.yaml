@@ -1,0 +1,11 @@
+---
+fixes:
+  - |
+    No longer uses JSON RPC with ``[DEFAULT]rpc_transport`` set to ``none``.
+    It was required during the transition away from eventlet, and is no longer
+    needed. RPC can still be enabled by setting ``rpc_transport`` to
+    ``json-rpc``.
+upgrade:
+  - |
+    The options in the ``[local_rpc]`` group introduced in Ironic 31.0 have
+    been removed and no longer have any effect.

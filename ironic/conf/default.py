@@ -104,9 +104,7 @@ api_opts = [
                 mutable=False,
                 help=_('If the Ironic API should utilize the RPC layer for '
                        'database interactions as opposed to directly '
-                       'connecting to the database API endpoint. Defaults '
-                       'to False, however is implied when the '
-                       '[default]rpc_transport option is set to \'none\'.')),
+                       'connecting to the database API endpoint.')),
 ]
 
 driver_opts = [
