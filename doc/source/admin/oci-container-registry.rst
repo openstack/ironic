@@ -106,7 +106,10 @@ As such, there are three available paths for providing configuration:
   utilized to retrieve an image artifact, but is not intended for pulling
   other artifacts like kernels or ramdisks used as part of a deployment
   process. As with all other ``instance_info`` field values, this value
-  is deleted once the node has been unprovisioned.
+  is deleted once the node has been unprovisioned. The way this field is
+  used, is by supplying the pre-shared secret token value. This is the same
+  value which you would normally have in your Docker ``config.json`` file
+  ``auth`` field for the top level domain your accessing.
 * A node ``driver_info`` value of ``image_pull_secret``. This setting is
   similar to the ``instance_info`` setting, but may be utilized by an
   administrator of a baremetal node to define the specific registry
@@ -128,10 +131,10 @@ example.
   {
     "auths": {
       "quay.io": {
-        "auth": "<secret_here>",
+        "auth": "<pull_secret_here>"
       },
       "private-registry.tld": {
-        "auth": "<secret_here>",
+        "auth": "<pull_secret_here>"
       }
     }
   }
@@ -141,6 +144,15 @@ example.
    The ``image_pull_secret`` values are not visible in the API surface
    due Ironic's secret value santiization, which prevents sensitive
    values from being visible, and are instead returned as '******'.
+
+.. NOTE::
+   If you need to extract the pull secret from a config.json file,
+   you may want to explore using the ``jq`` command with a syntax
+   along the lines of `jq '.auths."domain.tld".auth' config.json`
+   which will return the quoted string you can then populate. Other
+   command line oriented ways exist for users to retrieve such a value
+   once a login has completed to a container platform, meaning you can
+   use that same token value if desired.
 
 Available URL Formats
 ---------------------
