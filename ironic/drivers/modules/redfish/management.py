@@ -648,6 +648,14 @@ class RedfishManagement(base.ManagementInterface):
 
         system = redfish_utils.get_system(node)
 
+        baremetal_fields = {
+            'Manufacturer': system.manufacturer,
+            'Model': system.model,
+            'UUID': system.uuid
+        }
+
+        sensors['Extra'] = baremetal_fields
+
         for chassis in system.chassis:
             try:
                 sensors['Fan'].update(self._get_sensors_fan(chassis))
@@ -681,7 +689,6 @@ class RedfishManagement(base.ManagementInterface):
             LOG.debug("Failed reading drive information for node "
                       "%(node)s: %(error)s", {'node': node.uuid,
                                               'error': exc})
-
         LOG.debug("Gathered sensor data: %(sensors)s", {'sensors': sensors})
 
         return sensors

@@ -2032,6 +2032,9 @@ class SensorDataTestCase(db_base.DbTestCase):
     def test_get_sensors_data(self, mock_system):
         mock_chassis = mock.MagicMock()
         mock_system.return_value.chassis = [mock_chassis]
+        mock_system.return_value.manufacturer = 'Test Manufacturer'
+        mock_system.return_value.model = 'Test Model'
+        mock_system.return_value.uuid = 'test-uuid-ffff'
 
         with task_manager.acquire(self.context, self.node.uuid,
                                   shared=True) as task:
@@ -2041,7 +2044,12 @@ class SensorDataTestCase(db_base.DbTestCase):
             'Fan': {},
             'Temperature': {},
             'Power': {},
-            'Drive': {}
+            'Drive': {},
+            'Extra': {
+                'Manufacturer': 'Test Manufacturer',
+                'Model': 'Test Model',
+                'UUID': 'test-uuid-ffff'
+            }
         }
 
         self.assertEqual(expected, sensors)
