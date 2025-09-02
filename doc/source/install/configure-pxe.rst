@@ -173,9 +173,9 @@ the PXE UEFI environment.
 
        sudo apt-get install grub-efi-amd64-signed shim-signed
 
-   RHEL8/CentOS8/Fedora::
+   RHEL/CentOS/Fedora::
 
-       sudo dnf install grub2-efi shim
+       sudo dnf install grub2-efi-x64 shim
 
 
 #. Copy grub and shim boot loader images to ``/tftpboot`` directory:
@@ -190,10 +190,15 @@ the PXE UEFI environment.
        sudo cp /boot/efi/EFI/fedora/shim.efi /tftpboot/bootx64.efi
        sudo cp /boot/efi/EFI/fedora/grubx64.efi /tftpboot/grubx64.efi
 
-   RHEL8/CentOS8::
+   CentOS::
 
        sudo cp /boot/efi/EFI/centos/shim.efi /tftpboot/bootx64.efi
        sudo cp /boot/efi/EFI/centos/grubx64.efi /tftpboot/grubx64.efi
+
+   RHEL::
+
+       sudo cp /boot/efi/EFI/rhel/shim.efi /tftpboot/bootx64.efi
+       sudo cp /boot/efi/EFI/rhel/grubx64.efi /tftpboot/grubx64.efi
 
 
 #. Update the bare metal node with ``boot_mode:uefi`` capability in
@@ -270,7 +275,7 @@ on the Bare Metal service node(s) where ``ironic-conductor`` is running.
 
        apt-get install ipxe
 
-   RHEL8/CentOS8/Fedora::
+   RHEL/CentOS/Fedora::
 
        dnf install ipxe-bootimgs
 
@@ -288,7 +293,7 @@ on the Bare Metal service node(s) where ``ironic-conductor`` is running.
 
        cp /usr/lib/ipxe/{undionly.kpxe,ipxe.efi,snponly.efi} /tftpboot
 
-   Fedora/RHEL8/CentOS8::
+   Fedora/RHEL/CentOS::
 
        cp /usr/share/ipxe/{undionly.kpxe,ipxe-x86_64.efi,ipxe-snponly-x86_64.efi} /tftpboot
 
