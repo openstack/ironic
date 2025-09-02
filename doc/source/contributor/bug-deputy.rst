@@ -45,7 +45,6 @@ All Ironic project bugtrackers, filtered and sorted for triage:
 * `python-ironicclient <https://bugs.launchpad.net/python-ironicclient/+bugs?field.status%3Alist=NEW&field.status%3Alist=INCOMPLETE_WITH_RESPONSE&orderby=-id>`_
 * `sushy <https://bugs.launchpad.net/sushy/+bugs?field.status%3Alist=NEW&field.status%3Alist=INCOMPLETE_WITH_RESPONSE&orderby=-id>`_
 * `sushy-tools <https://bugs.launchpad.net/sushy-tools/+bugs?field.status%3Alist=NEW&field.status%3Alist=INCOMPLETE_WITH_RESPONSE&orderby=-id>`_
-* `tenks <https://bugs.launchpad.net/tenks/+bugs?field.status%3Alist=NEW&field.status%3Alist=INCOMPLETE_WITH_RESPONSE&orderby=-id>`_
 * `virtualbmc <https://bugs.launchpad.net/virtualbmc/+bugs?field.status%3Alist=NEW&field.status%3Alist=INCOMPLETE_WITH_RESPONSE&orderby=-id>`_
 
 Bug Bash
