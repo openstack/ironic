@@ -1,0 +1,11 @@
+---
+prelude: >
+    The Ironic developers are proud to announce our release for the 2025.2
+    development cycle in the form of Ironic 32.0.0. This release brings
+    substantial changes in Ironic which will improve the experience and
+    performance of Ironic. Amongst these herculian efforts includes the
+    removal of Eventlet, Database Object Indirection, Redfish inspection
+    use of inspection rules and hooks. Along with numerous bug fixes
+    to address operator feedback to ultimately improve the user experience.
+    All of this work is on top of our previously released 31.0.0 and 30.0.0
+    releases which were performed as part of this development cycle.
