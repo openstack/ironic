@@ -37,6 +37,11 @@ repos:
     hooks:
       - id: remove-tabs
         exclude: '.*\.(svg)$'
+  - repo: https://github.com/astral-sh/ruff-pre-commit
+    rev: v0.7.3
+    hooks:
+      - id: ruff
+        args: ['--fix', '--unsafe-fixes']
   - repo: https://opendev.org/openstack/hacking
     rev: 6.1.0
     hooks:
@@ -80,11 +85,6 @@ repos:
     rev: v1.1.2
     hooks:
       - id: doc8
-  - repo: https://github.com/astral-sh/ruff-pre-commit
-    rev: v0.7.3
-    hooks:
-      - id: ruff
-        args: ['--fix', '--unsafe-fixes']
   - repo: local
     hooks:
       - id: check-releasenotes
