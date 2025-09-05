@@ -13,6 +13,7 @@
 """Internal implementation of request/response validating middleware."""
 
 import jsonschema
+from oslo_utils import netutils
 from oslo_utils import timeutils
 from oslo_utils import uuidutils
 
@@ -45,6 +46,16 @@ def _validate_uuid_format(instance: object) -> bool:
         return True
 
     return uuidutils.is_uuid_like(instance)
+
+
+@_FORMAT_CHECKER.checks('mac-address')
+def _validate_mac_address_format(instance: object) -> bool:
+    # format checks constrain to the relevant primitive type
+    # https://github.com/OAI/OpenAPI-Specification/issues/3148
+    if not isinstance(instance, str):
+        return True
+
+    return netutils.is_valid_mac(instance)
 
 
 class SchemaValidator:

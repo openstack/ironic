@@ -1,0 +1,7 @@
+---
+upgrade:
+  - |
+    The ``/v1/events`` API now validates request bodies using the Ironic API
+    schema validation framework. Invalid event requests continue to return an
+    error response, but some validation failures may now include a more generic
+    error message than before.

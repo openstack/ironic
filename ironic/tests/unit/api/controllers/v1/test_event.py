@@ -20,11 +20,7 @@ from keystonemiddleware import auth_token
 from oslo_config import cfg
 
 from ironic.api.controllers import base as api_base
-from ironic.api.controllers.v1 import event
 from ironic.api.controllers.v1 import versions
-from ironic.common import args
-from ironic.common import exception
-from ironic.tests import base as test_base
 from ironic.tests.unit.api import base as test_api_base
 
 
@@ -36,55 +32,6 @@ def get_fake_port_event():
             'device_id': '22222222-aaaa-bbbb-cccc-555555555555',
             'binding:host_id': '22222222-aaaa-bbbb-cccc-555555555555',
             'binding:vnic_type': 'baremetal'}
-
-
-class TestEventValidator(test_base.TestCase):
-    def setUp(self):
-        super(TestEventValidator, self).setUp()
-        self.v_event = event.NETWORK_EVENT_VALIDATOR
-        self.v_events = args.schema(event.EVENTS_SCHEMA)
-
-    def test_simple_event_type(self):
-        self.v_events('body', {'events': [get_fake_port_event()]})
-
-    def test_invalid_event_type(self):
-        value = {'events': [{'event': 'invalid.event'}]}
-        self.assertRaisesRegex(exception.Invalid,
-                               "Schema error for body: "
-                               "'invalid.event' is not one of",
-                               self.v_events, 'body', value)
-
-    def test_event_missing_madatory_field(self):
-        value = {'invalid': 'invalid'}
-        self.assertRaisesRegex(exception.Invalid,
-                               "Schema error for event: "
-                               "'event' is a required property",
-                               self.v_event, 'event', value)
-
-    def test_invalid_mac_network_port_event(self):
-        value = {'event': 'network.bind_port',
-                 'port_id': '11111111-aaaa-bbbb-cccc-555555555555',
-                 'mac_address': 'INVALID_MAC_ADDRESS',
-                 'status': 'ACTIVE',
-                 'device_id': '22222222-aaaa-bbbb-cccc-555555555555',
-                 'binding:host_id': '22222222-aaaa-bbbb-cccc-555555555555',
-                 'binding:vnic_type': 'baremetal'
-                 }
-        self.assertRaisesRegex(exception.Invalid,
-                               'Expected valid MAC address for mac_address: '
-                               'INVALID_MAC_ADDRESS',
-                               self.v_event, 'event', value)
-
-    def test_missing_mandatory_fields_network_port_event(self):
-        value = {'event': 'network.bind_port',
-                 'device_id': '22222222-aaaa-bbbb-cccc-555555555555',
-                 'binding:host_id': '22222222-aaaa-bbbb-cccc-555555555555',
-                 'binding:vnic_type': 'baremetal'
-                 }
-        self.assertRaisesRegex(exception.Invalid,
-                               "Schema error for event: "
-                               "'port_id' is a required property",
-                               self.v_event, 'event', value)
 
 
 class TestPost(test_api_base.BaseApiTest):
@@ -151,6 +98,16 @@ class TestPost(test_api_base.BaseApiTest):
     def test_network_port_event_invalid_mac_address(self):
         port_evt = get_fake_port_event()
         port_evt.update({'mac_address': 'INVALID_MAC_ADDRESS'})
+        events_dict = {'events': [port_evt]}
+        response = self.post_json('/events', events_dict, expect_errors=True,
+                                  headers=self.headers)
+        self.assertEqual(http_client.BAD_REQUEST, response.status_int)
+        self.assertEqual('application/json', response.content_type)
+        self.assertTrue(response.json['error_message'])
+
+    def test_network_port_event_missing_mandatory_fields(self):
+        port_evt = get_fake_port_event()
+        del port_evt['port_id']
         events_dict = {'events': [port_evt]}
         response = self.post_json('/events', events_dict, expect_errors=True,
                                   headers=self.headers)
