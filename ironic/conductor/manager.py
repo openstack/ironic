@@ -1634,10 +1634,18 @@ class ConductorManager(base_manager.BaseConductorManager):
         METRICS.send_gauge(
             'ConductorManager.PowerSyncNodesCount',
             len(nodes))
-
+        runtime = time.time() - started
         LOG.debug('Completed power state sync operation, evaluated %d '
                   'nodes with %d workers in %.2f seconds',
-                  len(futures), number_of_workers, time.time() - started)
+                  len(futures), number_of_workers, runtime)
+        if runtime > (3 * CONF.conductor.sync_power_state_interval):
+            LOG.warning('The power state sync operation runtime is 3x '
+                        'the [conductor]sync_power_state_interval setting. '
+                        'This is not ideal. You may need to tune the '
+                        '[conductor]sync_power_state_workers and '
+                        '[conductor]periodic_max_workers settings, '
+                        'or ultimately add more conductors to the '
+                        'ironic deployment.')
 
     def _sync_power_state_nodes_task(self, context, nodes):
         """Invokes power state sync on nodes from synchronized queue.
@@ -2962,9 +2970,16 @@ class ConductorManager(base_manager.BaseConductorManager):
         if not_done:
             LOG.warning("%d workers for send sensors data did not complete",
                         len(not_done))
+        runtime = time.time() - started
         LOG.debug('Completed sending sensor data, evaluated %d '
                   'nodes with %d workers in %.2f seconds',
-                  len(done), number_of_threads, time.time() - started)
+                  len(done), number_of_threads, runtime)
+        if runtime > (3 * CONF.sensor_data.interval):
+            LOG.warning('The sensor data collection runtime is '
+                        '3x the [sensor_data]interval setting. '
+                        'Please consider tuning the [sensor_data]'
+                        'workers setting or adding additional '
+                        'conductors to the ironic deployment.')
 
     def _filter_out_unsupported_types(self, sensors_data):
         """Filters out sensor data types that aren't specified in the config.
