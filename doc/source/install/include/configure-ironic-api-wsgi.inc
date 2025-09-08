@@ -92,19 +92,17 @@ Passing Configuration Options
 ------------------------------
 
 By default, Ironic will use its standard configuration file search paths.
-If you need to specify a custom configuration file:
+See https://docs.openstack.org/oslo.config/latest/configuration/options.html
+for more info.
 
-For the initialization method with arguments::
+If you need to specify a custom configuration file, you can set the
+``IRONIC_CONFIG_FILE`` and/or ``IRONIC_CONFIG_DIR`` environment variable:
 
-    # uWSGI with custom config (in ini file)
+.. code-block:: cfg
+
     [uwsgi]
-    module = ironic.api.wsgi:initialize_wsgi_app(argv=["--config-file=/etc/ironic/ironic.conf"])
-
-Alternatively, you can set environment variables before starting the WSGI server::
-
-    export OS_CLOUD=mycloud
-    # or
-    export IRONIC_CONF=/etc/ironic/ironic.conf
+    ...
+    env = IRONIC_CONFIG_DIR=/etc/mycustomdir/
 
 Important Considerations
 ~~~~~~~~~~~~~~~~~~~~~~~~

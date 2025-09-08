@@ -1,0 +1,8 @@
+---
+deprecations:
+  - |
+    Using ``ironic.api.wsgi:initialize_wsgi_app`` to provide custom config file
+    to ironic is now deprecated.
+
+    Instead, two new environment variables ``IRONIC_CONFIG_DIR`` and
+    ``IRONIC_CONFIG_FILE`` are introduced to provide the same functionality.
