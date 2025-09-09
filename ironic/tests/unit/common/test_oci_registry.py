@@ -28,6 +28,12 @@ from ironic.tests import base
 CONF = cfg.CONF
 
 
+ACCEPT_INDEX_OR_MANIFEST = (
+    'application/vnd.oci.image.index.v1+json, '
+    'application/vnd.oci.image.manifest.v1+json'
+)
+
+
 class OciClientTestCase(base.TestCase):
 
     def setUp(self):
@@ -110,9 +116,28 @@ class OciClientRequestTestCase(base.TestCase):
                 '60f61caaff8a')
         get_mock.return_value.status_code = 200
         get_mock.return_value.text = '{}'
+        get_mock.return_value.headers = {}
         res = self.client.get_manifest(
             'oci://localhost/local@sha256:' + csum)
         self.assertEqual({}, res)
+        get_mock.return_value.assert_has_calls([
+            mock.call.raise_for_status(),
+            mock.call.encoding.__bool__()])
+        get_mock.assert_called_once_with(
+            mock.ANY,
+            'https://localhost/v2/local/manifests/sha256:' + csum,
+            headers={'Accept': 'application/vnd.oci.image.manifest.v1+json'},
+            timeout=60)
+
+    def test_get_manifest_with_content_digest(self, get_mock):
+        csum = ('44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c0'
+                '60f61caaff8a')
+        get_mock.return_value.status_code = 200
+        get_mock.return_value.text = '{}'
+        get_mock.return_value.headers = {'docker-content-digest': 'abcd'}
+        res = self.client.get_manifest(
+            'oci://localhost/local@sha256:' + csum)
+        self.assertEqual({'dockerContentDigest': 'abcd'}, res)
         get_mock.return_value.assert_has_calls([
             mock.call.raise_for_status(),
             mock.call.encoding.__bool__()])
@@ -208,6 +233,7 @@ class OciClientRequestTestCase(base.TestCase):
         }
         get_mock.return_value.status_code = 200
         get_mock.return_value.text = '{}'
+        get_mock.return_value.headers = {}
         res = self.client.get_artifact_index(
             'oci://localhost/local:tag')
         self.assertEqual({}, res)
@@ -220,7 +246,7 @@ class OciClientRequestTestCase(base.TestCase):
         get_mock.assert_called_once_with(
             mock.ANY,
             'https://localhost/v2/local/manifests/tag',
-            headers={'Accept': 'application/vnd.oci.image.index.v1+json'},
+            headers={'Accept': ACCEPT_INDEX_OR_MANIFEST},
             timeout=60)
 
     @mock.patch.object(oci_registry.OciClient, '_resolve_tag',
@@ -245,7 +271,7 @@ class OciClientRequestTestCase(base.TestCase):
         call_mock = mock.call(
             mock.ANY,
             'https://localhost/v2/local/manifests/tag',
-            headers={'Accept': 'application/vnd.oci.image.index.v1+json'},
+            headers={'Accept': ACCEPT_INDEX_OR_MANIFEST},
             timeout=60)
         get_mock.assert_has_calls([call_mock])
 
@@ -272,7 +298,7 @@ class OciClientRequestTestCase(base.TestCase):
         call_mock = mock.call(
             mock.ANY,
             'https://localhost/v2/local/manifests/tag',
-            headers={'Accept': 'application/vnd.oci.image.index.v1+json'},
+            headers={'Accept': ACCEPT_INDEX_OR_MANIFEST},
             timeout=60)
         # Automatic retry to authenticate
         get_mock.assert_has_calls([call_mock, call_mock])
@@ -300,7 +326,7 @@ class OciClientRequestTestCase(base.TestCase):
         call_mock = mock.call(
             mock.ANY,
             'https://localhost/v2/local/manifests/tag',
-            headers={'Accept': 'application/vnd.oci.image.index.v1+json'},
+            headers={'Accept': ACCEPT_INDEX_OR_MANIFEST},
             timeout=60)
         get_mock.assert_has_calls([call_mock])
 
@@ -327,7 +353,7 @@ class OciClientRequestTestCase(base.TestCase):
         call_mock = mock.call(
             mock.ANY,
             'https://localhost/v2/local/manifests/tag',
-            headers={'Accept': 'application/vnd.oci.image.index.v1+json'},
+            headers={'Accept': ACCEPT_INDEX_OR_MANIFEST},
             timeout=60)
         get_mock.assert_has_calls([call_mock])
 
@@ -354,7 +380,24 @@ class OciClientRequestTestCase(base.TestCase):
         response.links = {}
         get_mock.return_value = response
         self.assertRaises(
-            exception.ImageNotFound,
+            exception.OciImageTagNotFound,
+            self.client._resolve_tag,
+            parse.urlparse('oci://localhost/local'))
+        call_mock = mock.call(
+            mock.ANY,
+            'https://localhost/v2/local/tags/list',
+            headers={'Accept': 'application/vnd.oci.image.index.v1+json'},
+            timeout=60)
+        get_mock.assert_has_calls([call_mock])
+
+    def test__resolve_tag_if_no_tags(self, get_mock):
+        response = mock.Mock()
+        response.json.return_value = {'tags': []}
+        response.status_code = 200
+        response.links = {}
+        get_mock.return_value = response
+        self.assertRaises(
+            exception.InvalidImageRef,
             self.client._resolve_tag,
             parse.urlparse('oci://localhost/local'))
         call_mock = mock.call(

@@ -1100,6 +1100,11 @@ class OciImageNotSpecific(InvalidImage):
                  "utilized for the file download.")
 
 
+class OciImageTagNotFound(ImageNotFound):
+    _msg_fmt = _("Image tag %(image_url)s could not be found, "
+                 "available tags are %(tags)s")
+
+
 class ImageServiceAuthenticationRequired(ImageUnacceptable):
     _msg_fmt = _("The requested image %(image_ref)s requires "
                  "authentication which has not been provided. "
