@@ -377,7 +377,7 @@ class OciImageService(BaseImageService):
                            if the URL is specific to to a specific manifest,
                            or is otherwise generalized and needs to be
                            identified.
-        :raises: OciImageNotSpecifc if the supplied image_href lacks a
+        :raises: OciImageNotSpecific if the supplied image_href lacks a
                  required manifest digest value, or if the digest value
                  is not understood.
         :raises: ImageRefValidationFailed if the supplied image_href
@@ -535,6 +535,73 @@ class OciImageService(BaseImageService):
             password = None
         self._client.authenticate(image_url, username, password)
 
+    def _filter_manifests(self, manifests, image_download_source=None,
+                          cpu_arch=None):
+        # Determine our preferences for matching
+        if image_download_source == 'local':
+            # When the image is served from the conductor, it makes sense to
+            # download the smaller variant (i.e. qcow2) and convert locally.
+            # Raw images are used when compressed ones are unavailable.
+            disk_format_priority = {'qcow2': 1,
+                                    'qemu': 2,
+                                    'raw': 3,
+                                    'applehv': 4}
+        else:
+            # When IPA downloads the image directly, it is preferred to let it
+            # download a raw image because it enables direct streaming to the
+            # target block device. Compressed images are also possible.
+            # Note: applehv appears to be a raw image.
+            disk_format_priority = {'qcow2': 3,
+                                    'qemu': 4,
+                                    'raw': 1,
+                                    'applehv': 2}
+
+        # First thing to do, filter by disk types
+        # and assign a selection priority... since Ironic can handle
+        # several different formats without issue.
+        new_manifests = []
+        for manifest in manifests:
+            # First evaluate the architecture because ironic can operated in
+            # an architecture agnostic mode... and we *can* match on it, but
+            # it is one of the most constraining factors.
+            if cpu_arch:
+                # NOTE(TheJulia): amd64 is the noted standard format in the
+                # API for x86_64. One thing, at least observing quay.io hosted
+                # artifacts is that there is heavy use of x86_64 as instead
+                # of amd64 as expected by the specification. This same sort
+                # of pattern extends to arm64/aarch64.
+                if cpu_arch in ['x86_64', 'amd64']:
+                    possible_cpu_arch = ['x86_64', 'amd64']
+                elif cpu_arch in ['arm64', 'aarch64']:
+                    possible_cpu_arch = ['aarch64', 'arm64']
+                else:
+                    possible_cpu_arch = [cpu_arch]
+                # Extract what the architecture is noted for the image, from
+                # the platform field.
+                architecture = manifest.get('platform', {}).get('architecture')
+                if architecture and architecture not in possible_cpu_arch:
+                    # skip onward, we don't have a localized match
+                    continue
+
+            disktype = manifest.get('annotations', {}).get('disktype')
+            if disktype in disk_format_priority:
+                manifest['_priority'] = disk_format_priority[disktype]
+            elif not disktype:
+                manifest['_priority'] = 100
+            else:
+                continue
+
+            # Normalize and cache the disk type for further processing
+            if disktype == 'applehv':
+                disktype = 'raw'
+            elif disktype and disktype != 'raw':
+                disktype = 'qcow2'
+
+            manifest['_disktype'] = disktype
+            new_manifests.append(manifest)
+
+        return sorted(new_manifests, key=itemgetter('_priority'))
+
     def identify_specific_image(self, image_href, image_download_source=None,
                                 cpu_arch=None):
         """Identify a specific OCI Registry Artifact.
@@ -640,132 +707,87 @@ class OciImageService(BaseImageService):
         artifact_index = self._client.get_artifact_index(image_href)
         manifests = artifact_index.get('manifests', [])
         if len(manifests) < 1:
-            # This is likely not going to happen, but we have nothing
-            # to identify and deploy based upon, so nothing found
-            # for user consistency.
-            raise exception.ImageNotFound(image_id=image_href)
+            mediaType = artifact_index.get('mediaType') or 'unknown'
+            if mediaType == oci_registry.MEDIA_OCI_MANIFEST_V1:
+                LOG.debug('The artifact index for image %s is a single '
+                          'manifest, using its layers')
+                manifests = [artifact_index]
+            else:
+                LOG.error('Cannot use image %s: the artifact index of type %s '
+                          'does not contain a list of manifests: %s',
+                          image_href, mediaType, artifact_index)
+                # This is likely not going to happen, but we have nothing
+                # to identify and deploy based upon, so nothing found
+                # for user consistency.
+                raise exception.InvalidImageRef(image_href=image_href)
 
         if image_download_source == 'swift':
             raise exception.InvalidParameterValue(
                 err="An image_download_source of swift is incompatible with "
                     "retrieval of artifacts from an OCI container registry.")
 
-        # Determine our preferences for matching
-        if image_download_source == 'local':
-            # These types are qcow2 images, we can download these and convert
-            # them, but it is okay for us to match a raw appearing image
-            # if we don't have a qcow available.
-            disk_format_priority = {'qcow2': 1,
-                                    'qemu': 2,
-                                    'raw': 3,
-                                    'applehv': 4}
-        else:
-            # applehv appears to be a raw image,
-            # raw is the Ironic community preference.
-            disk_format_priority = {'qcow2': 3,
-                                    'qemu': 4,
-                                    'raw': 1,
-                                    'applehv': 2}
-
-        # First thing to do, filter by disk types
-        # and assign a selection priority... since Ironic can handle
-        # several different formats without issue.
-        new_manifests = []
-        for manifest in manifests:
-            artifact_format = manifest.get('annotations', {}).get('disktype')
-            if artifact_format in disk_format_priority.keys():
-                manifest['_priority'] = disk_format_priority[artifact_format]
-            else:
-                manifest['_priority'] = 100
-            new_manifests.append(manifest)
-
-        sorted_manifests = sorted(new_manifests, key=itemgetter('_priority'))
+        sorted_manifests = self._filter_manifests(
+            manifests, image_download_source, cpu_arch)
+        LOG.debug('Using manifests %s for image %s',
+                  sorted_manifests, image_href)
 
         # Iterate through the entries of manifests and evaluate them
         # one by one to identify a likely item.
         for manifest in sorted_manifests:
-            # First evaluate the architecture because ironic can operated in
-            # an architecture agnostic mode... and we *can* match on it, but
-            # it is one of the most constraining factors.
-            if cpu_arch:
-                # NOTE(TheJulia): amd64 is the noted standard format in the
-                # API for x86_64. One thing, at least observing quay.io hosted
-                # artifacts is that there is heavy use of x86_64 as instead
-                # of amd64 as expected by the specification. This same sort
-                # of pattern extends to arm64/aarch64.
-                if cpu_arch in ['x86_64', 'amd64']:
-                    possible_cpu_arch = ['x86_64', 'amd64']
-                elif cpu_arch in ['arm64', 'aarch64']:
-                    possible_cpu_arch = ['aarch64', 'arm64']
-                else:
-                    possible_cpu_arch = [cpu_arch]
-                # Extract what the architecture is noted for the image, from
-                # the platform field.
-                architecture = manifest.get('platform', {}).get('architecture')
-                if architecture and architecture not in possible_cpu_arch:
-                    # skip onward, we don't have a localized match
-                    continue
+            if not manifest['_disktype']:
+                # If we got here, it means that the disk type is not set, and
+                # we need to detect it down the road.
+                LOG.warning('Image %s does not have a suitable disk type set '
+                            'on any of its manifests, will use the first '
+                            'manifest without a disk type', image_href)
 
-            # One thing podman is doing, and an ORAS client can set for
-            # upload, is annotations. This is ultimately the first point
-            # where we can identify likely artifacts.
-            # We also pre-sorted on disktype earlier, so in theory based upon
-            # preference, we should have the desired result as our first
-            # matching hint which meets the criteria.
-            disktype = manifest.get('annotations', {}).get('disktype')
-            if disktype:
-                if disktype in disk_format_priority.keys():
-                    identified_manifest_digest = manifest.get('digest')
-                    blob_manifest = self._client.get_manifest(
-                        image_href, identified_manifest_digest)
-                    layers = blob_manifest.get('layers', [])
-                    if len(layers) != 1:
-                        # This is a *multilayer* artifact, meaning a container
-                        # construction, not a blob artifact in the OCI
-                        # container registry. Odds are we're at the end of
-                        # the references for what the user has requested
-                        # consideration of as well, so it is good to log here.
-                        LOG.info('Skipping consideration of container '
-                                 'registry manifest %s as it has multiple'
-                                 'layers.',
-                                 identified_manifest_digest)
-                        continue
-
-                    # NOTE(TheJulia): The resulting layer contents, has a
-                    # mandatory mediaType value, which may be something like
-                    # application/zstd or application/octet-stream and the
-                    # an optional org.opencontainers.image.title annotation
-                    # which would contain the filename the file was stored
-                    # with in alignment with OARS annotations. Furthermore,
-                    # there is an optional artifactType value with OCI
-                    # distribution spec 1.1 (mid-2024) which could have
-                    # been stored when the artifact was uploaded,
-                    # but is optional. In any event, this is only available
-                    # on the manifest contents, not further up unless we have
-                    # the newer referrers API available. As of late 2024,
-                    # quay.io did not offer the referrers API.
-                    chosen_layer = layers[0]
-                    blob_digest = chosen_layer.get('digest')
-
-                    # Use the client helper to assemble a blob url, so we
-                    # have consistency with what we expect and what we parse.
-                    image_url = self._client.get_blob_url(image_href,
-                                                          blob_digest)
-                    image_size = chosen_layer.get('size')
-                    chosen_original_filename = chosen_layer.get(
-                        'annotations', {}).get(
-                            'org.opencontainers.image.title')
-                    manifest_digest = manifest.get('digest')
-                    media_type = chosen_layer.get('mediaType')
-                    is_raw_image = disktype in ['raw', 'applehv']
-                    break
-            else:
-                # The case of there being no disk type in the entry.
-                # The only option here is to query the manifest contents out
-                # and based decisions upon that. :\
-                # We could look at the layers, count them, and maybe look at
-                # artifact types.
+            identified_manifest_digest = manifest.get('digest')
+            layers = manifest.get('layers')
+            if not layers:
+                blob_manifest = self._client.get_manifest(
+                    image_href, identified_manifest_digest)
+                layers = blob_manifest.get('layers', [])
+            if len(layers) != 1:
+                # This is a *multilayer* artifact, meaning a container
+                # construction, not a blob artifact in the OCI
+                # container registry. Odds are we're at the end of
+                # the references for what the user has requested
+                # consideration of as well, so it is good to log here.
+                LOG.info('Skipping consideration of container '
+                         'registry manifest %s for image %s as it has '
+                         'multiple layers',
+                         identified_manifest_digest, image_href)
                 continue
+
+            # NOTE(TheJulia): The resulting layer contents, has a
+            # mandatory mediaType value, which may be something like
+            # application/zstd or application/octet-stream and the
+            # an optional org.opencontainers.image.title annotation
+            # which would contain the filename the file was stored
+            # with in alignment with OARS annotations. Furthermore,
+            # there is an optional artifactType value with OCI
+            # distribution spec 1.1 (mid-2024) which could have
+            # been stored when the artifact was uploaded,
+            # but is optional. In any event, this is only available
+            # on the manifest contents, not further up unless we have
+            # the newer referrers API available. As of late 2024,
+            # quay.io did not offer the referrers API.
+            chosen_layer = layers[0]
+            blob_digest = chosen_layer.get('digest')
+
+            # Use the client helper to assemble a blob url, so we
+            # have consistency with what we expect and what we parse.
+            image_url = self._client.get_blob_url(image_href, blob_digest)
+            image_size = chosen_layer.get('size')
+            chosen_original_filename = chosen_layer.get(
+                'annotations', {}).get(
+                    'org.opencontainers.image.title')
+            manifest_digest = (manifest.get('digest')
+                               or manifest.get('dockerContentDigest'))
+            media_type = chosen_layer.get('mediaType')
+            disktype = manifest['_disktype']
+            break
+
         if image_url:
             # NOTE(TheJulia): Doing the final return dict generation as a
             # last step in order to leave the door open to handling other
@@ -788,7 +810,10 @@ class OciImageService(BaseImageService):
             url = urlparse.urlparse(image_href)
             # Drop any trailing content indicating a tag
             image_path = url.path.split(':')[0]
-            manifest = f'{url.scheme}://{url.netloc}{image_path}@{manifest_digest}'  # noqa
+            if manifest_digest:
+                manifest = f'{url.scheme}://{url.netloc}{image_path}@{manifest_digest}'  # noqa
+            else:
+                manifest = None
             return {
                 'image_url': image_url,
                 'image_size': image_size,
@@ -797,7 +822,7 @@ class OciImageService(BaseImageService):
                 'image_container_manifest_digest': manifest_digest,
                 'image_media_type': media_type,
                 'image_compression_type': compression_type,
-                'image_disk_format': 'raw' if is_raw_image else 'qcow2',
+                'image_disk_format': disktype,
                 'image_request_authorization_secret': cached_auth,
                 'oci_image_manifest_url': manifest,
             }

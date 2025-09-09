@@ -29,6 +29,7 @@ from oslo_log import log as logging
 
 from ironic.common import checksum_utils
 from ironic.common import exception
+from ironic.common.i18n import _
 from ironic.conf import CONF
 
 LOG = logging.getLogger(__name__)
@@ -471,6 +472,33 @@ class OciClient(object):
             response.encoding = encoding
         return response.text
 
+    @staticmethod
+    def _get_response_json(response, encoding='utf-8', force_encoding=False,
+                           validate_digest=None):
+        """Return request response as JSON.
+
+        We need to set the encoding for the response other wise it
+        will attempt to detect the encoding which is very time consuming.
+        See https://github.com/psf/requests/issues/4235 for additional
+        context.
+
+        The docker-content-digest header is added as a dockerContentDigest
+        field to the response.
+
+        :param: response: requests Respoinse object
+        :param: encoding: encoding to set if not currently set
+        :param: force_encoding: set response encoding always
+        :param: validate_digest: checksum to validate the text against
+        """
+        text = OciClient._get_response_text(response, encoding, force_encoding)
+        if validate_digest:
+            checksum_utils.validate_text_checksum(text, validate_digest)
+        resource = json.loads(text)
+        contentDigest = response.headers.get('docker-content-digest')
+        if contentDigest:
+            resource['dockerContentDigest'] = contentDigest
+        return resource
+
     @classmethod
     def _build_url(cls, url, path):
         """Build an HTTPS URL from the input urlparse data.
@@ -507,6 +535,9 @@ class OciClient(object):
                 timeout=CONF.webserver_connection_timeout
             )
         except requests.exceptions.HTTPError as e:
+            LOG.error('Encountered error while attempting to download '
+                      'manifest %s for image %s: %s',
+                      manifest_url, image_url, e)
             if e.response.status_code == 401:
                 # Authorization Required.
                 raise exception.ImageServiceAuthenticationRequired(
@@ -517,9 +548,8 @@ class OciClient(object):
             if e.response.status_code >= 500:
                 raise exception.TemporaryFailure()
             raise
-        manifest_str = self._get_response_text(manifest_r)
-        checksum_utils.validate_text_checksum(manifest_str, digest)
-        return json.loads(manifest_str)
+        return self._get_response_json(
+            manifest_r, validate_digest=digest)
 
     def _get_artifact_index(self, image_url):
         LOG.debug('Attempting to get the artifact index for: %s',
@@ -528,8 +558,9 @@ class OciClient(object):
         index_url = self._build_url(
             image_url, CALL_MANIFEST % parts
         )
-        # Explicitly ask for the OCI artifact index
-        index_headers = {'Accept': ", ".join([MEDIA_OCI_INDEX_V1])}
+        # Explicitly ask for the OCI artifact index, fall back to manifest
+        index_headers = {'Accept': ", ".join([MEDIA_OCI_INDEX_V1,
+                                              MEDIA_OCI_MANIFEST_V1])}
 
         try:
             index_r = RegistrySessionHelper.get(
@@ -539,6 +570,9 @@ class OciClient(object):
                 timeout=CONF.webserver_connection_timeout
             )
         except requests.exceptions.HTTPError as e:
+            LOG.error('Encountered error while attempting to download '
+                      'artifact index %s for image %s: %s',
+                      index_url, image_url, e)
             if e.response.status_code == 401:
                 # Authorization Required.
                 raise exception.ImageServiceAuthenticationRequired(
@@ -549,10 +583,9 @@ class OciClient(object):
             if e.response.status_code >= 500:
                 raise exception.TemporaryFailure()
             raise
-        index_str = self._get_response_text(index_r)
         # Return a dictionary to the caller so it can house the
         # filtering/sorting application logic.
-        return json.loads(index_str)
+        return self._get_response_json(index_r)
 
     def _resolve_tag(self, image_url):
         """Attempts to resolve tags from a container URL."""
@@ -573,6 +606,9 @@ class OciClient(object):
                 headers=tag_headers,
                 timeout=CONF.webserver_connection_timeout)
         except requests.exceptions.HTTPError as e:
+            LOG.error('Encountered error while attempting to download '
+                      'the tag list %s for image %s: %s',
+                      tags_url, image_url, e)
             if e.response.status_code == 401:
                 # Authorization Required.
                 raise exception.ImageServiceAuthenticationRequired(
@@ -583,14 +619,24 @@ class OciClient(object):
         tags = tags_r.json()['tags']
         while 'next' in tags_r.links:
             next_url = parse.urljoin(tags_url, tags_r.links['next']['url'])
-            tags_r = RegistrySessionHelper.get(
-                self.session, next_url,
-                headers=tag_headers,
-                timeout=CONF.webserver_connection_timeout)
+            try:
+                tags_r = RegistrySessionHelper.get(
+                    self.session, next_url,
+                    headers=tag_headers,
+                    timeout=CONF.webserver_connection_timeout)
+            except requests.exceptions.HTTPError as e:
+                LOG.error('Encountered error while attempting to download '
+                          'the next tag list %s for image %s: %s',
+                          next_url, image_url, e)
+                raise
             tags.extend(tags_r.json()['tags'])
+        if not tags:
+            raise exception.InvalidImageRef(
+                _("Image %s does not have any tags") % image_url.geturl())
         if tag not in tags:
-            raise exception.ImageNotFound(
-                image_id=image_url.geturl())
+            raise exception.OciImageTagNotFound(
+                image_url=image_url.geturl(),
+                tags=', '.join(tags))
         return parts
 
     def get_artifact_index(self, image):
@@ -649,15 +695,16 @@ class OciClient(object):
         """
         if not blob_digest and '@' in image:
             split_url = image.split('@')
-            image_url = parse.urlparse(split_url[0])
+            image_url = split_url[0]
             blob_digest = split_url[1]
         elif blob_digest and '@' in image:
             split_url = image.split('@')
-            image_url = parse.urlparse(split_url[0])
+            image_url = split_url[0]
             # The caller likely has a bug or bad pattern
             # which needs to be fixed
         else:
-            image_url = parse.urlparse(image)
+            image_url = image
+        image_url = self._image_to_url(image_url)
         # just in caes, split out the tag since it is not
         # used for a blob manifest lookup.
         image_path = image_url.path.split(':')[0]
@@ -738,8 +785,8 @@ class OciClient(object):
                 raise exception.ImageChecksumError()
 
         except requests.exceptions.HTTPError as e:
-            LOG.debug('Encountered error while attempting to download %s',
-                      blob_url)
+            LOG.error('Encountered error while attempting to download %s: %s',
+                      blob_url, e)
             # Stream changes the behavior, so odds of hitting
             # this area area a bit low unless an actual exception
             # is raised.
@@ -755,6 +802,8 @@ class OciClient(object):
 
         except (OSError, requests.ConnectionError, requests.RequestException,
                 IOError) as e:
+            LOG.error('Encountered error while attempting to download %s: %s',
+                      blob_url, e)
             raise exception.ImageDownloadFailed(image_href=blob_url,
                                                 reason=str(e))
 
