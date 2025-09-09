@@ -828,6 +828,20 @@ class OciImageServiceTestCase(base.TestCase):
             'mediaType': 'application/vnd.oci.image.index.v1+json',
             'manifests': []
         }
+        self.single_manifest = {
+            'mediaType': 'application/vnd.oci.image.manifest.v1+json',
+            'artifactType': 'application/vnd.unknown.artifact.v1',
+            'layers': [
+                {'mediaType': 'application/vnd.oci.image.layer.v1.tar',
+                 'digest': 'sha256:7d6355852aeb6dbcd191bcda7cd74f1536cfe5cbf'
+                 '8a10495a7283a8396e4b75b',
+                 'size': 21692416,
+                 'annotations': {
+                     'org.opencontainers.image.title':
+                     'cirros-0.6.3-x86_64-disk.img'
+                 }},
+            ]
+        }
 
     @mock.patch.object(ociclient, 'get_manifest', autospec=True)
     @mock.patch.object(ociclient, 'get_artifact_index',
@@ -1045,7 +1059,7 @@ class OciImageServiceTestCase(base.TestCase):
             mock_get_artifact_index,
             mock_get_manifest):
         mock_get_artifact_index.return_value = self.empty_artifact_index
-        self.assertRaises(exception.ImageNotFound,
+        self.assertRaises(exception.InvalidImageRef,
                           self.service.identify_specific_image,
                           self.href)
         mock_get_artifact_index.assert_called_once_with(mock.ANY, self.href)
@@ -1146,6 +1160,32 @@ class OciImageServiceTestCase(base.TestCase):
         self.assertEqual(2, write.call_count)
         self.assertEqual('sha256:' + csum,
                          self.service.transfer_verified_checksum)
+
+    @mock.patch.object(ociclient, 'get_artifact_index', autospec=True)
+    def test_identify_specific_image_single_manifest(
+            self, mock_get_artifact_index):
+
+        self.single_manifest['dockerContentDigest'] = \
+            'sha256:9d046091b3dbeda26e1f4364a116ca8d94284000f103da7310e3a4703df1d3e4'  # noqa
+
+        mock_get_artifact_index.return_value = self.single_manifest
+
+        expected_data = {
+            'image_checksum': '7d6355852aeb6dbcd191bcda7cd74f1536cfe5cbf8a10495a7283a8396e4b75b',  # noqa
+            'image_compression_type': None,
+            'image_container_manifest_digest': 'sha256:9d046091b3dbeda26e1f4364a116ca8d94284000f103da7310e3a4703df1d3e4', # noqa
+            'image_filename': 'cirros-0.6.3-x86_64-disk.img',
+            'image_disk_format': None,
+            'image_media_type': 'application/vnd.oci.image.layer.v1.tar',
+            'image_request_authorization_secret': None,
+            'image_size': 21692416,
+            'image_url': 'https://localhost/v2/podman/machine-os/blobs/sha256:7d6355852aeb6dbcd191bcda7cd74f1536cfe5cbf8a10495a7283a8396e4b75b',  # noqa
+            'oci_image_manifest_url': 'oci://localhost/podman/machine-os@sha256:9d046091b3dbeda26e1f4364a116ca8d94284000f103da7310e3a4703df1d3e4'  # noqa
+        }
+        img_data = self.service.identify_specific_image(
+            self.href, cpu_arch='amd64')
+        self.assertEqual(expected_data, img_data)
+        mock_get_artifact_index.assert_called_once_with(mock.ANY, self.href)
 
     @mock.patch.object(ociclient, '_get_manifest', autospec=True)
     def test_show(self, mock_get_manifest):
