@@ -44,6 +44,9 @@
         # NOTE(rpittau): Currently broken because of an issue with parted
         - metalsmith-integration-glance-centos9-uefi:
             voting: false
+        - openstacksdk-functional-devstack:
+            files:
+              - ^ironic/api/.*$
         #####################################################################
         # Grenade should be removed in advance of the unmaintained branches #
         # as it doesn't know how to upgrade from an unmaintained branch.    #
