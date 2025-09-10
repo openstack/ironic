@@ -2580,7 +2580,8 @@ SUBSHELL
     # behind it, should also just generally work.
     PUBLIC_SUBNET_ID=$(openstack router show $Q_ROUTER_NAME -c external_gateway_info -f json | jq -r .external_gateway_info.external_fixed_ips[0].subnet_id)
     # Add a route for dhcp-less return path traffic
-    sudo ip route add 10.0.6.0/24 via $PUBLIC_SUBNET_IP
+    PUBLIC_SUBNET_DEV=$(ip -j route get $PUBLIC_SUBNET_IP | jq -r '.[0].dev')
+    sudo ip route add 10.0.6.0/24 via $PUBLIC_SUBNET_IP dev $PUBLIC_SUBNET_DEV onlink
 
     if [[ "${IRONIC_NETWORK_SIMULATOR:-ovs}" != "ovs" ]]; then
         create_network_simulator
