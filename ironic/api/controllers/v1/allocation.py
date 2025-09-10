@@ -505,7 +505,7 @@ class AllocationsController(pecan.rest.RestController):
     @validation.request_parameter_schema(schema.update_request_parameter)
     @validation.request_body_schema(schema.update_request_body, None, 59)
     @validation.request_body_schema(schema.update_request_body_v60, 60)
-    @validation.response_body_schema(schema.update_response_body, None, 60)
+    @validation.response_body_schema(schema.update_response_body, None, 59)
     @validation.response_body_schema(schema.update_response_body_v60, 60)
     def patch(self, allocation_ident, patch):
         """Update an existing allocation.
