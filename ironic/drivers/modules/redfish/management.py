@@ -91,6 +91,12 @@ BOOT_DEVICE_PERSISTENT_MAP = {
 BOOT_DEVICE_PERSISTENT_MAP_REV = {v: k for k, v in
                                   BOOT_DEVICE_PERSISTENT_MAP.items()}
 
+VENDORS_REQUIRING_FULL_BOOT_REQUEST = [
+    "american megatrends international",
+    "ami",
+    "asrockrack"
+]
+
 INDICATOR_MAP = {
     sushy.INDICATOR_LED_LIT: indicator_states.ON,
     sushy.INDICATOR_LED_OFF: indicator_states.OFF,
@@ -123,6 +129,10 @@ def _set_boot_device(task, system, device, persistent=False,
     :param http_boot_url: A string value to be sent to the sushy library,
                           which is sent to the BMC as the url to boot from.
     :raises: SushyError on an error from the Sushy library
+    Vendor-specific logic:
+    - Vendors listed in VENDORS_REQUIRING_FULL_BOOT_REQUEST:
+      Require setting full boot parameters
+      (mode, enabled, target) even if unchanged.
     """
 
     # The BMC handling of the persistent setting is vendor specific.
@@ -132,6 +142,13 @@ def _set_boot_device(task, system, device, persistent=False,
     # persistent setting must be set when setting the boot device
     # (see https://storyboard.openstack.org/#!/story/2008547).
     vendor = task.node.properties.get('vendor', None)
+    LOG.debug("Vendor : %(vendor)s node %(uuid)s",
+              {'vendor': vendor, 'uuid': task.node.uuid})
+    requires_full_boot_request = (
+        vendor and any(vendor_id in vendor.lower()
+                       for vendor_id in
+                       VENDORS_REQUIRING_FULL_BOOT_REQUEST)
+    )
     if vendor and vendor.lower() == 'supermicro':
         enabled = BOOT_DEVICE_PERSISTENT_MAP_REV[persistent]
         LOG.debug('Setting BootSourceOverrideEnable to %(enable)s '
@@ -147,8 +164,35 @@ def _set_boot_device(task, system, device, persistent=False,
     try:
         # NOTE(TheJulia): In sushy, it is uri, due to the convention used
         # in the standard. URL is used internally in ironic.
-        system.set_system_boot_options(device, enabled=enabled,
-                                       http_boot_uri=http_boot_url)
+        if requires_full_boot_request:
+            # Some vendors require sending all boot parameters every time
+            desired_mode = system.boot.get('mode') \
+                or sushy.BOOT_SOURCE_MODE_UEFI
+            desired_enabled = BOOT_DEVICE_PERSISTENT_MAP_REV[persistent]
+            current_enabled = system.boot.get('enabled') \
+                or sushy.BOOT_SOURCE_ENABLED_ONCE
+            current_target = system.boot.get('target') \
+                or sushy.BOOT_SOURCE_TARGET_NONE
+
+            LOG.debug('Vendor "%(vendor)s" requires full boot settings. '
+                      'Sending: mode=%(mode)s, enabled=%(enabled)s, '
+                      'target=%(target)s for node %(node)s',
+                      {'vendor': vendor, 'mode': desired_mode,
+                       'enabled': current_enabled, 'target': current_target,
+                       'node': task.node.uuid})
+
+            system.set_system_boot_options(
+                device,
+                mode=desired_mode,
+                enabled=enabled,
+                http_boot_uri=http_boot_url
+            )
+        else:
+            LOG.debug('Sending minimal Redfish boot device'
+                      ' change for node %(node)s',
+                      {'node': task.node.uuid})
+            system.set_system_boot_options(device, enabled=enabled,
+                                           http_boot_uri=http_boot_url)
     except sushy.exceptions.SushyError as e:
         if enabled == sushy.BOOT_SOURCE_ENABLED_CONTINUOUS:
             # NOTE(dtantsur): continuous boot device settings have been
@@ -336,13 +380,54 @@ class RedfishManagement(base.ManagementInterface):
         """
         system = redfish_utils.get_system(task.node)
 
+        vendor = task.node.properties.get('vendor', None)
+        requires_full_boot_request = (
+            vendor and any(vendor_id in vendor.lower()
+                           for vendor_id in
+                           VENDORS_REQUIRING_FULL_BOOT_REQUEST)
+        )
+
+        LOG.debug('Requested %(vendor)s to set boot mode'
+                  ' to "%(mode)s" for node %(node)s',
+                  {'mode': mode, 'node': task.node.uuid, 'vendor': vendor})
+
         # NOTE(dtantsur): check the readability of the current mode before
         # modifying anything. I suspect it can become None transiently after
         # the update, while we need to know if it is supported *at all*.
         get_mode_unsupported = (system.boot.get('mode') is None)
 
+        desired_mode = BOOT_MODE_MAP_REV[mode]
+        LOG.debug('Current boot mode read from Redfish for '
+                  'node %(node)s is: %(mode)s',
+                  {'node': task.node.uuid,
+                   'mode': desired_mode})
+
         try:
-            system.set_system_boot_options(mode=BOOT_MODE_MAP_REV[mode])
+
+            if requires_full_boot_request:
+                current_enabled = system.boot.get('enable') \
+                    or sushy.BOOT_SOURCE_ENABLED_ONCE
+                current_target = system.boot.get('enable') \
+                    or sushy.BOOT_SOURCE_TARGET_PXE
+
+                LOG.debug('Vendor "%(vendor)s" requires full boot settings. '
+                          'Sending: mode=%(mode)s, enabled=%(enabled)s, '
+                          'target=%(target)s for node %(node)s',
+                          {'vendor': vendor, 'mode': desired_mode,
+                           'enabled': current_enabled, 'node': task.node.uuid,
+                           'target': current_target
+                           })
+
+                system.set_system_boot_options(
+                    mode=desired_mode,
+                    enabled=current_enabled,
+                    target=current_target
+                )
+            else:
+                LOG.debug('Sending minimal Redfish boot mode '
+                          'change for node %(node)s',
+                          {'node': task.node.uuid})
+                system.set_system_boot_options(mode=desired_mode)
         except sushy.exceptions.SushyError as e:
             error_msg = (_('Setting boot mode to %(mode)s '
                            'failed for node %(node)s. '
