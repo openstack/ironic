@@ -1,0 +1,41 @@
+{
+    "manifest_version": 2,
+    "name": "ironic-console",
+    "version": "1.0",
+    "description": "A Firefox extension that displays bare metal remote graphical consoles",
+    "permissions": [
+        "activeTab",
+        "storage",
+        "cookies",
+        "http://*/*",
+        "https://*/*",
+        "file://*/*"
+    ],
+    "browser_specific_settings": {
+        "gecko": {
+            "id": "@ironic-console.openstack.org",
+            "strict_min_version": "42.0"
+        }
+    },
+    "content_scripts": [
+        {
+            "matches": [
+                "<all_urls>"
+            ],
+            "js": [
+                "config.js",
+                "library.js",
+                "APP_NAME.js"
+            ],
+            "css": [
+                "APP_NAME.css"
+            ],
+            "run_at": "document_start"
+        }
+    ],
+    "background": {
+        "scripts": [
+        ],
+        "persistent": true
+    }
+}

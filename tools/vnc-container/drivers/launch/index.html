@@ -1,0 +1,156 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Starting Console</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            background-color: #000000;
+            font-family: 'Arial', sans-serif;
+            height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            overflow: hidden;
+        }
+
+        .loading-container {
+            text-align: center;
+            color: white;
+        }
+
+        /* Spinning Circle Loader */
+        .spinner {
+            width: 80px;
+            height: 80px;
+            border: 8px solid rgba(255, 255, 255, 0.1);
+            border-left: 8px solid #00ff88;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 30px;
+        }
+
+        @keyframes spin {
+            0% {
+                transform: rotate(0deg);
+            }
+
+            100% {
+                transform: rotate(360deg);
+            }
+        }
+
+        /* Loading Text */
+        .loading-text {
+            font-size: 24px;
+            font-weight: 300;
+            letter-spacing: 2px;
+            margin-bottom: 20px;
+            opacity: 0;
+            animation: fadeInOut 2s ease-in-out infinite;
+        }
+
+        @keyframes fadeInOut {
+
+            0%,
+            100% {
+                opacity: 0;
+            }
+
+            50% {
+                opacity: 1;
+            }
+        }
+
+        @keyframes gradientShift {
+
+            0%,
+            100% {
+                background-position: 0% 50%;
+            }
+
+            50% {
+                background-position: 100% 50%;
+            }
+        }
+
+        @media (max-width: 768px) {
+            .spinner {
+                width: 60px;
+                height: 60px;
+                border-width: 6px;
+            }
+
+            .loading-text {
+                font-size: 20px;
+            }
+
+        }
+
+        #error-messages {
+            margin-top: 20px;
+            font-size: 16px;
+            color: #ff0000;
+            text-align: center;
+            max-width: 50%;
+            margin-left: auto;
+            margin-right: auto;
+        }
+
+        #status-messages {
+            margin-top: 20px;
+            font-size: 16px;
+            color: #aaa;
+        }
+    </style>
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const urlParams = new URLSearchParams(window.location.search);
+            const errorMessage = urlParams.get('error');
+            const statusMessage = urlParams.get('status');
+            statusText = document.getElementById("status-messages")
+            if (statusMessage){
+                statusText.textContent = statusMessage;
+            }
+            if (errorMessage) {
+                document.querySelector('.spinner').style.animation = 'none';
+                loadingText = document.querySelector('.loading-text')
+                loadingText.style.animation = 'none';
+                loadingText.style.opacity = 1;
+                loadingText.textContent = "ERROR LOADING CONSOLE"
+                statusText.textContent = "";
+                document.getElementById('error-messages').textContent = decodeURIComponent(errorMessage);
+            }
+        });
+    </script>
+
+</head>
+
+<body>
+    <div class="loading-container">
+
+        <!-- Main Spinner -->
+        <div class="spinner"></div>
+
+        <!-- Loading Text -->
+        <div class="loading-text">STARTING CONSOLE</div>
+
+        <div id="status-messages"></div>
+
+        <div id="error-messages"></div>
+
+
+
+    </div>
+
+</body>
+
+</html>
