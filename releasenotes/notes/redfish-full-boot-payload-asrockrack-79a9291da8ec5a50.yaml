@@ -1,0 +1,14 @@
+---
+fixes:
+  - |
+    Improved Redfish compatibility with ASRock Rack servers by updating how
+    boot mode and boot device settings are applied.
+
+    Previously, calls to `set_boot_device` and `set_boot_mode` only included
+    minimal parameters (e.g., `BootOverrideTarget` and `BootOverrideMode`), which
+    were insufficient for certain vendor implementations like ASRockRack.
+
+    This fix updates the Redfish driver to send the full payload, including
+    `BootSourceOverrideEnabled`, `BootSourceOverrideTarget`, `BootSourceOverrideMode`,
+    ensuring better compliance and reliability on these platforms.
+
