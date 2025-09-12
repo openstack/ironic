@@ -1,0 +1,7 @@
+---
+fixes:
+  - |
+    Fixes an issue where firmware upgrades would fail on HP iLO Generation 11
+    machines when the NetworkAdapters endpoint returns HTTP 400 (Bad Request)
+    responses during the firmware component caching process. Exception
+    handling allows the code to continue execution past that issue.
