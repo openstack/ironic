@@ -267,6 +267,91 @@ class RedfishFirmwareTestCase(db_base.DbTestCase):
             {'node_uuid': self.node.uuid}
         )
 
+    @mock.patch.object(redfish_fw, 'LOG', autospec=True)
+    @mock.patch.object(redfish_utils, 'get_system', autospec=True)
+    @mock.patch.object(redfish_utils, 'get_manager', autospec=True)
+    @mock.patch.object(objects, 'FirmwareComponentList', autospec=True)
+    def test_retrieve_nic_components_redfish_connection_error(
+            self, sync_fw_cmp_mock, manager_mock, system_mock, log_mock):
+        """Test that RedfishConnectionError during NIC retrieval is handled."""
+        system_mock.return_value.identity = "System1"
+        system_mock.return_value.bios_version = '1.0.0'
+        manager_mock.return_value.identity = "Manager1"
+        manager_mock.return_value.firmware_version = '1.0.0'
+
+        sync_fw_cmp_mock.sync_firmware_components.return_value = (
+            [{'component': 'bios', 'current_version': '1.0.0'},
+             {'component': 'bmc', 'current_version': '1.0.0'}],
+            [], [])
+
+        with task_manager.acquire(self.context, self.node.uuid,
+                                  shared=True) as task:
+            with mock.patch.object(task.driver.firmware,
+                                   'retrieve_nic_components',
+                                   autospec=True) as mock_retrieve:
+                connection_error = exception.RedfishError(
+                    'Connection failed')
+                mock_retrieve.side_effect = connection_error
+
+                task.driver.firmware.cache_firmware_components(task)
+
+        # Verify warning log for exception is called
+        log_mock.warning.assert_any_call(
+            'Unable to access NetworkAdapters on node %(node_uuid)s, '
+            'Error: %(error)s',
+            {'node_uuid': self.node.uuid, 'error': connection_error}
+        )
+
+        # Verify debug log for empty NIC list is NOT called
+        # (since we caught an exception, not an empty list)
+        debug_calls = [call for call in log_mock.debug.call_args_list
+                       if 'Could not retrieve Firmware Package Version from '
+                          'NetworkAdapters' in str(call)]
+        self.assertEqual(len(debug_calls), 0)
+
+    @mock.patch.object(redfish_fw, 'LOG', autospec=True)
+    @mock.patch.object(redfish_utils, 'get_system', autospec=True)
+    @mock.patch.object(redfish_utils, 'get_manager', autospec=True)
+    @mock.patch.object(objects, 'FirmwareComponentList', autospec=True)
+    def test_retrieve_nic_components_sushy_bad_request_error(
+            self, sync_fw_cmp_mock, manager_mock, system_mock, log_mock):
+        """Test that sushy BadRequestError during NIC retrieval is handled."""
+        system_mock.return_value.identity = "System1"
+        system_mock.return_value.bios_version = '1.0.0'
+        manager_mock.return_value.identity = "Manager1"
+        manager_mock.return_value.firmware_version = '1.0.0'
+
+        sync_fw_cmp_mock.sync_firmware_components.return_value = (
+            [{'component': 'bios', 'current_version': '1.0.0'},
+             {'component': 'bmc', 'current_version': '1.0.0'}],
+            [], [])
+
+        with task_manager.acquire(self.context, self.node.uuid,
+                                  shared=True) as task:
+            with mock.patch.object(task.driver.firmware,
+                                   'retrieve_nic_components',
+                                   autospec=True) as mock_retrieve:
+                bad_request_error = sushy.exceptions.BadRequestError(
+                    method='GET', url='/redfish/v1/Chassis/1/NetworkAdapters',
+                    response=mock.Mock(status_code=400))
+                mock_retrieve.side_effect = bad_request_error
+
+                task.driver.firmware.cache_firmware_components(task)
+
+        # Verify warning log for exception is called
+        log_mock.warning.assert_any_call(
+            'Unable to access NetworkAdapters on node %(node_uuid)s, '
+            'Error: %(error)s',
+            {'node_uuid': self.node.uuid, 'error': bad_request_error}
+        )
+
+        # Verify debug log for empty NIC list is NOT called
+        # (since we caught an exception, not an empty list)
+        debug_calls = [call for call in log_mock.debug.call_args_list
+                       if 'Could not retrieve Firmware Package Version from '
+                          'NetworkAdapters' in str(call)]
+        self.assertEqual(len(debug_calls), 0)
+
     @mock.patch.object(redfish_utils, 'LOG', autospec=True)
     @mock.patch.object(redfish_utils, '_get_connection', autospec=True)
     def test_missing_updateservice(self, conn_mock, log_mock):

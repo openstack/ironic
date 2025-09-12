@@ -110,12 +110,25 @@ class RedfishFirmware(base.FirmwareInterface):
             LOG.warning('No manager available to retrieve Firmware '
                         'from the bmc of node %s', task.node.uuid)
 
-        nic_components = self.retrieve_nic_components(task, system)
+        nic_components = None
+        try:
+            nic_components = self.retrieve_nic_components(task, system)
+        except (exception.RedfishError,
+                sushy.exceptions.BadRequestError) as e:
+            # NOTE(janders) if an exception is raised, log a warning
+            # with exception details. This is important for HP hardware
+            # which at the time of writing this are known to return 400
+            # responses to GET NetworkAdapters while OS isn't fully booted
+            LOG.warning('Unable to access NetworkAdapters on node '
+                        '%(node_uuid)s, Error: %(error)s',
+                        {'node_uuid': task.node.uuid, 'error': e})
+        # NOTE(janders) if no exception is raised but no NICs are returned,
+        # state that clearly but in a lower severity message
         if nic_components == []:
             LOG.debug('Could not retrieve Firmware Package Version from '
                       'NetworkAdapters on node %(node_uuid)s',
                       {'node_uuid': task.node.uuid})
-        else:
+        elif nic_components:
             settings.extend(nic_components)
 
         if not settings:
