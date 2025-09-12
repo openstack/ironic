@@ -1,0 +1,6 @@
+---
+fixes:
+  - |
+    Fixes ironic's pxe filter logic which some operators may leverage to
+    restrict access to resources as related to hardware discovery use cases.
+    The launcher was inadvertently broken during the removal of eventlet.
