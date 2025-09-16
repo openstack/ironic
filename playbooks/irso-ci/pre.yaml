@@ -1,0 +1,96 @@
+---
+- name: IrSO Functional Tests - Preparation
+  hosts: all
+  vars:
+    local_install_path: /usr/local
+    junit2html_venv: "{{ ansible_user_dir }}/venv"
+    kubectl_version: "1.33.4"
+    logdir: "{{ ansible_user_dir }}/metal3-logs"
+  environment:
+    PATH: "{{ local_install_path }}/go/bin:{{ local_install_path }}/bin:{{ ansible_env.PATH }}"
+
+  tasks:
+    - name: Install packages
+      package:
+        name:
+          - docker.io
+          - python3-venv
+        state: present
+      become: yes
+
+    - name: Activate docker
+      service:
+        name: docker
+        state: started
+      become: yes
+
+    - name: Allow the current user to use docker
+      user:
+        name: "{{ ansible_user_id }}"
+        groups: docker
+        append: yes
+      become: yes
+
+    - name: Reset connection to apply group changes
+      meta: reset_connection
+
+    # NOTE(dtantsur): global pip is deliberately broken in Ubuntu, use venv
+    - name: Create a venv for junit2html
+      command: python3 -m venv "{{ junit2html_venv }}"
+      args:
+        creates: "{{ junit2html_venv }}"
+
+    - name: Install junit2html
+      pip:
+        name: junit2html
+        executable: "{{ junit2html_venv }}/bin/pip"
+
+    - name: Ensure log directory exists
+      file:
+        path: "{{ logdir }}"
+        state: directory
+
+    - name: Checkout Metal3 repositories
+      git:
+        repo: "https://github.com/metal3-io/{{ item.name }}.git"
+        dest: "{{ item.path }}"
+        force: yes
+      loop:
+        - name: ironic-image
+          path: "{{ ironic_image_source }}"
+        - name: ironic-standalone-operator
+          path: "{{ irso_source }}"
+
+    - name: Calculate go version
+      shell: make -sC "{{ irso_source }}" go-version 2> /dev/null | tail -n1
+      register: go_version
+
+    - name: Download and install Go
+      unarchive:
+        src: "https://golang.org/dl/go{{ go_version.stdout | trim }}.linux-amd64.tar.gz"
+        dest: /usr/local
+        remote_src: yes
+        owner: root
+        group: root
+        mode: '0755'
+      become: yes
+
+    - name: Download Kubectl
+      ansible.builtin.get_url:
+        url: "https://dl.k8s.io/release/v{{ kubectl_version }}/bin/linux/amd64/kubectl"
+        dest: "{{ local_install_path }}/bin/kubectl"
+        mode: '0755'
+      become: yes
+
+    - name: Download minikube
+      get_url:
+        url: https://storage.googleapis.com/minikube/releases/latest/minikube-linux-amd64
+        dest: "{{ local_install_path }}/bin/minikube"
+        mode: '0755'
+      become: yes
+
+    - name: Setup minikube cluster
+      # FIXME(dtantsur): we definitely need to run minikube with --ha so that
+      # HA tests actually use a multi-replica configuration. Unfortunately,
+      # I could not make HA minikube work on OpenInfra nodes.
+      command: minikube start --driver=docker

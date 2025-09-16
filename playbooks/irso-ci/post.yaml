@@ -1,0 +1,47 @@
+---
+- name: IrSO Functional Tests - Log Collection
+  hosts: all
+  gather_facts: no
+  vars:
+    local_install_path: /usr/local
+    logdir: "{{ ansible_user_dir }}/metal3-logs"
+    junit_output: "{{ logdir }}/report.xml"
+    junit2html_venv: "{{ ansible_user_dir }}/venv"
+  environment:
+    CLUSTER_TYPE: minikube
+    CONTAINER_RUNTIME: docker
+    LOGDIR: "{{ ansible_user_dir }}/metal3-logs"
+    PATH: "{{ local_install_path }}/go/bin:{{ local_install_path }}/bin:{{ ansible_env.PATH }}"
+    JUNIT_OUTPUT: "{{ junit_output }}"
+
+  tasks:
+    - name: Collect logs
+      command: "{{ irso_source }}/test/collect-logs.sh"
+      ignore_errors: yes
+
+    - name: Check if JUnit report exists
+      stat:
+        path: "{{ junit_output }}"
+      register: junit_report
+
+    - name: Convert the JUnit report to HTML
+      command: "{{ junit2html_venv }}/bin/junit2html '{{ junit_output }}' '{{ logdir }}/report.html'"
+      args:
+        creates: "{{ logdir }}/report.html"
+      when: junit_report.stat.exists
+
+    - name: Copy logs to the zuul location
+      synchronize:
+        src: "{{ logdir }}/"
+        dest: "{{ zuul.executor.log_root }}/{{ inventory_hostname }}/"
+        mode: pull
+      become: true
+
+    - name: Store JUnit report as a Zuul artifact
+      zuul_return:
+        data:
+          zuul:
+            artifacts:
+              - name: Test Results
+                url: 'controller/report.html'
+      when: junit_report.stat.exists

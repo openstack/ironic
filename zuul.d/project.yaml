@@ -61,6 +61,8 @@
         # stable branches, and as far as we are aware these jobs
         # can be removed once this branch is made stable.
         - metal3-integration
+        - metal3-ironic-standalone-operator-functional:
+            voting: false
         # Non-voting jobs
         - ironic-inspector-tempest:
             voting: false
