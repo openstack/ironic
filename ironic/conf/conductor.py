@@ -52,7 +52,7 @@ opts = [
                       'of a conductor. A conductor is considered inactive '
                       'when this time has been exceeded.')),
     cfg.IntOpt('sync_power_state_interval',
-               default=60,
+               default=120,
                help=_('Interval between syncing the node power state to the '
                       'database, in seconds. Set to 0 to disable syncing.')),
     cfg.IntOpt('check_provision_state_interval',

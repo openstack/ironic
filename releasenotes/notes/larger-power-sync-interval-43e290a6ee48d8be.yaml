@@ -1,0 +1,7 @@
+---
+fixes:
+  - |
+    Our prior default for [conductor]/sync_power_state_interval was too
+    aggressive for many hardware devices. Instead of checking power state
+    every minute, we'll now check it by default every other minute. This will
+    significantly lessen the overall load on Node BMCs and the Ironic conductor.
