@@ -90,6 +90,10 @@ and that manifests then contains the digest values for artifacts which
 also supplies sufficient information to identify the URL where to download
 the artifacts from.
 
+.. WARNING::
+   The value of ``image_checksum``, as well as ``image_os_hash_value``, is
+   ignored for OCI URL's.
+
 Authentication
 --------------
 
