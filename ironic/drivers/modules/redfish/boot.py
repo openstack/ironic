@@ -301,7 +301,30 @@ def _insert_vmedia_in_resource(task, resource, boot_url, boot_device,
     :raises: InvalidParameterValue, if no suitable virtual CD or DVD is
         found on the node.
     """
+    # Get acceptable virtual media IDs from the boot interface
+    # This allows vendor-specific implementations to restrict which
+    # virtual media devices can be used
+    try:
+        acceptable_id = task.driver.boot._get_acceptable_media_id(task,
+                                                                  resource)
+    except AttributeError:
+        LOG.warning("Boot interface %s does not implement "
+                    "_get_acceptable_media_id method. This method should be "
+                    "implemented for compatibility.",
+                    task.driver.boot.__class__.__name__)
+        acceptable_id = None
+
     for v_media in resource.virtual_media.get_members():
+        # Skip virtual media if the ID is not in the acceptable set
+        if acceptable_id is not None and v_media.identity != acceptable_id:
+            LOG.debug("Boot Interface %(name)s returned %(acceptable_id)s as "
+                      "Virtual Media Slot ID, current slot is %(slot)s, "
+                      "skipping",
+                      {'name': task.driver.boot.__class__.__name__,
+                       'acceptable_id': acceptable_id,
+                       'slot': v_media.identity})
+            continue
+
         if boot_device not in v_media.media_types:
             # NOTE(janders): this conditional allows v_media that only
             # support DVD MediaType and NOT CD to also be used.
@@ -670,6 +693,20 @@ class RedfishVirtualMediaBoot(base.BootInterface):
                 % {'iface': task.node.get_interface('boot'),
                    'node': task.node.uuid, 'vendor': vendor,
                    'fwv': bmc_manager[0].firmware_version})
+
+    def _get_acceptable_media_id(self, task, resource):
+        """Get acceptable virtual media IDs for the resource.
+
+        This method can be overridden by vendor-specific implementations
+        to return specific virtual media IDs that should be used.
+
+        :param task: A TaskManager instance containing the node to act on.
+        :param resource: A redfish resource (System or Manager) containing
+            virtual media.
+        :returns: An acceptable virtual media ID, or None if any ID
+            is acceptable.
+        """
+        return None
 
     def validate(self, task):
         """Validate the deployment information for the task's node.
