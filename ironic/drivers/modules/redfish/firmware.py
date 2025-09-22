@@ -220,6 +220,24 @@ class RedfishFirmware(base.FirmwareInterface):
 
         fw_upd = settings[0]
         wait_interval = fw_upd.get('wait')
+
+        # Check if BMC firmware is being updated - BMC may need extended
+        # timeout after firmware update as it transitions through states
+        has_bmc_update = any(
+            setting.get('component', '') == redfish_utils.BMC
+            for setting in settings
+        )
+
+        # Use extended timeout for BMC updates to handle transitional states
+        if has_bmc_update and wait_interval is None:
+            reboot_timeout = CONF.redfish.firmware_update_bmc_timeout
+            LOG.info('BMC firmware update detected, using extended reboot '
+                     'timeout of %(timeout)s seconds for node %(node)s to '
+                     'handle BMC transitional states',
+                     {'timeout': reboot_timeout, 'node': node.uuid})
+        else:
+            reboot_timeout = wait_interval
+
         deploy_utils.set_async_step_flags(
             node,
             reboot=True,
@@ -227,7 +245,7 @@ class RedfishFirmware(base.FirmwareInterface):
             polling=True
         )
 
-        return deploy_utils.reboot_to_finish_step(task, timeout=wait_interval,
+        return deploy_utils.reboot_to_finish_step(task, timeout=reboot_timeout,
                                                   disable_ramdisk=True)
 
     def _execute_firmware_update(self, node, update_service, settings):

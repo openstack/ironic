@@ -1,0 +1,7 @@
+---
+fixes:
+  - |
+    Fixes BMC firmware update timeout issues by using extended timeout
+    (default 300 seconds) for BMC firmware updates to handle BMC transitional
+    states during firmware update process, unless a different timeout is
+    specified by the operator.
