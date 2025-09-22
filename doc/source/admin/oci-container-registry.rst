@@ -92,7 +92,9 @@ the artifacts from.
 
 .. WARNING::
    The value of ``image_checksum``, as well as ``image_os_hash_value``, is
-   ignored for OCI URL's.
+   ignored for OCI URL's. If you wish to restrict the checksum and matching
+   artifact in this model, please use a sha digest URL which points to
+   a specific manifest and is referenced by the manifest's checksum.
 
 Authentication
 --------------
