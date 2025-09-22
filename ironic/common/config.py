@@ -15,6 +15,8 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
+import os
+
 from oslo_config import cfg
 import osprofiler.opts as profiler_opts
 
@@ -23,10 +25,21 @@ from ironic import version
 
 
 def parse_args(argv, default_config_files=None):
+    # NOTE(amorin) allow wsgi app to start with custom config file/dir
+    conf_file_from_env = os.environ.get('IRONIC_CONFIG_FILE')
+    if conf_file_from_env and not default_config_files:
+        default_config_files = [conf_file_from_env]
+    conf_dir_from_env = os.environ.get('IRONIC_CONFIG_DIR')
+    if conf_dir_from_env:
+        default_config_dirs = [conf_dir_from_env]
+    else:
+        default_config_dirs = None
+
     rpc.set_defaults(control_exchange='ironic')
     cfg.CONF(argv[1:],
              project='ironic',
              version=version.version_info.release_string(),
-             default_config_files=default_config_files)
+             default_config_files=default_config_files,
+             default_config_dirs=default_config_dirs)
     rpc.init(cfg.CONF)
     profiler_opts.set_defaults(cfg.CONF)
