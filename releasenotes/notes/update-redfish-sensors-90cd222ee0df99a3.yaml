@@ -1,0 +1,5 @@
+---
+features:
+  - |
+    Adds manufacturer, model and system UUID information to the ``redfish``
+    sensor data collector.
