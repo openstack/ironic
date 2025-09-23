@@ -2697,7 +2697,7 @@ class ConductorManager(base_manager.BaseConductorManager):
                 # any Port associated to the PortGroup, otherwise
                 # PortgroupNotEmpty exception is raised.
                 associated_ports = self.dbapi.get_ports_by_portgroup_id(
-                    portgroup_uuid)
+                    portgroup_obj.id)
                 if associated_ports:
                     action = _("Portgroup %(portgroup)s can not be associated "
                                "with node %(node)s because there are ports "

@@ -1,0 +1,7 @@
+---
+fixes:
+  - |
+    Fixes an issue around handling of portgroup updates where the associated
+    node ID is changed. While a rare operation, it exists as a capability
+    and a bug existed from the wrong ID value being used to query the
+    database. The correct ID value is now utilized.
