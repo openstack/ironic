@@ -158,6 +158,12 @@ class RedfishInspect(base.InspectInterface):
         if system.manufacturer:
             system_vendor['manufacturer'] = str(system.manufacturer)
 
+        if system.sku:
+            system_vendor['sku'] = str(system.sku)
+
+        if system.uuid:
+            system_vendor['system_uuid'] = str(system.uuid)
+
         if system_vendor:
             inventory['system_vendor'] = system_vendor
 
