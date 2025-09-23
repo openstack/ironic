@@ -1,0 +1,5 @@
+other:
+  - |
+    For consistency with other OpenStack projects, Ironic API's wsgi server can
+    now be launched via `ironic.wsgi.api:application` as well as
+    `ironic.wsgi:application`.
