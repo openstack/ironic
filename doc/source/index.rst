@@ -1,3 +1,10 @@
+.. meta::
+   :description: Ironic OpenStack bare metal provisioning service documentation. Install, configure, and manage physical servers in cloud environments with comprehensive guides and API references.
+   :keywords: ironic, openstack, bare metal, physical servers, provisioning, cloud infrastructure, IPMI, PXE, hardware management
+   :author: OpenStack Ironic Team
+   :robots: index, follow
+   :canonical: https://docs.openstack.org/ironic/latest/
+
 ==================================
 Welcome to Ironic's documentation!
 ==================================

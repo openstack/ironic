@@ -1,3 +1,10 @@
+.. meta::
+   :description: Deploy bare metal instances with Ironic. Standalone deployments, allocations, boot modes, and direct provisioning without Nova integration.
+   :keywords: bare metal deployment, ironic standalone, instance deployment, allocations, boot modes, direct provisioning, metalsmith
+   :author: OpenStack Ironic Team
+   :robots: index, follow
+   :audience: cloud users, developers
+
 Deploying with Bare Metal service
 =================================
 

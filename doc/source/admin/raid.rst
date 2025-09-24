@@ -1,3 +1,10 @@
+.. meta::
+   :description: Configure RAID storage for Ironic bare metal nodes. Hardware RAID, software RAID, and automated storage configuration during deployment.
+   :keywords: raid configuration, hardware raid, software raid, storage configuration, disk management, ironic raid, automated setup
+   :author: OpenStack Ironic Team
+   :robots: index, follow
+   :audience: storage engineers, system administrators
+
 .. _raid:
 
 ==================

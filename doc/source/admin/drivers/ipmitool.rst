@@ -1,3 +1,10 @@
+.. meta::
+   :description: Configure Ironic IPMI driver using ipmitool for legacy server management. Power control, console access, and hardware monitoring via IPMI protocol.
+   :keywords: ipmi driver, ipmitool, legacy servers, power management, console access, hardware monitoring, baseboard management controller
+   :author: OpenStack Ironic Team
+   :robots: index, follow
+   :audience: system administrators, hardware engineers
+
 ===========
 IPMI driver
 ===========

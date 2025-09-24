@@ -1,3 +1,10 @@
+.. meta::
+   :description: Ironic REST API reference documentation. Complete API endpoints, request/response formats, authentication, and microversion support.
+   :keywords: ironic api, rest api, api reference, microversions, authentication, endpoints, bare metal api, openstack api
+   :author: OpenStack Ironic Team
+   :robots: index, follow
+   :audience: developers, api consumers
+
 ===============================
 REST API Versioning for Ironic
 ===============================
