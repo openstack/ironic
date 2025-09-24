@@ -1,0 +1,6 @@
+---
+fixes:
+  - |
+    When caching an image between different file systems, the hard link
+    operation would fail. This is fixed by falling back to a copy
+    operation.
