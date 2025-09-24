@@ -4,8 +4,17 @@
 Conductor Groups
 ================
 
+.. seealso::
+   For a complete guide on achieving availability zone functionality,
+   see :doc:`availability-zones`.
+
 Overview
 ========
+
+Conductor groups provide **physical resource partitioning** in Ironic,
+similar to Nova's availability zones but focused on conductor-level management.
+They work alongside :ref:`shards <availability-zones-shards>` to provide
+complete resource isolation and operational scaling capabilities.
 
 Large-scale operators tend to have needs that involve creating
 well-defined and delineated resources. In some cases, these systems
@@ -64,3 +73,18 @@ expression.
 #. As desired and as needed, the remaining conductors can be updated with
    the first two steps. Please be mindful of the constraints covered
    earlier in the document related to the ability to manage nodes.
+
+Advanced Usage with Multiple Deployments
+=========================================
+
+Conductor groups work within a single Ironic deployment. For complete
+service isolation across geographic regions or regulatory boundaries,
+consider using :ref:`multiple Ironic deployments <availability-zones:Tier 1: Multiple Ironic Deployments>`
+targeted by different Nova compute services.
+
+See Also
+========
+
+* :doc:`availability-zones` - Complete availability zone strategy
+* :doc:`networking` - Physical network considerations
+* :doc:`../install/refarch/index` - Reference architectures

@@ -12,8 +12,12 @@ the services.
   features
   operation
   architecture
+  availability-zones
 
 .. toctree::
   :hidden:
 
   deploy-steps
+  conductor-groups
+  networking
+  multitenancy

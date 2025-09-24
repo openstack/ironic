@@ -258,6 +258,11 @@ it is needed.
 Physical networks
 -----------------
 
+.. note::
+   Physical networks work alongside :doc:`conductor-groups` and
+   :doc:`availability-zones` to provide complete resource partitioning.
+   Consider all three mechanisms when designing your network topology.
+
 An Ironic port may be associated with a physical network using its
 ``physical_network`` field. Ironic uses this information when
 mapping between virtual ports in Neutron and physical ports and
