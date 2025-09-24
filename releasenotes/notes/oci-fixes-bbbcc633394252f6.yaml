@@ -1,0 +1,5 @@
+---
+fixes:
+  - |
+    Fixes deploying OCI artifacts uploaded by ORAS to Quay.io (and potentially
+    other registries) as a single manifest.
