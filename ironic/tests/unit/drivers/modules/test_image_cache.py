@@ -18,6 +18,7 @@
 
 import datetime
 import os
+import shutil
 import tempfile
 import time
 from unittest import mock
@@ -237,6 +238,34 @@ class TestImageCacheFetch(BaseTest):
             image_auth_data=None)
         mock_clean_up.assert_not_called()
         mock_image_service.assert_not_called()
+
+    @mock.patch.object(shutil, 'copyfile', autospec=True)
+    @mock.patch.object(os, 'link', autospec=True)
+    @mock.patch.object(image_cache, '_delete_dest_path_if_stale',
+                       return_value=False, autospec=True)
+    @mock.patch.object(image_cache, '_delete_master_path_if_stale',
+                       return_value=True, autospec=True)
+    def test_fetch_image_hardlink_fails_fallback_to_copy(
+            self, mock_cache_upd, mock_dest_upd, mock_link, mock_copyfile,
+            mock_download, mock_clean_up, mock_image_service):
+        mock_link.side_effect = OSError("Invalid cross-device link")
+
+        self.cache.fetch_image(self.uuid, self.dest_path)
+
+        mock_link.assert_called_once_with(self.master_path, self.dest_path)
+
+        mock_copyfile.assert_called_once_with(self.master_path, self.dest_path)
+
+        mock_cache_upd.assert_called_once_with(
+            self.master_path, self.uuid,
+            mock_image_service.return_value.show.return_value)
+        mock_dest_upd.assert_called_once_with(self.master_path, self.dest_path)
+
+        mock_download.assert_not_called()
+        mock_clean_up.assert_not_called()
+
+        mock_image_service.assert_called_once_with(self.uuid, context=None)
+        mock_image_service.return_value.show.assert_called_once_with(self.uuid)
 
 
 @mock.patch.object(image_cache, '_fetch', autospec=True)

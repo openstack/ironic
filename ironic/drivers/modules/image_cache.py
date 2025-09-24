@@ -19,6 +19,7 @@ Utility for caching master images.
 """
 
 import os
+import shutil
 import tempfile
 import threading
 import time
@@ -167,7 +168,17 @@ class ImageCache(object):
             if cache_up_to_date:
                 # NOTE(dtantsur): ensure we're not in the middle of clean up
                 with lockutils.lock('master_image'):
-                    os.link(master_path, dest_path)
+                    try:
+                        os.link(master_path, dest_path)
+                    except OSError as exc:
+                        LOG.debug(
+                            "Could not hardlink image file %(image)s to "
+                            "the cache location %(dest_path)s (will copy it "
+                            "over): %(error)s", {
+                                'image': master_path,
+                                'dest_path': dest_path,
+                                'error': exc})
+                        shutil.copyfile(master_path, dest_path)
                 LOG.debug("Master cache hit for image %(href)s",
                           {'href': href})
                 return
