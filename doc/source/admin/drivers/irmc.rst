@@ -46,8 +46,7 @@ hardware interfaces:
     .. warning::
        We deprecated the ``pxe`` boot interface when used with ``irmc``
        hardware type. Support for this interface will be removed in the
-       future. Instead, use ``irmc-pxe``. ``irmc-pxe`` boot interface
-       was introduced in Pike.
+       future. Instead, use ``irmc-pxe``.
 
 * console
     Supports ``ipmitool-socat``, ``ipmitool-shellinabox``, and ``no-console``.

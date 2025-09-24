@@ -629,15 +629,19 @@ Originally this was a fairly easy issue to encounter. The retry logic path
 which resulted between the Orchestration (heat) and Compute (nova) services,
 could sometimes result in additional un-necessary ports being created.
 
-Bugs of this class have been largely resolved since the Rocky development
-cycle. Since then, the way this can become encountered is due to Networking
-(neutron) VIF attachments not being removed or deleted prior to deleting a
-port in the Bare Metal service.
+Most users of modern Ironic are unlikely to experience this except in
+situations where a Networking (neutron) VIF attachment was not removed
+or deleted prior to deleting and re-creating a port in the Bare Metal
+service. Users utilizing custom tooling may also experience a similar
+issue due to incorrect usage patterns, i.e. a port being pre-assigned
+a physical machine's MAC address.
 
-Ultimately, the key of this is that the port is being deleted. Under most
-operating circumstances, there really is no need to delete the port, and
-VIF attachments are stored on the port object, so deleting the port
-*CAN* result in the VIF not being cleaned up from Neutron.
+Ultimately, the key of this is that the port is being deleted,
+or a separate port was added outside of Ironic's workflow. Under most
+operating circumstances, there really is no need to delete the port
+on a node, and VIF attachments are stored on the port object,
+so deleting the port *CAN* result in the VIF not being cleaned
+up from Neutron which ends up creating this sort of situation.
 
 Under normal circumstances, when deleting ports, a node should be in a
 stable state, and the node should not be provisioned. If the
@@ -680,7 +684,10 @@ Using that, you can delete the port. Example:
    use or no longer seems applicable/operable. If multiple deployments of
    the Bare Metal service with a single Neutron, the possibility that a
    inventory typo, or possibly even a duplicate MAC address exists, which
-   could also produce the same basic error message.
+   could also produce the same basic error message. A final root cause
+   is where users might pre-create a port in Neutron with a Bare Metal
+   port's MAC address, which is an incorrect practice as Ironic attempts
+   to assert the MAC address based upon the Node.
 
 My test VM image does not deploy -- mount point does not exist
 ==============================================================
