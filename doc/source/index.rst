@@ -26,8 +26,8 @@ be managed as though they were virtual machines.
 This documentation is continually updated and may not represent the state of
 the project at any specific prior release. To access documentation for a
 previous release of ironic, append the OpenStack release name to the URL; for
-example, the ``ocata`` release is available at
-https://docs.openstack.org/ironic/ocata/.
+example, the ``2025.1`` release is available at
+https://docs.openstack.org/ironic/2025.1/.
 
 Found a bug in one of our projects? Please see :doc:`/contributor/bugs`.
 

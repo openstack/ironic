@@ -134,7 +134,7 @@ all the ironic services.
 
 The default value of empty indicates that ironic-api and ironic-conductor
 will use the latest versions of API, RPC and IronicObjects. Its possible values
-are releases, named (e.g. ``ocata``) or sem-versioned (e.g. ``7.0``).
+are releases, named (e.g. ``2025.1``) or sem-versioned (e.g. ``29.0``).
 
 Internally, in `common/release_mappings.py
 <https://opendev.org/openstack/ironic/src/branch/master/ironic/common/release_mappings.py>`_,
