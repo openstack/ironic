@@ -51,7 +51,6 @@ Non-client libraries
 The following deliverables are non-client libraries:
 
 * ironic-lib
-* metalsmith
 * sushy
 
 Client libraries

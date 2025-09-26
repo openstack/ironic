@@ -37,8 +37,6 @@ All Ironic project bugtrackers, filtered and sorted for triage:
 * `ironic-prometheus-exporter <https://bugs.launchpad.net/ironic-prometheus-exporter/+bugs?field.status%3Alist=NEW&field.status%3Alist=INCOMPLETE_WITH_RESPONSE&orderby=-id>`_
 * `ironic-python-agent-builder <https://bugs.launchpad.net/ironic-python-agent-builder/+bugs?field.status%3Alist=NEW&field.status%3Alist=INCOMPLETE_WITH_RESPONSE&orderby=-id>`_
 * `ironic-ui <https://bugs.launchpad.net/ironic-ui/+bugs?field.status%3Alist=NEW&field.status%3Alist=INCOMPLETE_WITH_RESPONSE&orderby=-id>`_
-* `metalsmith <https://bugs.launchpad.net/metalsmith/+bugs?field.status%3Alist=NEW&field.status%3Alist=INCOMPLETE_WITH_RESPONSE&orderby=-id>`_
-* `molteniron <https://bugs.launchpad.net/molteniron/+bugs?field.status%3Alist=NEW&field.status%3Alist=INCOMPLETE_WITH_RESPONSE&orderby=-id>`_
 * `networking-baremetal <https://bugs.launchpad.net/networking-baremetal/+bugs?field.status%3Alist=NEW&field.status%3Alist=INCOMPLETE_WITH_RESPONSE&orderby=-id>`_
 * `networking-generic-switch <https://bugs.launchpad.net/networking-generic-switch/+bugs?field.status%3Alist=NEW&field.status%3Alist=INCOMPLETE_WITH_RESPONSE&orderby=-id>`_
 * `python-ironic-inspector-client <https://bugs.launchpad.net/python-ironic-inspector-client/+bugs?field.status%3Alist=NEW&field.status%3Alist=INCOMPLETE_WITH_RESPONSE&orderby=-id>`_
