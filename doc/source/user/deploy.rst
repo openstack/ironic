@@ -1,6 +1,6 @@
 .. meta::
    :description: Deploy bare metal instances with Ironic. Standalone deployments, allocations, boot modes, and direct provisioning without Nova integration.
-   :keywords: bare metal deployment, ironic standalone, instance deployment, allocations, boot modes, direct provisioning, metalsmith
+   :keywords: bare metal deployment, ironic standalone, instance deployment, allocations, boot modes, direct provisioning
    :author: OpenStack Ironic Team
    :robots: index, follow
    :audience: cloud users, developers
@@ -11,12 +11,7 @@ Deploying with Bare Metal service
 This guide explains how to use Ironic to deploy nodes without any front-end
 service, such as OpenStack Compute (nova) or Metal3_.
 
-.. note::
-   To simplify this task you can use the metalsmith_ tool which provides a
-   convenient CLI for the most common cases.
-
 .. _Metal3: http://metal3.io/
-.. _metalsmith: https://docs.openstack.org/metalsmith/latest/
 
 Allocations
 -----------
