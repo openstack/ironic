@@ -95,9 +95,6 @@ incompatible with them. There are three ways to deal with this situation:
         --reset-management-interface \
         --reset-power-interface
 
-   .. note:: This feature is available starting with ironic 11.1.0 (Rocky
-             series, API version 1.45).
-
 #. Request resetting all interfaces to their new defaults::
 
     baremetal node set test --driver ipmi --reset-interfaces
@@ -106,9 +103,6 @@ incompatible with them. There are three ways to deal with this situation:
 
     baremetal node set test --driver ipmi --reset-interfaces \
         --deploy-interface direct
-
-   .. note:: This feature is available starting with ironic 11.1.0 (Rocky
-             series, API version 1.45).
 
 .. _static-boot-order:
 
@@ -144,23 +138,3 @@ For example, in the case of the :ref:`pxe-boot`:
 #. Change the node to use the ``noop`` management interface::
 
       baremetal node set <NODE> --management-interface noop
-
-Unsupported drivers
--------------------
-
-The following drivers were declared as unsupported in ironic Newton release
-and as of Ocata release they are removed from ironic:
-
-- AMT driver - available as part of ironic-staging-drivers_
-- iBoot driver - available as part of ironic-staging-drivers_
-- Wake-On-Lan driver - available as part of ironic-staging-drivers_
-- Virtualbox drivers
-- SeaMicro drivers
-- MSFT OCS drivers
-
-The SSH drivers were removed in the Pike release. Similar functionality can be
-achieved either with VirtualBMC_ or using libvirt drivers from
-ironic-staging-drivers_.
-
-.. _ironic-staging-drivers: http://ironic-staging-drivers.readthedocs.io
-.. _VirtualBMC: https://opendev.org/openstack/virtualbmc
