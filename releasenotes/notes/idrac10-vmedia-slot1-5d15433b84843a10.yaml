@@ -1,0 +1,8 @@
+---
+fixes:
+  - |
+    Fixes an issue where some iDRAC10 machines requires a specific Virtual
+    Media Slot. Ironic will attempt to automatically identify the version,
+    and ensures the right slot is used to insert the iso.
+    See `bug 2125571 <https://bugs.launchpad.net/ironic/+bug/2125571>`_
+    for details.

@@ -3007,3 +3007,96 @@ class RedfishVirtualMediaBootViaSystemTestCase(db_base.DbTestCase):
             redfish_boot._has_vmedia_device(
                 [mock_manager], sushy.VIRTUAL_MEDIA_FLOPPY,
                 inserted=True, system=mock_system))
+
+    def test__insert_vmedia_in_resource_skips_unacceptable_ids(self):
+        with task_manager.acquire(self.context, self.node.uuid,
+                                  shared=True) as task:
+
+            # Mock the boot interface to return acceptable_id "1"
+            task.driver.boot._get_acceptable_media_id = mock.MagicMock(
+                return_value="1")
+
+            # Create two virtual media devices with IDs "2" and "3"
+            mock_vmedia_2 = mock.MagicMock()
+            mock_vmedia_2.identity = "2"
+            mock_vmedia_2.media_types = [sushy.VIRTUAL_MEDIA_CD]
+            mock_vmedia_2.inserted = False
+
+            mock_vmedia_3 = mock.MagicMock()
+            mock_vmedia_3.identity = "3"
+            mock_vmedia_3.media_types = [sushy.VIRTUAL_MEDIA_CD]
+            mock_vmedia_3.inserted = False
+
+            # Mock resource with virtual media collection
+            mock_resource = mock.MagicMock()
+            mock_resource.virtual_media.get_members.return_value = [
+                mock_vmedia_2, mock_vmedia_3
+            ]
+
+            # Create error messages list
+            err_msgs = []
+
+            # Call _insert_vmedia_in_resource
+            result = redfish_boot._insert_vmedia_in_resource(
+                task, mock_resource, 'http://example.com/boot.iso',
+                sushy.VIRTUAL_MEDIA_CD, err_msgs)
+
+            # Should return False since no acceptable media found
+            self.assertFalse(result)
+
+            # Verify that _get_acceptable_media_id was called
+            task.driver.boot._get_acceptable_media_id.assert_called_once_with(
+                task, mock_resource)
+
+            # Verify that no insert_media was called on either device
+            # since they were skipped due to unacceptable IDs
+            mock_vmedia_2.insert_media.assert_not_called()
+            mock_vmedia_3.insert_media.assert_not_called()
+
+    def test__insert_vmedia_in_resource_uses_acceptable_id(self):
+        with task_manager.acquire(self.context, self.node.uuid,
+                                  shared=True) as task:
+
+            # Mock the boot interface to return acceptable_id "1"
+            task.driver.boot._get_acceptable_media_id = mock.MagicMock(
+                return_value="1")
+
+            # Create two virtual media devices with IDs "2" and "1"
+            mock_vmedia_2 = mock.MagicMock()
+            mock_vmedia_2.identity = "2"
+            mock_vmedia_2.media_types = [sushy.VIRTUAL_MEDIA_CD]
+            mock_vmedia_2.inserted = False
+
+            mock_vmedia_1 = mock.MagicMock()
+            mock_vmedia_1.identity = "1"
+            mock_vmedia_1.media_types = [sushy.VIRTUAL_MEDIA_CD]
+            mock_vmedia_1.inserted = False
+
+            # Mock resource with virtual media collection
+            mock_resource = mock.MagicMock()
+            mock_resource.virtual_media.get_members.return_value = [
+                mock_vmedia_2, mock_vmedia_1
+            ]
+
+            # Create error messages list
+            err_msgs = []
+
+            # Call _insert_vmedia_in_resource
+            result = redfish_boot._insert_vmedia_in_resource(
+                task, mock_resource, 'http://example.com/boot.iso',
+                sushy.VIRTUAL_MEDIA_CD, err_msgs)
+
+            # Should return True since acceptable media was found and used
+            self.assertTrue(result)
+
+            # Verify that _get_acceptable_media_id was called
+            task.driver.boot._get_acceptable_media_id.assert_called_once_with(
+                task, mock_resource)
+
+            # Verify that first device was skipped (ID "2" != acceptable "1")
+            mock_vmedia_2.insert_media.assert_not_called()
+
+            # Verify that second device was used (ID "1" == acceptable "1")
+            mock_vmedia_1.insert_media.assert_called_once_with(
+                'http://example.com/boot.iso', inserted=True,
+                write_protected=True)
