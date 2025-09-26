@@ -90,10 +90,10 @@ Note how ``baremetal.with-GPU`` in the node's ``resource_class`` field becomes
 Scheduling based on traits
 --------------------------
 
-Starting with the Queens release, the Compute service supports scheduling based
-on qualitative attributes using traits.  Starting with Bare Metal REST API
-version 1.37, it is possible to assign a list of traits to each bare metal
-node.  Traits assigned to a bare metal node will be assigned to the
+The Compute service supports scheduling based on qualitative attributes
+using traits.  Starting with Bare Metal REST API version 1.37,
+it is possible to assign a list of traits to each bare metal node.
+Traits assigned to a bare metal node will be assigned to the
 corresponding resource provider in the Compute service placement API.
 
 When creating a flavor in the Compute service, required traits may be specified

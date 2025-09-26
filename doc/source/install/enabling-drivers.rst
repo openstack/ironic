@@ -12,9 +12,8 @@ in a vendor-specific way. There are generic **hardware types** (eg.
 ``irmc``).
 
 .. note::
-   Starting with the Rocky release, the terminologies *driver*,
-   *dynamic driver*, and *hardware type* have the same meaning
-   in the scope of Bare Metal service.
+   The terminologies *driver*, *dynamic driver*, and *hardware type*
+   have the same meaning in the scope of Bare Metal service.
 
 .. _enable-hardware-types:
 
