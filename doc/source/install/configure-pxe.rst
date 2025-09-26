@@ -482,10 +482,10 @@ be aborted, and the node will be moved to the ``deploy failed`` state, after
 the deploy callback timeout. This timeout can be changed via the
 :oslo.config:option:`conductor.deploy_callback_timeout` configuration option.
 
-Starting with the Train release, the Bare Metal service can retry PXE boot if
-it takes too long. The timeout is defined via
-:oslo.config:option:`pxe.boot_retry_timeout` and must be smaller than the
-``deploy_callback_timeout``, otherwise it will have no effect.
+The Bare Metal service can retry PXE boot if it takes too long.
+The timeout is defined via :oslo.config:option:`pxe.boot_retry_timeout`
+and must be smaller than the ``deploy_callback_timeout``,
+otherwise it will have no effect.
 
 For example, the following configuration sets the overall timeout to 60
 minutes, allowing two retries after 20 minutes:
