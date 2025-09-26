@@ -104,8 +104,7 @@ You need to specify image information in the node's ``instance_info``
      If your operating system is running in FIPS 140-2 mode, MD5 will not be
      available, and you **must** use SHA256 or another modern algorithm.
 
-  Starting with the Stein release of ironic-python-agent can also be a URL
-  to a checksums file, e.g. one generated with:
+  The checksum can also be a URL to a checksums file, e.g. one generated with:
 
   .. code-block:: console
 
@@ -135,18 +134,6 @@ With a SHA256 hash:
      --instance-info image_os_hash_algo=sha256 \
      --instance-info image_os_hash_value=a64dd95e0c48e61ed741ff026d8c89ca38a51f3799955097c5123b1705ef13d4 \
      --instance-info image_type=partition \
-     --instance-info root_gb=10
-
-If you use network boot (or Ironic before Yoga), two more fields must be set:
-
-.. code-block:: shell
-
- baremetal node set $NODE_UUID \
-     --instance-info image_source=http://image.server/my-image.qcow2 \
-     --instance-info image_checksum=1f9c0e1bad977a954ba40928c1e11f33 \
-     --instance-info image_type=partition \
-     --instance-info kernel=http://image.server/my-image.kernel \
-     --instance-info ramdisk=http://image.server/my-image.initramfs \
      --instance-info root_gb=10
 
 With a whole disk image and a checksum URL:
@@ -315,7 +302,7 @@ command, for example:
 Building a config drive on the conductor side
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-Starting with the Stein release and ``ironicclient`` 2.7.0, you can request
+In modern versions of ``python-ironicclient``, you can request
 building a configdrive on the server side by providing a JSON with keys
 ``meta_data``, ``user_data`` and ``network_data`` (all optional), e.g.:
 

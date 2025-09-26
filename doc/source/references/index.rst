@@ -18,6 +18,6 @@ API Reference
 
 CLI References
 --------------
-- `Ironic CLI <https://docs.openstack.org/python-ironicclient/queens/cli/ironic_client.html>`_
+- `Ironic CLI <https://docs.openstack.org/python-ironicclient/latest/cli/>`_
 - :doc:`ironic-dbsync </cli/ironic-dbsync>`
-- `ironic-status <https://docs.openstack.org/python-ironicclient/queens/cli/ironic_client.html>`_
+- `ironic-status <https://docs.openstack.org/ironic/latest/cli/ironic-status.html>`_
