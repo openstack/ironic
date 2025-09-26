@@ -5373,7 +5373,7 @@ class UpdatePortgroupTestCase(mgr_utils.ServiceSetUpMixin, db_base.DbTestCase):
         self.service.update_portgroup(self.context, portgroup)
         portgroup.refresh()
         self.assertEqual(update_node.id, portgroup.node_id)
-        mock_get_ports.assert_called_once_with(portgroup.uuid)
+        mock_get_ports.assert_called_once_with(portgroup.id)
         mock_val.assert_called_once_with(mock.ANY, mock.ANY)
         mock_pgc.assert_called_once_with(mock.ANY, mock.ANY, portgroup)
 
@@ -5399,7 +5399,7 @@ class UpdatePortgroupTestCase(mgr_utils.ServiceSetUpMixin, db_base.DbTestCase):
         self.service.update_portgroup(self.context, portgroup)
         portgroup.refresh()
         self.assertEqual(update_node.id, portgroup.node_id)
-        mock_get_ports.assert_called_once_with(portgroup.uuid)
+        mock_get_ports.assert_called_once_with(portgroup.id)
         mock_val.assert_called_once_with(mock.ANY, mock.ANY)
         mock_pgc.assert_called_once_with(mock.ANY, mock.ANY, portgroup)
 
@@ -5425,7 +5425,7 @@ class UpdatePortgroupTestCase(mgr_utils.ServiceSetUpMixin, db_base.DbTestCase):
         self.service.update_portgroup(self.context, portgroup)
         portgroup.refresh()
         self.assertEqual(update_node.id, portgroup.node_id)
-        mock_get_ports.assert_called_once_with(portgroup.uuid)
+        mock_get_ports.assert_called_once_with(portgroup.id)
         mock_val.assert_called_once_with(mock.ANY, mock.ANY)
         mock_pgc.assert_called_once_with(mock.ANY, mock.ANY, portgroup)
 
@@ -5454,7 +5454,7 @@ class UpdatePortgroupTestCase(mgr_utils.ServiceSetUpMixin, db_base.DbTestCase):
         self.assertEqual(exception.PortgroupNotEmpty, exc.exc_info[0])
         portgroup.refresh()
         self.assertEqual(old_node_id, portgroup.node_id)
-        mock_get_ports.assert_called_once_with(portgroup.uuid)
+        mock_get_ports.assert_called_once_with(portgroup.id)
         self.assertFalse(mock_val.called)
         self.assertFalse(mock_pgc.called)
 
