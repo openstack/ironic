@@ -23,6 +23,10 @@ components.
   provisioning logic lives. The following considerations are the most
   important when deciding on the way to deploy it:
 
+  .. tip::
+     For large deployments, consider :doc:`../../admin/availability-zones`
+     to understand conductor groups and shards for resource partitioning.
+
   * The conductor manages a certain proportion of nodes, distributed to it
     via a hash ring. This includes constantly polling these nodes for their
     current power state and hardware sensor data (if enabled and supported
@@ -263,6 +267,11 @@ We recommend a target of **100** bare metal nodes per conductor for maximum
 reliability and performance. There is some tolerance for a larger number per
 conductor. However, it was reported [1]_ [2]_ that reliability degrades when
 handling approximately 300 bare metal nodes per conductor.
+
+.. note::
+   For very large deployments, consider using :doc:`../../admin/availability-zones`
+   strategies such as conductor groups to distribute load across multiple
+   conductors, or even multiple Ironic deployments for complete isolation.
 
 Disk space
 ^^^^^^^^^^
