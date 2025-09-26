@@ -187,11 +187,10 @@ Capabilities
         The two settings must not contradict each other.
 
   .. note::
-     This capability was introduced in the Wallaby release series,
-     previously ironic used a separate ``instance_info/deploy_boot_mode``
+     Previously ironic used a separate ``instance_info/deploy_boot_mode``
      field instead.
 
-* Starting with the Ussuri release, you can set :ref:`root device hints
+* You can set :ref:`root device hints
   <root-device-hints>` per instance:
 
   .. code-block:: shell
@@ -221,7 +220,7 @@ override a node's storage interface, run the following:
 ``instance_info`` values persist until after a node is cleaned.
 
 .. note::
-   This feature is available starting with the Wallaby release.
+   This feature is available.
 
 Attaching virtual interfaces
 ----------------------------
@@ -266,7 +265,7 @@ Deployment
 
     baremetal node deploy $NODE_UUID
 
-#. Starting with the Wallaby release you can also request custom deploy steps,
+#. You can also request custom deploy steps,
    see :ref:`standalone-deploy-steps` for details.
 
 .. _deploy-configdrive:

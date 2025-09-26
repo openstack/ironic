@@ -165,10 +165,9 @@ from the ``manageable`` state to ``active`` state::
    baremetal node set <node name or uuid> --instance-uuid <uuid>
 
 .. NOTE::
-   In Newton, coupled with API version 1.20, the concept of a
-   network_interface was introduced. A user of this feature may wish to
-   add new nodes with a network_interface of ``noop`` and then change
-   the interface at a later point and time.
+   A user of this feature may wish to add new nodes with a
+   ``network_interface`` value of ``noop`` and then change the interface
+   at a later point and time.
 
 Troubleshooting
 ===============

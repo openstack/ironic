@@ -8,8 +8,8 @@ Overview
 ========
 iLO driver enables to take advantage of features of iLO management engine in
 HPE ProLiant servers. The ``ilo`` hardware type is targeted for HPE ProLiant
-Gen8 and Gen9 systems which have `iLO 4 management engine`_. From **Pike**
-release ``ilo`` hardware type supports ProLiant Gen10 systems which have
+Gen8 and Gen9 systems which have `iLO 4 management engine`_. The ``ilo``
+hardware type supports ProLiant Gen10 systems which have
 `iLO 5 management engine`_. iLO5 conforms to `Redfish`_ API and hence hardware
 type ``redfish`` (see :doc:`redfish`) is also an option for this kind of
 hardware but it lacks the iLO specific features.
