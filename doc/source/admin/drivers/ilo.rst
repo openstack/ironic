@@ -1,3 +1,10 @@
+.. meta::
+   :description: Configure Ironic iLO driver for HPE ProLiant server management. Support for iLO 4, iLO 5, virtual media, and HPE-specific hardware features.
+   :keywords: ilo driver, hpe proliant, hpe servers, ilo4, ilo5, virtual media, hpe management, proliant automation
+   :author: OpenStack Ironic Team
+   :robots: index, follow
+   :audience: system administrators, hardware engineers
+
 .. _ilo:
 
 ==========

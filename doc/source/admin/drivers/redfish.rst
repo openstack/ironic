@@ -1,3 +1,10 @@
+.. meta::
+   :description: Configure Ironic Redfish driver for modern server management. Support for Dell, HPE, Supermicro, and standards-based BMC control via Redfish API.
+   :keywords: redfish driver, BMC management, server automation, dell idrac, hpe ilo, supermicro, standards-based management, REST API
+   :author: OpenStack Ironic Team
+   :robots: index, follow
+   :audience: system administrators, hardware engineers
+
 ==============
 Redfish driver
 ==============

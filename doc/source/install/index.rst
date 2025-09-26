@@ -1,3 +1,10 @@
+.. meta::
+   :description: Complete installation guide for OpenStack Ironic bare metal service. Step-by-step setup, integration with OpenStack services, and deployment configurations.
+   :keywords: ironic installation, openstack installation, bare metal setup, ironic configuration, driver setup, service deployment
+   :author: OpenStack Ironic Team
+   :robots: index, follow
+   :audience: system administrators, cloud operators
+
 =====================================
 Bare Metal Service Installation Guide
 =====================================

@@ -1,3 +1,10 @@
+.. meta::
+   :description: Secure Ironic bare metal deployments. Authentication, authorization, secure boot, network security, and compliance considerations for production environments.
+   :keywords: ironic security, bare metal security, secure boot, authentication, authorization, network security, compliance, production security
+   :author: OpenStack Ironic Team
+   :robots: index, follow
+   :audience: security engineers, compliance officers
+
 .. _security:
 
 =================

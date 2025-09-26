@@ -1,3 +1,10 @@
+.. meta::
+   :description: Integrate Ironic with OpenStack Nova for bare metal instance management. Configure flavors, host aggregates, and bare metal scheduling.
+   :keywords: nova integration, bare metal instances, openstack compute, flavors configuration, host aggregates, scheduling, ironic nova driver
+   :author: OpenStack Ironic Team
+   :robots: index, follow
+   :audience: cloud operators, openstack administrators
+
 Configure the Compute service to use the Bare Metal service
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 

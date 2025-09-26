@@ -1,3 +1,10 @@
+.. meta::
+   :description: User guide for OpenStack Ironic bare metal service. Deploy physical servers, manage instances, and integrate with OpenStack cloud services.
+   :keywords: ironic user guide, bare metal instances, physical server deployment, openstack integration, metalsmith, instance management
+   :author: OpenStack Ironic Team
+   :robots: index, follow
+   :audience: cloud users, developers, operators
+
 =============================
 Bare Metal Service User Guide
 =============================

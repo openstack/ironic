@@ -1,3 +1,10 @@
+.. meta::
+   :description: Performance tuning for Ironic bare metal service. Optimize conductor performance, database configuration, and large-scale deployment considerations.
+   :keywords: performance tuning, scalability, conductor performance, database optimization, large scale deployment, performance optimization
+   :author: OpenStack Ironic Team
+   :robots: index, follow
+   :audience: performance engineers, system administrators
+
 =============
 Tuning Ironic
 =============

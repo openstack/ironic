@@ -1,3 +1,10 @@
+.. meta::
+   :description: Automated cleaning and preparation of bare metal nodes in Ironic. Security wiping, hardware configuration, and node lifecycle management.
+   :keywords: node cleaning, automated cleaning, security wiping, hardware preparation, node lifecycle, tenant isolation, data security
+   :author: OpenStack Ironic Team
+   :robots: index, follow
+   :audience: security engineers, system administrators
+
 .. _cleaning:
 
 =============

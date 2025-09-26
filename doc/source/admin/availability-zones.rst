@@ -1,7 +1,9 @@
 .. meta::
-   :keywords: availability zones, AZ, fault tolerance, conductor groups,
-              shards, resource partitioning, high availability, scaling,
-              multiple deployments, nova compute
+   :description: Implement availability zones with Ironic using conductor groups and shards. Multi-datacenter deployments, fault tolerance, and resource partitioning strategies.
+   :keywords: availability zones, conductor groups, shards, fault tolerance, multi-datacenter, resource partitioning, high availability, geographic distribution
+   :author: OpenStack Ironic Team
+   :robots: index, follow
+   :audience: cloud architects, system administrators
 
 ==========================================
 Availability Zones and Resource Isolation

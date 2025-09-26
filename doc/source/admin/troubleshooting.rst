@@ -1,3 +1,10 @@
+.. meta::
+   :description: Troubleshoot common Ironic bare metal service issues. Deployment failures, driver problems, network issues, and performance optimization solutions.
+   :keywords: ironic troubleshooting, bare metal issues, deployment failures, driver debugging, network problems, performance issues, error resolution
+   :author: OpenStack Ironic Team
+   :robots: index, follow
+   :audience: system administrators, support engineers
+
 .. _troubleshooting:
 
 ======================

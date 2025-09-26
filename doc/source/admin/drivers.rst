@@ -1,3 +1,10 @@
+.. meta::
+   :description: Comprehensive guide to Ironic hardware drivers and interfaces. Configure support for IPMI, Redfish, vendor-specific management, and hardware types.
+   :keywords: ironic drivers, hardware interfaces, IPMI, redfish, hardware management, vendor drivers, boot interfaces, power management
+   :author: OpenStack Ironic Team
+   :robots: index, follow
+   :audience: system administrators, hardware engineers
+
 ===========================================================
 Drivers, Hardware Types, and Hardware Interfaces for Ironic
 ===========================================================
