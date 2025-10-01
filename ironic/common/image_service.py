@@ -178,7 +178,10 @@ class HttpImageService(BaseImageService):
             response = requests.head(image_href, verify=verify,
                                      timeout=CONF.webserver_connection_timeout,
                                      auth=auth)
-            if response.status_code == http_client.MOVED_PERMANENTLY:
+            if (response.status_code == http_client.MOVED_PERMANENTLY
+                    or response.status_code == http_client.FOUND
+                    or response.status_code == http_client.TEMPORARY_REDIRECT
+                    or response.status_code == http_client.PERMANENT_REDIRECT):
                 # NOTE(TheJulia): In the event we receive a redirect, we need
                 # to notify the caller. Before this we would just fail,
                 # but a url which is missing a trailing slash results in a
