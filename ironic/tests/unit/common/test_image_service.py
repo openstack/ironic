@@ -245,11 +245,59 @@ class HttpImageServiceTestCase(base.TestCase):
         self.assertEqual(http_client.FORBIDDEN, resp.status_code)
 
     @mock.patch.object(requests, 'head', autospec=True)
-    def test_validate_href_path_redirected(self, head_mock):
+    def test_validate_href_path_moved_permanently(self, head_mock):
         cfg.CONF.set_override('webserver_verify_ca', 'True')
 
         response = head_mock.return_value
         response.status_code = http_client.MOVED_PERMANENTLY
+        url = self.href + '/'
+        new_url = 'http://new-url'
+        response.headers = {'location': new_url}
+        exc = self.assertRaises(exception.ImageRefIsARedirect,
+                                self.service.validate_href,
+                                url)
+        self.assertEqual(new_url, exc.redirect_url)
+        head_mock.assert_called_once_with(url, verify=True,
+                                          timeout=60, auth=None)
+
+    @mock.patch.object(requests, 'head', autospec=True)
+    def test_validate_href_path_found(self, head_mock):
+        cfg.CONF.set_override('webserver_verify_ca', 'True')
+
+        response = head_mock.return_value
+        response.status_code = http_client.FOUND
+        url = self.href + '/'
+        new_url = 'http://new-url'
+        response.headers = {'location': new_url}
+        exc = self.assertRaises(exception.ImageRefIsARedirect,
+                                self.service.validate_href,
+                                url)
+        self.assertEqual(new_url, exc.redirect_url)
+        head_mock.assert_called_once_with(url, verify=True,
+                                          timeout=60, auth=None)
+
+    @mock.patch.object(requests, 'head', autospec=True)
+    def test_validate_href_path_temporary_redirect(self, head_mock):
+        cfg.CONF.set_override('webserver_verify_ca', 'True')
+
+        response = head_mock.return_value
+        response.status_code = http_client.TEMPORARY_REDIRECT
+        url = self.href + '/'
+        new_url = 'http://new-url'
+        response.headers = {'location': new_url}
+        exc = self.assertRaises(exception.ImageRefIsARedirect,
+                                self.service.validate_href,
+                                url)
+        self.assertEqual(new_url, exc.redirect_url)
+        head_mock.assert_called_once_with(url, verify=True,
+                                          timeout=60, auth=None)
+
+    @mock.patch.object(requests, 'head', autospec=True)
+    def test_validate_href_path_permanent_redirect(self, head_mock):
+        cfg.CONF.set_override('webserver_verify_ca', 'True')
+
+        response = head_mock.return_value
+        response.status_code = http_client.PERMANENT_REDIRECT
         url = self.href + '/'
         new_url = 'http://new-url'
         response.headers = {'location': new_url}
