@@ -1,0 +1,11 @@
+---
+fixes:
+  - |
+    Fixed HttpImageService.validate_href() ImageRefValidationFailed exception
+    if protocol is HTTP/HTTPS and the HTTP header response is a redirection
+    other then 301 (MOVED_PERMANENTLY). HTTP/HTTPS protocol is often used
+    under standalone Ironic configuration to identify an image source (e.g
+    --instance-info image_source=<URI>). The HTTP server may use redirection
+    to load balance or geographically distribute the requests, or simply point
+    to the correct URL. The redirection may vary from 301 (MOVED_PERMANENTLY),
+    to 302 (FOUND), or 307 (TEMPORARY_REDIRECT), and 308 (PERMANENT_REDIRECT).
