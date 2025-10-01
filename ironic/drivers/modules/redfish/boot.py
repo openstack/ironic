@@ -683,13 +683,19 @@ class RedfishVirtualMediaBoot(base.BootInterface):
                            if m.manager_type == sushy.MANAGER_TYPE_BMC]
             if bmc_manager:
                 fwv = bmc_manager[0].firmware_version.split('.')
-                if int(fwv[0]) >= 6:
+                if int(fwv[0]) in [6, 7]:
                     return
+            # NOTE(TheJulia) Dell iDRAC10 reverted to 2.x.x.x for versioning
+            # and is also incompatible with the stock virtual media code.
+            # This may be fixed one day, but in the mean time, but the error
+            # provides specific guidance now.
             raise exception.InvalidParameterValue(
                 _("The %(iface)s boot interface is not suitable for node "
                   "%(node)s with vendor %(vendor)s and BMC version %(fwv)s, "
-                  "upgrade to 6.00.00.00 or newer or use "
-                  "idrac-redfish-virtual-media instead")
+                  "the interface only supports iDRAC9 versions between "
+                  "6.0.0.0 and 7.x.x.x. Other versions are incompatible by "
+                  "default and you should use the idrac-redfish-virtual"
+                  "-media boot interface instead")
                 % {'iface': task.node.get_interface('boot'),
                    'node': task.node.uuid, 'vendor': vendor,
                    'fwv': bmc_manager[0].firmware_version})

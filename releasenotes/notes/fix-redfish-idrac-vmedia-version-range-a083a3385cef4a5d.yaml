@@ -1,0 +1,10 @@
+---
+fixes:
+  - |
+    Fixes an issue where the ``redfish-virtual-media`` interface is using version
+    ranges with Dell iDRAC BMCs to report compatibility. Dell has changed the
+    versioning structure for iDRAC10s which triggered the error. That being said,
+    it appears the iDRAC10s are also incompatible as well. The error message
+    now clearly indicates what versions are known to work with the stock
+    redfish virtual media support. Users should instead use the idrac variant
+    boot interface.

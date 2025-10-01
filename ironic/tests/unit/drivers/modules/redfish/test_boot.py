@@ -481,11 +481,32 @@ class RedfishVirtualMediaBootTestCase(db_base.DbTestCase):
             task.node.properties['vendor'] = "Dell Inc."
 
             self.assertRaisesRegex(
-                exception.InvalidParameterValue, "with vendor Dell Inc.",
+                exception.InvalidParameterValue, "iDRAC9",
                 task.driver.boot._validate_vendor, task, managers)
 
-    def test__validate_vendor_compatible_with_idrac(self):
+    def test__validate_vendor_compatible_with_idrac9_v6(self):
         managers = [mock.Mock(firmware_version='6.00.00.00',
+                              manager_type=sushy.MANAGER_TYPE_BMC)]
+        with task_manager.acquire(self.context, self.node.uuid,
+                                  shared=True) as task:
+            task.node.instance_info.update(
+                {'kernel': 'kernel',
+                 'ramdisk': 'ramdisk',
+                 'image_source': 'http://image/source'}
+            )
+
+            task.node.driver_info.update(
+                {'deploy_kernel': 'kernel',
+                 'deploy_ramdisk': 'ramdisk',
+                 'bootloader': 'bootloader'}
+            )
+
+            task.node.properties['vendor'] = "Dell Inc."
+
+            task.driver.boot._validate_vendor(task, managers)
+
+    def test__validate_vendor_compatible_with_idrac9_v7(self):
+        managers = [mock.Mock(firmware_version='7.00.00.00',
                               manager_type=sushy.MANAGER_TYPE_BMC)]
         with task_manager.acquire(self.context, self.node.uuid,
                                   shared=True) as task:
