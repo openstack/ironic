@@ -90,7 +90,7 @@ opts = [
                       'if False the driver will ignore verifying the SSL '
                       'certificate. If it\'s a path the driver will use the '
                       'specified certificate or one of the certificates in '
-                      'the directory. Defaults to True.')),
+                      'the directory.')),
     cfg.StrOpt('default_boot_mode',
                default='auto',
                choices=[('auto', _('based on boot mode settings on the '

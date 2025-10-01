@@ -453,8 +453,7 @@ webserver_opts = [
                       'certificate for SSL verification. If the path does '
                       'not exist, the behavior is same as when this value '
                       'is set to True i.e the certificates present in the '
-                      'standard path are used for SSL verification.'
-                      'Defaults to True.')),
+                      'standard path are used for SSL verification.')),
     cfg.IntOpt('webserver_connection_timeout',
                default=60,
                help=_('Connection timeout when accessing/interacting with '

@@ -276,7 +276,7 @@ opts = [
                 default=True,
                 mutable=True,
                 help=_('Allow deleting nodes which are in state '
-                       '\'available\'. Defaults to True.')),
+                       '\'available\'.')),
     cfg.BoolOpt('enable_mdns', default=False,
                 help=_('Whether to enable publishing the baremetal API '
                        'endpoint via multicast DNS.')),
@@ -370,8 +370,8 @@ opts = [
                min=0,
                mutable=True,
                help=_('Maximum number of history entries which will be stored '
-                      'in the database per node. Default is 300. This setting '
-                      'excludes the minimum number of days retained using the '
+                      'in the database per node. This setting excludes '
+                      'the minimum number of days retained using the '
                       '[conductor]node_history_minimum_days setting.')),
     cfg.IntOpt('node_history_cleanup_interval',
                min=0,
@@ -379,8 +379,7 @@ opts = [
                mutable=False,
                help=_('Interval in seconds at which node history entries '
                       'can be cleaned up in the database. Setting to 0 '
-                      'disables the periodic task. Defaults to once a day, '
-                      'or 86400 seconds.')),
+                      'disables the periodic task.')),
     cfg.IntOpt('node_history_cleanup_batch_count',
                min=0,
                default=1000,
@@ -389,9 +388,8 @@ opts = [
                       'from the database when performing clean-up. '
                       'Deletes are performed by node, and a node with excess '
                       'records for a node will still be deleted. '
-                      'Defaults to 1000. Operators who find node history '
-                      'building up may wish to '
-                      'lower this threshold and decrease the time between '
+                      'Operators who find node history building up may wish '
+                      'to lower this threshold and decrease the time between '
                       'cleanup operations using the '
                       '``node_history_cleanup_interval`` setting.')),
     cfg.IntOpt('node_history_minimum_days',
@@ -410,26 +408,23 @@ opts = [
                mutable=False,
                help=_('Interval in seconds at which stale conductor entries '
                       'can be cleaned up from the database. Setting to 0 '
-                      'disables the periodic task. Defaults to 86400 (1 day).'
-                      )),
+                      'disables the periodic task.')),
     cfg.IntOpt('conductor_cleanup_timeout',
                min=60,
                default=1209600,
                mutable=True,
                help=_('Timeout in seconds after which offline conductors '
                       'are considered stale and can be cleaned up from the '
-                      'database. It defaults to two weeks (1209600 seconds) '
-                      'and is always required to be at least 3x larger than '
-                      '[conductor]heartbeat_timeout since if otherwise, '
-                      'active conductors might be mistakenly removed from '
-                      'the database.')),
+                      'database. THis is always required to be at least 3x '
+                      'larger than [conductor]heartbeat_timeout since if '
+                      'otherwise, active conductors might be mistakenly '
+                      'removed from the database.')),
     cfg.IntOpt('conductor_cleanup_batch_size',
                min=1,
                default=50,
                mutable=True,
                help=_('The maximum number of stale conductor records to clean '
-                      'up from the database in a single cleanup operation. '
-                      'Defaults to 50.')),
+                      'up from the database in a single cleanup operation.')),
     cfg.MultiOpt('verify_step_priority_override',
                  item_type=types.Dict(),
                  default={},

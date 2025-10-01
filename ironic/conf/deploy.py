@@ -69,15 +69,14 @@ opts = [
                 default=True,
                 mutable=True,
                 help=_('Whether to support the use of ATA Secure Erase '
-                       'during the cleaning process. Defaults to True.')),
+                       'during the cleaning process.')),
     cfg.BoolOpt('enable_nvme_secure_erase',
                 default=True,
                 mutable=True,
                 help=_('Whether to support the use of NVMe Secure Erase '
                        'during the cleaning process. Currently nvme-cli '
                        'format command is supported with user-data and '
-                       'crypto modes, depending on device capabilities.'
-                       'Defaults to True.')),
+                       'crypto modes, depending on device capabilities.')),
     cfg.IntOpt('erase_devices_priority',
                mutable=True,
                help=_('Priority to run in-band erase devices via the Ironic '
@@ -115,7 +114,7 @@ opts = [
                mutable=True,
                help=_('During shred, overwrite all block devices N times with '
                       'random data. This is only used if a device could not '
-                      'be ATA Secure Erased. Defaults to 1.')),
+                      'be ATA Secure Erased.')),
     cfg.BoolOpt('shred_final_overwrite_with_zeros',
                 default=True,
                 mutable=True,
@@ -124,7 +123,7 @@ opts = [
                        "the device even when "
                        "deploy.shred_random_overwrite_iterations is 0. This "
                        "option is only used if a device could not be ATA "
-                       "Secure Erased. Defaults to True.")),
+                       "Secure Erased.")),
     cfg.BoolOpt('continue_if_disk_secure_erase_fails',
                 default=False,
                 mutable=True,
@@ -145,8 +144,7 @@ opts = [
     cfg.BoolOpt('power_off_after_deploy_failure',
                 default=True,
                 mutable=True,
-                help=_('Whether to power off a node after deploy failure. '
-                       'Defaults to True.')),
+                help=_('Whether to power off a node after deploy failure.')),
     cfg.StrOpt('default_boot_mode',
                choices=[(boot_modes.UEFI, _('UEFI boot mode')),
                         (boot_modes.LEGACY_BIOS, _('Legacy BIOS boot mode'))],
