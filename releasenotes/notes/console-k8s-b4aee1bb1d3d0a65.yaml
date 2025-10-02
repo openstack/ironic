@@ -1,0 +1,18 @@
+---
+features:
+  - |
+    A new ``ironic.console.container`` provider is added called ``kubernetes``
+    which allows Ironic conductor to manage console containers as Kubernetes
+    pods. The kubernetes resources are defined in the template file
+    configured by ``[vnc]kubernetes_container_template`` and the default
+    template creates one secret to store the app info, and one pod to run
+    the console container.
+
+    It is expected that Ironic conductor is deployed inside the kubernetes
+    cluster. The associated service account will need roles and bindings which
+    allow it to manage the required resources (with the default template this
+    will be secrets and pods).
+
+    This provider holds the assumption that ironic-novnc will be deployed
+    in the same kubernetes cluster, and so can connect to the VNC servers
+    via the pod's ``status.hostIP``.

@@ -70,15 +70,71 @@ especially when Ironic itself is deployed in a containerized environment.
 Systemd container provider
 ~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-The only functional container provider included is the systemd provider which
-manages containers as Systemd Quadlet containers. This provider is appropriate
-to use when the Ironic services themselves are not containerised, and is also
-a good match when ironic-conductor itself is managed as a Systemd unit.
+The ``systemd`` provider manages containers as Systemd Quadlet containers.
+This provider is appropriate to use when the Ironic services themselves are
+not containerised, and is also a good match when ironic-conductor itself is
+managed as a Systemd unit.
 
 To start a container, this provider writes ``.container`` files to
 ``/etc/containers/systemd/users/{uid}/containers/systemd`` then calls
 ``systemctl --user daemon-reload`` to generate a unit file which is then
 started with ``systemctl --user start {unit name}``.
+
+Kubernetes container provider
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+The ``kubernetes`` provider manages containers as kubernetes pods and allows
+associated resources to also be managed. The provider requires the ``kubectl``
+command, and valid kubernetes credentials be available to the running
+ironic-conductor. The current assumption with this driver is that
+ironic-conductor, ironic-novncproxy, and the console containers are all
+running in the same kubernetes cluster. Therefore, the credentials will be
+provided by the service account mechanism supplied to the ironic-conductor
+pod.
+
+``ironic.conf`` ``[vnc]kubernetes_container_template`` points to a template
+file which defines the kubernetes resources including the pod running the
+console container. The default template creates one Secret to store the app
+info (including BMC credentials) and one Pod to run the actual console
+container. This default template ``ironic-console-pod.yaml.template`` is
+functional but will likely need to be replaced with a variant that
+customises:
+
+* The namespace the resources are deployed to
+* The labels to match the conventions of the deployment
+
+When ironic-conductor starts and stops it will stop any existing console
+container associated with that ironic-conductor. For this delete-all
+operation, the labels in the template are transformed into a kubectl selector,
+so this needs to be a consideration when choosing the labels in the template.
+
+When ironic-conductor is using cluster service account credentials, a
+RoleBinding to a Role which allows appropriate resource management is
+required. For example, the default template would require at minimum the
+following role rules::
+
+    apiVersion: rbac.authorization.k8s.io/v1
+    kind: Role
+    metadata:
+      # ...
+    rules:
+    - apiGroups:
+      - ""
+      resources:
+      - pods
+      verbs:
+      - create
+      - delete
+    - apiGroups:
+      - ""
+      resources:
+      - secrets
+      verbs:
+      - create
+      - delete
+
+The provider assumes that ironic-novnc is running in the cluster, and can
+connect a VNC server using the console container's ``hostIP``.
 
 Creating an external container provider
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -118,7 +174,8 @@ server exposed by these containers, and so does nova-novncproxy when Nova is
 using the Ironic driver.
 
 For the ``systemd`` container the VNC server will be published on a random
-high port number.
+high port number. For the ``kubernetes`` pod the VNC server is running on
+port ``5900`` on the pod's ``hostIP``.
 
 Console containers need access to the management network to access the BMC web
 interface. If driver_info ``redfish_verify_ca=False`` then web requests will
