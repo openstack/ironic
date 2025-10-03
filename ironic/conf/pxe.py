@@ -152,7 +152,7 @@ opts = [
     cfg.IntOpt('ipxe_timeout',
                default=0,
                help=_('Timeout value (in seconds) for downloading an image '
-                      'via iPXE. Defaults to 0 (no timeout)')),
+                      'via iPXE. Timeout is disabled when this value is 0')),
     cfg.IntOpt('boot_retry_timeout',
                min=60,
                help=_('Timeout (in seconds) after which PXE boot should be '

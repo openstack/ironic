@@ -78,8 +78,9 @@ opts = [
     cfg.BoolOpt('store_cred_in_env',
                 default=False,
                 help=_('Boolean flag to determine IPMI password persistence '
-                       'method. Defaults to False (file-based persistence). '
-                       )),
+                       'method. When True, credentials are stored in '
+                       'environemnt variables, Otherwise, credentials are '
+                       'stored in a file')),
     cfg.ListOpt('cipher_suite_versions',
                 default=[],
                 help=_('List of possible cipher suites versions that can '

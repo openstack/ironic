@@ -40,17 +40,16 @@ opts = [
     cfg.IntOpt('swift_temp_url_duration',
                default=1200,
                help=_('The length of time in seconds that the temporary URL '
-                      'will be valid for. Defaults to 20 minutes. If some '
-                      'deploys get a 401 response code when trying to '
-                      'download from the temporary URL, try raising this '
-                      'duration. This value must be greater than or equal to '
-                      'the value for '
+                      'will be valid for. If some deploys get a 401 response '
+                      'code when trying to download from the temporary URL, '
+                      'try raising this duration. This value must be greater '
+                      'than or equal to the value for '
                       'swift_temp_url_expected_download_start_delay')),
     cfg.BoolOpt('swift_temp_url_cache_enabled',
                 default=False,
                 help=_('Whether to cache generated Swift temporary URLs. '
                        'Setting it to true is only useful when an image '
-                       'caching proxy is used. Defaults to False.')),
+                       'caching proxy is used.')),
     cfg.IntOpt('swift_temp_url_expected_download_start_delay',
                default=0, min=0,
                help=_('This is the delay (in seconds) from the time of the '
@@ -62,8 +61,7 @@ opts = [
                       'temporary URL caching is enabled this will determine '
                       'if a cached entry will still be valid when the '
                       'download starts. swift_temp_url_duration value must be '
-                      'greater than or equal to this option\'s value. '
-                      'Defaults to 0.')),
+                      'greater than or equal to this option\'s value.')),
     cfg.URIOpt(
         'swift_endpoint_url',
         schemes=['http', 'https'],
@@ -79,7 +77,7 @@ opts = [
         'swift_api_version',
         default='v1',
         help=_('The Swift API version to create a temporary URL for. '
-               'Defaults to "v1". Swift temporary URL format: '
+               'Swift temporary URL format: '
                '"endpoint_url/api_version/account/container/object_id"')),
     cfg.StrOpt(
         'swift_account',

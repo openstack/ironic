@@ -42,8 +42,7 @@ opts = [
              'browser page '
              '(for example, "http://127.0.0.1:6090/vnc_auto.html"). '
              'If the API is operating behind a proxy, you '
-             'will want to change this to represent the proxy\'s URL. '
-             'Defaults to None. '),
+             'will want to change this to represent the proxy\'s URL.'),
     cfg.BoolOpt(
         'enable_ssl',
         default=False,
