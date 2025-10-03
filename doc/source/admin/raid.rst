@@ -109,9 +109,12 @@ software RAID.
 
 - ``is_root_volume`` - Set to ``true`` if this is the root volume. At
   most one logical disk can have this set to ``true``; the other
-  logical disks must have this set to ``false``. The
-  ``root device hint`` will be saved, if the RAID interface is capable of
-  retrieving it. This is ``false`` by default.
+  logical disks must have this set to ``false``. The default is ``false``.
+
+  This value currently only affects the ``create_root_volume`` and
+  ``create_nonroot_volumes`` parameters to the ``create_configuration`` step,
+  but out-of-tree RAID interfaces may also use it to populate *root device
+  hints*. Otherwise, you need to populate the hints yourself.
 
 Backing physical disk hints
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -170,7 +173,7 @@ Examples for ``target_raid_config``
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 *Example 1*. Single RAID disk of RAID level 5 with all of the space
-available. Make this the root volume to which Ironic deploys the image:
+available.
 
 .. code-block:: json
 
@@ -178,15 +181,13 @@ available. Make this the root volume to which Ironic deploys the image:
     "logical_disks": [
       {
         "size_gb": "MAX",
-        "raid_level": "5",
-        "is_root_volume": true
+        "raid_level": "5"
       }
     ]
   }
 
-*Example 2*. Two RAID disks. One with RAID level 5 of 100 GiB and make it
-root volume and use SSD.  Another with RAID level 1 of 500 GiB and use
-HDD:
+*Example 2*. Two RAID disks. One with RAID level 5 of 100 GiB and use SSD.
+Another with RAID level 1 of 500 GiB and use HDD:
 
 .. code-block:: json
 
@@ -195,7 +196,6 @@ HDD:
       {
         "size_gb": 100,
         "raid_level": "5",
-        "is_root_volume": true,
         "disk_type": "ssd"
       },
       {
@@ -216,8 +216,7 @@ HDD:
         "size_gb": 100,
         "raid_level": "5",
         "controller": "Smart Array P822 in Slot 3",
-        "physical_disks": ["6I:1:5", "6I:1:6", "6I:1:7"],
-        "is_root_volume": true
+        "physical_disks": ["6I:1:5", "6I:1:6", "6I:1:7"]
       }
     ]
   }
@@ -233,7 +232,6 @@ HDD:
         "raid_level": "1+0",
         "controller": "RAID.Integrated.1-1",
         "volume_name": "root_volume",
-        "is_root_volume": true,
         "physical_disks": [
           "Disk.Bay.0:Encl.Int.0-1:RAID.Integrated.1-1",
           "Disk.Bay.1:Encl.Int.0-1:RAID.Integrated.1-1"
