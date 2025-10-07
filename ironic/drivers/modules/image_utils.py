@@ -564,8 +564,10 @@ def prepare_deploy_iso(task, params, mode, d_info):
     iso_str = '%s_iso' % mode
     bootloader_str = 'bootloader'
 
-    kernel_href = _find_param(kernel_str, d_info)
-    ramdisk_href = _find_param(ramdisk_str, d_info)
+    # Get kernel and ramdisk, respecting architecture-specific parameters
+    agent_info = driver_utils.get_agent_kernel_ramdisk(task.node, mode)
+    kernel_href = agent_info.get(kernel_str)
+    ramdisk_href = agent_info.get(ramdisk_str)
     iso_href = _find_param(iso_str, d_info)
 
     if not d_info.get('bootloader'):
