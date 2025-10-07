@@ -17,6 +17,8 @@ Systemd Quadlet console container provider.
 import json
 import os
 import re
+import socket
+import time
 
 from oslo_concurrency import processutils
 from oslo_log import log as logging
@@ -25,6 +27,7 @@ from ironic.common import exception
 from ironic.common import utils
 from ironic.conf import CONF
 from ironic.console.container import base
+from ironic.console.rfb import auth
 
 LOG = logging.getLogger(__name__)
 
@@ -135,6 +138,17 @@ class SystemdConsoleContainer(base.BaseConsoleContainer):
             utils.execute('systemctl', '--user', 'start', unit)
         except processutils.ProcessExecutionError as e:
             LOG.exception('Problem calling systemctl start')
+            # output the status and journal for this unit
+            try:
+                out, _ = utils.execute('systemctl', '--user', 'status',
+                                       unit, check_exit_code=False)
+                LOG.error(out)
+                out, _ = utils.execute(
+                    'journalctl', '--user', '--no-pager', '-u', unit,
+                    check_exit_code=False)
+                LOG.error(out)
+            except Exception:
+                pass
             raise exception.ConsoleContainerError(provider='systemd', reason=e)
 
     def _stop(self, unit):
@@ -144,9 +158,21 @@ class SystemdConsoleContainer(base.BaseConsoleContainer):
         :raises: ConsoleContainerError
         """
         try:
+            # Fetch the journal before stopping. If debug logging is enabled
+            # then this will log the journal to the conductor log.
+            utils.execute(
+                'journalctl', '--user', '--no-pager', '-u', unit,
+                check_exit_code=False)
             utils.execute('systemctl', '--user', 'stop', unit)
         except processutils.ProcessExecutionError as e:
             LOG.exception('Problem calling systemctl stop')
+            # output the status for this unit
+            try:
+                out, _ = utils.execute('systemctl', '--user', 'status',
+                                       unit, check_exit_code=False)
+                LOG.error(out)
+            except Exception:
+                pass
             raise exception.ConsoleContainerError(provider='systemd', reason=e)
 
     def _host_port(self, container):
@@ -254,7 +280,30 @@ class SystemdConsoleContainer(base.BaseConsoleContainer):
 
         container = self._container_name(uuid)
 
-        return self._host_port(container)
+        host, port = self._host_port(container)
+        self._wait_for_listen(host, port)
+        return host, port
+
+    def _wait_for_listen(self, host, port):
+        """Blocks until VNC port is returning data"""
+        for i in range(CONF.vnc.wait_for_ready_timeout):
+            try:
+                # open a TCP socket using host and port and request 12 bytes of
+                # data. This will either fail to connect, or return zero bytes
+                # until the container is listening on the port.
+                LOG.debug("Attempt %s to connect to %s:%s", i, host, port)
+                with socket.create_connection((host, port), timeout=1) as sock:
+                    b = sock.recv(auth.VERSION_LENGTH)
+                    if len(b) == auth.VERSION_LENGTH:
+                        return
+                    LOG.debug("Expected %s bytes, got %s",
+                              auth.VERSION_LENGTH, len(b))
+            except Exception:
+                pass
+            time.sleep(1)
+        reason = f"RFB data not returned by {host}:{port}"
+        raise exception.ConsoleContainerError(
+            provider='systemd', reason=reason)
 
     def _stop_container(self, identifier):
         """Stop a console container for a node.

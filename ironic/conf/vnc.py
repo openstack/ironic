@@ -139,6 +139,12 @@ opts = [
         'ssl_ciphers',
         help="Sets the list of available ciphers. value should be a "
              "string in the OpenSSL cipher list format."),
+    cfg.IntOpt(
+        'wait_for_ready_timeout',
+        default=10,
+        min=1,
+        help='Maximum number of seconds to wait for a console container '
+             'to be ready to accept VNC connections after starting.'),
 ]
 
 
