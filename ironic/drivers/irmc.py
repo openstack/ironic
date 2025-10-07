@@ -54,8 +54,10 @@ class IRMCHardware(generic.GenericHardware):
     @property
     def supported_console_interfaces(self):
         """List of supported console interfaces."""
-        return [ipmitool.IPMISocatConsole, ipmitool.IPMIShellinaboxConsole,
-                noop.NoConsole]
+        return [
+            ipmitool.IPMISocatConsole,
+            ipmitool.IPMIShellinaboxConsole
+        ] + super().supported_console_interfaces
 
     @property
     def supported_inspect_interfaces(self):

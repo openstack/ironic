@@ -48,7 +48,9 @@ class IloHardware(generic.GenericHardware):
     @property
     def supported_console_interfaces(self):
         """List of supported console interfaces."""
-        return [console.IloConsoleInterface, noop.NoConsole]
+        return [
+            console.IloConsoleInterface
+        ] + super().supported_console_interfaces
 
     @property
     def supported_inspect_interfaces(self):

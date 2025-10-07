@@ -44,7 +44,7 @@ class FakeHardware(generic.GenericHardware):
     def supported_console_interfaces(self):
         """List of classes of supported console interfaces."""
         return [
-            fake.FakeConsole, fake.FakeGraphicalConsole
+            fake.FakeConsole
         ] + super().supported_console_interfaces
 
     @property

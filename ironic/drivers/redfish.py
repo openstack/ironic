@@ -79,6 +79,7 @@ class RedfishHardware(generic.GenericHardware):
     @property
     def supported_console_interfaces(self):
         """List of supported console interfaces."""
-        return [graphical_console.RedfishGraphicalConsole,
-                ipmitool.IPMISocatConsole,
-                noop.NoConsole]
+        return [
+            graphical_console.RedfishGraphicalConsole,
+            ipmitool.IPMISocatConsole
+        ] + super().supported_console_interfaces
