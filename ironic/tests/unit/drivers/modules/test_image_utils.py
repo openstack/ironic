@@ -872,6 +872,31 @@ class RedfishImageUtilsTestCase(db_base.DbTestCase):
                 inject_files={}, base_iso=None)
 
     @mock.patch.object(image_utils, '_prepare_iso_image', autospec=True)
+    def test_prepare_deploy_iso_kernel_ramdisk_by_arch(
+            self, mock__prepare_iso_image):
+        with task_manager.acquire(self.context, self.node.uuid,
+                                  shared=True) as task:
+
+            cfg.CONF.set_override('deploy_kernel_by_arch',
+                                  {'x86_64': 'file:///images/x86_64-kernel',
+                                   'aarch64': 'file:///images/aarch64-kernel'},
+                                  group='conductor')
+            cfg.CONF.set_override('deploy_ramdisk_by_arch',
+                                  {'x86_64': 'file:///images/x86_64-rd',
+                                   'aarch64': 'file:///images/aarch64-rd'},
+                                  group='conductor')
+
+            task.node.properties['cpu_arch'] = 'aarch64'
+            d_info = {}
+
+            image_utils.prepare_deploy_iso(task, {}, 'deploy', d_info)
+
+            mock__prepare_iso_image.assert_called_once_with(
+                task, 'file:///images/aarch64-kernel',
+                'file:///images/aarch64-rd', None, params={},
+                inject_files={}, base_iso=None)
+
+    @mock.patch.object(image_utils, '_prepare_iso_image', autospec=True)
     def test_prepare_deploy_iso_existing_iso(self, mock__prepare_iso_image):
         with task_manager.acquire(self.context, self.node.uuid,
                                   shared=True) as task:
