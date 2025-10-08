@@ -628,7 +628,7 @@ bios_setting_upper_bound:
   type: integer
 bios_setting_value:
   description: |
-    The value of a Bios setting for a Node, eg. "on".
+    The value of a Bios setting for a Node, eg. "on". May be ``null``.
   in: body
   required: true
   type: string
