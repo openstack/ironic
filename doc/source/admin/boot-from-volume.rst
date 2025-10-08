@@ -95,6 +95,14 @@ on an existing node::
 A default storage interface can be specified in ironic.conf. See the
 `Conductor Configuration`_ section for details.
 
+The storage interface is responsible for managing the mapping state of the
+volume to the host. If some changes need to be communicated from Cinder and
+then updated for Ironic to become aware of them, such as a change in iSCSI
+credentials, then the act of powering baremetal node off via Ironic's API
+will trigger these values to be updated automatically as the ``cinder``
+storage interface resets the volume attachments with power actions to
+ensure the latest information is used for each boot sequence.
+
 iSCSI Configuration
 -------------------
 In order for a bare metal node to boot from an iSCSI volume, the ``iscsi_boot``

@@ -1504,3 +1504,23 @@ navigate the issue you have encountered.
 Unfortunately, there is no magical quick fix for these sorts of issues, but
 the Ironic community has a track record of attempting to navigate and address
 these issues as they arise.
+
+I'm using Boot-From-Volume, and the SAN passwords were changed.
+===============================================================
+
+In this event, the credential uses for an iSCSI attachment have been changed
+on a storage area network (SAN), and Ironic nodes have lost connectivity with
+iSCSI boot volumes.
+
+The proper procedure here varies based upon if you're using the ``cinder``
+``storage_interface`` option, or if you're using the ``external`` option.
+
+In the case of the ``cinder`` driver being used, if you power off the
+baremetal node via Ironic's API, and then power the node back on. This
+will trigger Ironic to attempt to re-attach the volume to the baremetal
+node via Cinder's API which will cause the most up-to-date configuration
+to be presented to the bare metal node being booted.
+
+If you're using the ``external`` interface option, you will need to manually
+reset you're volume connector information values. Please refer to
+:doc:`/admin/boot-from-volume` for more information.
