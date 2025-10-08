@@ -96,10 +96,10 @@ Power fault and recovery
 ========================
 
 When `Baremetal Power Sync`_ is enabled, and the Bare Metal service loses
-access to a node (usually because of invalid credentials, BMC issues or
-networking interruptions), the node enters ``maintenance`` mode and its
-``fault`` field is set to ``power failure``. The exact reason is stored in the
-``maintenance_reason`` field.
+access to a node (usually because of invalid credentials due to rotation,
+BMC issues or networking interruptions), the node enters ``maintenance``
+mode and its ``fault`` field is set to ``power failure``. The exact reason
+is stored in the ``maintenance_reason`` field.
 
 As always with maintenance mode, only a subset of operations will work on such
 nodes, and both the Compute service and the Ironic's native allocation API will

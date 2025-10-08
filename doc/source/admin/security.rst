@@ -446,6 +446,49 @@ be tuned using the :oslo.config:option:`DEFAULT.minimum_required_memory` setting
 Operators with a higher level of concurrency may wish to increase the
 default value.
 
+BMC Credentials
+---------------
+
+Due to the nature of Ironic and the use of Baseboard Management Controllers
+to manage physical machines, Ironic has to be supplied with current credentials
+for each node it manages.
+
+Ironic utilizes the credentials to perform actions on behalf of the API user
+in a manor which is both delineated and removes the need for external users
+to know the credentials. With this Ironic also monitors and helps enforce the
+requested power state of the remote machine, as well as to collect any sensor
+data when Ironic is configured to collect such data.
+
+Should the credentials for baremetal nodes under Ironic's management
+need to be changed, the credentials must also be updated in Ironic itself
+by updating the appropriate driver specific credential parameters on each
+baremetal node.
+
+Under a normal sequence of events, Ironic will pickup the new credentials
+for the next management operation which is typically the power state sync.
+If the credentials are wrong or have the wrong level of access, then the node
+will enter a maintenance state automatically and a fault will be recorded.
+For more context on the power state sync and power fault recover, please
+see :doc:`/admin/power-sync`. When this issue has been corrected with the
+credential, modern Ironic users should find the node recover automatically.
+
+.. warning::
+   Operators re-using the same credentials with a centrally managed credential
+   management system with separate BMC configuration should be careful about
+   credential rotations. These operators risk causing the account to access the
+   BMC to be locked out, and should likely explicitly set nodes to ``maintenance``
+   state prior to rotating credentials, and afterward unset the maintenance
+   state. This is to avoid locking out access if the same username is utilized
+   across the credential rotation. An alternative pattern is to create a *new*
+   user, and rotate the nodes in Ironic by resetting the driver specific
+   parameter with the new user name and password.
+
+The Ironic project recommends:
+
+* Unique passwords be used for each baremetal node.
+* Operators leverage good password practices by not re-using the credentials
+  for other tools or systems.
+
 Disk Images
 ===========
 
