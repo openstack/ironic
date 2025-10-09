@@ -153,9 +153,6 @@ class HttpImageService(BaseImageService):
             shown in exception message.
         :raises: exception.ImageRefValidationFailed if HEAD request failed or
             returned response code not equal to 200.
-        :raises: exception.ImageRefIsARedirect if the supplied URL is a
-            redirect to a different URL. The caller may be able to handle
-            this.
         :returns: Response to HEAD request.
         """
         output_url = 'secreturl' if secret else image_href
@@ -170,32 +167,9 @@ class HttpImageService(BaseImageService):
             auth = HttpImageService.gen_auth_from_conf_user_pass(image_href)
             # NOTE(TheJulia): Head requests do not work on things that are not
             # files, but they can be responded with redirects or a 200 OK....
-            # We don't want to permit endless redirects either, thus not
-            # request an override to the requests default to try and resolve
-            # redirects as otherwise we might end up with something like
-            # HTTPForbidden or a list of files. Both should be okay to at
-            # least know things are okay in a limited fashion.
             response = requests.head(image_href, verify=verify,
                                      timeout=CONF.webserver_connection_timeout,
-                                     auth=auth)
-            if (response.status_code == http_client.MOVED_PERMANENTLY
-                    or response.status_code == http_client.FOUND
-                    or response.status_code == http_client.TEMPORARY_REDIRECT
-                    or response.status_code == http_client.PERMANENT_REDIRECT):
-                # NOTE(TheJulia): In the event we receive a redirect, we need
-                # to notify the caller. Before this we would just fail,
-                # but a url which is missing a trailing slash results in a
-                # redirect to a target path, and the caller *may* actually
-                # care about that.
-                redirect = requests.Session().get_redirect_target(response)
-
-                # Extra guard because this is pointless if there is no
-                # location in the field. Requests also properly formats
-                # our string for us, or gives us None.
-                if redirect:
-                    raise exception.ImageRefIsARedirect(
-                        image_ref=image_href,
-                        redirect_url=redirect)
+                                     auth=auth, allow_redirects=True)
 
             if (response.status_code == http_client.FORBIDDEN
                     and str(image_href).endswith('/')):

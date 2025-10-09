@@ -790,24 +790,12 @@ def is_source_a_path(ctx, image_source):
                                               context=ctx)
     try:
         res = image_service.validate_href(image_source)
-        if 'headers' in dir(res):
-            # response/result is from the HTTP check path.
-            headers = res.headers
-        else:
-            # We have no headers.
-            headers = {}
-    except exception.ImageRefIsARedirect as e:
-        # Our exception handling formats this for us in this
-        # case. \o/
-        LOG.debug(str(e))
-        # Servers redirect to a proper folder ending in a slash if
-        # not supplied originally.
-        if e.redirect_url and e.redirect_url.endswith('/'):
-            return True
+        headers = getattr(res, 'headers', {})
     except Exception:
         # NOTE(TheJulia): I don't really like this pattern, *but*
         # the wholedisk image support is similar.
         return
+
     # NOTE(TheJulia): Files should have been caught almost exclusively
     # before with the Content-Length check.
     # When the ISO is mounted and the webserver mount point url is
@@ -833,7 +821,8 @@ def is_source_a_path(ctx, image_source):
         # NOTE(TheJulia): Files on a webserver have a length which is returned
         # when headres are queried.
         return False
-    if image_source.endswith('/'):
+    # In case of redirects, URL may be different from image_source.
+    if res.url.endswith('/'):
         # If all else fails, looks like a URL, and the server didn't give
         # us any hints.
         return True

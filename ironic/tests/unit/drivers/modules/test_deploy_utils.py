@@ -2361,6 +2361,7 @@ class TestBuildInstanceInfoForDeploy(db_base.DbTestCase):
                        autospec=True)
     def test_build_instance_info_for_deploy_nonglance_image(
             self, validate_href_mock, mock_cache_image):
+        validate_href_mock.return_value.url = 'http://image-ref'
         i_info = self.node.instance_info
         driver_internal_info = self.node.driver_internal_info
         i_info['image_source'] = 'http://image-ref'
@@ -2392,6 +2393,7 @@ class TestBuildInstanceInfoForDeploy(db_base.DbTestCase):
             self, validate_href_mock, mock_cache_image):
         cfg.CONF.set_override('conductor_always_validates_images', True,
                               group='conductor')
+        validate_href_mock.return_value.url = 'http://image-ref'
         i_info = self.node.instance_info
         driver_internal_info = self.node.driver_internal_info
         i_info['image_source'] = 'http://image-ref'
@@ -2426,6 +2428,7 @@ class TestBuildInstanceInfoForDeploy(db_base.DbTestCase):
                               group='conductor')
         cfg.CONF.set_override('disable_deep_image_inspection', True,
                               group='conductor')
+        validate_href_mock.return_value.url = 'http://image-ref'
         i_info = self.node.instance_info
         driver_internal_info = self.node.driver_internal_info
         i_info['image_source'] = 'http://image-ref'
@@ -2473,11 +2476,14 @@ class TestBuildInstanceInfoForDeploy(db_base.DbTestCase):
         self.node.driver_internal_info = driver_internal_info
         self.node.save()
 
-        validate_href_mock.side_effect = ['http://image-ref',
-                                          'http://kernel-ref',
-                                          'http://ramdisk-ref']
+        validate_href_mock.side_effect = [
+            mock.Mock(url='http://image-ref'),
+            mock.Mock(url='http://kernel-ref'),
+            mock.Mock(url='http://ramdisk-ref'),
+        ]
         parse_instance_info_mock.return_value = {'swap_mb': 5}
-        expected_i_info = {'image_source': 'http://image-ref',
+        expected_i_info = {'image_disk_format': 'qcow2',
+                           'image_source': 'http://image-ref',
                            'image_url': 'http://image-ref',
                            'image_type': 'partition',
                            'kernel': 'http://kernel-ref',
@@ -2524,9 +2530,11 @@ class TestBuildInstanceInfoForDeploy(db_base.DbTestCase):
         self.node.driver_internal_info = driver_internal_info
         self.node.save()
 
-        validate_href_mock.side_effect = ['http://image-ref',
-                                          'http://kernel-ref',
-                                          'http://ramdisk-ref']
+        validate_href_mock.side_effect = [
+            mock.Mock(url='http://image-ref'),
+            mock.Mock(url='http://kernel-ref'),
+            mock.Mock(url='http://ramdisk-ref'),
+        ]
         parse_instance_info_mock.return_value = {'swap_mb': 5}
         expected_i_info = {'image_source': 'http://image-ref',
                            'image_url': 'http://image-ref',
@@ -2576,6 +2584,7 @@ class TestBuildInstanceInfoForDeploy(db_base.DbTestCase):
                        autospec=True)
     def test_build_instance_info_for_deploy_source_is_a_path(
             self, validate_href_mock):
+        validate_href_mock.return_value.url = 'http://image-url/folder/'
         i_info = self.node.instance_info
         driver_internal_info = self.node.driver_internal_info
         i_info['image_source'] = 'http://image-url/folder/'
@@ -2611,9 +2620,7 @@ class TestBuildInstanceInfoForDeploy(db_base.DbTestCase):
         self.node.instance_info = i_info
         self.node.driver_internal_info = driver_internal_info
         self.node.save()
-        validate_href_mock.side_effect = exception.ImageRefIsARedirect(
-            image_ref=url,
-            redirect_url=r_url)
+        validate_href_mock.return_value = mock.Mock(url=r_url)
 
         with task_manager.acquire(
                 self.context, self.node.uuid, shared=False) as task:
@@ -2643,11 +2650,7 @@ class TestBuildInstanceInfoForDeploy(db_base.DbTestCase):
         self.node.instance_info = i_info
         self.node.driver_internal_info = driver_internal_info
         self.node.save()
-        validate_href_mock.side_effect = iter([
-            exception.ImageRefIsARedirect(
-                image_ref=url,
-                redirect_url=r_url),
-            None])
+        validate_href_mock.return_value = mock.Mock(url=r_url)
 
         with task_manager.acquire(
                 self.context, self.node.uuid, shared=False) as task:
@@ -2657,10 +2660,8 @@ class TestBuildInstanceInfoForDeploy(db_base.DbTestCase):
             self.assertNotEqual(self.node.instance_info['image_source'],
                                 info['image_url'])
             self.assertEqual(r_url, info['image_url'])
-            validate_href_mock.assert_has_calls([
-                mock.call(mock.ANY, 'http://image-url/file', False),
-                mock.call(mock.ANY, 'https://image-url/file', False)
-            ])
+            validate_href_mock.assert_called_once_with(
+                mock.ANY, 'http://image-url/file', False)
             mock_cache_image.assert_called_once_with(mock.ANY,
                                                      task.node,
                                                      force_raw=False,
@@ -2849,6 +2850,7 @@ class TestBuildInstanceInfoForHttpProvisioning(db_base.DbTestCase):
                        autospec=True)
     def test_build_instance_info_local_image(self, validate_href_mock):
         cfg.CONF.set_override('image_download_source', 'local', group='agent')
+        validate_href_mock.return_value.url = 'http://image-ref'
         i_info = self.node.instance_info
         driver_internal_info = self.node.driver_internal_info
         i_info['image_source'] = 'http://image-ref'
@@ -2926,6 +2928,7 @@ class TestBuildInstanceInfoForHttpProvisioning(db_base.DbTestCase):
         cfg.CONF.set_override('image_download_source', 'http', group='agent')
         cfg.CONF.set_override('conductor_always_validates_images', True,
                               group='conductor')
+        validate_href_mock.return_value.url = 'http://image-ref'
         i_info = self.node.instance_info
         driver_internal_info = self.node.driver_internal_info
         i_info['image_source'] = 'http://image-ref'

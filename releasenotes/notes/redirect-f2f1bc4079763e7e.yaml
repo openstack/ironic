@@ -1,0 +1,5 @@
+---
+fixes:
+  - |
+    Fixes validation of image source URLs that are redirects to another URL.
+    Previously, it would raise UnboundLocalError.
