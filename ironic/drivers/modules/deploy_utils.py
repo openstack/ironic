@@ -1210,7 +1210,10 @@ def _validate_image_url(node, url, secret=False, inspect_image=None,
             oci.set_image_auth(url, image_auth)
             oci.validate_href(url, secret)
         else:
-            image_service.HttpImageService().validate_href(url, secret)
+            resp = image_service.HttpImageService().validate_href(url, secret)
+            if resp and resp.url != url:
+                LOG.debug('URL %s redirected to %s', url, resp.url)
+                image_info['image_source'] = resp.url
     except exception.ImageRefValidationFailed as e:
         with excutils.save_and_reraise_exception():
             LOG.error("The specified URL is not a valid HTTP(S) URL or is "
@@ -1540,73 +1543,48 @@ def build_instance_info_for_deploy(task):
             # and not a file, or where a user may be supplying a full URL to
             # a remotely hosted image, we at a minimum need to check if the
             # url is valid, and address any redirects upfront.
-            try:
-                # NOTE(TheJulia): In the case we're here, we not doing an
-                # integrated image based deploy, but we may also be doing
-                # a path based anaconda base deploy, in which case we have
-                # no backing image, but we need to check for a URL
-                # redirection. So, if the source is a path (i.e. isap),
-                # we don't need to inspect the image as there is no image
-                # in the case for the deployment to drive.
-                validated_results = {}
-                if isap:
-                    # This is if the source is a path url, such as one used by
-                    # anaconda templates to to rely upon bootstrapping
-                    # defaults.
-                    _validate_image_url(node, image_source,
-                                        inspect_image=False)
-                else:
-                    # When not isap, we can just let _validate_image_url make
-                    # the required decision on if contents need to be sampled,
-                    # or not. We try to pass the image_disk_format which may
-                    # be declared by the user, and if not we set
-                    # expected_format to None.
-                    validate_results = _validate_image_url(
-                        node,
-                        image_source,
-                        expected_format=instance_info.get(
-                            'image_disk_format',
-                            None))
+
+            # NOTE(TheJulia): In the case we're here, we not doing an
+            # integrated image based deploy, but we may also be doing
+            # a path based anaconda base deploy, in which case we have
+            # no backing image, but we need to check for a URL
+            # redirection. So, if the source is a path (i.e. isap),
+            # we don't need to inspect the image as there is no image
+            # in the case for the deployment to drive.
+            if isap:
+                # This is if the source is a path url, such as one used by
+                # anaconda templates to to rely upon bootstrapping
+                # defaults.
+                validate_results = _validate_image_url(node, image_source,
+                                                       inspect_image=False)
+            else:
+                # When not isap, we can just let _validate_image_url make
+                # the required decision on if contents need to be sampled,
+                # or not. We try to pass the image_disk_format which may
+                # be declared by the user, and if not we set
+                # expected_format to None.
+                validate_results = _validate_image_url(
+                    node,
+                    image_source,
+                    expected_format=instance_info.get(
+                        'image_disk_format',
+                        None))
                 # image_url is internal, and used by IPA and some boot
                 # templates. In most cases, it needs to come from image_source
                 # explicitly.
-                if 'disk_format' in validated_results:
+                if 'disk_format' in validate_results:
                     # Ensure IPA has the value available, so write what we
                     # detect, if anything. This is also an item which might be
                     # needful with ansible deploy interface, when used in
                     # standalone mode.
                     instance_info['image_disk_format'] = \
                         validate_results.get('disk_format')
-                if not instance_info.get('image_url'):
-                    instance_info['image_url'] = image_source
-            except exception.ImageRefIsARedirect as e:
-                # At this point, we've got a redirect response from the
-                # webserver, and we're going to try to handle it as a single
-                # redirect action, as requests, by default, only lets a single
-                # redirect to occur. This is likely a URL pathing fix, like a
-                # trailing / on a path,
-                # or move to HTTPS from a user supplied HTTP url.
-                if e.redirect_url:
-                    # Since we've got a redirect, we need to carry the rest of
-                    # the request logic as well, which includes recording a
-                    # disk format, if applicable.
-                    instance_info['image_url'] = e.redirect_url
-                    # We need to save the image_source back out so it caches
-                    instance_info['image_source'] = e.redirect_url
-                    task.node.instance_info = instance_info
-                    if not isap:
-                        # The redirect doesn't relate to a path being used, so
-                        # the target is a filename, likely cause is webserver
-                        # telling the client to use HTTPS.
-                        validated_results = _validate_image_url(
-                            node, e.redirect_url,
-                            expected_format=instance_info.get(
-                                'image_disk_format', None))
-                        if 'disk_format' in validated_results:
-                            instance_info['image_disk_format'] = \
-                                validated_results.get('disk_format')
-                else:
-                    raise
+            redirect_target = validate_results.get('image_source')
+            if redirect_target:
+                instance_info['image_source'] = redirect_target
+                instance_info['image_url'] = redirect_target
+            if not instance_info.get('image_url'):
+                instance_info['image_url'] = image_source
 
     if not isap:
         if not iwdi:
