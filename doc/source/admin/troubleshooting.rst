@@ -1392,3 +1392,69 @@ The net result is the best criteria to match on is:
 .. NOTE: Centos Stream-9 appears to have a probe_type="sync" option which
    reverts this behavior. For more information please see
    this `centos stream-9 changeset <https://gitlab.com/redhat/centos-stream/src/kernel/centos-stream-9/-/merge_requests/2819/diffs?commit_id=a93f405246083f0c2e81d0e6c37ba31c6c1b29c3>`_.
+
+I changed the BMC password, and now a node is in maintenance state.
+===================================================================
+
+Ironic automatically checks access to a remote BMC utilizing the configured
+credentials for the driver. Depending on the driver in use, this can vary
+in field name, but these fields are set in each node's ``driver_info``
+parameter and must be reset.
+
+Once the credential issue has been resolved, Ironic automatically moves
+the node out of maintenance state upon the next attempt to check the power
+state. Please review :doc:`/admin/power-sync` for more information, however
+an operator can also explicitly unset the maintenance state as well, and
+the examples below are detailed as such.
+
+For example, with Redfish...
+
+.. code-block:: console
+
+    $ openstack baremetal node set --driver-info redfish_username=<new_user> --driver-info redfish_password=<new_pass> <node_uuid>
+    $ openstack baremetal node maintenance unset <node_uuid>
+
+For example, with IPMI...
+
+.. code-block:: console
+
+    $ openstack baremetal node set --driver-info ipmi_username=<new_user> --driver-info ipmi_password=<new_pass> <node_uuid>
+    $ openstack baremetal node maintenance unset <node_uuid>
+
+For example, with iDRAC drivers...
+
+.. code-block:: console
+
+    $ openstack baremetal node set --driver-info drac_username=<new_user> --driver-info drac_password=<new_pass> <node_uuid>
+    $ openstack baremetal node set --driver-info redfish_username=<new_user> --driver-info redfish_password=<new_pass> <node_uuid>
+    $ openstack baremetal node maintenance unset <node_uuid>
+
+.. note::
+   The ``drac_username`` and ``drac_password`` parameters were used by WSMAN
+   Dell iDRAC drivers. Newer versions of the drivers utilize Redfish natively.
+
+For example, with iLO drivers...
+
+.. code-block:: console
+
+    $ openstack baremetal node set --driver-info ilo_username=<new_user> --driver-info ilo_password=<new_pass> <node_uuid>
+    $ openstack baremetal node maintenance unset <node_uuid>
+
+For example, with iRMC drivers...
+
+.. code-block:: console
+
+    $ openstack baremetal node set --driver-info irmc_username=<new_user> --driver-info irmc_password=<new_pass> <node_uuid>
+    $ openstack baremetal node set --driver-info redfish_username=<new_user> --driver-info redfish_password=<new_pass> <node_uuid>
+    $ openstack baremetal node set --driver-info irmc_snmp_user=<new_user> --driver-info irmc_snmp_auth_password=<new_auth_pass> --driver-info irmc_snmp_priv_password=<new_priv_password> <node_uuid>
+    $ openstack baremetal node maintenance unset <node_uuid>
+
+.. note::
+   iRMC drivers utilize a mix of protocols and can have explicit credentials
+   set for each protocol utilized.
+
+.. note::
+   Ironic generally does not manage or rotate the remote BMC credentials due
+   to the risk of user lockout if the account is not for the specific use of
+   Ironic. Some vendor drivers have added this functionality, however such
+   actions should be made with caution.
