@@ -1,0 +1,12 @@
+---
+fixes:
+  - |
+    Fixes an issue where virtual media ISO creation (used by Redfish and iLO
+    drivers) did not respect architecture-specific kernel and ramdisk
+    configuration parameters. When ``deploy_kernel_by_arch`` and
+    ``deploy_ramdisk_by_arch`` (or their rescue equivalents) were configured,
+    the ISO generation would still use the generic parameters instead of
+    selecting the correct kernel and ramdisk based on the node's CPU
+    architecture. This particularly affected ARM64 nodes that require
+    different agent images than x86_64 nodes. For more information, see
+    `bug 2126991 <https://bugs.launchpad.net/ironic/+bug/2126991>`_.
