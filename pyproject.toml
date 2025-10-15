@@ -241,7 +241,8 @@ packages = [
 
 [tool.setuptools.data-files]
 "share/ironic/vnc-container" = [
-    "tools/vnc-container/Containerfile",
+    "tools/vnc-container/Containerfile.ubuntu",
+    "tools/vnc-container/Containerfile.centos",
     "tools/vnc-container/README.rst",
 ]
 "share/ironic/vnc-container/bin" = [

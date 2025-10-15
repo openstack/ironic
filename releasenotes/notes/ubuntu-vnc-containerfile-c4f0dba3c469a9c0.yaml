@@ -1,0 +1,6 @@
+---
+features:
+  - |
+    Adds a new Ubuntu based container file for VNC graphical client
+    operation containers, which is above and beyond the stock Centos
+    based VNC.

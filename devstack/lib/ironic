@@ -1342,7 +1342,11 @@ function install_ironic {
         # buildah required below to build the VNC container
         install_package podman systemd-container slirp4netns buildah
         pushd $IRONIC_DIR/tools/vnc-container
-        buildah bud -f ./Containerfile -t localhost/ironic-vnc-container
+        if is_ubuntu; then
+            buildah bud --from quay.io/opendevmirror/ubuntu:$VERSION_ID -f ./Containerfile.ubuntu -t localhost/ironic-vnc-container
+        elif is_fedora; then
+            buildah bud -f ./Containerfile.centos -t localhost/ironic-vnc-container
+        fi
         popd
     fi
 }
