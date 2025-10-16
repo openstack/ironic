@@ -16,7 +16,6 @@ import functools
 import inspect
 import typing as ty
 
-import jsonschema.exceptions
 from oslo_config import cfg
 from oslo_log import log
 from oslo_serialization import jsonutils
@@ -24,6 +23,7 @@ from webob import exc as webob_exc
 
 from ironic import api
 from ironic.api.validation import validators
+from ironic.common import exception
 from ironic.common.i18n import _
 
 CONF = cfg.CONF
@@ -381,7 +381,7 @@ def response_body_schema(
                     max_version,
                     is_body=True,
                 )
-            except jsonschema.exceptions.ValidationError:
+            except exception.InvalidParameterValue:
                 if CONF.api.response_validation == 'warn':
                     LOG.exception('Schema failed to validate')
                 else:
