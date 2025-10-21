@@ -1291,6 +1291,13 @@ instance_info:
 instance_uuid:
   description: |
     UUID of the Nova instance associated with this Node.
+
+    .. note::
+        This field does not follow standard JSON PATCH RFC 6902 behavior.
+        The "add" operator cannot replace an existing instance_uuid value.
+        Attempting to do so will result in a 409 Conflict error (NodeAssociated
+        exception). This protection prevents race conditions when multiple
+        Nova compute agents try to associate the same node.
   in: body
   required: true
   type: string
@@ -1886,6 +1893,13 @@ req_instance_info:
 req_instance_uuid:
   description: |
     UUID of the Nova instance associated with this Node.
+
+    .. note::
+        This field does not follow standard JSON PATCH RFC 6902 behavior.
+        The "add" operator cannot replace an existing instance_uuid value.
+        Attempting to do so will result in a 409 Conflict error (NodeAssociated
+        exception). This protection prevents race conditions when multiple
+        Nova compute agents try to associate the same node.
   in: body
   required: false
   type: string
