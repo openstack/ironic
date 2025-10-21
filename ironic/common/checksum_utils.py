@@ -272,7 +272,8 @@ def get_checksum_from_url(checksum, image_source):
 
 class TransferHelper(object):
 
-    def __init__(self, response, checksum_algo, expected_checksum):
+    def __init__(self, response, checksum_algo, expected_checksum,
+                 chunk_size=1024 * 1024):
         """Helper class to drive data download with concurrent checksum.
 
         The TransferHelper can be used to help retrieve data from a
@@ -284,6 +285,8 @@ class TransferHelper(object):
         :param checksum_algo: The expected checksum algorithm.
         :param expected_checksum: The expected checksum of the data being
                                   transferred.
+        :param chunk_size: Size of chunks to read during transfer.
+                           Defaults to 1MB.
 
         """
         # NOTE(TheJulia): Similar code exists in IPA in regards to
@@ -297,7 +300,7 @@ class TransferHelper(object):
         # This may artificially throttle transfer speeds a little in
         # high performance environments as the data may get held up
         # in the kernel limiting the window from scaling.
-        self._chunk_size = 1024 * 1024  # 1MB
+        self._chunk_size = chunk_size
         self._last_check_time = time.time()
         self._request = response
         self._bytes_transferred = 0

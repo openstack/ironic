@@ -1,0 +1,9 @@
+fixes:
+  - |
+    Extremely large instance images, post eventlet removal, were causing CPU
+    spikes and the conductor process to hang while the image was being
+    fetched and validated. This optimizes the instance fetch and validation
+    in two ways -- first, we now calculate the image checksum while the
+    file is being fetched instead of as a separate step. Secondly, we were,
+    in some cases, using the default chunk size of 128 bytes during downloads.
+    Now, we use a more standard and reasonable value of 1 megabyte.
