@@ -30,6 +30,7 @@ DRIVER.
 """
 
 import contextlib
+import ipaddress
 import os
 import re
 import subprocess
@@ -322,6 +323,29 @@ def is_bridging_enabled(node):
     This call is used in the inspector lookup.
     """
     return node.driver_info.get("ipmi_bridging", "no") != "no"
+
+
+def _validate_ipmi_address(address, node_uuid):
+    """Validate that the IPMI address is a valid IP or hostname.
+
+    :param address: The IPMI address to validate
+    :param node_uuid: Node UUID for error messages
+    :raises: InvalidParameterValue if the address is invalid
+    """
+    if not address:
+        return
+
+    try:
+        ipaddress.ip_address(address)
+        return  # Valid IP address
+    except ValueError:
+        pass  # Not an IP, check if it's a valid hostname
+
+    if not utils.is_hostname_safe(address):
+        raise exception.InvalidParameterValue(
+            _('Invalid IPMI address "%(address)s" for node %(node)s. '
+              'Must be a valid IP address or hostname.') %
+            {'address': address, 'node': node_uuid})
 
 
 def _parse_driver_info(node):
@@ -1040,7 +1064,12 @@ class IPMIPower(base.PowerInterface):
         :raises: MissingParameterValue if a required parameter is missing.
 
         """
-        _parse_driver_info(task.node)
+        driver_info = _parse_driver_info(task.node)
+
+        ipmi_address = driver_info.get('address')
+        if ipmi_address:
+            _validate_ipmi_address(ipmi_address, task.node.uuid)
+
         # NOTE(tenbrae): don't actually touch the BMC in validate because it is
         #             called too often, and BMCs are too fragile.
         #             This is a temporary measure to mitigate problems while
