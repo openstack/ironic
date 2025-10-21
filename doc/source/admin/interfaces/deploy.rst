@@ -303,3 +303,51 @@ Limitations
   ``ironic-conductor`` host is not available. If you need the contaitainer
   content localized to the conductor, consider utilizing your own container
   registry.
+
+.. _noop-deploy:
+
+Noop deploy
+===========
+
+The ``noop`` deploy interface is a minimal deployment mechanism that performs
+no actual deployment operations. It is designed for scenarios where operators
+want to allocate nodes and mark them as ``active`` in Ironic without deploying
+an operating system.
+
+This is useful when nodes are being managed by external systems but tracked in
+Ironic's inventory.
+
+You can specify this deploy interface when creating or updating a node::
+
+    baremetal node create --driver manual-management --deploy-interface noop
+    baremetal node set <NODE> --deploy-interface noop
+
+Usage with Nova
+---------------
+
+For deployments using Ironic in conjunction with Nova, the ``noop`` deploy
+interface provides an alternative approach to adding production nodes that are
+already running workloads. Unlike the :doc:`node adoption </admin/adoption>`
+feature, which uses the ``adopt`` verb and is not suitable for Nova
+deployments, the ``noop`` deploy interface allows you to use the normal
+``deploy`` verb instead.
+
+With the ``noop`` deploy interface, nodes can be moved through the normal
+deployment workflow (from ``manageable`` to ``available`` to ``deploying`` to
+``active``) without any actual deployment operations taking place. This enables
+Nova to properly track the instances while Ironic skips all conductor-side
+deployment actions.
+
+.. note::
+   The ``noop`` deploy interface completely bypasses cleaning operations.
+   Even if a user cannot update ``Node.automated_clean``, as long as they set
+   ``Node.instance_info[deploy_interface]`` to ``noop``, cleaning will be
+   skipped.
+
+Configuration
+-------------
+
+Enable the interface in ``ironic.conf``::
+
+    [DEFAULT]
+    enabled_deploy_interfaces = direct,ramdisk,noop
