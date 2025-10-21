@@ -12,7 +12,6 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
-import io
 
 from openstack.connection import exceptions as openstack_exc
 from oslo_utils import uuidutils
@@ -40,7 +39,7 @@ class StubGlanceClient(object):
     def download_image(self, image_id, stream=False):
         self.get_image(image_id)
         if stream:
-            return io.BytesIO(self.image_data)
+            return FakeStreamingResponse(self.image_data)
         else:
             return FakeImageDownload(self.image_data)
 
@@ -54,6 +53,21 @@ class FakeImageDownload(object):
 
     def __init__(self, content):
         self.content = content
+
+
+class FakeStreamingResponse(object):
+    """Mimics a requests.Response object for streaming downloads."""
+
+    def __init__(self, content):
+        self._content = content
+        self._pos = 0
+
+    def iter_content(self, chunk_size=1):
+        """Yield chunks of content mimicking requests.Response.iter_content."""
+        while self._pos < len(self._content):
+            chunk = self._content[self._pos:self._pos + chunk_size]
+            self._pos += chunk_size
+            yield chunk
 
 
 class FakeNeutronPort(dict):

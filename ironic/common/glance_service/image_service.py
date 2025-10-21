@@ -29,6 +29,7 @@ from oslo_log import log
 from oslo_utils import uuidutils
 import tenacity
 
+from ironic.common import checksum_utils
 from ironic.common import exception
 from ironic.common.glance_service import service_utils
 from ironic.common.i18n import _
@@ -43,6 +44,15 @@ TempUrlCacheElement = collections.namedtuple('TempUrlCacheElement',
 
 LOG = log.getLogger(__name__)
 _GLANCE_SESSION = None
+
+# Chunk size for streaming image downloads. This MUST be specified explicitly
+# when iterating over a requests.Response object. The default chunk size when
+# iterating directly over a Response (i.e., `for chunk in resp:`) is only
+# 128 bytes, which for a 40GB image results in ~335 million iterations.
+# This causes severe CPU starvation and memory pressure, leading to conductor
+# heartbeat failures and system unresponsiveness.
+# See: https://bugs.launchpad.net/ironic/+bug/2129260
+IMAGE_CHUNK_SIZE = 1024 * 1024  # 1 MiB
 
 
 def _translate_image_exception(image_id, exc_value):
@@ -114,6 +124,7 @@ class GlanceImageService(object):
         self.client = client
         self.context = context
         self.endpoint = None
+        self._transfer_verified_checksum = None
 
     @tenacity.retry(
         retry=tenacity.retry_if_exception_type(
@@ -179,13 +190,21 @@ class GlanceImageService(object):
         return base_image_meta
 
     @check_image_service
-    def download(self, image_href, data=None):
+    def download(self, image_href, data=None, checksum=None,
+                 checksum_algo=None):
         """Calls out to Glance for data and writes data.
 
         :param image_href: The opaque image identifier.
         :param data: (Optional) File object to write data to.
+        :param checksum: Expected checksum value for validation during
+                         transfer.
+        :param checksum_algo: Algorithm for checksum (e.g., 'md5',
+                              'sha256').
         """
         image_id = service_utils.parse_image_id(image_href)
+
+        # Reset transfer checksum for new download
+        self._transfer_verified_checksum = None
 
         if 'file' in CONF.glance.allowed_direct_url_schemes:
             location = self._get_location(image_id)
@@ -199,10 +218,50 @@ class GlanceImageService(object):
         image_size = 0
         image_data = None
         if data:
-            image_chunks = self.call('download_image', image_id, stream=True)
-            for chunk in image_chunks:
-                data.write(chunk)
-                image_size += len(chunk)
+            # Get streaming response from glance
+            resp = self.call('download_image', image_id, stream=True)
+
+            # If checksum validation is requested, use TransferHelper
+            # to calculate checksum during download
+            if checksum and checksum_algo:
+                try:
+                    download_helper = checksum_utils.TransferHelper(
+                        resp, checksum_algo, checksum,
+                        chunk_size=IMAGE_CHUNK_SIZE)
+                    for chunk in download_helper:
+                        data.write(chunk)
+                        image_size += len(chunk)
+
+                    # Verify checksum matches
+                    if download_helper.checksum_matches:
+                        # Store verified checksum in algo:value format
+                        self._transfer_verified_checksum = (
+                            f"{checksum_algo}:{checksum}")
+                        LOG.debug("Verified checksum during download of image "
+                                  "%(image)s: %(algo)s:%(checksum)s",
+                                  {'image': image_href, 'algo': checksum_algo,
+                                   'checksum': checksum})
+                    else:
+                        raise exception.ImageChecksumError()
+                except (exception.ImageChecksumAlgorithmFailure, ValueError):
+                    # Fall back to download without checksumming
+                    LOG.warning("Checksum algorithm %(algo)s not available, "
+                                "downloading without incremental checksum for "
+                                "image %(image)s",
+                                {'algo': checksum_algo, 'image': image_href})
+                    # NOTE(JayF): Must use iter_content with explicit chunk
+                    # size. See IMAGE_CHUNK_SIZE definition for details.
+                    for chunk in resp.iter_content(
+                            chunk_size=IMAGE_CHUNK_SIZE):
+                        data.write(chunk)
+                        image_size += len(chunk)
+            else:
+                # No checksum requested, just stream and write.
+                # NOTE(JayF): Must use iter_content with explicit chunk
+                # size. See IMAGE_CHUNK_SIZE definition for details.
+                for chunk in resp.iter_content(chunk_size=IMAGE_CHUNK_SIZE):
+                    data.write(chunk)
+                    image_size += len(chunk)
         else:
             image_data = self.call('download_image', image_id).content
             image_size = len(image_data)
@@ -441,6 +500,4 @@ class GlanceImageService(object):
     @property
     def transfer_verified_checksum(self):
         """The transferred artifact checksum."""
-        # FIXME(TheJulia): We should look at and see if we wire
-        # this up in a future change.
-        return None
+        return self._transfer_verified_checksum
