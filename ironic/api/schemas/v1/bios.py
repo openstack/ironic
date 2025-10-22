@@ -82,7 +82,7 @@ _bios_response_body = {
         'links': response_types.links,
         'name': {'type': 'string'},
         'updated_at': {'type': ['string', 'null'], 'format': 'date-time'},
-        'value': {'type': 'string'},
+        'value': {'type': ['null', 'string']},
     },
     'required': ['created_at', 'links', 'name', 'value', 'updated_at'],
     'additionalProperties': False,
@@ -106,7 +106,7 @@ _bios_response_body_v74 = {
         'unique': {'type': ['null', 'boolean']},
         'updated_at': {'type': ['string', 'null'], 'format': 'date-time'},
         'upper_bound': {'type': ['null', 'integer'], 'minimum': 0},
-        'value': {'type': 'string'},
+        'value': {'type': ['null', 'string']},
     },
     # NOTE(stephenfin): The 'fields' parameter means only a minimal set of
     # fields are required
