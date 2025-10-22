@@ -1,0 +1,6 @@
+---
+features:
+  - |
+    When plugging a baremetal port in using the 'neutron' interface, send
+    the 'physical_network' value of the baremetal port to Neutron as part of the
+    binding_profile for the port.

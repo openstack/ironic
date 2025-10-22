@@ -330,6 +330,44 @@ class TestNeutronNetworkActions(db_base.DbTestCase):
                                         security_groups=sg_ids)
 
     @mock.patch.object(neutron, 'update_neutron_port', autospec=True)
+    def test_add_ports_to_network_with_physical_network(self, update_mock):
+        # Test that physical_network is included in binding:profile
+        self.node.network_interface = 'neutron'
+        self.node.save()
+        port = self.ports[0]
+        port.physical_network = 'physnet1'
+        port.save()
+
+        expected_create_attrs = {
+            'network_id': self.network_uuid,
+            'admin_state_up': True,
+            'binding:vnic_type': 'baremetal',
+            'device_id': self.node.uuid
+        }
+        expected_update_attrs = {
+            'device_owner': 'baremetal:none',
+            'binding:host_id': self.node.uuid,
+            'mac_address': port.address,
+            'binding:profile': {
+                'local_link_information': [port.local_link_connection],
+                'physical_network': 'physnet1'
+            }
+        }
+
+        self.client_mock.create_port.return_value = self.neutron_port
+        update_mock.return_value = self.neutron_port
+        expected = {port.uuid: self.neutron_port['id']}
+
+        with task_manager.acquire(self.context, self.node.uuid) as task:
+            ports = neutron.add_ports_to_network(task, self.network_uuid)
+            self.assertEqual(expected, ports)
+            self.client_mock.create_port.assert_called_once_with(
+                **expected_create_attrs)
+            update_mock.assert_called_once_with(
+                self.context, self.neutron_port['id'],
+                expected_update_attrs)
+
+    @mock.patch.object(neutron, 'update_neutron_port', autospec=True)
     def test__add_ip_addresses_for_ipv6_stateful(self, mock_update):
         subnet_id = uuidutils.generate_uuid()
         self.client_mock.get_subnet.return_value = stubs.FakeNeutronSubnet(
