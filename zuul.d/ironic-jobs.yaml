@@ -378,7 +378,7 @@
         IRONIC_ENABLED_DEPLOY_INTERFACES: "anaconda"
         IRONIC_VM_COUNT: 2
         IRONIC_VM_VOLUME_COUNT: 1
-        IRONIC_VM_SPECS_RAM: 3192
+        IRONIC_VM_SPECS_RAM: 4096
         IRONIC_VM_SPECS_CPU: 3
         # We're using a lot of disk space in this job. Some testing nodes have
         # a small root partition, so use /opt which is mounted from a bigger
