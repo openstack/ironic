@@ -181,7 +181,6 @@ class RedfishFirmware(base.FirmwareInterface):
     @base.service_step(priority=0, abortable=False,
                        argsinfo=_FW_SETTINGS_ARGSINFO,
                        requires_ramdisk=False)
-    @base.cache_firmware_components
     def update(self, task, settings):
         """Update the Firmware on the node using the settings for components.
 
@@ -280,6 +279,7 @@ class RedfishFirmware(base.FirmwareInterface):
                   'seconds before proceeding to reboot the node %(node_uuid)s '
                   'to complete the step', {'node_uuid': node.uuid,
                                            'wait_time': wait_unres_bmc})
+        # Store task monitor URI for periodic task polling
         # TODO(iurygregory): Improve the logic here to identify if the BMC
         # is back, so we don't have to unconditionally wait.
         # The wait_unres_bmc will be the maximum time to wait.
@@ -299,10 +299,103 @@ class RedfishFirmware(base.FirmwareInterface):
                 fw_clean.append(cleanup)
             node.set_driver_internal_info('firmware_cleanup', fw_clean)
 
+    def _validate_resources_stability(self, node):
+        """Validate that BMC resources are consistently available.
+
+        Requires consecutive successful responses from System, Manager,
+        and NetworkAdapters resources before considering them stable.
+        The number of required successes is configured via
+        CONF.redfish.firmware_update_required_successes.
+        Timeout is configured via
+        CONF.redfish.firmware_update_resource_validation_timeout.
+
+        :param node: the Ironic node object
+        :raises: RedfishError if resources don't stabilize within timeout
+        """
+        timeout = CONF.redfish.firmware_update_resource_validation_timeout
+        required_successes = CONF.redfish.firmware_update_required_successes
+        validation_interval = CONF.redfish.firmware_update_validation_interval
+
+        # Skip validation if validation is disabled via configuration
+        if required_successes == 0 or timeout == 0:
+            reasons = []
+            if required_successes == 0:
+                reasons.append('required_successes=0')
+            if timeout == 0:
+                reasons.append('validation_timeout=0')
+
+            LOG.info('BMC resource validation disabled (%s) for node %(node)s',
+                     ', '.join(reasons), {'node': node.uuid})
+            return
+
+        LOG.debug('Starting resource stability validation for node %(node)s '
+                  '(timeout: %(timeout)s seconds, '
+                  'required_successes: %(required)s, '
+                  'validation_interval: %(interval)s seconds)',
+                  {'node': node.uuid, 'timeout': timeout,
+                   'required': required_successes,
+                   'interval': validation_interval})
+
+        start_time = time.time()
+        end_time = start_time + timeout
+        consecutive_successes = 0
+        last_exc = None
+
+        while time.time() < end_time:
+            try:
+                # Test System resource
+                system = redfish_utils.get_system(node)
+
+                # Test Manager resource
+                redfish_utils.get_manager(node, system)
+
+                # Test NetworkAdapters resource
+                chassis = redfish_utils.get_chassis(node, system)
+                chassis.network_adapters.get_members()
+
+                # All resources successful
+                consecutive_successes += 1
+                LOG.debug('Resource validation success %(count)d/%(required)d '
+                          'for node %(node)s',
+                          {'count': consecutive_successes,
+                           'required': required_successes,
+                           'node': node.uuid})
+
+                if consecutive_successes >= required_successes:
+                    LOG.info('All tested Redfish resources stable and '
+                             ' available for node %(node)s',
+                             {'node': node.uuid})
+                    return
+
+            except (exception.RedfishError,
+                    exception.RedfishConnectionError,
+                    sushy.exceptions.BadRequestError) as e:
+                # Resource not available yet, reset counter
+                if consecutive_successes > 0:
+                    LOG.debug('Resource validation interrupted for node '
+                              '%(node)s, resetting success counter '
+                              '(error: %(error)s)',
+                              {'node': node.uuid, 'error': e})
+                consecutive_successes = 0
+                last_exc = e
+
+            # Wait before next validation attempt
+            time.sleep(validation_interval)
+        # Timeout reached without achieving stability
+        error_msg = _('BMC resources failed to stabilize within '
+                      '%(timeout)s seconds for node %(node)s') % {
+            'timeout': timeout, 'node': node.uuid}
+        if last_exc:
+            error_msg += _(', last error: %(error)s') % {'error': last_exc}
+        LOG.error(error_msg)
+        raise exception.RedfishError(error=error_msg)
+
     def _continue_updates(self, task, update_service, settings):
         """Continues processing the firmware updates
 
         Continues to process the firmware updates on the node.
+        First monitors the current task completion, then validates resource
+        stability before proceeding to next update or completion.
 
         Note that the caller must have an exclusive lock on the node.
 
@@ -312,6 +405,7 @@ class RedfishFirmware(base.FirmwareInterface):
         """
         node = task.node
         fw_upd = settings[0]
+
         wait_interval = fw_upd.get('wait')
         if wait_interval:
             time_now = str(timeutils.utcnow().isoformat())
@@ -450,6 +544,14 @@ class RedfishFirmware(base.FirmwareInterface):
         try:
             task_monitor = redfish_utils.get_task_monitor(
                 node, current_update['task_monitor'])
+        except exception.RedfishConnectionError as e:
+            # If the BMC firmware is being updated, the BMC will be
+            # unavailable for some amount of time.
+            LOG.warning('Unable to communicate with task monitor service '
+                        'on node %(node)s. Will try again on the next poll. '
+                        'Error: %(error)s',
+                        {'node': node.uuid, 'error': e})
+            return
         except exception.RedfishError:
             # The BMC deleted the Task before we could query it
             LOG.warning('Firmware update completed for node %(node)s, '
@@ -478,12 +580,15 @@ class RedfishFirmware(base.FirmwareInterface):
             if (sushy_task.task_state == sushy.TASK_STATE_COMPLETED
                     and sushy_task.task_status in
                     [sushy.HEALTH_OK, sushy.HEALTH_WARNING]):
-                LOG.info('Firmware update succeeded for node %(node)s, '
-                         'firmware %(firmware_image)s: %(messages)s',
+                LOG.info('Firmware update task completed for node %(node)s, '
+                         'firmware %(firmware_image)s: %(messages)s. '
+                         'Starting BMC response validation.',
                          {'node': node.uuid,
                           'firmware_image': current_update['url'],
                           'messages': ", ".join(messages)})
 
+                # Validate BMC resources are consistently available
+                self._validate_resources_stability(node)
                 self._continue_updates(task, update_service, settings)
             else:
                 error_msg = (_('Firmware update failed for node %(node)s, '

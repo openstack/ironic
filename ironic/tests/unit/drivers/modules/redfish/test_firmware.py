@@ -692,11 +692,13 @@ class RedfishFirmwareTestCase(db_base.DbTestCase):
         servicing_error_handler_mock.assert_called_once()
         interface._continue_updates.assert_not_called()
 
+    @mock.patch.object(redfish_fw.RedfishFirmware,
+                       '_validate_resources_stability', autospec=True)
     @mock.patch.object(redfish_fw, 'LOG', autospec=True)
     @mock.patch.object(redfish_utils, 'get_update_service', autospec=True)
     @mock.patch.object(redfish_utils, 'get_task_monitor', autospec=True)
     def test__check_node_firmware_update_done(self, tm_mock, get_us_mock,
-                                              log_mock):
+                                              log_mock, validate_mock):
         task_mock = mock.Mock()
         task_mock.task_state = sushy.TASK_STATE_COMPLETED
         task_mock.task_status = sushy.HEALTH_OK
@@ -712,13 +714,15 @@ class RedfishFirmwareTestCase(db_base.DbTestCase):
         task, interface = self._test__check_node_redfish_firmware_update()
         task.upgrade_lock.assert_called_once_with()
         info_calls = [
-            mock.call('Firmware update succeeded for node %(node)s, '
-                      'firmware %(firmware_image)s: %(messages)s',
+            mock.call('Firmware update task completed for node %(node)s, '
+                      'firmware %(firmware_image)s: %(messages)s. '
+                      'Starting BMC response validation.',
                       {'node': self.node.uuid,
                        'firmware_image': 'https://bmc/v1.0.1',
                        'messages': 'Firmware update done'})]
 
         log_mock.info.assert_has_calls(info_calls)
+        validate_mock.assert_called_once()
 
         interface._continue_updates.assert_called_once_with(
             task, get_us_mock.return_value,
@@ -1016,3 +1020,234 @@ class RedfishFirmwareTestCase(db_base.DbTestCase):
         sleep_mock.assert_called_once_with(
             self.node.driver_info.get('firmware_update_unresponsive_bmc_wait')
         )
+
+    def test__validate_resources_stability_success(self):
+        """Test successful BMC resource validation with consecutive success."""
+        firmware = redfish_fw.RedfishFirmware()
+
+        with task_manager.acquire(self.context, self.node.uuid,
+                                  shared=True) as task:
+            with mock.patch.object(redfish_utils, 'get_system',
+                                   autospec=True) as system_mock, \
+                 mock.patch.object(redfish_utils, 'get_manager',
+                                   autospec=True) as manager_mock, \
+                 mock.patch.object(redfish_utils, 'get_chassis',
+                                   autospec=True) as chassis_mock, \
+                 mock.patch.object(time, 'time', autospec=True) as time_mock, \
+                 mock.patch.object(time, 'sleep',
+                                   autospec=True) as sleep_mock:
+
+                # Mock successful resource responses
+                system_mock.return_value = mock.Mock()
+                manager_mock.return_value = mock.Mock()
+                net_adapters = chassis_mock.return_value.network_adapters
+                net_adapters.get_members.return_value = []
+
+                # Mock time progression to simulate consecutive successes
+                time_mock.side_effect = [0, 1, 2, 3]  # 3 successful attempts
+
+                # Should complete successfully after 3 consecutive successes
+                firmware._validate_resources_stability(task.node)
+
+                # Verify all resources were checked 3 times (required success)
+                self.assertEqual(system_mock.call_count, 3)
+                self.assertEqual(manager_mock.call_count, 3)
+                self.assertEqual(chassis_mock.call_count, 3)
+
+                # Verify sleep was called between validation attempts
+                expected_calls = [mock.call(
+                    CONF.redfish.firmware_update_validation_interval)] * 2
+                sleep_mock.assert_has_calls(expected_calls)
+
+    def test__validate_resources_stability_timeout(self):
+        """Test BMC resource validation timeout when not achieved."""
+        firmware = redfish_fw.RedfishFirmware()
+
+        with task_manager.acquire(self.context, self.node.uuid,
+                                  shared=True) as task:
+            with mock.patch.object(redfish_utils, 'get_system',
+                                   autospec=True) as system_mock, \
+                 mock.patch.object(redfish_utils, 'get_manager',
+                                   autospec=True), \
+                 mock.patch.object(time, 'time', autospec=True) as time_mock, \
+                 mock.patch.object(time, 'sleep', autospec=True):
+
+                # Mock system always failing
+                system_mock.side_effect = exception.RedfishConnectionError(
+                    'timeout')
+
+                # Mock time progression to exceed timeout
+                time_mock.side_effect = [0, 350]  # Exceeds 300 second timeout
+
+                # Should raise RedfishError due to timeout
+                self.assertRaises(exception.RedfishError,
+                                  firmware._validate_resources_stability,
+                                  task.node)
+
+    def test__validate_resources_stability_intermittent_failures(self):
+        """Test BMC resource validation with intermittent failures."""
+        cfg.CONF.set_override('firmware_update_required_successes', 3,
+                              'redfish')
+        cfg.CONF.set_override('firmware_update_validation_interval', 10,
+                              'redfish')
+
+        firmware = redfish_fw.RedfishFirmware()
+
+        with task_manager.acquire(self.context, self.node.uuid,
+                                  shared=True) as task:
+            with mock.patch.object(redfish_utils, 'get_system',
+                                   autospec=True) as system_mock, \
+                 mock.patch.object(redfish_utils, 'get_manager',
+                                   autospec=True) as manager_mock, \
+                 mock.patch.object(redfish_utils, 'get_chassis',
+                                   autospec=True) as chassis_mock, \
+                 mock.patch.object(time, 'time', autospec=True) as time_mock, \
+                 mock.patch.object(time, 'sleep', autospec=True):
+
+                # Mock intermittent failures: success, success, fail,
+                # success, success, success
+                # When system_mock raises exception, other calls are not made
+                call_count = 0
+
+                def system_side_effect(*args):
+                    nonlocal call_count
+                    call_count += 1
+                    if call_count == 3:  # Third call fails
+                        raise exception.RedfishConnectionError('error')
+                    return mock.Mock()
+
+                system_mock.side_effect = system_side_effect
+                manager_mock.return_value = mock.Mock()
+                net_adapters = chassis_mock.return_value.network_adapters
+                net_adapters.get_members.return_value = []
+
+                # Mock time progression (6 attempts total)
+                time_mock.side_effect = [0, 10, 20, 30, 40, 50, 60]
+
+                # Should eventually succeed after counter reset
+                firmware._validate_resources_stability(task.node)
+
+                # Verify all 6 attempts were made for system
+                self.assertEqual(system_mock.call_count, 6)
+                # Manager and chassis called only 5 times (not on failed)
+                self.assertEqual(manager_mock.call_count, 5)
+                self.assertEqual(chassis_mock.call_count, 5)
+
+    def test__validate_resources_stability_manager_failure(self):
+        """Test BMC resource validation when Manager resource fails."""
+        firmware = redfish_fw.RedfishFirmware()
+
+        with task_manager.acquire(self.context, self.node.uuid,
+                                  shared=True) as task:
+            with mock.patch.object(redfish_utils, 'get_system',
+                                   autospec=True) as system_mock, \
+                 mock.patch.object(redfish_utils, 'get_manager',
+                                   autospec=True) as manager_mock, \
+                 mock.patch.object(time, 'time', autospec=True) as time_mock:
+
+                # Mock system success, manager failure
+                system_mock.return_value = mock.Mock()
+                manager_mock.side_effect = exception.RedfishError(
+                    'manager error')
+
+                # Mock time progression to exceed timeout
+                time_mock.side_effect = [0, 350]
+
+                # Should raise RedfishError due to timeout
+                self.assertRaises(exception.RedfishError,
+                                  firmware._validate_resources_stability,
+                                  task.node)
+
+    def test__validate_resources_stability_network_adapters_failure(self):
+        """Test validation when NetworkAdapters resource fails."""
+        firmware = redfish_fw.RedfishFirmware()
+
+        with task_manager.acquire(self.context, self.node.uuid,
+                                  shared=True) as task:
+            with mock.patch.object(redfish_utils, 'get_system',
+                                   autospec=True) as system_mock, \
+                 mock.patch.object(redfish_utils, 'get_manager',
+                                   autospec=True) as manager_mock, \
+                 mock.patch.object(redfish_utils, 'get_chassis',
+                                   autospec=True) as chassis_mock, \
+                 mock.patch.object(time, 'time', autospec=True) as time_mock:
+
+                # Mock system and manager success, NetworkAdapters failure
+                system_mock.return_value = mock.Mock()
+                manager_mock.return_value = mock.Mock()
+                chassis_mock.side_effect = exception.RedfishError(
+                    'chassis error')
+
+                # Mock time progression to exceed timeout
+                time_mock.side_effect = [0, 350]
+
+                # Should raise RedfishError due to timeout
+                self.assertRaises(exception.RedfishError,
+                                  firmware._validate_resources_stability,
+                                  task.node)
+
+    def test__validate_resources_stability_custom_config(self):
+        """Test BMC resource validation with custom configuration values."""
+        cfg.CONF.set_override('firmware_update_required_successes', 5,
+                              'redfish')
+        cfg.CONF.set_override('firmware_update_validation_interval', 5,
+                              'redfish')
+
+        firmware = redfish_fw.RedfishFirmware()
+
+        with task_manager.acquire(self.context, self.node.uuid,
+                                  shared=True) as task:
+            with mock.patch.object(redfish_utils, 'get_system',
+                                   autospec=True) as system_mock, \
+                 mock.patch.object(redfish_utils, 'get_manager',
+                                   autospec=True) as manager_mock, \
+                 mock.patch.object(redfish_utils, 'get_chassis',
+                                   autospec=True) as chassis_mock, \
+                 mock.patch.object(time, 'time', autospec=True) as time_mock, \
+                 mock.patch.object(time, 'sleep',
+                                   autospec=True) as sleep_mock:
+
+                # Mock successful resource responses
+                system_mock.return_value = mock.Mock()
+                manager_mock.return_value = mock.Mock()
+                net_adapters = chassis_mock.return_value.network_adapters
+                net_adapters.get_members.return_value = []
+
+                # Mock time progression (5 successful attempts)
+                time_mock.side_effect = [0, 5, 10, 15, 20, 25]
+
+                # Should complete successfully after 5 consecutive successes
+                firmware._validate_resources_stability(task.node)
+
+                # Verify all resources checked 5 times (custom required)
+                self.assertEqual(system_mock.call_count, 5)
+                self.assertEqual(manager_mock.call_count, 5)
+                self.assertEqual(chassis_mock.call_count, 5)
+
+                # Verify sleep was called with custom interval
+                expected_calls = [mock.call(5)] * 4  # 4 sleeps between 5
+                sleep_mock.assert_has_calls(expected_calls)
+
+    def test__validate_resources_stability_badrequest_error(self):
+        """Test BMC resource validation handles BadRequestError correctly."""
+        firmware = redfish_fw.RedfishFirmware()
+
+        with task_manager.acquire(self.context, self.node.uuid,
+                                  shared=True) as task:
+            with mock.patch.object(redfish_utils, 'get_system',
+                                   autospec=True) as system_mock, \
+                 mock.patch.object(time, 'time', autospec=True) as time_mock:
+
+                # Mock BadRequestError from sushy with proper arguments
+                mock_response = mock.Mock()
+                mock_response.status_code = 400
+                system_mock.side_effect = sushy.exceptions.BadRequestError(
+                    'http://test', mock_response, mock_response)
+
+                # Mock time progression to exceed timeout
+                time_mock.side_effect = [0, 350]
+
+                # Should raise RedfishError due to timeout
+                self.assertRaises(exception.RedfishError,
+                                  firmware._validate_resources_stability,
+                                  task.node)

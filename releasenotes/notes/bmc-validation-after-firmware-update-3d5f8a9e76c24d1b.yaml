@@ -1,0 +1,24 @@
+---
+fixes:
+  - |
+    Reduces likelihood of intermittent firmware upgrade failures by adding
+    comprehensive BMC state validation after firmware upgrades for the
+    Redfish driver. After a firmware update task completes successfully, Ironic
+    now validates that BMC resources (System, Manager, and NetworkAdapters) are
+    consistently available before proceeding with subsequent operations.
+
+    This change improves firmware update reliability by requiring a
+    configurable number of consecutive successful responses from the BMC
+    resources. The validation process helps ensure the BMC has fully stabilized
+    after firmware updates before marking the operation as complete.
+
+    New configuration options in the ``[redfish]`` section:
+
+    * ``firmware_update_required_successes`` - Number of consecutive successful
+      responses required to consider BMC validation successful (default: 3),
+      0 disables validation
+    * ``firmware_update_validation_interval`` - Time in seconds to wait between
+      validation attempts (default: 30)
+    * ``firmware_update_resource_validation_timeout`` - Maximum time in seconds
+      to wait for BMC resources to stabilize (default: 300), setting it to 0
+      disables validation.

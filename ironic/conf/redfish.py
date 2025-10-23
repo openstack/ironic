@@ -95,6 +95,27 @@ opts = [
                default=300,
                help=_('Number of seconds to wait before proceeding with the '
                       'reboot to finish the BMC firmware update step')),
+    cfg.IntOpt('firmware_update_required_successes',
+               min=0,
+               default=3,
+               help=_('Number of successful responses required to '
+                      'consider post-upgrade BMC validation a success. '
+                      'Set to 0 to disable post-upgrade validation '
+                      'entirely.')),
+    cfg.IntOpt('firmware_update_validation_interval',
+               min=0,
+               default=30,
+               help=_('Timeout (in seconds) to wait between validation '
+                      'attempts. Set to 0 for rapid succession retries '
+                      'with no delay.')),
+    cfg.IntOpt('firmware_update_resource_validation_timeout',
+               min=0,
+               default=300,
+               help=_('Timeout (in seconds) to wait for BMC resources '
+                      '(System, Manager, NetworkAdapters) to become stable '
+                      'and consistently available after firmware update. '
+                      'Set to 0 to disable post-upgrade validation '
+                      'entirely.')),
     cfg.StrOpt('firmware_source',
                choices=[('http', _('If firmware source URL is also HTTP, then '
                                    'serve from original location, otherwise '
