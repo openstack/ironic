@@ -678,6 +678,13 @@ Request
 The BODY of the PATCH request must be a JSON PATCH document, adhering to
 `RFC 6902 <https://tools.ietf.org/html/rfc6902>`_.
 
+.. note::
+    The ``instance_uuid`` field is an exception to the RFC 6902 behavior.
+    The "add" operator cannot replace an existing ``instance_uuid`` value.
+    Attempting to do so will result in a 409 Conflict error (NodeAssociated
+    exception). This protection prevents race conditions when multiple
+    Nova compute agents try to associate the same node.
+
 .. rest_parameters:: parameters.yaml
 
    - node_ident: node_ident
