@@ -1490,6 +1490,47 @@ class MigrationCheckersMixin(object):
             )
             connection.execute(del_stmt)
 
+    def _pre_upgrade_9c0446cb6bc3(self, engine):
+        # Create a node to which bios_settings can be added.
+        data = {'uuid': uuidutils.generate_uuid()}
+        nodes = db_utils.get_table(engine, 'nodes')
+        with engine.begin() as connection:
+            insert_node = nodes.insert().values(data)
+            connection.execute(insert_node)
+            node_stmt = sqlalchemy.select(
+                models.Node.id
+            ).where(
+                models.Node.uuid == data['uuid']
+            )
+            node = connection.execute(node_stmt).first()
+            # WARNING: Always copy, never directly return a db object or
+            # piece of a db object. It is a sqlalchemy thing.
+            data['id'] = int(node.id)
+        return data
+
+    def _check_9c0446cb6bc3(self, engine, data):
+        bios_settings = db_utils.get_table(engine, 'bios_settings')
+        node_id = data['id']
+        name = "CbsCmnBoostFmax"
+        # Test max 32-bit unsigned value
+        upper_bound = 4294967295
+        lower_bound = 4294967295
+
+        setting_data = {'node_id': node_id, 'name': name,
+                        'upper_bound': upper_bound, 'lower_bound': lower_bound}
+        with engine.begin() as connection:
+            insert_setting = bios_settings.insert().values(setting_data)
+            connection.execute(insert_setting)
+            bios_setting_stmt = sqlalchemy.select(
+                models.BIOSSetting.upper_bound,
+                models.BIOSSetting.lower_bound
+            ).where(
+                models.BIOSSetting.node_id == node_id
+            )
+            bios_setting = connection.execute(bios_setting_stmt).first()
+            self.assertEqual(upper_bound, bios_setting.upper_bound)
+            self.assertEqual(lower_bound, bios_setting.lower_bound)
+
     def test_upgrade_and_version(self):
         with patch_with_engine(self.engine):
             self.migration_api.upgrade('head')

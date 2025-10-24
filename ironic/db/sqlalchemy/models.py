@@ -27,7 +27,7 @@ from oslo_db.sqlalchemy import models
 from oslo_db.sqlalchemy import types as db_types
 from sqlalchemy.ext.associationproxy import association_proxy
 from sqlalchemy import Boolean, Column, DateTime, false, Index
-from sqlalchemy import ForeignKey, Integer
+from sqlalchemy import BigInteger, ForeignKey, Integer
 from sqlalchemy import schema, String, Text
 from sqlalchemy import orm
 from sqlalchemy.orm import declarative_base
@@ -402,13 +402,13 @@ class BIOSSetting(Base):
     value = Column(Text, nullable=True)
     attribute_type = Column(String(255), nullable=True)
     allowable_values = Column(db_types.JsonEncodedList, nullable=True)
-    lower_bound = Column(Integer, nullable=True)
+    lower_bound = Column(BigInteger, nullable=True)
     max_length = Column(Integer, nullable=True)
     min_length = Column(Integer, nullable=True)
     read_only = Column(Boolean, nullable=True)
     reset_required = Column(Boolean, nullable=True)
     unique = Column(Boolean, nullable=True)
-    upper_bound = Column(Integer, nullable=True)
+    upper_bound = Column(BigInteger, nullable=True)
 
 
 class Allocation(Base):

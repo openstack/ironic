@@ -1,0 +1,9 @@
+---
+upgrade:
+  - Change the ``upper_bound`` and ``lower_bound`` columns in the
+    ``bios_settings`` table from Integer to BigInteger to store bigger values.
+fixes:
+  - The ``upper_bound`` and ``lower_bound`` BIOS setting attributes can now be
+    larger integers (up to 32-bit unsigned values as per Redfish standard).
+    Please see `bug 2095486 <https://bugs.launchpad.net/ironic/+bug/2095486>`_
+    for more information.
