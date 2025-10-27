@@ -1458,3 +1458,49 @@ For example, with iRMC drivers...
    to the risk of user lockout if the account is not for the specific use of
    Ironic. Some vendor drivers have added this functionality, however such
    actions should be made with caution.
+
+I'm attempting to use Redfish, and something weird is happening!
+================================================================
+
+Redfish is a standard which is a union of an HTTPS based RESTful API
+interaction, coupled with individual resource data models.
+Occasionally vendors take a very different reading of the standard,
+which is to be expected, but at the same time the vendors sometimes also
+go directly against the standard, such as moving resources.
+
+Ultimately Ironic tries to address as many of these issues that we
+are made aware of; however often we will need additional structural
+information to remedy these sorts of issues.
+
+Often these sorts of issues might manifest as Virtual Media not working,
+or boot mode settings behaving oddly, or Ironic believe the UEFI state is
+"None". While these are all past examples the Ironic has since addressed,
+most of them appeared on major vendor BMC firmware updates or major feature
+level updates in the BMC firmware.
+
+The best way to address this is to open a bug in Launchpad and supply as much
+information for the Ironic community to be able to work this issue.
+
+Commands which may provide helpful information for the Ironic community to
+navigate the issue you have encountered.
+
+.. code-block:: console
+
+   $ curl -u <bmc_user>:<bmc_password> -k https://<bmc_address>/redfish/v1/Systems/
+   $ curl -u <bmc_user>:<bmc_password> -k https://<bmc_address>/redfish/v1/Systems/<system>/
+   $ curl -u <bmc_user>:<bmc_password> -k https://<bmc_address>/redfish/v1/Managers/
+   $ curl -u <bmc_user>:<bmc_password> -k https://<bmc_address>/redfish/v1/Managers/<bmc>
+
+.. NOTE::
+   Because of the structurally nested model, the Ironic project may request
+   additional commands to be executed against the BMC, but this will be on
+   a case-by-case basis as we understand the exact issue and what changes
+   may be required in order to navigate this issue.
+
+.. WARNING::
+   Please be careful to redact any usernames, passwords, and addresses which
+   may be sensitive in any data provided to the Ironic community.
+
+Unfortunately, there is no magical quick fix for these sorts of issues, but
+the Ironic community has a track record of attempting to navigate and address
+these issues as they arise.
