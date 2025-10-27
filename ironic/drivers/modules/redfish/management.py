@@ -93,6 +93,7 @@ VENDORS_REQUIRING_FULL_BOOT_REQUEST = [
     "american megatrends international",
     "ami",
     "asrockrack"
+    "redfish_compatible"
 ]
 
 INDICATOR_MAP = {
