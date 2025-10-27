@@ -1,0 +1,8 @@
+---
+other:
+  - |
+    Addition of an additional vendor variable for
+    ``VENDORS_REQUIRING_FULL_BOOT_REQUEST``. This is because there are
+    some recognised vendors, i.e. Lenovo, which use various BMC for
+    their hardware, some of which require a full boot request; in such
+    cases the ``vendor`` can now be changed to ``redfish_compatible``.
