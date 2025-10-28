@@ -1,0 +1,4 @@
+---
+fixes:
+  - |
+    Added upgrade check warning of ilo driver deprecation.

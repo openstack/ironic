@@ -181,6 +181,45 @@ class Checks(upgradecheck.UpgradeCommands):
         else:
             return upgradecheck.Result(upgradecheck.Code.SUCCESS)
 
+    def _check_ilo_driver_usage(self):
+        """Check for nodes using iLO/iLO5 hardware types or interfaces.
+
+        The iLO driver is retired.
+        """
+        dbapi = db_api.get_instance()
+
+        ilo_interface_types = [
+            'bios', 'boot', 'console', 'inspect',
+            'management', 'power', 'raid', 'vendor'
+        ]
+
+        affected_nodes = []
+        for node in dbapi.get_node_list():
+            issues = []
+
+            node_driver = node.driver
+            if node_driver and node_driver.lower() in ['ilo', 'ilo5']:
+                issues.append(f"hardware type '{node_driver}'")
+
+            for iface_type in ilo_interface_types:
+                value = getattr(node, f"{iface_type}_interface")
+                if value and 'ilo' in value.lower():
+                    issues.append(f"{iface_type} interface '{value}'")
+
+            if issues:
+                affected_nodes.append(
+                    f"Node {node.uuid} uses {', '.join(issues)}")
+
+        if not affected_nodes:
+            return upgradecheck.Result(upgradecheck.Code.SUCCESS)
+
+        msg = (
+            "The following nodes are using iLO/iLO5 hardware types and/or "
+            "interfaces which have been retired as of the 2026.1 release."
+            + ". ".join(affected_nodes)
+        )
+        return upgradecheck.Result(upgradecheck.Code.WARNING, details=msg)
+
     # A tuple of check tuples of (<name of check>, <check function>).
     # The name of the check will be used in the output of this command.
     # The check function takes no arguments and returns an
@@ -199,6 +238,8 @@ class Checks(upgradecheck.UpgradeCommands):
          (common_checks.check_policy_json, {'conf': CONF})),
         (_('Hardware Types and Interfaces Check'),
          _check_hardware_types_interfaces),
+        (_('iLO/iLO5 Driver Usage Check'),
+         _check_ilo_driver_usage),
     )
 
 
