@@ -12,6 +12,3 @@ python-scciclient>=0.16.0,<0.17.0
 
 # Ansible-deploy interface
 ansible>=2.7
-
-# Dell EMC iDRAC sushy OEM extension
-sushy-oem-idrac>=5.0.0,<6.0.0

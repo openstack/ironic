@@ -174,8 +174,8 @@ class DracRedfishManagement(redfish_management.RedfishManagement):
         Exports the configuration of the server against which the step is run
         and stores it in specific format in indicated location.
 
-        Uses Dell's Server Configuration Profile (SCP) from `sushy-oem-idrac`
-        library to get ALL configuration for cloning.
+        Uses Dell's Server Configuration Profile (SCP) from `sushy` oem
+        extension to get ALL configuration for cloning.
 
         :param task: A task from TaskManager.
         :param export_configuration_location: URL of location to save the

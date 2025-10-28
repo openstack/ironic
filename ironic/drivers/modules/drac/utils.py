@@ -67,8 +67,8 @@ def execute_oem_manager_method(
         try:
             manager_oem = manager.get_oem_extension('Dell')
         except sushy.exceptions.OEMExtensionNotFoundError as e:
-            error_msg = (_("Search for Sushy OEM extension Python package "
-                           "'sushy-oem-idrac' failed for node %(node)s. "
+            error_msg = (_("Search for Sushy OEM extension in "
+                           "'sushy' package failed for node %(node)s. "
                            "Ensure it is installed. Error: %(error)s") %
                          {'node': task.node.uuid, 'error': e})
             LOG.error(error_msg)

@@ -1,0 +1,5 @@
+---
+upgrade:
+  - |
+    The sushy-oem-idrac extension is not used anymore and it's
+    been removed from the requirements.

@@ -88,7 +88,7 @@ def _retry_till_realtime_ready(task):
 def _is_realtime_ready(task):
     """Gets is real time ready status
 
-    Uses sushy-oem-idrac extension.
+    Uses sushy oem extension.
 
     :param task: TaskManager object containing the node.
     :returns: True, if real time operations are ready, otherwise False.
@@ -272,10 +272,10 @@ class DracRedfishRAID(redfish_raid.RedfishRAID):
         except AttributeError as ae:
             # For backported version where libraries could be too old
             LOG.warning('Failed to find method to convert drives to RAID '
-                        'mode. Possibly because `sushy-oem-idrac` is too old. '
-                        'Without newer `sushy-oem-idrac` RAID configuration '
-                        'will fail if selected physical disks are in non-RAID '
-                        'mode. To avoid that update `sushy-oem-idrac`. '
+                        'mode. Possibly because `sushy` oem extension is too '
+                        'old. Without newer `sushy` oem extension RAID '
+                        'configuration will fail if selected physical disks '
+                        'are in non-RAID mode. To avoid that update `sushy`. '
                         'Error: %(err)s', {'err': ae})
             return False
 
@@ -346,10 +346,10 @@ class DracRedfishRAID(redfish_raid.RedfishRAID):
         except AttributeError as ae:
             # For backported version where libraries could be too old
             LOG.warning('Failed to find method to clear foreign config. '
-                        'Possibly because `sushy-oem-idrac` is too old. '
-                        'Without newer `sushy-oem-idrac` no foreign '
+                        'Possibly because `sushy oem extension` is too old. '
+                        'Without newer `sushy` oem extension no foreign '
                         'configuration will be cleared if there is any. '
-                        'To avoid that update `sushy-oem-idrac`. '
+                        'To avoid that update `sushy`. '
                         'Error: %(err)s', {'err': ae})
             return False
 
@@ -421,7 +421,7 @@ class DracRedfishRAID(redfish_raid.RedfishRAID):
                     LOG.warning('Failed to find extension to convert '
                                 'controller to RAID mode. '
                                 + warning_msg_templ + '. Error: %(err)s',
-                                {'err': ee, 'pkg': 'sushy-oem-idrac'})
+                                {'err': ee, 'pkg': 'sushy'})
                     return None
                 task_mon = oem_controller.convert_to_raid()
                 if task_mon:
