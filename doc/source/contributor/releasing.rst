@@ -8,8 +8,6 @@ that process here.
 A full list of projects that Ironic manages is available in the `governance
 site`_.
 
-.. _`governance site`: https://governance.openstack.org/reference/projects/ironic.html
-
 Who is responsible for releases?
 ================================
 
@@ -20,15 +18,11 @@ documented in the `cross-project liaison wiki`_.
 Anyone may submit a release request per the process below, but the PTL or
 liaison must +1 the request for it to be processed.
 
-.. _`cross-project liaison wiki`: https://wiki.openstack.org/wiki/CrossProjectLiaisons#Release_management
-
 Release process
 ===============
 
 Releases are managed by the OpenStack release team. The release process is
 documented in the `Project Team Guide`_.
-
-.. _`Project Team Guide`: https://docs.openstack.org/project-team-guide/release-management.html#how-to-release
 
 What do we have to release?
 ===========================
@@ -50,36 +44,34 @@ Non-client libraries
 
 The following deliverables are non-client libraries:
 
-* ironic-lib
-* sushy
+* `sushy`_
 
 Client libraries
 ----------------
 
 The following deliverables are client libraries:
 
-* python-ironicclient
-* python-ironic-inspector-client
+* `python-ironicclient`_
 
 Normal release
 --------------
 
 The following deliverables are Neutron plugins:
 
-* networking-baremetal
-* networking-generic-switch
+* `networking-baremetal`_
+* `networking-generic-switch`_
 
 The following deliverables are Horizon plugins:
 
-* ironic-ui
+* `ironic-ui`_
 
 The following deliverables are Tempest plugins:
 
-* ironic-tempest-plugin
+* `ironic-tempest-plugin`_
 
 The following deliverables are tools:
 
-* ironic-python-agent-builder
+* `ironic-python-agent-builder`_
 
   .. NOTE:: if ironic-python-agent-builder is branched after
             ironic-python-agent, we need to make sure all artifacts
@@ -87,11 +79,10 @@ The following deliverables are tools:
 
 The following deliverables are services, or treated as such:
 
-* bifrost
-* ironic
-* ironic-inspector
-* ironic-prometheus-exporter
-* ironic-python-agent
+* `bifrost`_
+* `ironic`_
+* `ironic-prometheus-exporter`_
+* `ironic-python-agent`_
 
 Manual release
 --------------
@@ -106,17 +97,103 @@ Independent
 The following deliverables are released `independently
 <https://releases.openstack.org/reference/release_models.html#independent>`__:
 
-* sushy-tools
-* tenks
-* virtualbmc
+* `sushy-tools`_
+* `virtualbmc`_
 
 Not released
 ------------
 
 The following deliverables do not need to be released:
 
-* ironic-inspector-specs
-* ironic-specs
+* `ironic-specs`_
+
+OpenStack Release Schedule
+==========================
+
+The Ironic project follows the OpenStack coordinated release schedule. Each
+OpenStack release cycle spans approximately 6 months (26 weeks) and follows
+a structured timeline with specific milestones and deadlines.
+
+Based on the standard OpenStack release schedule, a typical release cycle
+includes the following key phases:
+
+Release Timeline Overview
+-------------------------
+
+**Development Phase (Weeks R-25 to R-12)**
+  * **R-25 to R-21**: Early development, feature planning
+  * **R-20 (Week 6)**: First milestone
+  * **R-17**: Cycle-trailing release deadline for previous cycle
+  * **R-12 (Week 14)**: Second milestone and membership freeze
+
+**Feature Development Phase (Weeks R-11 to R-5)**
+  * **R-11 to R-8**: Active feature development
+  * **R-7**: Extra Active Contributor (AC) freeze
+  * **R-6**: Final release for non-client libraries (`sushy`_)
+  * **R-5 (Week 22)**: Third milestone, feature freeze,
+    final release for client libraries (`python-ironicclient`_),
+    plugins (`networking-baremetal`_, `networking-generic-switch`_, `ironic-ui`_, `ironic-tempest-plugin`_),
+    and tools (`ironic-python-agent-builder`_), soft string freeze, requirements freeze
+
+**Stabilization Phase (Weeks R-4 to R-1)**
+  * **R-4**: Cycle highlights deadline
+  * **R-3**: RC1 target week for services (`bifrost`_, `ironic`_, `ironic-prometheus-exporter`_, `ironic-python-agent`_), hard string freeze
+  * **R-2**: Bug fixing and stabilization
+  * **R-1**: Final RCs and intermediary releases
+
+**Release Week (R+0)**
+  * **R+0**: Coordinated release for services (`bifrost`_, `ironic`_, `ironic-prometheus-exporter`_, `ironic-python-agent`_) (typically on a Wednesday)
+
+Key Deadlines for Ironic Projects
+----------------------------------
+
+**Milestone Releases**
+  * Projects following the cycle-with-intermediary model should aim to release
+    at each milestone
+  * Milestone participation is required for projects to be considered part of
+    the coordinated release
+
+**Library Releases**
+  * Non-client libraries (`sushy`_): Final release at R-6
+  * Client libraries (`python-ironicclient`_): Final release at R-5
+
+**Plugin Releases**
+  * Neutron plugins (`networking-baremetal`_, `networking-generic-switch`_): Final release at R-5
+  * Horizon plugins (`ironic-ui`_): Final release at R-5
+  * Tempest plugins (`ironic-tempest-plugin`_): Final release at R-5
+
+**Service Releases**
+  * Services (`bifrost`_, `ironic`_, `ironic-prometheus-exporter`_, `ironic-python-agent`_):
+    Release candidates at R-3, final release at R+0
+  * Tools (`ironic-python-agent-builder`_): Final release at R-5
+
+**Feature Freeze (R-5)**
+  * No new features accepted after the third milestone
+  * Focus shifts to bug fixes and stabilization
+  * Release notes should be finalized
+
+**String Freeze**
+  * Soft string freeze at R-5: No new user-facing strings
+  * Hard string freeze at R-3: No string changes to allow translation work
+
+**Requirements Freeze (R-5)**
+  * Only critical requirements changes allowed after feature freeze
+  * Helps downstream packagers prepare for the release
+
+Planning Your Release
+---------------------
+
+When planning Ironic releases within an OpenStack cycle:
+
+1. **Early Cycle (R-25 to R-12)**: Plan major features, coordinate with
+   dependencies
+2. **Mid Cycle (R-11 to R-6)**: Complete feature development, release
+   libraries
+3. **Late Cycle (R-5 to R+0)**: Focus on stabilization, bug fixes, and
+   release preparation
+
+For the most current release schedule, always refer to the official OpenStack
+releases website at https://releases.openstack.org/.
 
 Bugfix branches
 ===============
@@ -215,7 +292,7 @@ Things to do before releasing
   Combine release notes if necessary (for example, a release note for a
   feature and another release note to add to that feature may be combined).
 
-* For Ironic releases only, not Ironic-inspector releases: if any new API
+* For Ironic releases only: if any new API
   microversions have been added since the last release, update the REST API
   version history (``doc/source/contributor/webapi-version-history.rst``) to
   indicate that they were part of the new release.
@@ -446,3 +523,21 @@ For all releases, whether or not it results in a stable branch:
   implemented.
 
 * remove any -2s on patches that were blocked until after the release.
+
+.. _`bifrost`: https://opendev.org/openstack/bifrost
+.. _`cross-project liaison wiki`: https://wiki.openstack.org/wiki/CrossProjectLiaisons#Release_management
+.. _`governance site`: https://governance.openstack.org/reference/projects/ironic.html
+.. _`ironic`: https://opendev.org/openstack/ironic
+.. _`ironic-prometheus-exporter`: https://opendev.org/openstack/ironic-prometheus-exporter
+.. _`ironic-python-agent`: https://opendev.org/openstack/ironic-python-agent
+.. _`ironic-python-agent-builder`: https://opendev.org/openstack/ironic-python-agent-builder
+.. _`ironic-specs`: https://opendev.org/openstack/ironic-specs
+.. _`ironic-tempest-plugin`: https://opendev.org/openstack/ironic-tempest-plugin
+.. _`ironic-ui`: https://opendev.org/openstack/ironic-ui
+.. _`networking-baremetal`: https://opendev.org/openstack/networking-baremetal
+.. _`networking-generic-switch`: https://opendev.org/openstack/networking-generic-switch
+.. _`Project Team Guide`: https://docs.openstack.org/project-team-guide/release-management.html#how-to-release
+.. _`python-ironicclient`: https://opendev.org/openstack/python-ironicclient
+.. _`sushy`: https://opendev.org/openstack/sushy
+.. _`sushy-tools`: https://opendev.org/openstack/sushy-tools
+.. _`virtualbmc`: https://opendev.org/openstack/virtualbmc
