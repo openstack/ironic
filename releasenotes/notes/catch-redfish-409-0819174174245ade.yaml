@@ -1,0 +1,11 @@
+---
+fixes:
+  - |
+    Fixes a race condition where the Redfish power interface could fail with
+    HTTP 400 (BadRequest) or HTTP 409 (Conflict) errors during power
+    operations. These errors are now treated as success when the node is
+    already in the target power state (either on or off), preventing
+    deployment failures when power state changes complete after Ironic's
+    state verification times out.
+    Also refresh system state to get current power state from BMC
+    instead of using potentially stale cached data.

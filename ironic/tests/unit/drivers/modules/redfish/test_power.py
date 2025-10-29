@@ -176,6 +176,193 @@ class RedfishPowerTestCase(db_base.DbTestCase):
                 sushy.RESET_ON)
             mock_get_system.assert_called_once_with(task.node)
 
+    @mock.patch.object(redfish_utils, 'get_system', autospec=True)
+    def test_set_power_state_race_condition_handling(
+            self, mock_get_system):
+
+        fake_system = mock_get_system.return_value
+        mock_response = mock.Mock(status_code=400)
+        mock_response.json.return_value = {
+            'error': {
+                'message': 'Host is powered OFF. Power On host and try again',
+            }
+        }
+
+        fake_system.reset_system.side_effect = (
+            sushy.exceptions.BadRequestError(
+                method='POST', url='test', response=mock_response))
+
+        success_scenarios = [
+            (
+                states.SOFT_POWER_OFF,
+                states.POWER_OFF,
+                sushy.RESET_GRACEFUL_SHUTDOWN,
+            ),
+            (
+                states.SOFT_REBOOT,
+                states.POWER_ON,
+                sushy.RESET_GRACEFUL_RESTART
+            ),
+            (states.POWER_OFF, states.POWER_OFF, sushy.RESET_FORCE_OFF),
+            (states.POWER_ON, states.POWER_ON, sushy.RESET_ON),
+            (states.REBOOT, states.POWER_ON, sushy.RESET_FORCE_RESTART),
+            (states.POWER_OFF, None, sushy.RESET_FORCE_OFF),
+        ]
+
+        failure_scenarios = [
+            (states.POWER_OFF, states.POWER_ON),
+            (states.POWER_ON, states.POWER_OFF),
+        ]
+
+        for target_state, final_state, expected_reset in success_scenarios:
+            fake_system.power_state = None
+            if final_state == states.POWER_OFF:
+                fake_system.power_state = sushy.SYSTEM_POWER_STATE_OFF
+            elif final_state == states.POWER_ON:
+                fake_system.power_state = sushy.SYSTEM_POWER_STATE_ON
+
+            with task_manager.acquire(self.context, self.node.uuid,
+                                      shared=False) as task:
+                task.driver.power.set_power_state(task, target_state)
+
+                fake_system.reset_system.assert_called_with(expected_reset)
+
+            fake_system.reset_mock()
+
+        for target_state, actual_state in failure_scenarios:
+            fake_system.power_state = None
+            if actual_state == states.POWER_OFF:
+                fake_system.power_state = sushy.SYSTEM_POWER_STATE_OFF
+            elif actual_state == states.POWER_ON:
+                fake_system.power_state = sushy.SYSTEM_POWER_STATE_ON
+
+            with task_manager.acquire(self.context, self.node.uuid,
+                                      shared=False) as task:
+                self.assertRaises(
+                    sushy.exceptions.BadRequestError,
+                    task.driver.power.set_power_state, task, target_state)
+
+            fake_system.reset_mock()
+
+    @mock.patch.object(redfish_utils, 'get_system', autospec=True)
+    def test_set_power_state_conflict_error_handling(
+            self, mock_get_system):
+        """Test HTTP 409 Conflict error handling when node already in state."""
+        fake_system = mock_get_system.return_value
+
+        # Simulate HTTP 409 Conflict error with "already powered off" message
+        mock_response_off = mock.Mock(status_code=409)
+        mock_response_off.json.return_value = {
+            'error': {
+                'message': 'Server is already powered OFF.',
+            }
+        }
+        error_409_off = sushy.exceptions.HTTPError(
+            method='POST', url='test', response=mock_response_off)
+
+        # Simulate HTTP 409 Conflict error with "already powered on" message
+        mock_response_on = mock.Mock(status_code=409)
+        mock_response_on.json.return_value = {
+            'error': {
+                'message': 'Server is already powered ON.',
+            }
+        }
+        error_409_on = sushy.exceptions.HTTPError(
+            method='POST', url='test', response=mock_response_on)
+
+        # Test scenarios where node is already in target state (should succeed)
+        success_scenarios = [
+            (
+                states.POWER_OFF,
+                sushy.SYSTEM_POWER_STATE_OFF,
+                error_409_off,
+                sushy.RESET_FORCE_OFF,
+            ),
+            (
+                states.SOFT_POWER_OFF,
+                sushy.SYSTEM_POWER_STATE_OFF,
+                error_409_off,
+                sushy.RESET_GRACEFUL_SHUTDOWN,
+            ),
+            (
+                states.POWER_ON,
+                sushy.SYSTEM_POWER_STATE_ON,
+                error_409_on,
+                sushy.RESET_ON,
+            ),
+        ]
+
+        for (target_state, power_state, error,
+             expected_reset) in success_scenarios:
+            fake_system.reset_system.side_effect = error
+            fake_system.power_state = power_state
+
+            with task_manager.acquire(self.context, self.node.uuid,
+                                      shared=False) as task:
+                # Should succeed without raising exception
+                task.driver.power.set_power_state(task, target_state)
+                fake_system.reset_system.assert_called_with(expected_reset)
+                # Verify that refresh() was called to get current state
+                fake_system.refresh.assert_called_once()
+
+            fake_system.reset_mock()
+
+        # Test scenarios where node is NOT in target state (should fail)
+        failure_scenarios = [
+            (states.POWER_OFF, sushy.SYSTEM_POWER_STATE_ON, error_409_off),
+            (states.POWER_ON, sushy.SYSTEM_POWER_STATE_OFF, error_409_on),
+        ]
+
+        for target_state, power_state, error in failure_scenarios:
+            fake_system.reset_system.side_effect = error
+            fake_system.power_state = power_state
+
+            with task_manager.acquire(self.context, self.node.uuid,
+                                      shared=False) as task:
+                # Should raise HTTPError since state doesn't match
+                self.assertRaises(
+                    sushy.exceptions.HTTPError,
+                    task.driver.power.set_power_state, task, target_state)
+
+            fake_system.reset_mock()
+
+    @mock.patch.object(redfish_power.LOG, 'warning', autospec=True)
+    @mock.patch.object(redfish_utils, 'get_system', autospec=True)
+    def test_set_power_state_conflict_error_refresh_fails(
+            self, mock_get_system, mock_log):
+        """Test HTTP 409 handling when refresh() fails but error msg helps."""
+        fake_system = mock_get_system.return_value
+
+        # Simulate HTTP 409 Conflict error
+        mock_response = mock.Mock(status_code=409)
+        mock_response.json.return_value = {
+            'error': {
+                'message': 'Server is already powered OFF.',
+            }
+        }
+        error_409 = sushy.exceptions.HTTPError(
+            method='POST', url='test', response=mock_response)
+
+        fake_system.reset_system.side_effect = error_409
+        # Make refresh() raise an exception
+        fake_system.refresh.side_effect = sushy.exceptions.ConnectionError(
+            'Connection failed')
+        # Set power_state to None to force fallback to error message
+        fake_system.power_state = None
+
+        with task_manager.acquire(self.context, self.node.uuid,
+                                  shared=False) as task:
+            # Should succeed by falling back to error message parsing
+            task.driver.power.set_power_state(task, states.POWER_OFF)
+            fake_system.reset_system.assert_called_with(
+                sushy.RESET_FORCE_OFF)
+            # Verify that refresh() was attempted
+            fake_system.refresh.assert_called_once()
+            # Verify that warning was logged about refresh failure
+            self.assertTrue(mock_log.called)
+            log_msg = mock_log.call_args[0][0]
+            self.assertIn('Failed to refresh system state', log_msg)
+
     @mock.patch.object(redfish_mgmt.RedfishManagement, 'restore_boot_device',
                        autospec=True)
     @mock.patch.object(redfish_utils, 'get_system', autospec=True)
