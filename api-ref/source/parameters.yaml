@@ -1563,8 +1563,8 @@ pg_ports:
   type: array
 physical_network:
   description: |
-    The name of the physical network to which a port is connected. May be
-    empty.
+    The name of the physical network to which a port or portgroup is
+    connected. May be empty.
   in: body
   required: true
   type: string
@@ -1983,8 +1983,8 @@ req_persistent:
   type: boolean
 req_physical_network:
   description: |
-    The name of the physical network to which a port is connected. May be
-    empty.
+    The name of the physical network to which a port or portgroup is connected.
+    May be empty.
   in: body
   required: false
   type: string

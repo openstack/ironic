@@ -13,6 +13,7 @@
 import datetime
 from unittest import mock
 
+from oslo_utils import uuidutils
 from testtools import matchers
 
 from ironic.common import exception
@@ -170,6 +171,44 @@ class TestPortgroupObject(db_base.DbTestCase, obj_utils.SchemasTestMixIn):
     def test_payload_schemas(self):
         self._check_payload_schemas(objects.portgroup,
                                     objects.Portgroup.fields)
+
+    def test_update_physical_network(self):
+        node = obj_utils.create_test_node(self.context)
+        portgroup = obj_utils.create_test_portgroup(self.context,
+                                                    physical_network='old',
+                                                    node_id=node.id)
+        unaffected_portgroup = obj_utils.create_test_portgroup(
+            self.context, name='unaffected', physical_network='old',
+            uuid=uuidutils.generate_uuid(),
+            address='52:ff:00:cf:2d:01',
+            node_id=node.id)
+
+        ports = []
+        for i in range(0, 5):
+            ports.append(obj_utils.create_test_port(
+                self.context,
+                uuid=uuidutils.generate_uuid(),
+                address=f"52:54:00:cf:2d:0{i}",
+                node_id=node.id,
+                physical_network='old',
+                portgroup_id=portgroup.id))
+
+        unaffected_port = obj_utils.create_test_port(
+            self.context,
+            uuid=uuidutils.generate_uuid(),
+            address="52:54:00:cf:2d:05",
+            node_id=node.id,
+            physical_network='old',
+            portgroup_id=unaffected_portgroup.id)
+
+        portgroup.update_physical_network('new_physnet', self.context)
+        self.assertEqual(portgroup.physical_network, 'new_physnet')
+        for i in range(0, 5):
+            ports[i].refresh()
+            self.assertEqual(ports[i].physical_network, 'new_physnet')
+
+        self.assertEqual(unaffected_portgroup.physical_network, 'old')
+        self.assertEqual(unaffected_port.physical_network, 'old')
 
 
 class TestConvertToVersion(db_base.DbTestCase):

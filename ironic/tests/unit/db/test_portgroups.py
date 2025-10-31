@@ -246,3 +246,32 @@ class DbportgroupTestCase(base.DbTestCase):
         self.assertEqual('active-backup', res.mode)
         res = self.dbapi.get_portgroup_by_name(name)
         self.assertEqual('802.3ad', res.mode)
+
+    def test_create_portgroup_with_physical_network(self):
+        physical_network = 'physnet_alpha'
+        portgroup1 = db_utils.create_test_portgroup(
+            puuid=uuidutils.generate_uuid(),
+            name=uuidutils.generate_uuid(),
+            node_id=self.node.id,
+            address='aa:bb:cc:dd:ee:ff',
+            physical_network=physical_network)
+        portgroup2 = db_utils.create_test_portgroup(
+            puuid=uuidutils.generate_uuid(),
+            name=uuidutils.generate_uuid(),
+            node_id=self.node.id,
+            address='aa:bb:cc:dd:ee:fa',
+            physical_network=physical_network)
+        self.assertEqual(physical_network, portgroup1.physical_network)
+        self.assertEqual(physical_network, portgroup2.physical_network)
+
+        new_physical_network = 'physnet_beta'
+        updated_portgroup = self.dbapi.update_portgroup(
+            portgroup1.id, {'physical_network': new_physical_network})
+
+        self.assertEqual(new_physical_network,
+                         updated_portgroup.physical_network)
+
+        retrieved_portgroup1 = self.dbapi.get_portgroup_by_uuid(
+            portgroup1.uuid)
+        self.assertEqual(new_physical_network,
+                         retrieved_portgroup1.physical_network)

@@ -41,6 +41,7 @@ PORTGROUP_SCHEMA = {
         'mode': {'type': ['string', 'null']},
         'name': {'type': ['string', 'null']},
         'node_uuid': {'type': 'string'},
+        'physical_network': {'type': ['string', 'null'], 'maxLength': 64},
         'properties': {'type': ['object', 'null']},
         'standalone_ports_supported': {'type': ['string', 'boolean', 'null']},
         'uuid': {'type': ['string', 'null']},
@@ -74,8 +75,32 @@ PATCH_ALLOWED_FIELDS = [
     'name',
     'node_uuid',
     'properties',
-    'standalone_ports_supported'
+    'standalone_ports_supported',
+    'physical_network'
 ]
+
+
+def hide_fields_in_newer_versions(portgroup):
+    # if requested version is < 1.26, hide mode and properties
+    if not api_utils.allow_portgroup_mode_properties():
+        portgroup.pop('mode', None)
+        portgroup.pop('properties', None)
+    # if requested version is < 1.102, hide physical_network
+    if not api_utils.allow_portgroup_physical_network():
+        portgroup.pop('physical_network', None)
+
+
+def portgroup_sanitize(portgroup, fields=None):
+    """Removes sensitive and unrequested data.
+
+    Will only keep the fields specified in the ``fields`` parameter.
+
+    :param fields:
+        list of fields to preserve, or ``None`` to preserve them all
+    :type fields: list of str
+    """
+    hide_fields_in_newer_versions(portgroup)
+    api_utils.sanitize_dict(portgroup, fields)
 
 
 def convert_with_links(rpc_portgroup, fields=None, sanitize=True):
@@ -91,7 +116,8 @@ def convert_with_links(rpc_portgroup, fields=None, sanitize=True):
             'name',
             'properties',
             'standalone_ports_supported',
-            'node_uuid'
+            'node_uuid',
+            'physical_network'
         )
     )
     url = api.request.public_url
@@ -108,7 +134,7 @@ def convert_with_links(rpc_portgroup, fields=None, sanitize=True):
     if not sanitize:
         return portgroup
 
-    api_utils.sanitize_dict(portgroup, fields)
+    portgroup_sanitize(portgroup, fields)
 
     return portgroup
 
@@ -530,6 +556,12 @@ class PortgroupsController(pecan.rest.RestController):
             topic = api.request.rpcapi.get_topic_for(rpc_node)
             new_portgroup = api.request.rpcapi.update_portgroup(
                 context, rpc_portgroup, topic)
+
+            if api_utils.is_path_updated(patch, '/physical_network'):
+                new_physical_network = \
+                    api_utils.get_patch_values(patch, '/physical_network')[0]
+                api.request.rpcapi.update_portgroup_physical_network(
+                    context, rpc_portgroup, new_physical_network, topic)
 
         api_portgroup = convert_with_links(new_portgroup)
         notify.emit_end_notification(context, new_portgroup, 'update',

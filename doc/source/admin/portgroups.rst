@@ -31,9 +31,10 @@ Physical networks
 If any port in a port group has a physical network, then all ports in
 that port group must have the same physical network.
 
-In order to change the physical network of the ports in a port group, all ports
-must first be removed from the port group, before changing their physical
-networks (to the same value), then adding them back to the port group.
+Changing the physical network of a port group will cause the new value to be
+propagated to each member port of the group. The physical network of an
+individual port cannot be changed in isolation while it belongs to a
+port group.
 
 See :ref:`physical networks <multitenancy-physnets>` for further information on
 using physical networks in the Bare Metal service.

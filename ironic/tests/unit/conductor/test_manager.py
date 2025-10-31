@@ -7648,6 +7648,45 @@ class DestroyPortgroupTestCase(mgr_utils.ServiceSetUpMixin,
 
 
 @mgr_utils.mock_record_keepalive
+class UpdatePortgroupPhysicalNetworkTestCase(mgr_utils.ServiceSetUpMixin,
+                                             db_base.DbTestCase):
+    def test_update_portgroup_physical_network(self):
+        node = obj_utils.create_test_node(self.context, driver='fake-hardware')
+        portgroup = obj_utils.create_test_portgroup(
+            self.context, physical_network='old_network', node_id=node.id)
+
+        ports = []
+        for i in range(0, 5):
+            ports.append(
+                obj_utils.create_test_port(self.context,
+                                           uuid=uuidutils.generate_uuid(),
+                                           physical_network='old_network',
+                                           address=f"52:54:00:cf:2d:0{i}",
+                                           node_id=node.id,
+                                           portgroup_id=portgroup.id))
+
+        self.service.update_portgroup_physical_network(
+            self.context, portgroup, 'new_physnet')
+
+        self.assertEqual(portgroup.physical_network, 'new_physnet')
+        for i in range(0, 5):
+            ports[i].refresh(self.context)
+            self.assertEqual(portgroup.physical_network,
+                             ports[i].physical_network)
+
+    def test_update_portgroup_physical_nework_node_locked(self):
+        node = obj_utils.create_test_node(self.context, driver='fake-hardware',
+                                          reservation='fake-reserv')
+        portgroup = obj_utils.create_test_portgroup(self.context,
+                                                    node_id=node.id)
+        exc = self.assertRaises(messaging.rpc.ExpectedException,
+                                self.service.update_portgroup_physical_network,
+                                self.context, portgroup, 'new_physnet')
+        # Compare true exception hidden by @messaging.expected_exceptions
+        self.assertEqual(exception.NodeLocked, exc.exc_info[0])
+
+
+@mgr_utils.mock_record_keepalive
 @mock.patch.object(manager.ConductorManager, '_fail_if_in_state',
                    autospec=True)
 @mock.patch.object(manager.ConductorManager, '_mapped_to_this_conductor',

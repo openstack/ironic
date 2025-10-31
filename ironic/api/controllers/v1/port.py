@@ -816,8 +816,15 @@ class PortsController(rest.RestController):
         if (api_utils.is_path_updated(patch, '/physical_network')
             and rpc_port['physical_network'] is not None
                 and not rpc_port['physical_network']):
-            raise exception.Invalid('A non-empty value is required when '
-                                    'setting physical_network')
+            raise exception.Invalid(_('A non-empty value is required when '
+                                      'setting physical_network'))
+
+        if (api_utils.allow_portgroup_physical_network()
+            and api_utils.is_path_updated(patch, '/physical_network')
+            and portgroup is not None):
+            raise exception.Invalid(
+                _('physical_network cannot be changed while the port belongs '
+                  'to a portgroup.'))
 
         notify_extra = {'node_uuid': rpc_node.uuid,
                         'portgroup_uuid': portgroup and portgroup.uuid or None}

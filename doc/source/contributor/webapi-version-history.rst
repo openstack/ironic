@@ -2,6 +2,11 @@
 REST API Version History
 ========================
 
+1.102 (Gazpacho)
+-----------------------
+
+Add a 'physical_network' field to the Portgroup object.
+
 1.101 (Flamingo)
 -----------------------
 

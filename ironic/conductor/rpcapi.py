@@ -160,12 +160,13 @@ class ConductorAPI(object):
     |    1.59 - Added support for attaching/detaching virtual media
     |    1.60 - Added continue_node_service
     |    1.61 - Added get virtual media support
+    |    1.62 - Added update_portgroup_physical_network
     """
 
     # NOTE(rloo): This must be in sync with manager.ConductorManager's.
     # NOTE(pas-ha): This also must be in sync with
     #               ironic.common.release_mappings.RELEASE_MAPPING['master']
-    RPC_API_VERSION = '1.61'
+    RPC_API_VERSION = '1.62'
 
     def __init__(self, topic=None):
         super(ConductorAPI, self).__init__()
@@ -1525,3 +1526,16 @@ class ConductorAPI(object):
         return cctxt.call(
             context, 'get_virtual_media',
             node_id=node_id)
+
+    def update_portgroup_physical_network(self, context, portgroup_obj,
+                                          new_physical_network, topic=None):
+        """Update the physical_network for a given portgroup and its ports.
+
+        :param context: request context.
+        :param topic: RPC topic. Defaults to self.topic.
+        :raises: NodeLocked if node is locked by another conductor.
+        """
+        cctxt = self._prepare_call(topic=topic, version='1.62')
+        return cctxt.call(context, 'update_portgroup_physical_network',
+                          portgroup=portgroup_obj,
+                          new_physical_network=new_physical_network)

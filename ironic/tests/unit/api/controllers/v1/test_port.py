@@ -1895,6 +1895,29 @@ class TestPatch(test_api_base.BaseApiTest):
         self.assertEqual(http_client.BAD_REQUEST, response.status_int)
         self.assertIn('non-empty value', response.json['error_message'])
 
+    def test_cannot_update_physical_network_when_part_of_portgroup(
+            self, mock_upd):
+        physnet = 'new_physnet'
+        self.portgroup = obj_utils.create_test_portgroup(self.context,
+                                                         node_id=self.node.id)
+        self.port = obj_utils.create_test_port(self.context,
+                                               uuid=uuidutils.generate_uuid(),
+                                               address='52:54:00:cf:2d:32',
+                                               node_id=self.node.id,
+                                               portgroup_id=self.portgroup.id,
+                                               physical_network='old_physnet')
+        headers = {api_base.Version.string: versions.max_version_string()}
+        response = self.patch_json('/ports/%s' % self.port.uuid,
+                                   [{'path': '/physical_network',
+                                     'value': physnet,
+                                     'op': 'replace'}],
+                                   expect_errors=True,
+                                   headers=headers)
+        self.assertEqual('application/json', response.content_type)
+        self.assertEqual(http_client.BAD_REQUEST, response.status_int)
+        self.assertIn('port belongs to a portgroup',
+                      response.json['error_message'])
+
     def test_portgroups_subresource_patch(self, mock_upd):
         portgroup = obj_utils.create_test_portgroup(self.context,
                                                     node_id=self.node.id)

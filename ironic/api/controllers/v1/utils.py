@@ -1289,6 +1289,16 @@ def allow_portgroup_mode_properties():
             >= versions.MINOR_26_PORTGROUP_MODE_PROPERTIES)
 
 
+def allow_portgroup_physical_network():
+    """Check if physical_network can be added to/queried from a portgroup.
+
+    Version 1.102 of the API added physical_network field to portgroup
+    object.
+    """
+    return (api.request.version.minor
+            >= versions.MINOR_102_PORTGROUP_PHYSICAL_NETWORK)
+
+
 def allow_vifs_subcontroller():
     """Check if node/vifs can be used.
 

@@ -25,6 +25,7 @@ from ironic.db import api as dbapi
 from ironic.objects import base
 from ironic.objects import fields as object_fields
 from ironic.objects import notification
+from ironic.objects import Port
 
 
 @base.IronicObjectRegistry.register
@@ -38,7 +39,8 @@ class Portgroup(base.IronicObject, object_base.VersionedObjectDictCompat):
     #              change)
     # Version 1.5: Add node_uuid field
     # Version 1.6: Relevant methods changed to be remotable methods.
-    VERSION = '1.6'
+    # Version 1.7: Add physical_network field
+    VERSION = '1.7'
 
     dbapi = dbapi.get_instance()
 
@@ -54,7 +56,37 @@ class Portgroup(base.IronicObject, object_base.VersionedObjectDictCompat):
         'standalone_ports_supported': object_fields.BooleanField(),
         'mode': object_fields.StringField(nullable=True),
         'properties': object_fields.FlexibleDictField(nullable=True),
+        'physical_network': object_fields.StringField(nullable=True),
     }
+
+    # TODO(clif): Abstract this, already exists in Port object.
+    def _convert_field_by_version(self, field_name, introduced_version,
+                                  target_version,
+                                  remove_unavailable_fields=True,
+                                  default_value=None):
+        """Convert a field based on version compatibility.
+
+        :param field_name: Name of the field to convert
+        :param introduced_version: Version tuple when the field was introduced
+        :param target_version: Target version to convert to
+        :param remove_unavailable_fields: Whether to remove fields not in
+            target version
+        :param default_value: Default value to set if field is not set
+        """
+        field_is_set = self.obj_attr_is_set(field_name)
+        if target_version >= introduced_version:
+            # Target version supports this field. Set it to its default
+            # value if it is not set.
+            if not field_is_set:
+                setattr(self, field_name, default_value)
+        elif field_is_set:
+            # Target version does not support this field, and it is set.
+            if remove_unavailable_fields:
+                # (De)serialising: remove unavailable fields.
+                delattr(self, field_name)
+            elif getattr(self, field_name) is not default_value:
+                # DB: set unavailable fields to their default.
+                setattr(self, field_name, default_value)
 
     def _convert_to_version(self, target_version,
                             remove_unavailable_fields=True):
@@ -68,6 +100,12 @@ class Portgroup(base.IronicObject, object_base.VersionedObjectDictCompat):
             internal_info['tenant_vif_port_id'] is not specified, copy the
             .extra value to internal_info. There is nothing to do here when
             downgrading to an older version.
+
+        Version 1.5: remove node_uuid for unsupported versions if
+            remove_unavailable_fields is True.
+
+        Version 1.7: remove physical_network for unsupported versions if
+            remove_unavailable_fields is True.
 
         :param target_version: the desired version of the object
         :param remove_unavailable_fields: True to remove fields that are
@@ -86,6 +124,15 @@ class Portgroup(base.IronicObject, object_base.VersionedObjectDictCompat):
                     if 'tenant_vif_port_id' not in internal_info:
                         internal_info['tenant_vif_port_id'] = vif
                         self.internal_info = internal_info
+
+        # Convert the node_uuid field.
+        self._convert_field_by_version('node_uuid', (1, 5), target_version,
+                                       remove_unavailable_fields)
+
+        # Convert the physical_network field.
+        self._convert_field_by_version('physical_network', (1, 7),
+                                       target_version,
+                                       remove_unavailable_fields)
 
     @object_base.remotable_classmethod
     def get(cls, context, portgroup_ident):
@@ -303,6 +350,27 @@ class Portgroup(base.IronicObject, object_base.VersionedObjectDictCompat):
         self.obj_refresh(current)
         self.obj_reset_changes()
 
+    @object_base.remotable
+    def update_physical_network(self, new_physical_network, context=None):
+        """Updates the phyiscal_network for this Portgroup and its Ports.
+
+        :param context: Security context. NOTE: This should only
+                        be used internally by the indirection_api.
+                        Unfortunately, RPC requires context as the first
+                        argument, even though we don't use it.
+                        A context should be set when instantiating the
+                        object, e.g.: Portgroup(context)
+        :raises: PortgroupNotFound
+
+        """
+        self.physical_network = new_physical_network
+        self.save(context=context)
+
+        for p in Port.list_by_portgroup_id(context, self.id):
+            if new_physical_network != p.physical_network:
+                p.physical_network = new_physical_network
+                p.save(context=context)
+
 
 @base.IronicObjectRegistry.register
 class PortgroupCRUDNotification(notification.NotificationBase):
@@ -318,7 +386,8 @@ class PortgroupCRUDNotification(notification.NotificationBase):
 @base.IronicObjectRegistry.register
 class PortgroupCRUDPayload(notification.NotificationPayloadBase):
     # Version 1.0: Initial version
-    VERSION = '1.0'
+    # Version 1.1: Add physical_network field
+    VERSION = '1.1'
 
     SCHEMA = {
         'address': ('portgroup', 'address'),
@@ -326,6 +395,7 @@ class PortgroupCRUDPayload(notification.NotificationPayloadBase):
         'mode': ('portgroup', 'mode'),
         'name': ('portgroup', 'name'),
         'properties': ('portgroup', 'properties'),
+        'physical_network': ('portgroup', 'physical_network'),
         'standalone_ports_supported': ('portgroup',
                                        'standalone_ports_supported'),
         'created_at': ('portgroup', 'created_at'),
@@ -339,6 +409,7 @@ class PortgroupCRUDPayload(notification.NotificationPayloadBase):
         'mode': object_fields.StringField(nullable=True),
         'name': object_fields.StringField(nullable=True),
         'node_uuid': object_fields.UUIDField(),
+        'physical_network': object_fields.StringField(nullable=True),
         'properties': object_fields.FlexibleDictField(nullable=True),
         'standalone_ports_supported': object_fields.BooleanField(
             nullable=True),

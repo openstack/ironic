@@ -1106,6 +1106,22 @@ class TestPatch(test_api_base.BaseApiTest):
         self._test_update_portgroup_mode_properties_bad_api_version(
             [{'path': '/properties/abc', 'op': 'add', 'value': 123}], mock_upd)
 
+    @mock.patch.object(rpcapi.ConductorAPI,
+                       'update_portgroup_physical_network', autospec=True)
+    def test_update_portgroup_physical_network(self, mock_upgpn, mock_upd):
+        mock_upd.return_value = self.portgroup
+        mock_upd.return_value.physical_network = 'test'
+        response = self.patch_json('/portgroups/%s' % self.portgroup.uuid,
+                                   [{'path': '/physical_network',
+                                     'op': 'replace',
+                                     'value': 'test'}],
+                                   headers=self.headers)
+        self.assertEqual('application/json', response.content_type)
+        self.assertEqual(http_client.OK, response.status_code)
+        self.assertEqual('test', response.json['physical_network'])
+        mock_upgpn.assert_called_once_with(
+            mock.ANY, mock.ANY, mock.ANY, 'test', 'test-topic')
+
     def test_remove_mode_not_allowed(self, mock_upd):
         mock_upd.return_value = self.portgroup
         response = self.patch_json('/portgroups/%s' % self.portgroup.uuid,
