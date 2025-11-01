@@ -22,7 +22,7 @@ Internally, the conductor initiates the other transitions (depicted in gray).
    :align: left
    :alt: Ironic state transitions
 
-Please click the image above to view the diagram at it's full size,
+Please click the image above to view the diagram at its full size,
 as the presence in the documentation results in it being scaled down.
 
 
@@ -30,15 +30,15 @@ as the presence in the documentation results in it being scaled down.
    There are aliases for some transitions:
 
    * ``deploy`` is an alias for ``active``.
-   * ``undeploy`` is an alias for ``deleted``
+   * ``undeploy`` is an alias for ``deleted``.
 
 Enrollment and Preparation
 ==========================
 
 enroll (stable state)
   This is the state that all nodes start off in when created using API version
-  1.11 or newer. When a node is in the ``enroll`` state, the only thing ironic
-  knows about it is that it exists, and ironic cannot take any further action
+  1.11 or newer. When a node is in the ``enroll`` state, the only thing Ironic
+  knows about it is that it exists, and Ironic cannot take any further action
   by itself. Once a node has its driver/interfaces and their required
   information set in ``node.driver_info``, the node can be transitioned to the
   ``verifying`` state by setting the node's provision state using the
@@ -47,13 +47,13 @@ enroll (stable state)
   See :doc:`/install/enrollment` for information on enrolling nodes.
 
 verifying
-  ironic will validate that it can manage the node using the information given
+  Ironic will validate that it can manage the node using the information given
   in ``node.driver_info`` and with either the driver/hardware type and
   interfaces it has been assigned. This involves going out and confirming that
   the credentials work to access whatever node control mechanism they talk to.
 
 manageable (stable state)
-  Once ironic has verified that it can manage the node using the
+  Once Ironic has verified that it can manage the node using the
   driver/interfaces and credentials passed in at node create time, the node
   will be transitioned to the ``manageable`` state. From ``manageable``, nodes
   can transition to:
@@ -69,7 +69,7 @@ manageable (stable state)
 
   ``manageable`` is the state that a node should be moved into when any updates
   need to be made to it such as changes to fields in driver_info and updates to
-  networking information on ironic ports assigned to the node.
+  networking information on Ironic ports assigned to the node.
 
   ``manageable`` is also the only stable state that can be transitioned to,
   from these failure states:
@@ -94,12 +94,12 @@ inspect wait
 
 inspect failed
   This is the state a node will move into when inspection of the node fails. From
-  here the node can transitioned to:
+  here the node can be transitioned to:
 
   * ``inspecting`` by setting the node's provision state using the ``inspect``
     verb.
   * ``manageable`` by setting the node's provision state using the ``manage``
-    verb
+    verb.
 
 cleaning
   Nodes in the ``cleaning`` state are being scrubbed and reprogrammed into a
@@ -114,7 +114,7 @@ clean wait
   Just like the ``cleaning`` state, the nodes in the ``clean wait`` state are
   being scrubbed and reprogrammed. The difference is that in the ``clean wait``
   state the conductor is waiting for the ramdisk to boot or the clean step
-  which is running in-band to finish.
+  that is running in-band to finish.
 
   The cleaning process of a node in the ``clean wait`` state can be interrupted
   by setting the node's provision state using the ``abort`` verb if the task
@@ -131,7 +131,7 @@ available (stable state)
   * ``active`` (through ``deploying``) by setting the node's provision state
     using the ``active`` or ``deploy`` verbs.
   * ``manageable`` by setting the node's provision state using the ``manage``
-    verb
+    verb.
 
 deploying
   Nodes in ``deploying`` are being prepared to run a workload on them. This
@@ -148,7 +148,7 @@ deploying
 wait call-back
   Just like the ``deploying`` state, the nodes in ``wait call-back`` are being
   deployed. The difference is that in ``wait call-back`` the conductor is
-  waiting for the ramdisk to boot or execute parts of the deployment which
+  waiting for the ramdisk to boot or execute parts of the deployment that
   need to run in-band on the node (for example, installing the bootloader, or
   writing the image to the disk).
 
@@ -166,7 +166,7 @@ deploy failed
     node's provision state using the ``deleted`` or ``undeploy`` verbs.
 
 active (stable state)
-  Nodes in ``active`` have a workload running on them. ironic may collect
+  Nodes in ``active`` have a workload running on them. Ironic may collect
   out-of-band sensor information (including power state) on a regular basis.
   Nodes in ``active`` can transition to:
 
@@ -179,7 +179,7 @@ active (stable state)
 
 deleting
   Nodes in ``deleting`` state are being torn down from running an active
-  workload. In ``deleting``, ironic tears down and removes any configuration and
+  workload. In ``deleting``, Ironic tears down and removes any configuration and
   resources it added in ``deploying`` or ``rescuing``.
 
 error (stable state)
@@ -190,9 +190,9 @@ error (stable state)
     provision state using the ``deleted`` or ``undeploy`` verbs.
 
 adopting
-  This state allows ironic to take over management of a baremetal node with an
+  This state allows Ironic to take over management of a baremetal node with an
   existing workload on it. Ordinarily when a baremetal node is enrolled and
-  managed by ironic, it must transition through ``cleaning`` and ``deploying``
+  managed by Ironic, it must transition through ``cleaning`` and ``deploying``
   to reach ``active`` state. However, those baremetal nodes that have an
   existing workload on them, do not need to be deployed or cleaned again, so
   this transition allows these nodes to move directly from ``manageable`` to
@@ -216,7 +216,7 @@ rescuing
 rescue wait
   Just like the ``rescuing`` state, the nodes in ``rescue wait`` are being
   rescued. The difference is that in ``rescue wait`` the conductor is
-  waiting for the ramdisk to boot or execute parts of the rescue which
+  waiting for the ramdisk to boot or execute parts of the rescue that
   need to run in-band on the node (for example, setting the password for
   user named ``rescue``).
 
@@ -279,7 +279,7 @@ service wait
   Just like the ``servicing`` state, the nodes in the ``service wait`` state are
   being serviced with service steps. The difference is that in the
   ``service wait`` state the conductor is waiting for the ramdisk to boot or the
-  clean step which is running in-band to finish.
+  clean step, which is running in-band to finish.
 
   The servicing of a node in the ``service wait`` state can be interrupted
   by setting the node's provision state using the ``abort`` verb if the task
@@ -297,11 +297,12 @@ service failed
   * ``active`` by setting the node's provision state using the ``abort`` verb.
 
 .. note::
-   Prior to attempting aborting a servicing operation on a node either in
+   Before attempting to abort a servicing operation on a node either in
    ``service wait`` or ``service failed`` state, the user must check the
    remote console of the machine as a precaution and ensure there is no active
    firmware update running on the node. Aborting service may result in a power
-   cycle operation which may interrupt the running update, causing
+   cycle operation that may interrupt the running update, causing
    irreversible damage to the hardware.
    Once it is confirmed no update operation is running, using ``abort`` verb
    is not expected to cause any issues.
+
