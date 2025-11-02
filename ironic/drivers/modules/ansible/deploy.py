@@ -35,6 +35,7 @@ from ironic.common import images
 from ironic.common import metrics_utils
 from ironic.common import states
 from ironic.common import utils
+from ironic.conductor import configdrive_utils
 from ironic.conductor import steps as conductor_steps
 from ironic.conductor import task_manager
 from ironic.conductor import utils as manager_utils
@@ -283,7 +284,7 @@ def _prepare_variables(task):
             image['checksum'] = 'md5:%s' % checksum
     _add_ssl_image_options(image)
     variables = {'image': image}
-    configdrive = manager_utils.get_configdrive_image(task.node)
+    configdrive = configdrive_utils.get_configdrive_image(task.node)
     if configdrive:
         if urlparse.urlparse(configdrive).scheme in ('http', 'https'):
             cfgdrv_type = 'url'

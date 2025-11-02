@@ -16,9 +16,11 @@ import json
 import os
 import tempfile
 
+from openstack.baremetal import configdrive as os_configdrive
 from oslo_concurrency import processutils
 from oslo_config import cfg
 from oslo_log import log
+from oslo_serialization import jsonutils
 import pycdlib
 
 from ironic.common import exception
@@ -483,4 +485,47 @@ def check_and_fix_configdrive(task, configdrive):
         # This is not a fatal failure, just circle things back.
     # Always return configdrive content, otherwise we hand None back
     # which causes the overall process to fail.
+    return configdrive
+
+
+def build_configdrive(node, configdrive):
+    """Build a configdrive from provided meta_data, network_data and user_data.
+
+    If uuid or name are not provided in the meta_data, they're defaulted to the
+    node's uuid and name accordingly.
+
+    :param node: an Ironic node object.
+    :param configdrive: A configdrive as a dict with keys ``meta_data``,
+        ``network_data``, ``user_data`` and ``vendor_data`` (all optional).
+    :returns: A gzipped and base64 encoded configdrive as a string.
+    """
+    meta_data = configdrive.setdefault('meta_data', {})
+    meta_data.setdefault('uuid', node.uuid)
+    if node.name:
+        meta_data.setdefault('name', node.name)
+
+    user_data = configdrive.get('user_data')
+    if isinstance(user_data, (dict, list)):
+        user_data = jsonutils.dump_as_bytes(user_data)
+    elif user_data:
+        user_data = user_data.encode('utf-8')
+
+    LOG.debug('Building a configdrive for node %s', node.uuid)
+    return os_configdrive.build(meta_data, user_data=user_data,
+                                network_data=configdrive.get('network_data'),
+                                vendor_data=configdrive.get('vendor_data'))
+
+
+def get_configdrive_image(node):
+    """Get configdrive as an ISO image or a URL.
+
+    Converts the JSON representation into an image. URLs and raw contents
+    are returned unchanged.
+
+    :param node: an Ironic node object.
+    :returns: A gzipped and base64 encoded configdrive as a string.
+    """
+    configdrive = node.instance_info.get('configdrive')
+    if isinstance(configdrive, dict):
+        configdrive = build_configdrive(node, configdrive)
     return configdrive

@@ -22,6 +22,7 @@ from ironic.common import exception
 from ironic.common.i18n import _
 from ironic.common import states
 from ironic.common import utils as common_utils
+from ironic.conductor import configdrive_utils
 from ironic.conductor import utils as manager_utils
 from ironic.conf import CONF
 from ironic.drivers import base
@@ -931,7 +932,7 @@ class RedfishVirtualMediaBoot(base.BootInterface):
                                  'device': boot_devices.CDROM})
 
     def _attach_configdrive(self, task, managers):
-        configdrive = manager_utils.get_configdrive_image(task.node)
+        configdrive = configdrive_utils.get_configdrive_image(task.node)
         if not configdrive:
             return
 

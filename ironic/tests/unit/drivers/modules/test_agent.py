@@ -25,6 +25,7 @@ from ironic.common import image_service
 from ironic.common import images
 from ironic.common import raid
 from ironic.common import states
+from ironic.conductor import configdrive_utils
 from ironic.conductor import task_manager
 from ironic.conductor import utils as manager_utils
 from ironic.drivers import base as drivers_base
@@ -1604,7 +1605,7 @@ class TestAgentDeploy(CommonTestsMixin, db_base.DbTestCase):
             self.assertEqual(states.ACTIVE,
                              task.node.target_provision_state)
 
-    @mock.patch.object(manager_utils, 'build_configdrive', autospec=True)
+    @mock.patch.object(configdrive_utils, 'build_configdrive', autospec=True)
     def test_write_image_render_configdrive(self, mock_build_configdrive):
         self.node.provision_state = states.DEPLOYWAIT
         self.node.target_provision_state = states.ACTIVE

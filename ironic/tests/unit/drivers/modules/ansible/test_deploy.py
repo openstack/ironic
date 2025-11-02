@@ -495,7 +495,8 @@ class TestAnsibleMethods(AnsibleDeployTestCaseBase):
                 mock.call().write('fake-content'),
                 mock.call().__exit__(None, None, None)))
 
-    @mock.patch.object(utils, 'build_configdrive', autospec=True)
+    @mock.patch('ironic.conductor.configdrive_utils.build_configdrive',
+                autospec=True)
     def test__prepare_variables_configdrive_json(self, mock_build_configdrive):
         i_info = self.node.instance_info
         i_info['configdrive'] = {'meta_data': {}}

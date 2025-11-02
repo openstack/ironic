@@ -33,6 +33,7 @@ from ironic.common import oci_registry as oci
 from ironic.common import raid
 from ironic.common import states
 from ironic.common import utils
+from ironic.conductor import configdrive_utils
 from ironic.conductor import deployments
 from ironic.conductor import steps as conductor_steps
 from ironic.conductor import task_manager
@@ -760,7 +761,7 @@ class AgentDeploy(CustomAgentDeploy):
             if disk_label is not None:
                 image_info['disk_label'] = disk_label
 
-        configdrive = manager_utils.get_configdrive_image(node)
+        configdrive = configdrive_utils.get_configdrive_image(node)
         if configdrive:
             # FIXME(dtantsur): remove this duplication once IPA is ready:
             # https://review.opendev.org/c/openstack/ironic-python-agent/+/790471
@@ -1001,7 +1002,7 @@ class BootcAgentDeploy(CustomAgentDeploy):
         # FIXME(TheJulia): We likely, either need to grab/collect creds
         # and pass them along in the step call, or initialize the client.
         # bootc runs in the target container as well, so ... hmmm
-        configdrive = manager_utils.get_configdrive_image(node)
+        configdrive = configdrive_utils.get_configdrive_image(node)
 
         img_auth = image_service.get_image_service_auth_override(task.node)
 
