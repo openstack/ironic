@@ -13,7 +13,14 @@ Overview
 ========
 
 The ``redfish`` driver enables managing servers compliant with the
-Redfish_ protocol. Supported features include:
+Redfish_ standard. While Redfish strives to provide a standard model of
+interaction for baseboard management controllers, vendors often do things
+slightly different or interpret the standard differently. Ironic attempts
+to support a number of features while also navigating these issues, however
+if you do encounter any issues, please do not hesitate to open a bug for the
+Ironic maintainers.
+
+Supported features include:
 
 * Network, :ref:`virtual media <redfish-virtual-media>` and :ref:`HTTP(s)
   <redfish-https-boot>` boot.
