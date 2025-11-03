@@ -91,16 +91,36 @@ class Schemas:
 
     def __init__(self) -> None:
         self._schemas: list[
-            tuple[dict[str, object], ty.Optional[int], ty.Optional[int]]
+            tuple[dict[str, object], int, ty.Optional[int]]
         ] = []
 
     def add_schema(
         self,
-        schema: tuple[dict[str, object]],
+        schema: dict[str, object],
         min_version: ty.Optional[int],
         max_version: ty.Optional[int],
     ) -> None:
-        self._schemas.append((schema, min_version, max_version))
+        # we'd like to use bisect.insort but that doesn't accept a 'key' arg
+        # until Python 3.10, so we need to sort after insertion instead :(
+        self._schemas.append((schema, min_version or 0, max_version))
+        self._schemas.sort(key=lambda x: (x[1], x[2]))
+
+        self.validate_schemas()
+
+    def validate_schemas(self) -> None:
+        """Ensure there are no overlapping schemas."""
+        prev_max_version: int | None = None
+
+        for schema, min_version, max_version in self._schemas:
+            if prev_max_version:
+                # it doesn't make sense to have multiple schemas if one of them
+                # is unversioned (i.e. applies to everything)
+                assert prev_max_version is not None
+                assert min_version is not None
+                # there should not be any gaps in schema coverage
+                assert prev_max_version + 1 == min_version
+
+            prev_max_version = max_version
 
     def __call__(self) -> ty.Optional[dict[str, object]]:
         for schema, min_version, max_version in self._schemas:
@@ -113,6 +133,7 @@ class Schemas:
 
             return schema
 
+        # TODO(stephenfin): This should be an error in a future release
         return None
 
 
