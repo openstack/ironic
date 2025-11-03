@@ -247,11 +247,13 @@ class SystemdConsoleContainer(base.BaseConsoleContainer):
             raise exception.ConsoleContainerError(provider='systemd', reason=e)
 
     def start_container(self, task, app_name, app_info):
-        """Stop a console container for a node.
+        """Start a console container for a node.
 
-        Any existing running container for this node will be stopped.
+        Starts a console container for the task's node.
 
         :param task: A TaskManager instance.
+        :param app_name: Sets container environment APP value
+        :param app_info: Sets container environment APP_INFO value
         :raises: ConsoleContainerError
         """
         self._init_unit_dir()
