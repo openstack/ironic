@@ -116,6 +116,13 @@ opts = [
                       'and consistently available after firmware update. '
                       'Set to 0 to disable post-upgrade validation '
                       'entirely.')),
+    cfg.IntOpt('firmware_update_bmc_timeout',
+               min=0,
+               default=300,
+               help=_('Timeout (in seconds) for BMC firmware updates. '
+                      'BMC firmware updates may need extended time to handle '
+                      'BMC transitional states during the firmware update '
+                      'process.')),
     cfg.StrOpt('firmware_source',
                choices=[('http', _('If firmware source URL is also HTTP, then '
                                    'serve from original location, otherwise '

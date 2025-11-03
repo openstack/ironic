@@ -25,6 +25,7 @@ from ironic.common import states
 from ironic.conductor import task_manager
 from ironic.conductor import utils as manager_utils
 from ironic.conf import CONF
+from ironic.drivers.modules import deploy_utils
 from ironic.drivers.modules.redfish import firmware as redfish_fw
 from ironic.drivers.modules.redfish import firmware_utils
 from ironic.drivers.modules.redfish import utils as redfish_utils
@@ -1336,3 +1337,138 @@ class RedfishFirmwareTestCase(db_base.DbTestCase):
                 self.assertRaises(exception.RedfishError,
                                   firmware._validate_resources_stability,
                                   task.node)
+
+    @mock.patch.object(time, 'sleep', lambda seconds: None)
+    @mock.patch.object(deploy_utils, 'reboot_to_finish_step', autospec=True)
+    @mock.patch.object(deploy_utils, 'set_async_step_flags', autospec=True)
+    @mock.patch.object(redfish_fw.RedfishFirmware, '_execute_firmware_update',
+                       autospec=True)
+    @mock.patch.object(redfish_utils, 'get_update_service', autospec=True)
+    def test_update_bmc_uses_configured_timeout(self, mock_get_update_service,
+                                                mock_execute_fw_update,
+                                                mock_set_async_flags,
+                                                mock_reboot_to_finish):
+        """Test BMC firmware update uses configured timeout."""
+        settings = [{'component': 'bmc', 'url': 'http://bmc/v1.0.0'}]
+
+        with task_manager.acquire(self.context, self.node.uuid,
+                                  shared=False) as task:
+            task.driver.firmware.update(task, settings)
+
+            # Verify configured timeout is used for BMC update
+            mock_reboot_to_finish.assert_called_once_with(
+                task, timeout=CONF.redfish.firmware_update_bmc_timeout,
+                disable_ramdisk=True)
+
+    @mock.patch.object(time, 'sleep', lambda seconds: None)
+    @mock.patch.object(deploy_utils, 'reboot_to_finish_step', autospec=True)
+    @mock.patch.object(deploy_utils, 'set_async_step_flags', autospec=True)
+    @mock.patch.object(redfish_fw.RedfishFirmware, '_execute_firmware_update',
+                       autospec=True)
+    @mock.patch.object(redfish_utils, 'get_update_service', autospec=True)
+    def test_update_bmc_uses_bmc_constant(self, mock_get_update_service,
+                                          mock_execute_fw_update,
+                                          mock_set_async_flags,
+                                          mock_reboot_to_finish):
+        """Test BMC firmware update detection works with BMC constant."""
+        settings = [{'component': redfish_utils.BMC,
+                     'url': 'http://bmc/v1.0.0'}]
+
+        with task_manager.acquire(self.context, self.node.uuid,
+                                  shared=False) as task:
+            task.driver.firmware.update(task, settings)
+
+            # Verify configured timeout is used
+            mock_reboot_to_finish.assert_called_once_with(
+                task, timeout=CONF.redfish.firmware_update_bmc_timeout,
+                disable_ramdisk=True)
+
+    @mock.patch.object(time, 'sleep', lambda seconds: None)
+    @mock.patch.object(deploy_utils, 'reboot_to_finish_step', autospec=True)
+    @mock.patch.object(deploy_utils, 'set_async_step_flags', autospec=True)
+    @mock.patch.object(redfish_fw.RedfishFirmware, '_execute_firmware_update',
+                       autospec=True)
+    @mock.patch.object(redfish_utils, 'get_update_service', autospec=True)
+    def test_update_non_bmc_uses_wait_parameter(self, mock_get_update_service,
+                                                mock_execute_fw_update,
+                                                mock_set_async_flags,
+                                                mock_reboot_to_finish):
+        """Test non-BMC firmware update uses wait parameter."""
+        settings = [{'component': 'bios', 'url': 'http://bios/v1.0.0',
+                     'wait': 120}]
+
+        with task_manager.acquire(self.context, self.node.uuid,
+                                  shared=False) as task:
+            task.driver.firmware.update(task, settings)
+
+            # Verify wait parameter is used for non-BMC update
+            mock_reboot_to_finish.assert_called_once_with(
+                task, timeout=120, disable_ramdisk=True)
+
+    @mock.patch.object(time, 'sleep', lambda seconds: None)
+    @mock.patch.object(deploy_utils, 'reboot_to_finish_step', autospec=True)
+    @mock.patch.object(deploy_utils, 'set_async_step_flags', autospec=True)
+    @mock.patch.object(redfish_fw.RedfishFirmware, '_execute_firmware_update',
+                       autospec=True)
+    @mock.patch.object(redfish_utils, 'get_update_service', autospec=True)
+    def test_update_non_bmc_no_wait_parameter(self, mock_get_update_service,
+                                              mock_execute_fw_update,
+                                              mock_set_async_flags,
+                                              mock_reboot_to_finish):
+        """Test non-BMC firmware update without wait parameter uses None."""
+        settings = [{'component': 'bios', 'url': 'http://bios/v1.0.0'}]
+
+        with task_manager.acquire(self.context, self.node.uuid,
+                                  shared=False) as task:
+            task.driver.firmware.update(task, settings)
+
+            # Verify None timeout is used for non-BMC without wait parameter
+            mock_reboot_to_finish.assert_called_once_with(
+                task, timeout=None, disable_ramdisk=True)
+
+    @mock.patch.object(time, 'sleep', lambda seconds: None)
+    @mock.patch.object(deploy_utils, 'reboot_to_finish_step', autospec=True)
+    @mock.patch.object(deploy_utils, 'set_async_step_flags', autospec=True)
+    @mock.patch.object(redfish_fw.RedfishFirmware, '_execute_firmware_update',
+                       autospec=True)
+    @mock.patch.object(redfish_utils, 'get_update_service', autospec=True)
+    def test_update_mixed_components_with_bmc(self, mock_get_update_service,
+                                              mock_execute_fw_update,
+                                              mock_set_async_flags,
+                                              mock_reboot_to_finish):
+        """Test mixed component update with BMC and explicit wait uses wait."""
+        settings = [
+            {'component': 'bios', 'url': 'http://bios/v1.0.0', 'wait': 120},
+            {'component': 'bmc', 'url': 'http://bmc/v1.0.0', 'wait': 60}
+        ]
+
+        with task_manager.acquire(self.context, self.node.uuid,
+                                  shared=False) as task:
+            task.driver.firmware.update(task, settings)
+
+            # Verify explicit wait parameter takes precedence over BMC timeout
+            mock_reboot_to_finish.assert_called_once_with(
+                task, timeout=120,
+                disable_ramdisk=True)
+
+    @mock.patch.object(time, 'sleep', lambda seconds: None)
+    @mock.patch.object(deploy_utils, 'reboot_to_finish_step', autospec=True)
+    @mock.patch.object(deploy_utils, 'set_async_step_flags', autospec=True)
+    @mock.patch.object(redfish_fw.RedfishFirmware, '_execute_firmware_update',
+                       autospec=True)
+    @mock.patch.object(redfish_utils, 'get_update_service', autospec=True)
+    def test_update_bmc_with_explicit_wait(self, mock_get_update_service,
+                                           mock_execute_fw_update,
+                                           mock_set_async_flags,
+                                           mock_reboot_to_finish):
+        """Test BMC update with explicit wait uses wait, not BMC timeout."""
+        settings = [{'component': 'bmc', 'url': 'http://bmc/v1.0.0',
+                     'wait': 90}]
+
+        with task_manager.acquire(self.context, self.node.uuid,
+                                  shared=False) as task:
+            task.driver.firmware.update(task, settings)
+
+            # Verify explicit wait parameter takes precedence over BMC timeout
+            mock_reboot_to_finish.assert_called_once_with(
+                task, timeout=90, disable_ramdisk=True)
