@@ -1298,6 +1298,7 @@
       devstack_localrc:
         IRONIC_DEFAULT_RESCUE_INTERFACE: agent
         IRONIC_ENABLED_RESCUE_INTERFACES: "fake,agent,no-rescue"
+        IRONIC_ENABLED_CONSOLE_INTERFACES: "fake-graphical"
         IRONIC_TEMPEST_WHOLE_DISK_IMAGE: True
         IRONIC_VM_EPHEMERAL_DISK: 0
         SWIFT_ENABLE_TEMPURLS: True

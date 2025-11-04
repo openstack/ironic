@@ -255,7 +255,13 @@ IRONIC_ENABLED_HARDWARE_TYPES=${IRONIC_ENABLED_HARDWARE_TYPES:-"ipmi,fake-hardwa
 IRONIC_DRIVER_INTERFACE_TYPES="bios boot power management deploy console inspect raid rescue storage network vendor"
 IRONIC_ENABLED_BIOS_INTERFACES=${IRONIC_ENABLED_BIOS_INTERFACES:-"fake,no-bios"}
 IRONIC_ENABLED_BOOT_INTERFACES=${IRONIC_ENABLED_BOOT_INTERFACES:-"fake,ipxe"}
-IRONIC_ENABLED_CONSOLE_INTERFACES=${IRONIC_ENABLED_CONSOLE_INTERFACES:-"fake,no-console"}
+if is_service_enabled ir-novnc; then
+    # Only enable fake-graphical when ironic-novncproxy is running. Graphical console tempest tests will
+    # run if fake-graphical is enabled.
+    IRONIC_ENABLED_CONSOLE_INTERFACES=${IRONIC_ENABLED_CONSOLE_INTERFACES:-"fake-graphical,fake,no-console"}
+else
+    IRONIC_ENABLED_CONSOLE_INTERFACES=${IRONIC_ENABLED_CONSOLE_INTERFACES:-"fake,no-console"}
+fi
 IRONIC_ENABLED_DEPLOY_INTERFACES=${IRONIC_ENABLED_DEPLOY_INTERFACES:-"fake,direct,ramdisk"}
 IRONIC_ENABLED_INSPECT_INTERFACES=${IRONIC_ENABLED_INSPECT_INTERFACES:-"fake,agent,no-inspect"}
 IRONIC_ENABLED_MANAGEMENT_INTERFACES=${IRONIC_ENABLED_MANAGEMENT_INTERFACES:-""}
@@ -1332,9 +1338,9 @@ function install_ironic {
             NOVNC_WEB_DIR=$DEST/novnc
             git_clone $NOVNC_REPO $NOVNC_WEB_DIR $NOVNC_BRANCH
         fi
-        # podman, systemd-container required by the systemd container provider
+        # podman, systemd-container, slirp4netns required by the systemd container provider
         # buildah required below to build the VNC container
-        install_package podman systemd-container buildah
+        install_package podman systemd-container slirp4netns buildah
         pushd $IRONIC_DIR/tools/vnc-container
         buildah bud -f ./Containerfile -t localhost/ironic-vnc-container
         popd
@@ -2094,7 +2100,7 @@ function configure_ironic_novnc {
     iniset $IRONIC_CONF_FILE vnc novnc_web $NOVNC_WEB_DIR
     iniset $IRONIC_CONF_FILE vnc container_provider systemd
     iniset $IRONIC_CONF_FILE vnc console_image localhost/ironic-vnc-container
-
+    iniset $IRONIC_CONF_FILE vnc systemd_container_publish_port 127.0.0.1::5900
 }
 
 # create_ironic_cache_dir() - Part of the init_ironic() process
@@ -2237,9 +2243,19 @@ function start_ironic_api {
 # start_ironic_conductor() - Used by start_ironic().
 # Starts Ironic conductor.
 function start_ironic_conductor {
-    # NOTE(stevebaker) set DBUS_SESSION_BUS_ADDRESS so that systemd calls can be made
-    # for the systemd console container provider.
-    run_process ir-cond "$IRONIC_BIN_DIR/ironic-conductor --config-file=$IRONIC_CONF_FILE" "" "" "DBUS_SESSION_BUS_ADDRESS=unix:path=/run/user/$UID/bus"
+
+    if is_service_enabled ir-novnc; then
+        # NOTE(stevebaker) set DBUS_SESSION_BUS_ADDRESS so that systemd calls can be made
+        # for the systemd console container provider.
+        local stack_uid=$(id -u $STACK_USER)
+        # ensure stack user manager exists
+        sudo loginctl enable-linger $stack_uid
+        # ensure a stack user session is running for the console containers
+        sudo systemctl start user@$stack_uid.service
+        run_process ir-cond "$IRONIC_BIN_DIR/ironic-conductor --config-file=$IRONIC_CONF_FILE" "" "" "DBUS_SESSION_BUS_ADDRESS=unix:path=/run/user/$stack_uid/bus"
+    else
+        run_process ir-cond "$IRONIC_BIN_DIR/ironic-conductor --config-file=$IRONIC_CONF_FILE"
+    fi
 
     # Unset variables which we shouldn't have... Grenade resets these :\
     # in grenade/projects/60_nova/resources.sh as part of the resource
@@ -4350,6 +4366,7 @@ function ironic_configure_tempest {
     iniset $TEMPEST_CONFIG baremetal enabled_boot_interfaces $IRONIC_ENABLED_BOOT_INTERFACES
     iniset $TEMPEST_CONFIG baremetal enabled_rescue_interfaces $IRONIC_ENABLED_RESCUE_INTERFACES
     iniset $TEMPEST_CONFIG baremetal enabled_inspect_interfaces $IRONIC_ENABLED_INSPECT_INTERFACES
+    iniset $TEMPEST_CONFIG baremetal enabled_console_interfaces $IRONIC_ENABLED_CONSOLE_INTERFACES
     iniset $TEMPEST_CONFIG baremetal default_rescue_interface $IRONIC_DEFAULT_RESCUE_INTERFACE
     # Driver for API tests
     iniset $TEMPEST_CONFIG baremetal driver fake-hardware
