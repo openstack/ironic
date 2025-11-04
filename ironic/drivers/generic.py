@@ -91,6 +91,11 @@ class GenericHardware(hardware_type.AbstractHardwareType):
         """List of supported firmware interfaces."""
         return [noop.NoFirmware]
 
+    @property
+    def supported_console_interfaces(self):
+        """List of classes of supported console interfaces."""
+        return [noop.NoConsole, fake.FakeGraphicalConsole]
+
 
 class ManualManagementHardware(GenericHardware):
     """Hardware type that uses manual power and boot management.
