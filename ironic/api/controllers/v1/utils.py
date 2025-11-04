@@ -452,6 +452,8 @@ def sanitize_dict(to_sanitize, fields):
             to_sanitize.pop(key, None)
 
 
+# TODO(stephenfin): We can repurpose this check to only set a default for limit
+# when all APIs use jsonschema validation
 def validate_limit(limit):
     if limit is None:
         return CONF.api.max_limit
@@ -462,6 +464,8 @@ def validate_limit(limit):
     return min(CONF.api.max_limit, limit)
 
 
+# TODO(stephenfin): We can remove this check when all APIs use jsonschema
+# validation
 def validate_sort_dir(sort_dir):
     if sort_dir not in ['asc', 'desc']:
         raise exception.ClientSideError(_("Invalid sort direction: %s. "

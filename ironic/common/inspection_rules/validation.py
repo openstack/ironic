@@ -14,7 +14,7 @@ import enum
 
 import jsonschema
 
-from ironic.common import args
+from ironic.api.schemas.v1 import inspection_rule as schema
 from ironic.common import exception
 from ironic.common.i18n import _
 from ironic.common.inspection_rules import actions
@@ -22,106 +22,12 @@ from ironic.common.inspection_rules import operators
 from ironic.common.inspection_rules import utils
 
 
-_CONDITIONS_SCHEMA = None
-_ACTIONS_SCHEMA = None
-
-
 class InspectionPhase(enum.Enum):
     MAIN = 'main'
 
 
-def conditions_schema():
-    global _CONDITIONS_SCHEMA
-    if _CONDITIONS_SCHEMA is None:
-        condition_plugins = list(operators.OPERATORS.keys())
-        condition_plugins.extend(
-            ["!%s" % op for op in list(condition_plugins)])
-        _CONDITIONS_SCHEMA = {
-            "title": "Inspection rule conditions schema",
-            "type": "array",
-            "minItems": 0,
-            "items": {
-                "type": "object",
-                "required": ["op", "args"],
-                "properties": {
-                    "op": {
-                        "description": "Condition operator",
-                        "enum": condition_plugins
-                    },
-                    "args": {
-                        "description": "Arguments for the condition",
-                        "type": ["array", "object"]
-                    },
-                    "multiple": {
-                        "description": "How to treat multiple values",
-                        "enum": ["any", "all", "first", "last"]
-                    },
-                    "loop": {
-                        "description": "Loop behavior for conditions",
-                        "type": ["array", "object"]
-                    },
-                },
-                # other properties are validated by plugins
-                "additionalProperties": True
-            }
-        }
-
-    return _CONDITIONS_SCHEMA
-
-
-def actions_schema():
-    global _ACTIONS_SCHEMA
-    if _ACTIONS_SCHEMA is None:
-        action_plugins = list(actions.ACTIONS.keys())
-        _ACTIONS_SCHEMA = {
-            "title": "Inspection rule actions schema",
-            "type": "array",
-            "minItems": 1,
-            "items": {
-                "type": "object",
-                "required": ["op", "args"],
-                "properties": {
-                    "op": {
-                        "description": "action operator",
-                        "enum": action_plugins
-                    },
-                    "args": {
-                        "description": "Arguments for the action",
-                        "type": ["array", "object"]
-                    },
-                    "loop": {
-                        "description": "Loop behavior for actions",
-                        "type": ["array", "object"]
-                    },
-                },
-                "additionalProperties": True
-            }
-        }
-
-    return _ACTIONS_SCHEMA
-
-
-SCHEMA = {
-    'type': 'object',
-    'properties': {
-        'uuid': {'type': ['string', 'null']},
-        'priority': {'type': 'integer', "minimum": 0},
-        'description': {'type': ['string', 'null'], 'maxLength': 255},
-        'sensitive': {'type': ['boolean', 'null']},
-        'phase': {'type': ['string', 'null'], 'maxLength': 16},
-        "conditions": conditions_schema(),
-        "actions": actions_schema()
-    },
-    'required': ['actions'],
-    "additionalProperties": False
-}
-
-VALIDATOR = args.and_valid(
-    args.schema(SCHEMA),
-    args.dict_valid(uuid=args.uuid)
-)
-
-
+# TODO(stephenfin): Everything here can and should be moved to the jsonschema
+# schemas, but doing so will change responses.
 def validate_rule(rule):
     """Validate an inspection rule using the JSON schema.
 
@@ -129,7 +35,7 @@ def validate_rule(rule):
     :raises: Invalid if the rule is invalid.
     """
     try:
-        jsonschema.validate(rule, SCHEMA)
+        jsonschema.validate(rule, schema.create_request_body)
     except jsonschema.ValidationError as e:
         raise exception.Invalid(
             _('Validation failed for inspection rule: %s') % e)
