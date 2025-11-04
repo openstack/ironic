@@ -624,6 +624,7 @@ class IronicImagesTestCase(base.TestCase):
                                                        mock_gip,
                                                        mock_validate):
         mock_igi.return_value = False
+        mock_validate.return_value.url = 'http://whole-disk-image'
         instance_info = {
             'image_source': 'http://whole-disk-image'}
         is_whole_disk_image = images.is_whole_disk_image('context',
@@ -664,22 +665,6 @@ class IronicImagesTestCase(base.TestCase):
         validate_mock.return_value = mock_response
         self.assertTrue(images.is_source_a_path('context', 'http://foo/bar'))
         validate_mock.assert_called_once_with(mock.ANY, 'http://foo/bar')
-
-    @mock.patch.object(images, 'LOG', autospec=True)
-    @mock.patch.object(image_service.HttpImageService, 'validate_href',
-                       autospec=True)
-    def test_is_source_a_path_redirect(self, validate_mock, log_mock):
-        url = 'http://foo/bar'
-        redirect_url = url + '/'
-        validate_mock.side_effect = exception.ImageRefIsARedirect(
-            url, redirect_url)
-        self.assertTrue(images.is_source_a_path('context', url))
-        log_mock.debug.assert_called_once_with('Received a URL redirect when '
-                                               'attempting to evaluate image '
-                                               'reference http://foo/bar '
-                                               'pointing to http://foo/bar/. '
-                                               'This may, or may not be '
-                                               'recoverable.')
 
     @mock.patch.object(image_service.HttpImageService, 'validate_href',
                        autospec=True)
