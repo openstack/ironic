@@ -2,6 +2,14 @@
 REST API Version History
 ========================
 
+1.105 (Gazpacho)
+----------------------
+
+Removes support to set an OVN VTEP endpoint for ``local_link_information``.
+Investigation by multiple contributors and maintainers realized that
+this experiemntal feature was not scalable and relies upon a manual
+ovn vtep endpoint service, and as such has been removed.
+
 1.104 (Gazpacho)
 ------------------------
 

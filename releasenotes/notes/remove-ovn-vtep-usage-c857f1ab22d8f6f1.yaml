@@ -1,0 +1,20 @@
+---
+deprecations:
+  - |
+    Ironic is deprecating and immediately removing the capability to pass
+    OVN VTEP connection information across through to Neutron. Over the
+    past year, multiple contributors have looked into this alpha level
+    functionality which was merged into Ironic and it was realized that
+    the functionality was geared for the OVN VTEP port service which is
+    a separate service one must launch on a OVN networking node to make
+    an attachment.
+
+    Since the functionality which was merged into ironic is unsuitable for
+    scaled and automated operations it must be removed. API field
+    validation is being kept, and the API version has bee incremented to
+    ``1.104`` to signify this change, however the passing on Neutron
+    Port Binding has been removed.
+
+    Ironic developers are actively working on a performant solution
+    in the short term. We hope to have something else usable before the
+    2026.1 release.

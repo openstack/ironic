@@ -362,16 +362,6 @@ def add_ports_to_network(task, network_uuid, security_groups=None):
         binding_profile = {'local_link_information':
                            [portmap[ironic_port.uuid]]}
 
-        # Determine if network type is OVN
-        if is_ovn_vtep_port(ironic_port):
-            vtep_logical_switch = \
-                portmap[ironic_port.uuid]['vtep-logical-switch']
-            vtep_physical_switch = \
-                portmap[ironic_port.uuid]['vtep-physical-switch']
-            binding_profile['vtep-logical-switch'] = vtep_logical_switch
-            binding_profile['vtep-physical-switch'] = vtep_physical_switch
-
-        # Include physical_network if available
         if ironic_port.physical_network:
             binding_profile['physical_network'] = ironic_port.physical_network
 
@@ -458,28 +448,6 @@ def add_ports_to_network(task, network_uuid, security_groups=None):
                  {'node_uuid': node.uuid, 'net': network_uuid, 'ports': ports})
 
     return ports
-
-
-def is_ovn_vtep_port(port_info):
-    """Check if the current port is an OVN VTEP port
-
-    :param port_info: an instance of ironic.objects.port.Port
-        or port data as a port like object
-    :returns: Boolean indicating if the port is an OVN VTEP port
-    """
-
-    local_link_connection = {}
-
-    if isinstance(port_info, objects.Port):
-        local_link_connection = port_info.local_link_connection
-    elif isinstance(port_info, dict):
-        local_link_connection = port_info['local_link_connection']
-
-    if all(k in local_link_connection.keys()
-           for k in ['vtep-logical-switch', 'vtep-physical-switch']):
-        return True
-
-    return False
 
 
 def remove_ports_from_network(task, network_uuid):
