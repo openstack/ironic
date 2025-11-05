@@ -1606,6 +1606,13 @@ portgroup_address:
   in: body
   required: false
   type: string
+portgroup_category:
+  description: |
+    Category of the network Portgroup. Helps to further differentiate the
+    Portgroup.
+  in: body
+  required: false
+  type: string
 portgroup_internal_info:
   description: |
     Internal metadata set and stored by the Portgroup. This field is read-only.
@@ -2023,6 +2030,13 @@ req_portgroup_address:
   description: |
     Physical hardware address of this Portgroup, typically the hardware
     MAC address.
+  in: body
+  required: false
+  type: string
+req_portgroup_category:
+  description: |
+    Category of the network Portgroup. Helps to further differentiate the
+    Portgroup.
   in: body
   required: false
   type: string

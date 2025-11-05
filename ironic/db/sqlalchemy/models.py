@@ -303,6 +303,7 @@ class Portgroup(Base):
     mode = Column(String(255))
     properties = Column(db_types.JsonEncodedDict)
     physical_network = Column(String(64), nullable=True)
+    category = Column(String(80), nullable=True)
 
     _node_uuid = orm.relationship(
         "Node",

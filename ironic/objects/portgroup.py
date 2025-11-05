@@ -40,7 +40,8 @@ class Portgroup(base.IronicObject, object_base.VersionedObjectDictCompat):
     # Version 1.5: Add node_uuid field
     # Version 1.6: Relevant methods changed to be remotable methods.
     # Version 1.7: Add physical_network field
-    VERSION = '1.7'
+    # Version 1.8: Add category field
+    VERSION = '1.8'
 
     dbapi = dbapi.get_instance()
 
@@ -57,6 +58,7 @@ class Portgroup(base.IronicObject, object_base.VersionedObjectDictCompat):
         'mode': object_fields.StringField(nullable=True),
         'properties': object_fields.FlexibleDictField(nullable=True),
         'physical_network': object_fields.StringField(nullable=True),
+        'category': object_fields.StringField(nullable=True),
     }
 
     # TODO(clif): Abstract this, already exists in Port object.
@@ -107,6 +109,9 @@ class Portgroup(base.IronicObject, object_base.VersionedObjectDictCompat):
         Version 1.7: remove physical_network for unsupported versions if
             remove_unavailable_fields is True.
 
+        Version 1.8: remove category for unsupported versions if
+            remove_unavailable_fields is True.
+
         :param target_version: the desired version of the object
         :param remove_unavailable_fields: True to remove fields that are
             unavailable in the target version; set this to True when
@@ -132,6 +137,10 @@ class Portgroup(base.IronicObject, object_base.VersionedObjectDictCompat):
         # Convert the physical_network field.
         self._convert_field_by_version('physical_network', (1, 7),
                                        target_version,
+                                       remove_unavailable_fields)
+
+        # Convert the category field.
+        self._convert_field_by_version('category', (1, 8), target_version,
                                        remove_unavailable_fields)
 
     @object_base.remotable_classmethod
@@ -387,10 +396,12 @@ class PortgroupCRUDNotification(notification.NotificationBase):
 class PortgroupCRUDPayload(notification.NotificationPayloadBase):
     # Version 1.0: Initial version
     # Version 1.1: Add physical_network field
-    VERSION = '1.1'
+    # Version 1.2: Add category field
+    VERSION = '1.2'
 
     SCHEMA = {
         'address': ('portgroup', 'address'),
+        'category': ('portgroup', 'category'),
         'extra': ('portgroup', 'extra'),
         'mode': ('portgroup', 'mode'),
         'name': ('portgroup', 'name'),
@@ -405,6 +416,7 @@ class PortgroupCRUDPayload(notification.NotificationPayloadBase):
 
     fields = {
         'address': object_fields.MACAddressField(nullable=True),
+        'category': object_fields.StringField(nullable=True),
         'extra': object_fields.FlexibleDictField(nullable=True),
         'mode': object_fields.StringField(nullable=True),
         'name': object_fields.StringField(nullable=True),

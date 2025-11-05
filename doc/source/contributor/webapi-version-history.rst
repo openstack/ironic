@@ -2,6 +2,11 @@
 REST API Version History
 ========================
 
+1.103 (Gazpacho)
+-----------------------
+
+Add a 'category' field to the Portgroup object.
+
 1.102 (Gazpacho)
 -----------------------
 

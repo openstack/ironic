@@ -80,6 +80,9 @@ Portgroup (MAC address in most cases).
 .. versionadded:: 1.102
   Added the ``physical_network`` field.
 
+.. versionadded:: 1.103
+  Added the ``category`` field.
+
 Normal response code: 201
 
 Error codes: 400,401,403,404
@@ -98,6 +101,7 @@ Request
     - extra: req_extra
     - uuid: req_uuid
     - physical_network: req_physical_network
+    - category : req_portgroup_category
 
 **Example Portgroup creation request:**
 
@@ -123,6 +127,7 @@ Response
     - links: links
     - ports: pg_ports
     - physical_network: physical_network
+    - category : portgroup_category
 
 **Example Portgroup creation response:**
 
@@ -139,6 +144,9 @@ Return a list of bare metal Portgroups, with detailed information.
 
 .. versionadded:: 1.102
   Added the ``physical_network`` field.
+
+.. versionadded:: 1.103
+  Added the ``category`` field.
 
 Normal response code: 200
 
@@ -176,6 +184,7 @@ Response
     - links: links
     - ports: pg_ports
     - physical_network: physical_network
+    - category: portgroup_category
 
 **Example detailed Portgroup list response:**
 
@@ -192,6 +201,9 @@ Show details for the given Portgroup.
 
 .. versionadded:: 1.102
   Added the ``physical_network`` field.
+
+.. versionadded:: 1.103
+  Added the ``category`` field.
 
 Normal response code: 200
 
@@ -224,6 +236,7 @@ Response
     - links: links
     - ports: pg_ports
     - physical_network: physical_network
+    - category: portgroup_category
 
 **Example Portgroup details:**
 
@@ -240,6 +253,9 @@ Update a Portgroup.
 
 .. versionadded:: 1.102
   Added the ``physical_network`` field.
+
+.. versionadded:: 1.103
+  Added the ``category`` field.
 
 Normal response code: 200
 
@@ -279,6 +295,7 @@ Response
     - links: links
     - ports: pg_ports
     - physical_network: physical_network
+    - category: portgroup_category
 
 **Example Portgroup update response:**
 

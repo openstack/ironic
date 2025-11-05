@@ -275,3 +275,32 @@ class DbportgroupTestCase(base.DbTestCase):
             portgroup1.uuid)
         self.assertEqual(new_physical_network,
                          retrieved_portgroup1.physical_network)
+
+    def test_create_portgroup_with_category(self):
+        category = 'hypernet'
+        portgroup1 = db_utils.create_test_portgroup(
+            puuid=uuidutils.generate_uuid(),
+            name=uuidutils.generate_uuid(),
+            node_id=self.node.id,
+            address='aa:bb:cc:dd:ee:ff',
+            category=category)
+        portgroup2 = db_utils.create_test_portgroup(
+            puuid=uuidutils.generate_uuid(),
+            name=uuidutils.generate_uuid(),
+            node_id=self.node.id,
+            address='aa:bb:cc:dd:ee:fa',
+            category=category)
+        self.assertEqual(category, portgroup1.category)
+        self.assertEqual(category, portgroup2.category)
+
+        new_category = 'ultranet'
+        updated_portgroup = self.dbapi.update_portgroup(
+            portgroup1.id, {'category': new_category})
+
+        self.assertEqual(new_category,
+                         updated_portgroup.category)
+
+        retrieved_portgroup1 = self.dbapi.get_portgroup_by_uuid(
+            portgroup1.uuid)
+        self.assertEqual(new_category,
+                         retrieved_portgroup1.category)

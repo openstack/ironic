@@ -1303,6 +1303,16 @@ def allow_portgroup_physical_network():
             >= versions.MINOR_102_PORTGROUP_PHYSICAL_NETWORK)
 
 
+def allow_portgroup_category():
+    """Check if category can be added to/queried from a portgroup.
+
+    Version 1.103 of the API added category field to portgroup
+    object.
+    """
+    return (api.request.version.minor
+            >= versions.MINOR_103_PORTGROUP_CATEGORY)
+
+
 def allow_vifs_subcontroller():
     """Check if node/vifs can be used.
 

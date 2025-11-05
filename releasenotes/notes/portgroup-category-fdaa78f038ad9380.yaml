@@ -1,0 +1,6 @@
+---
+features:
+  - |
+    A new "category" field has been added to the Portgroup object. This field
+    is meant to help distinguish between different Portgroups. Relevant to
+    trait based port scheduling feature.
