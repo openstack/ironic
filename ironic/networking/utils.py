@@ -36,16 +36,23 @@ def rpc_transport():
 def parse_vlan_ranges(vlan_spec):
     """Parse VLAN specification into a set of VLAN IDs.
 
-    :param vlan_spec: List of VLAN IDs or ranges (e.g., ['100', '102-104'])
+    :param vlan_spec: List of VLAN IDs or ranges (e.g., ['100', '102-104']) or
+        a string representing a list of VLAN IDs (e.g., '100,102-104').
     :returns: Set of integer VLAN IDs
     :raises: InvalidParameterValue if the specification is invalid
     """
     if vlan_spec is None:
         return None
 
+    if isinstance(vlan_spec, str):
+        vlan_spec = vlan_spec.split(',')
+
     vlan_set = set()
     for item in vlan_spec:
         item = item.strip()
+        if not item:
+            # Skip empty elements (e.g., from "100,,200" or trailing commas)
+            continue
         if '-' in item:
             # Handle range (e.g., "102-104")
             try:
@@ -82,48 +89,3 @@ def parse_vlan_ranges(vlan_spec):
                     {'item': item, 'error': str(e)})
 
     return vlan_set
-
-
-def validate_vlan_allowed(vlan_id, allowed_vlans_config=None,
-                          switch_config=None):
-    """Validate that a VLAN ID is allowed.
-
-    :param vlan_id: The VLAN ID to validate
-    :param allowed_vlans_config: Global list of allowed vlans from config
-    :param switch_config: Optional switch-specific configuration dict that
-                          may contain an 'allowed_vlans' key
-    :returns: True if the VLAN is allowed
-    :raises: InvalidParameterValue if the VLAN is not allowed
-    """
-    # Check switch-specific configuration first (if provided)
-    if switch_config and 'allowed_vlans' in switch_config:
-        allowed_spec = switch_config['allowed_vlans']
-    else:
-        # Fall back to global configuration
-        if allowed_vlans_config is not None:
-            allowed_spec = allowed_vlans_config
-        else:
-            allowed_spec = CONF.ironic_networking.allowed_vlans
-
-    # None means all VLANs are allowed
-    if allowed_spec is None:
-        return True
-
-    # Empty list means no VLANs are allowed
-    if isinstance(allowed_spec, list) and len(allowed_spec) == 0:
-        raise exception.InvalidParameterValue(
-            _('VLAN %(vlan)s is not allowed: no VLANs are permitted by '
-              'configuration') % {'vlan': vlan_id})
-
-    # Parse and check against allowed VLANs
-    try:
-        allowed_vlans = parse_vlan_ranges(allowed_spec)
-        if vlan_id not in allowed_vlans:
-            raise exception.InvalidParameterValue(
-                _('VLAN %(vlan)s is not in the list of allowed VLANs') %
-                {'vlan': vlan_id})
-    except exception.InvalidParameterValue:
-        # Re-raise validation errors from parse_vlan_ranges
-        raise
-
-    return True
