@@ -46,6 +46,12 @@ opts = [
     cfg.IntOpt('status_check_period', default=60,
                help=_('period (in seconds) to check status of nodes '
                       'on inspection')),
+    cfg.BoolOpt('force_dhcp', default=False,
+                help=_('If True, during managed inspection force the '
+                       'inspection ramdisk to use DHCP on all available '
+                       'interfaces and avoid injecting any static network '
+                       'configuration into the virtual media ISO. This '
+                       'ensures LLDP collection across all interfaces.')),
     cfg.StrOpt('extra_kernel_params', default='',
                help=_('extra kernel parameters to pass to the inspection '
                       'ramdisk when boot is managed by ironic (not '

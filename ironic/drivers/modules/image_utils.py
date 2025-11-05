@@ -603,14 +603,21 @@ def prepare_deploy_iso(task, params, mode, d_info):
         inject_files[_TLS_CONFIG_TEMPLATE.encode('utf-8')] = \
             'etc/ironic-python-agent.d/ironic-tls.conf'
 
-    network_data = task.driver.network.get_node_network_data(task)
-    if network_data:
-        LOG.debug('Injecting custom network data for node %s',
-                  task.node.uuid)
-        network_data = json.dumps(network_data, indent=2).encode('utf-8')
-        inject_files[network_data] = (
-            'openstack/latest/network_data.json'
-        )
+    # Optionally skip injecting network_data for managed inspection when
+    # inspection on all interfaces is requested.
+    skip_network_data = (
+        task.node.provision_state in (states.INSPECTING, states.INSPECTWAIT)
+        and CONF.inspector.force_dhcp
+    )
+    if not skip_network_data:
+        network_data = task.driver.network.get_node_network_data(task)
+        if network_data:
+            LOG.debug('Injecting custom network data for node %s',
+                      task.node.uuid)
+            network_data = json.dumps(network_data, indent=2).encode('utf-8')
+            inject_files[network_data] = (
+                'openstack/latest/network_data.json'
+            )
 
     return prepare_iso_image(inject_files=inject_files)
 

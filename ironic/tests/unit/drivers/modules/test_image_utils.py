@@ -998,6 +998,35 @@ class RedfishImageUtilsTestCase(db_base.DbTestCase):
                 params={}, inject_files=expected_files, base_iso=None)
 
     @mock.patch.object(image_utils, '_prepare_iso_image', autospec=True)
+    def test_prepare_deploy_iso_network_data_skipped_for_inspection(
+            self, mock__prepare_iso_image):
+        # When in inspection and force_dhcp is enabled, ensure
+        # network_data.json is not injected by looking at inject_files to make
+        # sure it is empty.
+        with task_manager.acquire(self.context, self.node.uuid,
+                                  shared=True) as task:
+            cfg.CONF.set_override('force_dhcp', True,
+                                  group='inspector')
+            task.node.provision_state = states.INSPECTING
+
+            d_info = {
+                'deploy_kernel': 'kernel',
+                'deploy_ramdisk': 'ramdisk'
+            }
+            task.node.driver_info.update(d_info)
+
+            # Return some network data, which should be ignored
+            network_data = {'a': ['b']}
+            mock_get_node_nw_data = mock.MagicMock(return_value=network_data)
+            task.driver.network.get_node_network_data = mock_get_node_nw_data
+
+            image_utils.prepare_deploy_iso(task, {}, 'deploy', d_info)
+
+            mock__prepare_iso_image.assert_called_once_with(
+                task, 'kernel', 'ramdisk', bootloader_href=None,
+                params={}, inject_files={}, base_iso=None)
+
+    @mock.patch.object(image_utils, '_prepare_iso_image', autospec=True)
     def test_prepare_deploy_iso_tls(self, mock__prepare_iso_image):
         with tempfile.NamedTemporaryFile(delete=False) as tf:
             temp_name = tf.name

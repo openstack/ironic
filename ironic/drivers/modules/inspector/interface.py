@@ -152,6 +152,9 @@ def prepare_managed_inspection(task, endpoint):
     params = dict(
         utils.parse_kernel_params(CONF.inspector.extra_kernel_params),
         **{'ipa-inspection-callback-url': endpoint})
+    if CONF.inspector.force_dhcp:
+        # Ensure LLDP collection for inspection on all interfaces.
+        params.setdefault('ipa-collect-lldp', '1')
     if utils.fast_track_enabled(task.node):
         params['ipa-api-url'] = deploy_utils.get_ironic_api_url()
 
