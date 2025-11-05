@@ -15,6 +15,7 @@
 from oslo_log import log
 
 from ironic.common import exception
+from ironic.common import states
 
 LOG = log.getLogger(__name__)
 
@@ -26,6 +27,31 @@ SERVICING_NETWORK = 'servicing'
 INSPECTION_NETWORK = 'inspection'
 PROVISIONING_NETWORK = 'provisioning'
 TENANT_NETWORK = 'tenant'
+
+
+def get_network_type_for_state(provision_state):
+    """Determine which network type should be active based on provision state.
+
+    :param provision_state: The node's current provision state.
+    :returns: String indicating the network type, or IDLE_NETWORK if the
+        state doesn't map to a specific network.
+    """
+    if provision_state in (states.INSPECTING, states.INSPECTWAIT):
+        return INSPECTION_NETWORK
+    elif provision_state in (states.CLEANING, states.CLEANWAIT):
+        return CLEANING_NETWORK
+    elif provision_state in (states.DEPLOYING, states.DEPLOYWAIT):
+        return PROVISIONING_NETWORK
+    elif provision_state == states.ACTIVE:
+        return TENANT_NETWORK
+    elif provision_state in (states.RESCUE, states.RESCUING,
+                             states.RESCUEWAIT):
+        return RESCUING_NETWORK
+    elif provision_state in (states.SERVICING, states.SERVICEWAIT):
+        return SERVICING_NETWORK
+    else:
+        # ENROLL, MANAGEABLE, or unknown states -> default to idle network
+        return IDLE_NETWORK
 
 
 def get_node_vif_ids(task):
