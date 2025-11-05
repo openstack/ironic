@@ -189,6 +189,7 @@ parse-lldp = "ironic.drivers.modules.inspector.hooks.parse_lldp:ParseLLDPHook"
 
 [project.entry-points."ironic.networking.switch_drivers"]
 noop = "ironic.drivers.modules.switch:NoOpSwitchDriver"
+generic-switch = "ironic.drivers.modules.switch.generic_switch:GenericSwitchDriver"
 
 [project.entry-points."oslo.config.opts"]
 ironic = "ironic.conf.opts:list_opts"
