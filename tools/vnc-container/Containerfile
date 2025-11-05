@@ -3,23 +3,27 @@ FROM quay.io/centos/centos:stream9
 RUN dnf -y install \
     epel-release && \
     dnf -y install \
-    chromium \
-    chromedriver \
+    firefox \
     dumb-init \
+    iproute \
     procps \
     psmisc \
     python3-requests \
-    python3-selenium \
     x11vnc \
-    xorg-x11-server-Xvfb
+    xorg-x11-server-Xvfb && \
+    useradd --create-home --shell /bin/bash firefox
 
 ENV DISPLAY_WIDTH=1280
 ENV DISPLAY_HEIGHT=960
 
 ENV APP='fake'
+ENV APP_INFO={}
+ENV READ_ONLY=False
+ENV DEBUG=0
 
 ADD bin/* /usr/local/bin
 ADD drivers /drivers
+ADD extension /usr/share/mozilla/extensions/{ec8030f7-c20a-464f-9b0e-13a3a9e97384}/@ironic-console.openstack.org
 
 ENTRYPOINT ["/usr/bin/dumb-init", "--"]
-CMD ["/usr/local/bin/start-xvfb.sh"]
+CMD ["/usr/local/bin/start-x11vnc.sh"]

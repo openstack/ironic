@@ -1,0 +1,1 @@
+log.console("fake startup")

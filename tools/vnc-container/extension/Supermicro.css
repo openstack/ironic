@@ -1,0 +1,13 @@
+/* CSS file for Supermicro Graphical Console */
+
+div#VideoRecordingModal {
+    display: none !important;
+}
+
+nav.navbar {
+    display: none !important;
+}
+
+div.modal-backdrop {
+    display: none !important;
+}

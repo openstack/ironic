@@ -1,0 +1,11 @@
+/* CSS file for iLO Graphical Console */
+
+/* Hide header controls */
+
+#app-container #videoOuter #videoContainer div.control.windowedMode {
+    display: none !important;
+}
+
+#irc_statusbar {
+    display: none !important;
+}

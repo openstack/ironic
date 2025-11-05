@@ -250,6 +250,12 @@ packages = [
 "share/ironic/vnc-container/drivers/fake/" = [
     "tools/vnc-container/drivers/fake/*",
 ]
+"share/ironic/vnc-container/drivers/launch/" = [
+    "tools/vnc-container/drivers/launch/*",
+]
+"share/ironic/vnc-container/extension/" = [
+    "tools/vnc-container/extension/*",
+]
 
 [tool.doc8]
 ignore = ["D001"]

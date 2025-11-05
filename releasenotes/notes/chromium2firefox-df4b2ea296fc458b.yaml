@@ -1,0 +1,34 @@
+---
+features:
+  - |
+    The container build recipe for the graphical console container image has
+    replaced the Chrome/Selenium approach with a Firefox extension.
+
+    The previous containerised graphical console approach had a Selenium
+    script managing a Chrome browser session. This change replaces that with
+    firefox and a custom extension to perform the required actions to login
+    and load the BMC console. This supports the same vendors as the previous
+    approach (iDRAC, iLO, Supermicro).
+
+    Functional differences with the chrome/selenium version:
+
+    * Firefox kiosk mode has a more locked-down environment, including
+      disabling context menus. This means the brittle workaround to disable
+      them is no longer required.
+    * Firefox global policy allows the environment to be locked down
+      further, including limiting accessing to all URLs except the BMC.
+    * There is now a dedicated loading page which can show status updates
+      until the first BMC page loads. This page shows error messages if any
+      of the early redfish calls fail.
+    * VNC client sessions are now shared with multiple clients, and firefox
+      will be started on the first connection, and stopped when the last
+      connection ends.
+    * Starting Xvfb is now deferred until the first VNC client connection.
+      This results in a never-connected container using 5MB vs 30MB
+      once Xvfb is started. Starting Xvfb has ~1sec time penalty on first
+      connection.
+    * The browser now runs in a dedicated non-root user
+    * All redfish consoles now hide toolbar elements with a CSS overlay rather than
+      simulating other methods such as clicking the "Full Screen" button.
+    * ilo6/ilo5 detection is now done by a redfish call and the ilo5 path
+      has less moving parts.

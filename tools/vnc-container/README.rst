@@ -26,6 +26,7 @@ to use this image in ``ironic.conf``:
 .. code-block:: ini
 
       [vnc]
+      enabled = True
       container_provider=systemd
       console_image=localhost/ironic-vnc-container
 
@@ -35,20 +36,20 @@ Implementation
 
 When the container is started the following occurs:
 
+1. x11vnc is run, which exposes a VNC server port
+
+When a VNC connection is established, the following occurs:
+
 1. Xvfb is run, which starts a virtual X11 session
-2. x11vnc is run, which exposes a VNC server port
+2. A firefox browser is started in kiosk mode
+3. A firefox extension automates loading the requested console app
+4. For the ``fake`` app, display drivers/fake/index.html
+5. For the ``redfish-graphical`` app, detect the vendor by looking at the
+   ``Oem`` value in a ``/redfish/v1`` response
+6. Runs vendor specific scripts to display an HTML5 based console
 
-When a VNC connection is established a Selenium python script is started
-which:
-
-1. Starts a Chromium browser
-2. For the ``fake`` app displays drivers/fake/index.html
-3. For the ``redfish`` app detects the vendor by looking at the ``Oem``
-   value in a ``/redfish/v1`` response
-4. Runs vendor specific code to display an HTML5 based console
-
-When the VNC connection is terminated, the Selenium script and Chromium is
-also terminated.
+Multiple VNC connections can share a single instance. When the last VNC
+connection is closed, the running Firefox is closed.
 
 Vendor specific implementations are as follows.
 
