@@ -1,0 +1,10 @@
+---
+features:
+  - |
+    Added support for multiple JSON-RPC configuration groups. The JSON-RPC
+    client and server implementation can now use different configuration
+    sections within the same configuration file. This will enable future
+    planned ironic services to use their own JSON-RPC configuration section
+    while sharing the same underlying implementation. The ``Client`` and
+    ``WSGIService`` classes now accept a ``conf_group`` parameter to specify
+    which configuration group to use.

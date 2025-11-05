@@ -16,13 +16,19 @@ import tempfile
 from unittest import mock
 
 import fixtures
+from oslo_config import cfg
 import oslo_messaging
 import webob
 
 from ironic.common import exception
 from ironic.common.json_rpc import client
 from ironic.common.json_rpc import server
+from ironic.conf import json_rpc
 from ironic.tests.base import TestCase
+
+CONF = cfg.CONF
+
+json_rpc.register_opts(CONF, 'some_other_json_rpc')
 
 
 class FakeContext(server.EmptyContext):
@@ -521,6 +527,31 @@ class TestClient(TestCase):
                   'params': {'answer': 42, 'context': self.ctx_json,
                              'rpc.version': '1.42'}})
 
+    def test_group_specific_port_and_ssl(self, mock_session):
+        # Configure a different group with custom port and TLS
+        self.config(port=8192, client_use_ssl=True,
+                    group='some_other_json_rpc')
+
+        response = mock_session.return_value.post.return_value
+        response.json.return_value = {
+            'jsonrpc': '2.0',
+            'result': 42
+        }
+
+        grp_client = client.Client(self.serializer,
+                                   conf_group='some_other_json_rpc')
+        cctx = grp_client.prepare('foo.example.com')
+        self.assertEqual('example.com', cctx.host)
+        # Should use https and group port 8192
+        result = cctx.call(self.context, 'do_something', answer=42)
+        self.assertEqual(42, result)
+        mock_session.return_value.post.assert_called_once_with(
+            'https://example.com:8192',
+            json={'jsonrpc': '2.0',
+                  'method': 'do_something',
+                  'params': {'answer': 42, 'context': self.ctx_json},
+                  'id': self.context.request_id})
+
     def test_call_failure(self, mock_session):
         response = mock_session.return_value.post.return_value
         response.json.return_value = {
@@ -671,7 +702,7 @@ class TestSession(TestCase):
 
     def setUp(self):
         super(TestSession, self).setUp()
-        client._SESSION = None
+        client._SESSIONS.clear()
 
     def test_noauth(self, mock_keystone):
         self.config(auth_strategy='noauth', group='json_rpc')
@@ -748,6 +779,53 @@ class TestSession(TestCase):
 
         mock_keystone.get_adapter.assert_called_once_with(
             'json_rpc',
+            session=internal_session,
+            additional_headers={
+                'Content-Type': 'application/json'
+            })
+        self.assertEqual(mock_keystone.get_adapter.return_value, session)
+
+    def test_group_noauth(self, mock_keystone):
+        client._SESSIONS.clear()
+        self.config(auth_strategy='noauth', group='some_other_json_rpc')
+        session = client._get_session('some_other_json_rpc')
+
+        mock_keystone.get_auth.assert_called_once_with('some_other_json_rpc')
+        auth = mock_keystone.get_auth.return_value
+
+        mock_keystone.get_session.assert_called_once_with(
+            'some_other_json_rpc', auth=auth)
+
+        internal_session = mock_keystone.get_session.return_value
+
+        mock_keystone.get_adapter.assert_called_once_with(
+            'some_other_json_rpc',
+            session=internal_session,
+            additional_headers={
+                'Content-Type': 'application/json'
+            })
+        self.assertEqual(mock_keystone.get_adapter.return_value, session)
+
+    def test_group_http_basic_deprecated(self, mock_keystone):
+        client._SESSIONS.clear()
+        self.config(auth_strategy='http_basic',
+                    group='some_other_json_rpc')
+        self.config(http_basic_username='netUser',
+                    group='some_other_json_rpc')
+        self.config(http_basic_password='netPass',
+                    group='some_other_json_rpc')
+        session = client._get_session('some_other_json_rpc')
+
+        mock_keystone.get_auth.assert_called_once_with(
+            'some_other_json_rpc', username='netUser', password='netPass')
+        auth = mock_keystone.get_auth.return_value
+        mock_keystone.get_session.assert_called_once_with(
+            'some_other_json_rpc', auth=auth)
+
+        internal_session = mock_keystone.get_session.return_value
+
+        mock_keystone.get_adapter.assert_called_once_with(
+            'some_other_json_rpc',
             session=internal_session,
             additional_headers={
                 'Content-Type': 'application/json'
