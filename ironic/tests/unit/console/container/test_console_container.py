@@ -12,6 +12,7 @@
 # under the License.
 
 import os
+import socket
 import tempfile
 from unittest import mock
 
@@ -22,6 +23,7 @@ from ironic.common import console_factory
 from ironic.common import exception
 from ironic.common import utils
 from ironic.console.container import fake
+from ironic.console.container import systemd
 from ironic.tests import base
 
 CONF = cfg.CONF
@@ -131,7 +133,11 @@ class TestSystemdConsoleContainer(base.TestCase):
         self.provider._stop(unit)
 
         # assert successful call
-        mock_exec.assert_called_once_with('systemctl', '--user', 'stop', unit)
+        mock_exec.assert_has_calls([
+            mock.call('journalctl', '--user', '--no-pager', '-u', unit,
+                      check_exit_code=False),
+            mock.call('systemctl', '--user', 'stop', unit)
+        ])
 
         mock_exec.side_effect = [
             processutils.ProcessExecutionError(
@@ -225,7 +231,9 @@ WantedBy=default.target""", f.read())
         self.assertFalse(os.path.exists(container_path))
 
     @mock.patch.object(utils, 'execute', autospec=True)
-    def test_start_stop_container(self, mock_exec):
+    @mock.patch.object(systemd.SystemdConsoleContainer, '_wait_for_listen',
+                       autospec=True)
+    def test_start_container(self, mock_wait, mock_exec):
         uuid = '1234'
         task = mock.Mock(node=mock.Mock(uuid=uuid))
 
@@ -253,8 +261,50 @@ WantedBy=default.target""", f.read())
             mock.call('podman', 'port', 'systemd-ironic-console-1234')
         ])
 
+    @mock.patch.object(utils, 'execute', autospec=True)
+    def test_start_container_failed(self, mock_exec):
+        uuid = '1234'
+        task = mock.Mock(node=mock.Mock(uuid=uuid))
+
+        container_path = self.provider._container_path(uuid)
+
+        mock_exec.side_effect = [
+            (None, None),
+            processutils.ProcessExecutionError(
+                stderr='ouch'
+            ),
+            ("unit not running", None),
+            ("things happened", None)
+        ]
+
+        # start the container and assert the host / port
+        self.assertRaises(
+            exception.ConsoleContainerError,
+            self.provider.start_container, task, 'fake', {})
+        # assert the created file was cleaned up
+        self.assertFalse(os.path.isfile(container_path))
+
+        # assert all the expected calls
+        mock_exec.assert_has_calls([
+            mock.call('systemctl', '--user', 'daemon-reload'),
+            mock.call('systemctl', '--user', 'start',
+                      'ironic-console-1234.service'),
+            mock.call('systemctl', '--user', 'status',
+                      'ironic-console-1234.service', check_exit_code=False),
+            mock.call('journalctl', '--user', '--no-pager', '-u',
+                      'ironic-console-1234.service', check_exit_code=False)
+        ])
+
+    @mock.patch.object(utils, 'execute', autospec=True)
+    def test_stop_container(self, mock_exec):
+        uuid = '1234'
+        task = mock.Mock(node=mock.Mock(uuid=uuid))
+
+        container_path = self.provider._container_path(uuid)
+
         mock_exec.reset_mock()
         mock_exec.side_effect = [
+            (None, None),
             (None, None),
             (None, None),
         ]
@@ -266,13 +316,98 @@ WantedBy=default.target""", f.read())
 
         # assert expected stop calls
         mock_exec.assert_has_calls([
+            mock.call('journalctl', '--user', '--no-pager', '-u',
+                      'ironic-console-1234.service', check_exit_code=False),
             mock.call('systemctl', '--user', 'stop',
                       'ironic-console-1234.service'),
             mock.call('systemctl', '--user', 'daemon-reload'),
         ])
 
     @mock.patch.object(utils, 'execute', autospec=True)
-    def test_stop_all_containers(self, mock_exec):
+    def test_stop_container_failed(self, mock_exec):
+        uuid = '1234'
+        task = mock.Mock(node=mock.Mock(uuid=uuid))
+
+        container_path = self.provider._container_path(uuid)
+
+        mock_exec.reset_mock()
+        mock_exec.side_effect = [
+            (None, None),
+            processutils.ProcessExecutionError(
+                stderr='ouch'
+            ),
+            ("unit in unknown state", None),
+            (None, None)
+        ]
+        # stop the container
+        self.provider.stop_container(task)
+
+        # assert the container file is deleted
+        self.assertFalse(os.path.exists(container_path))
+
+        # assert expected stop calls
+        mock_exec.assert_has_calls([
+            mock.call('journalctl', '--user', '--no-pager', '-u',
+                      'ironic-console-1234.service', check_exit_code=False),
+            mock.call('systemctl', '--user', 'stop',
+                      'ironic-console-1234.service'),
+            mock.call('systemctl', '--user', 'status',
+                      'ironic-console-1234.service', check_exit_code=False),
+            mock.call('systemctl', '--user', 'daemon-reload'),
+        ])
+
+    @mock.patch('time.sleep', autospec=True)
+    @mock.patch('socket.create_connection', autospec=True)
+    def test__wait_for_listen_success(self, mock_create_connection,
+                                      mock_sleep):
+        mock_socket = mock.MagicMock()
+        mock_socket.recv.return_value = b'x' * 12
+        mock_create_connection.return_value.__enter__.return_value = (
+            mock_socket)
+
+        self.provider._wait_for_listen('127.0.0.1', 5900)
+
+        mock_create_connection.assert_called_once_with(('127.0.0.1', 5900),
+                                                       timeout=1)
+        mock_socket.recv.assert_called_once_with(12)
+        mock_sleep.assert_not_called()
+
+    @mock.patch('time.sleep', autospec=True)
+    @mock.patch('socket.create_connection', autospec=True)
+    def test__wait_for_listen_retry(self, mock_create_connection, mock_sleep):
+        mock_socket = mock.MagicMock()
+        mock_socket.recv.return_value = b'x' * 12
+        mock_create_connection.side_effect = [
+            socket.error,
+            socket.error,
+            mock.MagicMock(__enter__=mock.MagicMock(return_value=mock_socket))
+        ]
+
+        self.provider._wait_for_listen('127.0.0.1', 5900)
+
+        self.assertEqual(3, mock_create_connection.call_count)
+        self.assertEqual(2, mock_sleep.call_count)
+        mock_socket.recv.assert_called_once_with(12)
+
+    @mock.patch('time.sleep', autospec=True)
+    @mock.patch('socket.create_connection', autospec=True)
+    def test__wait_for_listen_timeout(self, mock_create_connection,
+                                      mock_sleep):
+        mock_create_connection.side_effect = socket.error
+
+        self.assertRaisesRegex(
+            exception.ConsoleContainerError,
+            "RFB data not returned by 127.0.0.1:5900",
+            self.provider._wait_for_listen, '127.0.0.1', 5900)
+
+        self.assertEqual(10, mock_create_connection.call_count)
+        # time.sleep is called after each failed attempt
+        self.assertEqual(10, mock_sleep.call_count)
+
+    @mock.patch.object(utils, 'execute', autospec=True)
+    @mock.patch.object(systemd.SystemdConsoleContainer, '_wait_for_listen',
+                       autospec=True)
+    def test_stop_all_containers(self, mock_wait, mock_exec):
         # set up initial state with 3 running containers
         t1 = mock.Mock(node=mock.Mock(uuid='1234'))
         t2 = mock.Mock(node=mock.Mock(uuid='asdf'))
@@ -298,19 +433,28 @@ WantedBy=default.target""", f.read())
             (None, None),
             (None, None),
             (None, None),
+            (None, None),
+            (None, None),
+            (None, None),
         ]
 
         self.provider.stop_all_containers()
         # assert all containers stopped
         mock_exec.assert_has_calls([
+            mock.call('journalctl', '--user', '--no-pager', '-u',
+                      'ironic-console-1234.service', check_exit_code=False),
             mock.call('systemctl', '--user', 'stop',
                       'ironic-console-1234.service'),
         ])
         mock_exec.assert_has_calls([
+            mock.call('journalctl', '--user', '--no-pager', '-u',
+                      'ironic-console-asdf.service', check_exit_code=False),
             mock.call('systemctl', '--user', 'stop',
                       'ironic-console-asdf.service'),
         ])
         mock_exec.assert_has_calls([
+            mock.call('journalctl', '--user', '--no-pager', '-u',
+                      'ironic-console-foobar.service', check_exit_code=False),
             mock.call('systemctl', '--user', 'stop',
                       'ironic-console-foobar.service'),
         ])
