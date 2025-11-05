@@ -377,6 +377,11 @@ class NodeNotFound(NotFound):
     _msg_fmt = _("Node %(node)s could not be found.")
 
 
+class SwitchNotFound(NotFound):
+    _msg_fmt = _("Switch %(switch_id)s could not be found or is not "
+                 "supported by any configured switch driver.")
+
+
 class DuplicateNodeOnLookup(NodeNotFound):
     pass  # Same error message, the difference only matters internally
 

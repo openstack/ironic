@@ -18,6 +18,15 @@ from ironic.common import exception
 
 LOG = log.getLogger(__name__)
 
+# Network Types
+IDLE_NETWORK = 'idle'
+RESCUING_NETWORK = 'rescuing'
+CLEANING_NETWORK = 'cleaning'
+SERVICING_NETWORK = 'servicing'
+INSPECTION_NETWORK = 'inspection'
+PROVISIONING_NETWORK = 'provisioning'
+TENANT_NETWORK = 'tenant'
+
 
 def get_node_vif_ids(task):
     """Get all VIF ids for a node.

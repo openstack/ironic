@@ -15,6 +15,7 @@ releasenotes/build
 
 # sample config files
 etc/ironic/ironic.conf.sample
+etc/ironic/ironic.networking.conf.sample
 etc/ironic/policy.yaml.sample
 
 # Packages/installer info
@@ -33,6 +34,7 @@ develop-eggs
 # Other
 *.DS_Store
 .idea
+.vscode
 .testrepository
 .stestr
 .tox

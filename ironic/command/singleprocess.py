@@ -34,6 +34,7 @@ def main():
     # more information see: https://bugs.launchpad.net/ironic/+bug/1562258
     # and https://bugs.launchpad.net/ironic/+bug/1279774.
     assert 'ironic.conductor.manager' not in sys.modules
+    assert 'ironic.networking.manager' not in sys.modules
 
     # Parse config file and command line options, then start logging
     ironic_service.prepare_service('ironic', sys.argv)

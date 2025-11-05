@@ -58,12 +58,18 @@ class ReleaseMappingsTestCase(base.TestCase):
     def test_structure(self):
         for value in release_mappings.RELEASE_MAPPING.values():
             self.assertIsInstance(value, dict)
-            self.assertEqual({'api', 'rpc', 'objects'}, set(value))
+            # networking_rpc is optional
+            expected_keys = {'api', 'rpc', 'objects'}
+            optional_keys = {'networking_rpc'}
+            self.assertTrue(set(value).issubset(expected_keys | optional_keys))
+            self.assertTrue(expected_keys.issubset(set(value)))
             self.assertIsInstance(value['api'], str)
             (major, minor) = value['api'].split('.')
             self.assertEqual(1, int(major))
             self.assertLessEqual(int(minor), api_versions.MINOR_MAX_VERSION)
             self.assertIsInstance(value['rpc'], str)
+            if 'networking_rpc' in value:
+                self.assertIsInstance(value['networking_rpc'], str)
             self.assertIsInstance(value['objects'], dict)
             for obj_value in value['objects'].values():
                 self.assertIsInstance(obj_value, list)
@@ -81,6 +87,12 @@ class ReleaseMappingsTestCase(base.TestCase):
     def test_current_rpc_version(self):
         self.assertEqual(rpcapi.ConductorAPI.RPC_API_VERSION,
                          release_mappings.RELEASE_MAPPING['master']['rpc'])
+
+    def test_current_networking_rpc_version(self):
+        from ironic.networking import rpcapi as networking_rpcapi
+        self.assertEqual(
+            networking_rpcapi.NetworkingAPI.RPC_API_VERSION,
+            release_mappings.RELEASE_MAPPING['master']['networking_rpc'])
 
     def test_current_object_versions(self):
         registered_objects = obj_base.IronicObjectRegistry.obj_classes()
