@@ -5,9 +5,9 @@
    :robots: index, follow
    :audience: system administrators, cloud operators
 
-=====================================
-Bare Metal Service Installation Guide
-=====================================
+====================================
+Installing Ironic Bare Metal Service
+====================================
 
 The Bare Metal service is a collection of components that provides support to
 manage and provision physical machines.
