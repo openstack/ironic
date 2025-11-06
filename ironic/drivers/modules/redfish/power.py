@@ -123,30 +123,46 @@ class RedfishPower(base.PowerInterface):
 
         try:
             _set_power_state(task, system, power_state, timeout=timeout)
-        except sushy.exceptions.BadRequestError as e:
+        except sushy.exceptions.HTTPError as e:
+            # Handle HTTP 400 (BadRequest) and 409 (Conflict) errors where
+            # the BMC indicates the node is already in the desired state
+            if e.status_code in (400, 409):
+                target_state = TARGET_STATE_MAP.get(power_state, power_state)
 
-            target_state = TARGET_STATE_MAP.get(power_state, power_state)
-            current_state = GET_POWER_STATE_MAP.get(system.power_state)
+                # Refresh system state to get current power state from BMC
+                # instead of using potentially stale cached data
+                try:
+                    system.refresh()
+                except Exception as refresh_error:
+                    LOG.warning('Failed to refresh system state for node '
+                                '%(node)s: %(error)s',
+                                {'node': task.node.uuid,
+                                 'error': refresh_error})
 
-            # If current state is undetermined, check for hints in the error
-            # message.
-            if current_state is None:
-                error_msg = str(e).lower()
-                if (target_state == states.POWER_OFF
-                    and 'host is powered off' in error_msg):
-                    current_state = states.POWER_OFF
-                elif (target_state == states.POWER_ON
-                      and 'host is powered on' in error_msg):
-                    current_state = states.POWER_ON
+                current_state = GET_POWER_STATE_MAP.get(system.power_state)
 
-            if current_state == target_state:
-                LOG.info('Node %(node)s power operation (%(requested)s) '
-                         'failed with BadRequest, but node is already in '
-                         'the expected final state (%(final)s). Treating '
-                         'as successful. Error was: %(error)s',
-                         {'node': task.node.uuid, 'requested': power_state,
-                          'final': target_state, 'error': e})
-                return  # Success - already in desired final state
+                # If current state is undetermined, check for hints in the
+                # error message.
+                if current_state is None:
+                    error_msg = str(e).lower()
+                    if (target_state == states.POWER_OFF
+                        and ('host is powered off' in error_msg
+                             or 'already powered off' in error_msg)):
+                        current_state = states.POWER_OFF
+                    elif (target_state == states.POWER_ON
+                          and ('host is powered on' in error_msg
+                               or 'already powered on' in error_msg)):
+                        current_state = states.POWER_ON
+
+                if current_state == target_state:
+                    LOG.info('Node %(node)s power operation (%(requested)s) '
+                             'failed with HTTP %(code)s, but node is already '
+                             'in the expected final state (%(final)s). '
+                             'Treating as successful. Error was: %(error)s',
+                             {'node': task.node.uuid, 'requested': power_state,
+                              'code': e.status_code, 'final': target_state,
+                              'error': e})
+                    return  # Success - already in desired final state
             raise
         except sushy.exceptions.SushyError as e:
             error_msg = (_('Setting power state to %(state)s failed for node '
