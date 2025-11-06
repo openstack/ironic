@@ -14,6 +14,7 @@
 #    under the License.
 
 from http import client as http_client
+import json
 import socket
 import typing
 import urllib
@@ -189,10 +190,10 @@ def _store_inspection_data_in_swift(node_uuid, inventory_data, plugin_data):
     swift_object_name = f'{_OBJECT_NAME_PREFIX}-{node_uuid}'
     container = CONF.inventory.swift_data_container
     swift_api.create_object_from_data(f'{swift_object_name}-inventory',
-                                      inventory_data,
+                                      json.dumps(inventory_data),
                                       container)
     swift_api.create_object_from_data(f'{swift_object_name}-plugin',
-                                      plugin_data,
+                                      json.dumps(plugin_data),
                                       container)
     return swift_object_name
 
