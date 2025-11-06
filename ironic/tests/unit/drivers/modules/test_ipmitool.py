@@ -2745,6 +2745,29 @@ class IPMIToolDriverTestCase(Base):
             task.driver.power.validate(task)
             mock_parse.assert_called_once_with(mock.ANY)
 
+    @mock.patch.object(ipmi, "_validate_ipmi_address", autospec=True)
+    @mock.patch.object(ipmi, "_parse_driver_info", autospec=True)
+    def test_validate_fail_invalid_ipaddress(self, mock_parse, mock_validate):
+        """Test that validation fails with invalid IP address."""
+        # Test invalid IP address (out of range octet)
+        mock_parse.return_value = {'address': '123.233.342.123'}
+        mock_validate.side_effect = exception.InvalidParameterValue('Invalid')
+        with task_manager.acquire(self.context, self.node.uuid) as task:
+            self.assertRaises(exception.InvalidParameterValue,
+                              self.power.validate, task)
+        mock_validate.assert_called_with('123.233.342.123', self.node.uuid)
+
+    @mock.patch.object(ipmi, "_validate_ipmi_address", autospec=True)
+    @mock.patch.object(ipmi, "_parse_driver_info", autospec=True)
+    def test_validate_fail_invalid_hostname(self, mock_parse, mock_validate):
+        """Test that validation fails with invalid hostname."""
+        mock_parse.return_value = {'address': 'claw-me_ow..com'}
+        mock_validate.side_effect = exception.InvalidParameterValue('Invalid')
+        with task_manager.acquire(self.context, self.node.uuid) as task:
+            self.assertRaises(exception.InvalidParameterValue,
+                              self.power.validate, task)
+        mock_validate.assert_called_with('claw-me_ow..com', self.node.uuid)
+
     def test_get_properties(self):
         expected = ipmi.COMMON_PROPERTIES
         self.assertEqual(expected, self.power.get_properties())

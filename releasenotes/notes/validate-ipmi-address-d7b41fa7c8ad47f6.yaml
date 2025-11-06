@@ -1,0 +1,5 @@
+---
+fixes:
+  - |
+    Adds validation for the ``ipmi_address`` field during node validation
+    to ensure it contains a valid IP address or hostname.
