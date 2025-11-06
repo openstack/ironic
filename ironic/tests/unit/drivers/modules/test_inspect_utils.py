@@ -13,6 +13,7 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
+import json
 import socket
 from unittest import mock
 
@@ -255,9 +256,11 @@ class IntrospectionDataStorageFunctionsTestCase(db_base.DbTestCase):
         swift_obj_mock = swift_api_mock.return_value
         object_name = 'inspector_data-' + str(self.node.uuid)
         swift_obj_mock.create_object_from_data.assert_has_calls([
-            mock.call(object_name + '-inventory', self.fake_inventory_data,
+            mock.call(object_name + '-inventory',
+                      json.dumps(self.fake_inventory_data),
                       container),
-            mock.call(object_name + '-plugin', self.fake_plugin_data,
+            mock.call(object_name + '-plugin',
+                      json.dumps(self.fake_plugin_data),
                       container)])
 
     @mock.patch.object(swift, 'SwiftAPI', autospec=True)
