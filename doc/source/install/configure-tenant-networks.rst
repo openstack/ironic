@@ -7,6 +7,12 @@ Below is an example flow of how to set up the Bare Metal service so that node
 provisioning will happen in a multi-tenant environment (which means using the
 ``neutron`` network interface as stated above):
 
+.. note::
+   For standalone deployments without the Networking service (Neutron), the
+   ``ironic-networking`` network interface provides an alternative approach
+   for managing switch port configurations. See
+   :doc:`/install/standalone/networking` for details.
+
 #. Network interfaces can be enabled on ironic-conductor by adding them to the
    ``enabled_network_interfaces`` configuration option under the ``default``
    section of the configuration file::
