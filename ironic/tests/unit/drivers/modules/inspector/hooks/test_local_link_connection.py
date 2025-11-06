@@ -15,6 +15,7 @@ from unittest import mock
 
 from oslo_utils import uuidutils
 
+from ironic.common import exception
 from ironic.conductor import task_manager
 from ironic.conf import CONF
 from ironic.drivers.modules.inspector.hooks import local_link_connection as \
@@ -86,7 +87,7 @@ class LocalLinkConnectionTestCase(db_base.DbTestCase):
     @mock.patch.object(port.Port, 'get_by_address', autospec=True)
     @mock.patch.object(port.Port, 'save', autospec=True)
     def test_no_port_in_ironic(self, mock_port_save, mock_get_port, mock_log):
-        mock_get_port.return_value = None
+        mock_get_port.side_effect = exception.PortNotFound
         with task_manager.acquire(self.context, self.node.id) as task:
             hook.LocalLinkConnectionHook().__call__(task, self.inventory,
                                                     self.plugin_data)

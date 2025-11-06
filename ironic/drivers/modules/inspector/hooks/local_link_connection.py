@@ -106,8 +106,10 @@ class LocalLinkConnectionHook(base.InspectionHook):
                 continue
 
             mac_address = iface['mac_address']
-            port = ironic_port.Port.get_by_address(task.context, mac_address)
-            if not port:
+            try:
+                port = ironic_port.Port.get_by_address(task.context,
+                                                       mac_address)
+            except exception.PortNotFound:
                 LOG.debug('Skipping LLDP processing for interface %s of node '
                           '%s: matching port not found in Ironic.',
                           mac_address, task.node.uuid)
