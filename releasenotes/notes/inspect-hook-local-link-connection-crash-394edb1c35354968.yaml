@@ -1,0 +1,6 @@
+---
+fixes:
+  - |
+    Avoid an unhandled exception in the local_link_connection inspection hook
+    which would cause inspection to fail instead of skipping past missing ports
+    as originally intended.
