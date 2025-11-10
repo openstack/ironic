@@ -1,0 +1,7 @@
+---
+fixes:
+  - |
+    Fixes storage of inventory and plugin data in Swift.
+    Previously, the data has not been stored as JSON.
+    This meant that the data was stored in an odd format
+    with part of the fields missing.
