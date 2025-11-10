@@ -41,26 +41,28 @@ class TestCommonFunctions(db_base.DbTestCase):
         self.client = mock.MagicMock()
 
     def _objects_setup(self, set_physnets):
-        pg1 = obj_utils.create_test_portgroup(
-            self.context, node_id=self.node.id)
-        pg1_ports = []
         # This portgroup contains 2 ports, both of them without VIF. The ports
         # are assigned to physnet physnet1.
         physical_network = 'physnet1' if set_physnets else None
+        pg1 = obj_utils.create_test_portgroup(
+            self.context, node_id=self.node.id,
+            physical_network=physical_network)
+        pg1_ports = []
         for i in range(2):
             pg1_ports.append(obj_utils.create_test_port(
                 self.context, node_id=self.node.id,
                 address='52:54:00:cf:2d:0%d' % i,
                 physical_network=physical_network,
                 uuid=uuidutils.generate_uuid(), portgroup_id=pg1.id))
-        pg2 = obj_utils.create_test_portgroup(
-            self.context, node_id=self.node.id, address='00:54:00:cf:2d:04',
-            name='foo2', uuid=uuidutils.generate_uuid())
-        pg2_ports = []
         # This portgroup contains 3 ports, one of them with 'some-vif'
         # attached, so the two free ones should be considered standalone.
         # The ports are assigned physnet physnet2.
         physical_network = 'physnet2' if set_physnets else None
+        pg2 = obj_utils.create_test_portgroup(
+            self.context, node_id=self.node.id, address='00:54:00:cf:2d:04',
+            name='foo2', physical_network=physical_network,
+            uuid=uuidutils.generate_uuid())
+        pg2_ports = []
         for i in range(2, 4):
             pg2_ports.append(obj_utils.create_test_port(
                 self.context, node_id=self.node.id,
@@ -71,7 +73,7 @@ class TestCommonFunctions(db_base.DbTestCase):
             self.context, node_id=self.node.id,
             address='52:54:00:cf:2d:04',
             physical_network=physical_network,
-            internal_info={'tenant_vif_port_id': 'some-vif'},
+            internal_info={common.TENANT_VIF_KEY: 'some-vif'},
             uuid=uuidutils.generate_uuid(), portgroup_id=pg2.id))
         # This portgroup has 'some-vif-2' attached to it and contains one port,
         # so neither portgroup nor port can be considered free. The ports are
@@ -79,7 +81,8 @@ class TestCommonFunctions(db_base.DbTestCase):
         physical_network = 'physnet3' if set_physnets else None
         pg3 = obj_utils.create_test_portgroup(
             self.context, node_id=self.node.id, address='00:54:00:cf:2d:05',
-            name='foo3', uuid=uuidutils.generate_uuid(),
+            name='foo3', physical_network=physical_network,
+            uuid=uuidutils.generate_uuid(),
             internal_info={common.TENANT_VIF_KEY: 'some-vif-2'})
         pg3_ports = [obj_utils.create_test_port(
             self.context, node_id=self.node.id,
