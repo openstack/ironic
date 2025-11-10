@@ -353,6 +353,64 @@ class RedfishFirmwareTestCase(db_base.DbTestCase):
                           'NetworkAdapters' in str(call)]
         self.assertEqual(len(debug_calls), 0)
 
+    @mock.patch.object(redfish_fw, 'LOG', autospec=True)
+    @mock.patch.object(redfish_utils, 'get_system', autospec=True)
+    @mock.patch.object(redfish_utils, 'get_manager', autospec=True)
+    @mock.patch.object(redfish_utils, 'get_chassis', autospec=True)
+    @mock.patch.object(objects, 'FirmwareComponentList', autospec=True)
+    @mock.patch.object(objects, 'FirmwareComponent', spec_set=True,
+                       autospec=True)
+    def test_retrieve_nic_components_invalid_firmware_version(
+            self, fw_cmp_mock, fw_cmp_list, chassis_mock, manager_mock,
+            system_mock, log_mock):
+        """Test that NIC components with missing versions are skipped."""
+        for invalid_version in [None, ""]:
+            fw_cmp_list.reset_mock()
+            fw_cmp_mock.reset_mock()
+            log_mock.reset_mock()
+
+            create_list = [{'component': 'bios', 'current_version': 'v1.0.0'},
+                           {'component': 'bmc', 'current_version': 'v1.0.0'}]
+            fw_cmp_list.sync_firmware_components.return_value = (
+                create_list, [], []
+            )
+
+            bios_component = {'component': 'bios',
+                              'current_version': 'v1.0.0',
+                              'node_id': self.node.id}
+
+            bmc_component = {'component': 'bmc', 'current_version': 'v1.0.0',
+                             'node_id': self.node.id}
+
+            with task_manager.acquire(self.context, self.node.uuid,
+                                      shared=True) as task:
+                manager_mock.return_value.firmware_version = "v1.0.0"
+                system_mock.return_value.bios_version = "v1.0.0"
+
+                netadp_ctrl = mock.MagicMock()
+                netadp_ctrl.firmware_package_version = invalid_version
+                netadp = mock.MagicMock()
+                netadp.identity = 'NIC1'
+                netadp.controllers = [netadp_ctrl]
+                net_adapters = mock.MagicMock()
+                net_adapters.get_members.return_value = [netadp]
+                chassis_mock.return_value.network_adapters = net_adapters
+                task.driver.firmware.cache_firmware_components(task)
+
+                fw_cmp_list.sync_firmware_components.assert_called_once_with(
+                    task.context, task.node.id,
+                    [{'component': 'bios', 'current_version': 'v1.0.0'},
+                     {'component': 'bmc', 'current_version': 'v1.0.0'}])
+
+                fw_cmp_calls = [
+                    mock.call(task.context, **bios_component),
+                    mock.call().create(),
+                    mock.call(task.context, **bmc_component),
+                    mock.call().create()
+                ]
+                fw_cmp_mock.assert_has_calls(fw_cmp_calls)
+                log_mock.warning.assert_not_called()
+
     @mock.patch.object(redfish_utils, 'LOG', autospec=True)
     @mock.patch.object(redfish_utils, '_get_connection', autospec=True)
     def test_missing_updateservice(self, conn_mock, log_mock):

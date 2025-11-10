@@ -1,0 +1,6 @@
+---
+fixes:
+  - |
+    NIC firmware components with null or empty firmware package versions
+    are now filtered out during caching to avoid NOT NULL database
+    constraint violations.
