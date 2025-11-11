@@ -819,6 +819,13 @@ class OciImageServiceTestCase(base.TestCase):
         self.single_manifest = {
             'mediaType': 'application/vnd.oci.image.manifest.v1+json',
             'artifactType': 'application/vnd.unknown.artifact.v1',
+            "config": {
+                "mediaType": "application/vnd.oci.empty.v1+json",
+                "digest": ("sha256:44136fa355b3678a1146ad16f7e8649e94fb4fc21f"
+                           "e77e8310c060f61caaff8a"),
+                "size": 2,
+                "data": "e30="
+            },
             'layers': [
                 {'mediaType': 'application/vnd.oci.image.layer.v1.tar',
                  'digest': 'sha256:7d6355852aeb6dbcd191bcda7cd74f1536cfe5cbf'
@@ -1039,6 +1046,100 @@ class OciImageServiceTestCase(base.TestCase):
         mock_get_manifest.assert_called_once_with(
             mock.ANY, url)
 
+    @mock.patch.object(ociclient, '_get_manifest', autospec=True)
+    def test_identify_specific_image_bootc_with_digest(
+            self, mock_get_manifest):
+        # Test bootc image with specific digest URL
+        manifest_digest = ('9d046091b3dbeda26e1f4364a116ca8d94284000'
+                           'f103da7310e3a4703df1d3e4')
+        config_csum = ('44136fa355b3678a1146ad16f7e8649e94fb4fc21'
+                       'fe77e8310c060f61caaff8a')
+        mock_get_manifest.return_value = {
+            'schemaVersion': 2,
+            'mediaType': 'application/vnd.oci.image.manifest.v1+json',
+            'config': {
+                'mediaType': 'application/vnd.oci.image.config.v1+json',
+                'digest': 'sha256:%s' % config_csum,
+                'size': 1500
+            },
+            'layers': [
+                {
+                    'mediaType': 'application/vnd.oci.image.layer.v1.tar+gzip',
+                    'digest': 'sha256:layer1',
+                    'size': 5000
+                },
+                {
+                    'mediaType': 'application/vnd.oci.image.layer.v1.tar+gzip',
+                    'digest': 'sha256:layer2',
+                    'size': 3000
+                }
+            ]
+        }
+
+        url = ('oci://localhost/project/bootc@sha256:%s' % manifest_digest)
+        expected_data = {
+            'image_checksum': manifest_digest,
+            'image_disk_format': 'bootc',
+            'image_request_authorization_secret': None,
+            'image_url': url,
+            'oci_image_manifest_url': url
+        }
+        img_data = self.service.identify_specific_image(url)
+        self.assertEqual(expected_data, img_data)
+
+    @mock.patch.object(ociclient, 'get_manifest', autospec=True)
+    @mock.patch.object(ociclient, 'get_artifact_index', autospec=True)
+    def test_identify_specific_image_bootc_no_disktype(
+            self, mock_get_artifact_index, mock_get_manifest):
+        # Test bootc image selection when no disktype annotation is present
+        manifest_digest = ('605c96503253b2e8cd4d1eb46c68e633192bb9'
+                           'b61742cffb54ad7eb3aef7ad6b')
+        # Create a manifest index without disktype annotations
+        artifact_index = {
+            'schemaVersion': 2,
+            'mediaType': 'application/vnd.oci.image.index.v1+json',
+            'manifests': [
+                {
+                    'mediaType': 'application/vnd.oci.image.manifest.v1+json',
+                    'digest': 'sha256:%s' % manifest_digest,
+                    'size': 11538,
+                    'platform': {'architecture': 'amd64', 'os': 'linux'},
+                    'config': {
+                        'mediaType':
+                            'application/vnd.oci.image.config.v1+json',
+                        'digest': 'sha256:config123',
+                        'size': 2000
+                    },
+                    'layers': [
+                        {
+                            'mediaType':
+                            'application/vnd.oci.image.layer.v1.tar+gzip',
+                            'digest': 'sha256:layer1',
+                            'size': 7000
+                        },
+                        {
+                            'mediaType':
+                            'application/vnd.oci.image.layer.v1.tar+gzip',
+                            'digest': 'sha256:layer2',
+                            'size': 4000
+                        }
+                    ]
+                }
+            ]
+        }
+        mock_get_artifact_index.return_value = artifact_index
+
+        img_data = self.service.identify_specific_image(
+            self.href, cpu_arch='amd64')
+
+        # When no disktype is set, it should be treated as bootc
+        self.assertEqual(self.href, img_data['image_url'])
+        self.assertEqual(manifest_digest, img_data['image_checksum'])
+        self.assertEqual('bootc', img_data['image_disk_format'])
+        # Size should be config + sum of layers: 2000 + 7000 + 4000
+        self.assertEqual(13000, img_data['image_size'])
+        mock_get_artifact_index.assert_called_once_with(mock.ANY, self.href)
+
     @mock.patch.object(ociclient, 'get_manifest', autospec=True)
     @mock.patch.object(ociclient, 'get_artifact_index',
                        autospec=True)
@@ -1194,10 +1295,225 @@ class OciImageServiceTestCase(base.TestCase):
         self.assertEqual(layer_csum, res['checksum'])
         self.assertEqual('sha256:' + layer_csum, res['digest'])
 
+    @mock.patch.object(ociclient, '_get_manifest', autospec=True)
+    def test_show_oci_artifact_with_artifact_type(self, mock_get_manifest):
+        # Test show() for OCI 1.1+ artifact (with artifactType)
+        layer_csum = ('7d6355852aeb6dbcd191bcda7cd74f1536cfe5cbf'
+                      '8a10495a7283a8396e4b75b')
+        manifest_digest = ('abc123' + 'f' * 58)  # 64 char sha256
+        mock_get_manifest.return_value = {
+            'schemaVersion': 2,
+            'mediaType': 'application/vnd.oci.image.manifest.v1+json',
+            'artifactType': 'application/vnd.unknown.artifact.v1',
+            'config': {
+                'mediaType': 'application/vnd.oci.image.config.v1+json',
+                'digest': 'sha256:44136fa355b3678a1146ad16f7e8649e94fb4fc21'
+                          'fe77e8310c060f61caaff8a',
+                'size': 7023
+            },
+            'layers': [
+                {
+                    'mediaType': 'application/vnd.oci.image.layer.v1.tar',
+                    'digest': 'sha256:%s' % layer_csum,
+                    'size': 21692416,
+                    'annotations': {
+                        'org.opencontainers.image.title':
+                        'cirros-0.6.3-x86_64-disk.img'
+                    }
+                }
+            ]
+        }
+        res = self.service.show(
+            'oci://localhost/project/artifact@sha256:%s' % manifest_digest)
+        self.assertEqual(21692416, res['size'])
+        self.assertEqual(layer_csum, res['checksum'])
+        self.assertEqual('sha256:' + layer_csum, res['digest'])
+        self.assertEqual('artifact', res['image_type'])
+
+    @mock.patch.object(ociclient, '_get_manifest', autospec=True)
+    def test_show_oci_artifact_with_empty_config(self, mock_get_manifest):
+        # Test show() for ORAS artifact (with empty config mediaType)
+        layer_csum = ('bf53aea26da8c4b2e4ca2d52db138e20fc7e730e6'
+                      'b34b866e9e8e39bcaaa2dc5')
+        manifest_digest = ('def456' + 'a' * 58)  # 64 char sha256
+        mock_get_manifest.return_value = {
+            'schemaVersion': 2,
+            'mediaType': 'application/vnd.oci.image.manifest.v1+json',
+            'config': {
+                'mediaType': 'application/vnd.oci.empty.v1+json',
+                'digest': 'sha256:44136fa355b3678a1146ad16f7e8649e94fb4fc21'
+                          'fe77e8310c060f61caaff8a',
+                'size': 2
+            },
+            'layers': [
+                {
+                    'mediaType': 'application/zstd',
+                    'digest': 'sha256:%s' % layer_csum,
+                    'size': 1059455878,
+                    'annotations': {
+                        'org.opencontainers.image.title':
+                        'podman-machine.x86_64.qemu.qcow2.zst'
+                    }
+                }
+            ]
+        }
+        res = self.service.show(
+            'oci://localhost/project/artifact@sha256:%s' % manifest_digest)
+        self.assertEqual(1059455878, res['size'])
+        self.assertEqual(layer_csum, res['checksum'])
+        self.assertEqual('sha256:' + layer_csum, res['digest'])
+        self.assertEqual('artifact', res['image_type'])
+
+    @mock.patch.object(ociclient, '_get_manifest', autospec=True)
+    def test_show_bootc_image(self, mock_get_manifest):
+        # Test show() for regular container image (bootc path)
+        config_csum = ('44136fa355b3678a1146ad16f7e8649e94fb4fc21'
+                       'fe77e8310c060f61caaff8a')
+        manifest_digest = ('9d046091b3dbeda26e1f4364a116ca8d94284000'
+                           'f103da7310e3a4703df1d3e4')
+        mock_get_manifest.return_value = {
+            'schemaVersion': 2,
+            'mediaType': 'application/vnd.oci.image.manifest.v1+json',
+            'config': {
+                'mediaType': 'application/vnd.oci.image.config.v1+json',
+                'digest': 'sha256:%s' % config_csum,
+                'size': 1500
+            },
+            'layers': [
+                {
+                    'mediaType': 'application/vnd.oci.image.layer.v1.tar+gzip',
+                    'digest': 'sha256:layer1',
+                    'size': 5000
+                },
+                {
+                    'mediaType': 'application/vnd.oci.image.layer.v1.tar+gzip',
+                    'digest': 'sha256:layer2',
+                    'size': 3000
+                }
+            ]
+        }
+        # Test with digest in URL
+        res = self.service.show(
+            'oci://localhost/project/bootc@sha256:%s' % manifest_digest)
+        # Size should be config size + sum of layer sizes
+        self.assertEqual(1500 + 5000 + 3000, res['size'])
+        self.assertEqual(manifest_digest, res['checksum'])
+        self.assertEqual('sha256:' + manifest_digest, res['digest'])
+        self.assertEqual('bootc', res['image_type'])
+
+    @mock.patch.object(ociclient, '_get_manifest', autospec=True)
+    def test_show_bootc_image_uses_config_digest(self, mock_get_manifest):
+        # Test show() for bootc image - digest from URL doesn't match
+        # a layer, so it should use the manifest digest from URL
+        config_csum = ('44136fa355b3678a1146ad16f7e8649e94fb4fc21'
+                       'fe77e8310c060f61caaff8a')
+        manifest_digest = ('1234567890abcdef' + 'b' * 48)  # 64 char sha256
+        mock_get_manifest.return_value = {
+            'schemaVersion': 2,
+            'mediaType': 'application/vnd.oci.image.manifest.v1+json',
+            'config': {
+                'mediaType': 'application/vnd.oci.image.config.v1+json',
+                'digest': 'sha256:%s' % config_csum,
+                'size': 2000
+            },
+            'layers': [
+                {
+                    'mediaType': 'application/vnd.oci.image.layer.v1.tar+gzip',
+                    'digest': 'sha256:' + 'c' * 64,
+                    'size': 6000
+                }
+            ]
+        }
+        res = self.service.show(
+            'oci://localhost/project/bootc@sha256:%s' % manifest_digest)
+        # Size should be config size + layer size
+        self.assertEqual(2000 + 6000, res['size'])
+        self.assertEqual(manifest_digest, res['checksum'])
+        self.assertEqual('sha256:' + manifest_digest, res['digest'])
+        self.assertEqual('bootc', res['image_type'])
+
     @mock.patch.object(image_service.OciImageService, 'show', autospec=True)
     def test_validate_href(self, mock_show):
         self.service.validate_href("oci://foo")
         mock_show.assert_called_once_with(mock.ANY, "oci://foo")
+
+    def test_is_oci_artifact_image_with_artifact_type(self):
+        # Test OCI 1.1+ artifact format with artifactType set
+        manifest = {
+            'schemaVersion': 2,
+            'mediaType': 'application/vnd.oci.image.manifest.v1+json',
+            'artifactType': 'application/vnd.unknown.artifact.v1',
+            'config': {
+                'mediaType': 'application/vnd.oci.image.config.v1+json',
+                'digest': 'sha256:44136fa355b3678a1146ad16f7e8649e94fb4fc21'
+                          'fe77e8310c060f61caaff8a',
+                'size': 7023
+            },
+            'layers': []
+        }
+        self.assertTrue(self.service.is_oci_artifact_image(manifest))
+
+    def test_is_oci_artifact_image_with_empty_config(self):
+        # Test ORAS artifact format with empty config mediaType
+        manifest = {
+            'schemaVersion': 2,
+            'mediaType': 'application/vnd.oci.image.manifest.v1+json',
+            'config': {
+                'mediaType': 'application/vnd.oci.empty.v1+json',
+                'digest': 'sha256:44136fa355b3678a1146ad16f7e8649e94fb4fc21'
+                          'fe77e8310c060f61caaff8a',
+                'size': 2
+            },
+            'layers': []
+        }
+        self.assertTrue(self.service.is_oci_artifact_image(manifest))
+
+    def test_is_oci_artifact_image_regular_image(self):
+        # Test regular container image (not an artifact)
+        manifest = {
+            'schemaVersion': 2,
+            'mediaType': 'application/vnd.oci.image.manifest.v1+json',
+            'config': {
+                'mediaType': 'application/vnd.oci.image.config.v1+json',
+                'digest': 'sha256:44136fa355b3678a1146ad16f7e8649e94fb4fc21'
+                          'fe77e8310c060f61caaff8a',
+                'size': 7023
+            },
+            'layers': []
+        }
+        self.assertFalse(self.service.is_oci_artifact_image(manifest))
+
+    def test_is_oci_artifact_image_no_config(self):
+        # Test manifest without config field
+        manifest = {
+            'schemaVersion': 2,
+            'mediaType': 'application/vnd.oci.image.manifest.v1+json',
+            'layers': []
+        }
+        self.assertFalse(self.service.is_oci_artifact_image(manifest))
+
+    def test_is_oci_artifact_image_empty_manifest(self):
+        # Test empty manifest
+        manifest = {}
+        self.assertFalse(self.service.is_oci_artifact_image(manifest))
+
+    def test_is_oci_artifact_image_artifact_type_takes_precedence(self):
+        # Test that artifactType takes precedence over config mediaType
+        # Even if config has a non-empty mediaType, if artifactType is set,
+        # it should be considered an artifact
+        manifest = {
+            'schemaVersion': 2,
+            'mediaType': 'application/vnd.oci.image.manifest.v1+json',
+            'artifactType': 'application/vnd.custom.artifact.v1',
+            'config': {
+                'mediaType': 'application/vnd.oci.image.config.v1+json',
+                'digest': 'sha256:44136fa355b3678a1146ad16f7e8649e94fb4fc21'
+                          'fe77e8310c060f61caaff8a',
+                'size': 7023
+            },
+            'layers': []
+        }
+        self.assertTrue(self.service.is_oci_artifact_image(manifest))
 
     def test__validate_url_is_specific(self):
         csum = 'f' * 64

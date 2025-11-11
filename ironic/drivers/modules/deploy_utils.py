@@ -1545,9 +1545,10 @@ def build_instance_info_for_deploy(task):
         oci = image_service.OciImageService()
         image_auth = image_service.get_image_service_auth_override(task.node)
         oci.set_image_auth(image_source, image_auth)
-        # Ask the image service method to identify and gather information
-        # about the image. This is different from a specific manifest supplied
-        # upfront.
+
+        # Ask the image service method to identify and gather
+        # information about the image. This is different from a
+        # specific manifest supplied upfront.
         image_info = oci.identify_specific_image(
             image_source, image_download_source,
             node.properties.get('cpu_arch')
@@ -1572,6 +1573,7 @@ def build_instance_info_for_deploy(task):
         # us overriding image_source saved by the user, so rebuilds
         # will work as expected.
         di_info['image_source'] = image_source
+        di_info['container_image_type'] = 'oci_artifact'
         node.driver_internal_info = di_info
 
         check_image_size(node, image_info)

@@ -1,0 +1,6 @@
+---
+features:
+  - |
+    When deploying a container image with the direct deploy interface, the
+    `instance_info.image_disk_format` will be set to `bootc` when the chosen
+    manifest does not refer to an OCI artifact image.
