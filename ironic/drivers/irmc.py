@@ -38,6 +38,13 @@ class IRMCHardware(generic.GenericHardware):
     have iRMC S4 management system.
     """
 
+    # NOTE(janders): The iRMC driver is unmaintained. The Third Party CI
+    #   has been offline since 2019, and attempts to contact the vendor have
+    #   been unsuccessful. As a result, the driver cannot be maintained and
+    #   is being deprecated for removal in a future release.
+    # TODO(janders): Remove this driver in a future Ironic release.
+    supported = False
+
     @property
     def supported_bios_interfaces(self):
         """List of supported bios interfaces."""

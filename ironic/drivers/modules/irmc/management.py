@@ -208,6 +208,8 @@ def _restore_bios_config(task):
 class IRMCManagement(ipmitool.IPMIManagement,
                      redfish_management.RedfishManagement):
 
+    supported = False
+
     def get_properties(self):
         """Return the properties of the interface.
 

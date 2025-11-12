@@ -17,11 +17,18 @@ from oslo_config import cfg
 
 from ironic.common.i18n import _
 
+_DEPRECATION_REASON = _('The iRMC driver is unmaintained and is being '
+                        'deprecated. It will be removed in a future release.')
+
 opts = [
     cfg.StrOpt('remote_image_share_root',
                default='/remote_image_share_root',
+               deprecated_for_removal=True,
+               deprecated_reason=_DEPRECATION_REASON,
                help=_('Ironic conductor node\'s "NFS" or "CIFS" root path')),
     cfg.StrOpt('remote_image_server',
+               deprecated_for_removal=True,
+               deprecated_reason=_DEPRECATION_REASON,
                help=_('IP of remote image server')),
     cfg.StrOpt('remote_image_share_type',
                default='CIFS',
@@ -29,48 +36,72 @@ opts = [
                                    'protocol')),
                         ('NFS', _('NFS (Network File System) protocol'))],
                ignore_case=True,
+               deprecated_for_removal=True,
+               deprecated_reason=_DEPRECATION_REASON,
                help=_('Share type of virtual media')),
     cfg.StrOpt('remote_image_share_name',
                default='share',
+               deprecated_for_removal=True,
+               deprecated_reason=_DEPRECATION_REASON,
                help=_('share name of remote_image_server')),
     cfg.StrOpt('remote_image_user_name',
+               deprecated_for_removal=True,
+               deprecated_reason=_DEPRECATION_REASON,
                help=_('User name of remote_image_server')),
     cfg.StrOpt('remote_image_user_password', secret=True,
+               deprecated_for_removal=True,
+               deprecated_reason=_DEPRECATION_REASON,
                help=_('Password of remote_image_user_name')),
     cfg.StrOpt('remote_image_user_domain',
                default='',
+               deprecated_for_removal=True,
+               deprecated_reason=_DEPRECATION_REASON,
                help=_('Domain name of remote_image_user_name')),
     cfg.PortOpt('port',
                 default=443,
                 choices=[(443, _('port 443')),
                          (80, _('port 80'))],
+                deprecated_for_removal=True,
+                deprecated_reason=_DEPRECATION_REASON,
                 help=_('Port to be used for iRMC operations')),
     cfg.StrOpt('auth_method',
                default='basic',
                choices=[('basic', _('Basic authentication')),
                         ('digest', _('Digest authentication'))],
+               deprecated_for_removal=True,
+               deprecated_reason=_DEPRECATION_REASON,
                help=_('Authentication method to be used for iRMC '
                       'operations')),
     cfg.IntOpt('client_timeout',
                default=60,
+               deprecated_for_removal=True,
+               deprecated_reason=_DEPRECATION_REASON,
                help=_('Timeout (in seconds) for iRMC operations')),
     cfg.StrOpt('sensor_method',
                default='ipmitool',
                choices=[('ipmitool', _('IPMItool')),
                         ('scci', _('Fujitsu SCCI (ServerView Common Command '
                                    'Interface)'))],
+               deprecated_for_removal=True,
+               deprecated_reason=_DEPRECATION_REASON,
                help=_('Sensor data retrieval method.')),
     cfg.StrOpt('snmp_version',
                default='v2c',
                choices=[('v1', _('SNMPv1')),
                         ('v2c', _('SNMPv2c')),
                         ('v3', _('SNMPv3'))],
+               deprecated_for_removal=True,
+               deprecated_reason=_DEPRECATION_REASON,
                help=_('SNMP protocol version')),
     cfg.PortOpt('snmp_port',
                 default=161,
+                deprecated_for_removal=True,
+                deprecated_reason=_DEPRECATION_REASON,
                 help=_('SNMP port')),
     cfg.StrOpt('snmp_community',
                default='public',
+               deprecated_for_removal=True,
+               deprecated_reason=_DEPRECATION_REASON,
                help=_('SNMP community. Required for versions "v1" and "v2c"')),
     cfg.StrOpt('snmp_security',
                help=_("SNMP security name. Required for version 'v3'."),
@@ -78,6 +109,8 @@ opts = [
                deprecated_reason=_("Use irmc_snmp_user")),
     cfg.IntOpt('snmp_polling_interval',
                default=10,
+               deprecated_for_removal=True,
+               deprecated_reason=_DEPRECATION_REASON,
                help='SNMP polling interval in seconds'),
     cfg.StrOpt('snmp_auth_proto',
                default='sha',
@@ -89,6 +122,8 @@ opts = [
                                     'digest, only supported in iRMC S6.')),
                         ('sha512', ('Secure Hash Algorithm 2 with 512 bits '
                                     'digest, only supported in iRMC S6.'))],
+               deprecated_for_removal=True,
+               deprecated_reason=_DEPRECATION_REASON,
                help=_("SNMPv3 message authentication protocol ID. "
                       "Required for version 'v3'. The valid options are "
                       "'sha', 'sha256', 'sha384' and 'sha512', while 'sha' is "
@@ -98,13 +133,19 @@ opts = [
     cfg.StrOpt('snmp_priv_proto',
                default='aes',
                choices=[('aes', _('Advanced Encryption Standard'))],
+               deprecated_for_removal=True,
+               deprecated_reason=_DEPRECATION_REASON,
                help=_("SNMPv3 message privacy (encryption) protocol ID. "
                       "Required for version 'v3'. 'aes' is supported.")),
     cfg.IntOpt('clean_priority_restore_irmc_bios_config',
                default=0,
+               deprecated_for_removal=True,
+               deprecated_reason=_DEPRECATION_REASON,
                help=_('Priority for restore_irmc_bios_config clean step.')),
     cfg.ListOpt('gpu_ids',
                 default=[],
+                deprecated_for_removal=True,
+                deprecated_reason=_DEPRECATION_REASON,
                 help=_('List of vendor IDs and device IDs for GPU device to '
                        'inspect. List items are in format vendorID/deviceID '
                        'and separated by commas. GPU inspection will use this '
@@ -114,6 +155,8 @@ opts = [
                        'Sample gpu_ids value: 0x1000/0x0079,0x2100/0x0080')),
     cfg.ListOpt('fpga_ids',
                 default=[],
+                deprecated_for_removal=True,
+                deprecated_reason=_DEPRECATION_REASON,
                 help=_('List of vendor IDs and device IDs for CPU FPGA to '
                        'inspect. List items are in format vendorID/deviceID '
                        'and separated by commas. CPU inspection will use this '
@@ -124,6 +167,8 @@ opts = [
     cfg.IntOpt('query_raid_config_fgi_status_interval',
                min=1,
                default=300,
+               deprecated_for_removal=True,
+               deprecated_reason=_DEPRECATION_REASON,
                help=_('Interval (in seconds) between periodic RAID status '
                       'checks to determine whether the asynchronous RAID '
                       'configuration was successfully finished or not. '
@@ -132,6 +177,8 @@ opts = [
     cfg.StrOpt('kernel_append_params',
                default='nofb vga=normal',
                mutable=True,
+               deprecated_for_removal=True,
+               deprecated_reason=_DEPRECATION_REASON,
                help=_('Additional kernel parameters to pass down to the '
                       'instance kernel. These parameters can be consumed by '
                       'the kernel or by the applications by reading '
@@ -139,6 +186,8 @@ opts = [
                       'overridden by `instance_info/kernel_append_params` '
                       'property.')),
     cfg.StrOpt('verify_ca',
+               deprecated_for_removal=True,
+               deprecated_reason=_DEPRECATION_REASON,
                help=_('The default verify_ca path when irmc_verify_ca '
                       'in driver_info is missing or set to True.')),
 ]
