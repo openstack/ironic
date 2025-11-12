@@ -135,7 +135,8 @@ Other concerns
 ~~~~~~~~~~~~~~
 
 * There is no way to migrate the inspection data automatically. You need to
-  repeat inspections or copy the data over manually.
+  repeat inspections or copy the data over manually. For migration of data
+  between Swift buckets, you could adapt :doc:`copy-inspection-data-swift`.
 
 Migration process
 -----------------
