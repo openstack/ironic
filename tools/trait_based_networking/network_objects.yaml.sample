@@ -1,0 +1,37 @@
+ports:
+  - uuid: fake_uuid_0001
+    address: aa:bb:cc:dd:ee:00
+    category: storage
+    physical_network: fabric_a
+    vendor: purple
+  - uuid: fake_uuid_0002
+    address: aa:bb:cc:dd:ee:01
+    category: storage
+    physical_network: fabric_a
+    vendor: purple
+  - uuid: fake_uuid_0003
+    address: aa:bb:cc:dd:ee:02
+    category: storage
+    physical_network: fabric_a
+    vendor: purple
+  - uuid: fake_uuid_0004
+    address: aa:bb:cc:dd:ee:03
+    category: storage
+    physical_network: fabric_a
+    vendor: purple
+  - uuid: fake_uuid_0005
+    address: aa:bb:cc:dd:ee:04
+    category: storage
+    physical_network: fabric_a
+    vendor: purple
+portgroups:
+  - uuid: fake_uuid_0001
+    address: aa:bb:cc:dd:ee:01
+    category: storage
+    physical_network: fabric_a
+    vendor: purple
+networks:
+  - network_id: fake_net_id_01
+    name: test_network
+    tags:
+        - test
