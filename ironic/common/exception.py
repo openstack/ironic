@@ -1131,3 +1131,19 @@ class ConfigDriveRegenerationFailure(IronicException):
     """Raised when we fail to handle configuration drive corrections."""
     # NOTE(TheJulia): This is not intended to get raised to a user, but more
     # so we handle known possible failure cases and don't fail horribly.
+
+
+class TraitBasedNetworkingException(IronicException):
+    """Raised when there's an issue with trait based networking feature."""
+    pass
+
+
+class TBNComparatorPrefixMatchTypeMismatch(TraitBasedNetworkingException):
+    """Comparator prefix match can only be used against a string."""
+    pass
+
+
+class TBNAttributeRetrievalException(TraitBasedNetworkingException):
+    """Specified attribute could not be found."""
+    _msg_fmt = _("Could not retrieve attribute %(attr_name)s from "
+                 "passed object")
