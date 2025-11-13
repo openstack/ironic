@@ -124,7 +124,7 @@ hardware type by default::
 
     # The parameters below represent the minimum possible values to create
     # functional nodes.
-    IRONIC_VM_SPECS_RAM=1024
+    IRONIC_VM_SPECS_RAM=2500
     IRONIC_VM_SPECS_DISK=3
 
     # Size of the ephemeral partition in GB. Use 0 for no ephemeral partition.
@@ -244,7 +244,7 @@ enabled and use the ``ipmi`` hardware type with this config::
 
     # The parameters below represent the minimum possible values to create
     # functional nodes.
-    IRONIC_VM_SPECS_RAM=2048
+    IRONIC_VM_SPECS_RAM=2500
     IRONIC_VM_SPECS_DISK=10
 
     # Size of the ephemeral partition in GB. Use 0 for no ephemeral partition.

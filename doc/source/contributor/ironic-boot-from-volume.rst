@@ -82,7 +82,7 @@ description for DevStack is at :ref:`deploy_devstack`.
 
     # The parameters below represent the minimum possible values to create
     # functional nodes.
-    IRONIC_VM_SPECS_RAM=1280
+    IRONIC_VM_SPECS_RAM=2500
     IRONIC_VM_SPECS_DISK=10
 
     # Size of the ephemeral partition in GB. Use 0 for no ephemeral partition.
