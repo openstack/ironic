@@ -43,7 +43,23 @@ _LOOKUP_RETURN_FIELDS = ['uuid', 'properties', 'instance_info',
 AGENT_VALID_STATES = ['start', 'end', 'error']
 
 
-def config(token):
+def config(token, node=None):
+    # Skip BMC detection for out-of-band management interfaces where
+    # the BMC address is already known and configured in Ironic
+    skip_bmc_detect = False
+    if node:
+        mgmt_iface = getattr(node, 'management_interface', '')
+        # Out-of-band interfaces that don't need BMC detection
+        skip_bmc_detect = mgmt_iface in (
+            'redfish', 'idrac-redfish',
+            'ilo', 'ilo5', 'ilo6',
+            'irmc'
+        )
+        if skip_bmc_detect:
+            LOG.debug('Skipping BMC detection for node %(node)s with '
+                      'out-of-band management interface %(interface)s',
+                      {'node': node.uuid, 'interface': mgmt_iface})
+
     return {
         'metrics': {
             'backend': CONF.metrics.agent_backend,
@@ -74,13 +90,16 @@ def config(token):
         'agent_md5_checksum_enable': CONF.agent.allow_md5_checksum,
         'disable_deep_image_inspection': CONF.conductor.disable_deep_image_inspection,  # noqa
         'permitted_image_formats': CONF.conductor.permitted_image_formats,
+        'agent_skip_bmc_detect': skip_bmc_detect,
     }
 
 
 def convert_with_links(node):
     token = node.driver_internal_info.get('agent_secret_token')
+    # Keep raw node for management_interface check before conversion
+    raw_node = node
     node = node_ctl.node_convert_with_links(node, _LOOKUP_RETURN_FIELDS)
-    return {'node': node, 'config': config(token)}
+    return {'node': node, 'config': config(token, raw_node)}
 
 
 def get_valid_mac_addresses(addresses, node_uuid=None):

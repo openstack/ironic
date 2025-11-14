@@ -1,0 +1,9 @@
+---
+features:
+  - |
+    The lookup API now includes an ``agent_skip_bmc_detect`` configuration
+    flag that is automatically set to True when nodes use out-of-band
+    management interfaces (Redfish, iDRAC Redfish, iLO, iRMC). This tells
+    the agent to skip BMC detection via ipmitool, reducing deployment
+    time and avoiding unnecessary ipmitool calls when the BMC address is
+    already configured in Ironic.
