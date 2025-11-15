@@ -73,6 +73,8 @@ def update_ports(task, all_interfaces, valid_macs):
 
     pxe_macs = {iface['mac_address'] for iface in all_interfaces.values()
                 if iface['pxe_enabled']}
+    client_ids = {iface['mac_address']: iface.get('client_id')
+                  for iface in all_interfaces.values()}
 
     for port in objects.Port.list_by_node_id(task.context, task.node.id):
         if expected_macs and port.address not in expected_macs:
@@ -82,7 +84,9 @@ def update_ports(task, all_interfaces, valid_macs):
                      {'port': port.uuid, 'mac': port.address,
                       'node': task.node.uuid, 'expected': expected_str})
             port.destroy()
-        elif CONF.inspector.update_pxe_enabled:
+            continue
+
+        if CONF.inspector.update_pxe_enabled:
             pxe_enabled = port.address in pxe_macs
             if pxe_enabled != port.pxe_enabled:
                 LOG.debug("Changing pxe_enabled=%(val)s on port %(port)s "
@@ -91,3 +95,15 @@ def update_ports(task, all_interfaces, valid_macs):
                            'node': task.node.uuid})
                 port.pxe_enabled = pxe_enabled
                 port.save()
+
+        new_client_id = client_ids.get(port.address)
+        current_client_id = port.extra.get('client-id')
+        # some sources can't find client_id, so ignore if not found
+        if new_client_id and new_client_id != current_client_id:
+            LOG.debug("Changing client-id from %(current)s to "
+                      "%(new)s on port %(port)s of node %(node)s",
+                      {'port': port.address, 'current': current_client_id,
+                       'new': new_client_id, 'node': task.node.uuid})
+            port.extra['client-id'] = new_client_id
+            port._changed_fields.add('extra')
+            port.save()

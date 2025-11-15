@@ -71,6 +71,15 @@ _INVENTORY = {
             'ipv6_address': None,
             'has_carrier': False,
         },
+        {
+            'name': 'ib0',
+            'mac_address': '55:55:55:55:55:55',
+            'ipv4_address': None,
+            'ipv6_address': None,
+            'has_carrier': False,
+            'pxe_enabled': False,
+            'client_id': 'fake-client-id',
+        },
     ],
 }
 
@@ -123,6 +132,15 @@ _VALID = {
         'ipv6_address': None,
         'has_carrier': False,
         'pxe_enabled': False,
+    },
+    'ib0': {
+        'name': 'ib0',
+        'mac_address': '55:55:55:55:55:55',
+        'ipv4_address': None,
+        'ipv6_address': None,
+        'has_carrier': False,
+        'pxe_enabled': False,
+        'client_id': 'fake-client-id',
     },
 }
 
@@ -194,7 +212,7 @@ class ValidateInterfacesTestCase(db_base.DbTestCase):
     def test_active_interfaces(self):
         CONF.set_override('add_ports', 'active', group='inspector')
         expected = {key: value.copy() for key, value in _VALID.items()
-                    if key not in ('lo', 'em4')}
+                    if key not in ('lo', 'em4', 'ib0')}
         result = validate_interfaces_hook.validate_interfaces(
             self.node, self.inventory, self.interfaces)
         self.assertEqual(expected, result)

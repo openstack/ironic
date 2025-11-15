@@ -1,0 +1,7 @@
+---
+fixes:
+  - |
+    Fixes an issue where handling of introspection data was failing
+    to update process InfiniBand ``client-id`` values. When discovered,
+    InfiniBand ports should have their ``client-id`` values recorded
+    which enables proper network boot handling with InfiniBand.
