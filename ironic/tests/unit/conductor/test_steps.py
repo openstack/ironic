@@ -601,7 +601,7 @@ class NodeCleaningStepsTestCase(db_base.DbTestCase):
                          'arg2': {'description': 'desc2'}}}
 
     @mock.patch('ironic.drivers.modules.fake.FakeFirmware.get_clean_steps',
-                lambda self, taks: [])
+                lambda self, task: [])
     @mock.patch('ironic.drivers.modules.fake.FakeBIOS.get_clean_steps',
                 lambda self, task: [])
     @mock.patch('ironic.drivers.modules.fake.FakeDeploy.get_clean_steps',
