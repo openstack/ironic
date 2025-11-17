@@ -23,6 +23,9 @@ from ironic.drivers.modules.irmc import common as irmc_common
 
 
 class IRMCVendorPassthru(base.VendorInterface):
+
+    supported = False
+
     def get_properties(self):
         """Return the properties of the interface.
 

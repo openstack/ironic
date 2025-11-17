@@ -4,6 +4,18 @@
 iRMC driver
 ===========
 
+.. warning::
+   **The iRMC driver is deprecated and will be removed in a future release.**
+
+   The Third Party CI for the iRMC driver stopped responding in 2019, and
+   attempts to contact the vendor have been unsuccessful. As a result, the
+   driver cannot be maintained and is being deprecated for removal.
+
+   Users of the ``irmc`` hardware type should begin planning migration to
+   alternative hardware types, ideally redfish. The use of ``ipmi`` as a
+   replacement to ``irmc`` is discouraged due to it being an ageing
+   management protocol which should be used with caution.
+
 Overview
 ========
 

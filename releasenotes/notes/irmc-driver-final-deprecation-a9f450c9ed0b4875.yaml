@@ -1,0 +1,19 @@
+---
+deprecations:
+  - |
+    The Fujitsu ``irmc`` hardware type has been deprecated for removal in a
+    future Ironic release. The Third Party CI for the driver stopped
+    responding on or around July 7th, 2019, and attempts to contact the
+    vendor have been unsuccessful. As such, we cannot claim fixes or changes
+    to the driver are in a working state.
+
+    Users of the ``irmc`` hardware type should begin planning migration to
+    alternative hardware types. All iRMC-specific interfaces (``irmc`` bios,
+    ``irmc-virtual-media`` and ``irmc-pxe`` boot, ``irmc`` inspect, ``irmc``
+    management, ``irmc`` power, and ``irmc`` raid interfaces) are now marked
+    as unsupported, and all configuration options in the ``[irmc]`` section
+    have been deprecated for removal.
+
+    The ``irmc`` hardware type and all associated interfaces and configuration
+    options will be removed in a future release.
+
