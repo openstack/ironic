@@ -73,3 +73,45 @@ class NoInterfacesTestCase(base.TestCase):
             self.assertEqual({}, inst.get_properties())
             self.assertRaises(exception.UnsupportedDriverExtension,
                               inst.validate, self.task)
+
+
+class NoDeployTestCase(base.TestCase):
+
+    def setUp(self):
+        super(NoDeployTestCase, self).setUp()
+        self.task = mock.Mock(node=mock.Mock(driver='fake', spec=['driver']),
+                              spec=['node'])
+        self.deploy = noop.NoDeploy()
+
+    def test_get_properties(self):
+        self.assertEqual({}, self.deploy.get_properties())
+
+    def test_validate(self):
+        # Should not raise
+        self.assertIsNone(self.deploy.validate(self.task))
+
+    def test_deploy(self):
+        # Should return None for synchronous completion
+        self.assertIsNone(self.deploy.deploy(self.task))
+
+    def test_tear_down(self):
+        from ironic.common import states
+        # Should return DELETED state
+        self.assertEqual(states.DELETED, self.deploy.tear_down(self.task))
+
+    def test_prepare(self):
+        # Should not raise
+        self.assertIsNone(self.deploy.prepare(self.task))
+
+    def test_clean_up(self):
+        # Should not raise
+        self.assertIsNone(self.deploy.clean_up(self.task))
+
+    def test_take_over(self):
+        # Should not raise
+        self.assertIsNone(self.deploy.take_over(self.task))
+
+    def test_load_by_name(self):
+        inst = noop.NoDeploy()
+        self.assertIsInstance(inst, noop.NoDeploy)
+        self.assertEqual({}, inst.get_properties())

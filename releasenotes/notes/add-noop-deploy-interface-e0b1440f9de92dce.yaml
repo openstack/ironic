@@ -1,0 +1,10 @@
+---
+features:
+  - |
+    Adds a ``noop`` deploy interface that performs no actual deployment
+    operations. This allows operators to allocate nodes and mark them as
+    ``active`` in Ironic without deploying an operating system. This provides
+    an alternative approach to node adoption for Nova deployments, where the
+    normal deploy verb can be used instead of the adopt verb.
+    It is also useful when nodes are managed by external systems but tracked
+    in Ironic's inventory.

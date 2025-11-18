@@ -20,6 +20,7 @@ exceptions for user-accessible actions.
 """
 
 from ironic.common import exception
+from ironic.common import states
 from ironic.drivers import base
 
 
@@ -90,4 +91,33 @@ class NoFirmware(FailMixin, base.FirmwareInterface):
         _fail(self, task, settings)
 
     def cache_firmware_components(self, task):
+        pass
+
+
+class NoDeploy(base.DeployInterface):
+    """Deploy interface that does nothing and succeeds."""
+
+    def get_properties(self):
+        return {}
+
+    def validate(self, task):
+        # Intentionally accept any node config for noop deploy.
+        pass
+
+    @base.deploy_step(priority=100)
+    def deploy(self, task):
+        # Synchronous success (mirrors FakeDeploy behavior).
+        return None
+
+    def tear_down(self, task):
+        # Indicate the node is torn down.
+        return states.DELETED
+
+    def prepare(self, task):
+        pass
+
+    def clean_up(self, task):
+        pass
+
+    def take_over(self, task):
         pass

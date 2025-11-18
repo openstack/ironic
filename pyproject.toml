@@ -85,6 +85,7 @@ bootc = "ironic.drivers.modules.agent:BootcAgentDeploy"
 custom-agent = "ironic.drivers.modules.agent:CustomAgentDeploy"
 direct = "ironic.drivers.modules.agent:AgentDeploy"
 fake = "ironic.drivers.modules.fake:FakeDeploy"
+noop = "ironic.drivers.modules.noop:NoDeploy"
 ramdisk = "ironic.drivers.modules.ramdisk:RamdiskDeploy"
 
 [project.entry-points."ironic.hardware.interfaces.firmware"]
