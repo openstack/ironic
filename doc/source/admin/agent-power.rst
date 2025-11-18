@@ -59,10 +59,6 @@ As usual with the ``noop`` management, enable the networking boot fallback:
    [pxe]
    enable_netboot_fallback = true
 
-If using discovery, :ironic-inspector-doc:`configure discovery in
-ironic-inspector <user/usage.html#discovery>` with the default driver set
-to ``manual-management``.
-
 Limitations
 ===========
 

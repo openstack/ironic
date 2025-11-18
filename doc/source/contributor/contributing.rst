@@ -40,11 +40,9 @@ which are developed by the same community.
 .. seealso::
 
    * :bifrost-doc:`Bifrost Documentation <>`
-   * :ironic-inspector-doc:`Ironic Inspector Documentation <>`
    * :ironic-lib-doc:`Ironic Lib Documentation <>`
    * :ironic-python-agent-doc:`Ironic Python Agent (IPA) Documentation <>`
    * :python-ironicclient-doc:`Ironic Client Documentation <>`
-   * :python-ironic-inspector-client-doc:`Ironic Inspector Client Documentation <>`
 
 Adding New Features
 ===================

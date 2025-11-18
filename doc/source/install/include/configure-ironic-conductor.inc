@@ -104,8 +104,6 @@ Configuring ironic-conductor service
    * ``[glance]`` - to access the OpenStack Image service
    * ``[swift]`` - to access the OpenStack Object Storage service
    * ``[cinder]`` - to access the OpenStack Block Storage service
-   * ``[inspector]`` - to access the OpenStack Bare Metal Introspection
-     service
    * ``[service_catalog]`` - a special section holding credentials
      the Bare Metal service will use to discover its own API URL endpoint
      as registered in the OpenStack Identity service catalog.

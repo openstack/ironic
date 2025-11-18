@@ -35,8 +35,6 @@ CONF = cfg.CONF
 class AgentInspect(common.Common):
     """In-band inspection."""
 
-    default_require_managed_boot = True
-
     def __init__(self):
         super().__init__()
         enabled_hooks = [x.strip()

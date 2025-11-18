@@ -48,21 +48,14 @@ node:
 Inspection
 ----------
 
-If using :ref:`in-band inspection`, you need to tell ironic or ironic-inspector
-not to power off nodes afterwards. Depending on the inspection mode (managed or
-unmanaged, with ironic-inspector or without), you need to configure two places.
+If using :ref:`in-band inspection`, you need to tell ironic not to power off
+nodes afterwards. Depending on the inspection mode (managed or unmanaged),
+you need to configure two places.
 In ``ironic.conf``:
 
 .. code-block:: ini
 
    [inspector]
-   power_off = false
-
-And in ``inspector.conf`` (if needed):
-
-.. code-block:: ini
-
-   [processing]
    power_off = false
 
 Finally, you need to update the :ref:`inspection PXE/iPXE

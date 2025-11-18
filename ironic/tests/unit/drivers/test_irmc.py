@@ -73,10 +73,10 @@ class IRMCHardwareTestCase(db_base.DbTestCase):
                                   irmc_bios.IRMCBIOS)
 
     def test_override_with_inspector(self, check_share_fs_mounted_mock):
-        self.config(enabled_inspect_interfaces=['inspector', 'irmc'])
+        self.config(enabled_inspect_interfaces=['agent', 'irmc'])
         node = obj_utils.create_test_node(
             self.context, driver='irmc',
-            inspect_interface='inspector',
+            inspect_interface='agent',
             raid_interface='agent')
         with task_manager.acquire(self.context, node.id) as task:
             self.assertIsInstance(task.driver.boot,
@@ -86,7 +86,7 @@ class IRMCHardwareTestCase(db_base.DbTestCase):
             self.assertIsInstance(task.driver.deploy,
                                   agent.AgentDeploy)
             self.assertIsInstance(task.driver.inspect,
-                                  inspector.Inspector)
+                                  inspector.AgentInspect)
             self.assertIsInstance(task.driver.management,
                                   irmc.management.IRMCManagement)
             self.assertIsInstance(task.driver.power,

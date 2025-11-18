@@ -10,13 +10,6 @@
 # License for the specific language governing permissions and limitations
 # under the License.
 
-"""
-Modules required to work with ironic_inspector:
-    https://pypi.org/project/ironic-inspector
-"""
-
-import threading
-from urllib import parse as urlparse
 
 from oslo_log import log as logging
 
@@ -24,42 +17,16 @@ from ironic.common import exception
 from ironic.common.i18n import _
 from ironic.common import states
 from ironic.common import utils
-from ironic.conductor import periodics
-from ironic.conductor import task_manager
 from ironic.conductor import utils as cond_utils
 from ironic.conf import CONF
 from ironic.drivers import base
 from ironic.drivers.modules import deploy_utils
 from ironic.drivers.modules import inspect_utils
-from ironic.drivers.modules.inspector import client
 
 LOG = logging.getLogger(__name__)
 
 # Internal field to mark whether ironic or inspector manages boot for the node
 _IRONIC_MANAGES_BOOT = 'inspector_manage_boot'
-
-
-def _get_callback_endpoint(client):
-    root = CONF.inspector.callback_endpoint_override or client.get_endpoint()
-    if root == 'mdns':
-        return root
-
-    parts = urlparse.urlsplit(root)
-
-    if utils.is_loopback(parts.hostname):
-        raise exception.InvalidParameterValue(
-            _('Loopback address %s cannot be used as an introspection '
-              'callback URL') % parts.hostname)
-
-    # NOTE(dtantsur): the IPA side is quite picky about the exact format.
-    if parts.path.endswith('/v1'):
-        add = '/continue'
-    else:
-        add = '/v1/continue'
-
-    return urlparse.urlunsplit((parts.scheme, parts.netloc,
-                                parts.path.rstrip('/') + add,
-                                parts.query, parts.fragment))
 
 
 def tear_down_managed_boot(task, always_power_off=False):
@@ -167,21 +134,6 @@ def prepare_managed_inspection(task, endpoint):
 
 class Common(base.InspectInterface):
 
-    default_require_managed_boot = False
-
-    def __init__(self):
-        super().__init__()
-        if CONF.inspector.require_managed_boot is None:
-            LOG.warning("The option [inspector]require_managed_boot will "
-                        "change its default value to True in the future. "
-                        "Set it to an explicit boolean value to avoid a "
-                        "potential breakage.")
-
-    def _require_managed_boot(self):
-        return (CONF.inspector.require_managed_boot
-                if CONF.inspector.require_managed_boot is not None
-                else self.default_require_managed_boot)
-
     def get_properties(self):
         """Return the properties of the interface.
 
@@ -198,7 +150,7 @@ class Common(base.InspectInterface):
         :raises: UnsupportedDriverExtension
         """
         utils.parse_kernel_params(CONF.inspector.extra_kernel_params)
-        if self._require_managed_boot():
+        if CONF.inspector.require_managed_boot:
             ironic_manages_boot(task, raise_exc=True)
 
     def inspect_hardware(self, task):
@@ -217,7 +169,7 @@ class Common(base.InspectInterface):
                       ' on node %s.', task.node.uuid)
 
         manage_boot = ironic_manages_boot(
-            task, raise_exc=self._require_managed_boot())
+            task, raise_exc=CONF.inspector.require_managed_boot)
 
         utils.set_node_nested_field(task.node, 'driver_internal_info',
                                     _IRONIC_MANAGES_BOOT, manage_boot)
@@ -250,139 +202,6 @@ class Common(base.InspectInterface):
         next_state = (states.REBOOT if task.node.disable_power_off
                       else states.POWER_ON)
         cond_utils.node_power_action(task, next_state)
-
-
-class Inspector(Common):
-    """In-band inspection via ironic-inspector project."""
-
-    def _start_managed_inspection(self, task):
-        """Start inspection with boot managed by ironic."""
-        cli = client.get_client(task.context)
-        endpoint = _get_callback_endpoint(cli)
-        prepare_managed_inspection(task, endpoint)
-        cli.start_introspection(task.node.uuid, manage_boot=False)
-        self._power_on_or_reboot(task)
-
-    def _start_unmanaged_inspection(self, task):
-        """Call to inspector to start inspection."""
-        # NOTE(cid): spawning a short-lived daemon OS thread so that
-        # we can release a lock as soon as possible and allow
-        # ironic-inspector to operate on the node.
-        threading.Thread(target=_start_inspection,
-                         args=(task.node.uuid, task.context),
-                         daemon=True).start()
-
-    def abort(self, task):
-        """Abort hardware inspection.
-
-        :param task: a task from TaskManager.
-        """
-        node_uuid = task.node.uuid
-        LOG.debug('Aborting inspection for node %(uuid)s using '
-                  'ironic-inspector', {'uuid': node_uuid})
-        client.get_client(task.context).abort_introspection(node_uuid)
-        if inspect_utils.clear_lookup_addresses(task.node):
-            task.node.save()
-
-    @periodics.node_periodic(
-        purpose='checking hardware inspection status',
-        spacing=CONF.inspector.status_check_period,
-        filters={'provision_state': states.INSPECTWAIT},
-    )
-    def _periodic_check_result(self, task, manager, context):
-        """Periodic task checking results of inspection."""
-        if isinstance(task.driver.inspect, self.__class__):
-            _check_status(task)
-
-    def continue_inspection(self, task, inventory, plugin_data=None):
-        """Continue in-band hardware inspection.
-
-        This implementation simply defers to ironic-inspector. It only exists
-        to simplify the transition to Ironic-native in-band inspection.
-
-        :param task: a task from TaskManager.
-        :param inventory: hardware inventory from the node.
-        :param plugin_data: optional plugin-specific data.
-        """
-        cli = client.get_client(task.context)
-        endpoint = _get_callback_endpoint(cli)
-        data = dict(plugin_data, inventory=inventory)  # older format
-        task.process_event('wait')
-        task.downgrade_lock()
-        cli.post(endpoint, json=data)
-        return states.INSPECTWAIT
-
-
-def _start_inspection(node_uuid, context):
-    """Call to inspector to start inspection."""
-    try:
-        client.get_client(context).start_introspection(node_uuid)
-    except Exception as exc:
-        LOG.error('Error contacting ironic-inspector for inspection of node '
-                  '%(node)s: %(cls)s: %(err)s',
-                  {'node': node_uuid, 'cls': type(exc).__name__, 'err': exc})
-        # NOTE(dtantsur): if acquire fails our last option is to rely on
-        # timeout
-        lock_purpose = 'recording hardware inspection error'
-        with task_manager.acquire(context, node_uuid,
-                                  purpose=lock_purpose) as task:
-            error = _('Failed to start inspection: %s') % exc
-            inspection_error_handler(task, error)
-    else:
-        LOG.info('Node %s was sent to inspection to ironic-inspector',
-                 node_uuid)
-
-
-def _check_status(task):
-    """Check inspection status from inspector for node given by a task."""
-    node = task.node
-    if node.provision_state != states.INSPECTWAIT:
-        return
-    if not isinstance(task.driver.inspect, Inspector):
-        return
-
-    LOG.debug('Calling to inspector to check status of node %s',
-              task.node.uuid)
-
-    try:
-        inspector_client = client.get_client(task.context)
-        status = inspector_client.get_introspection(node.uuid)
-    except Exception:
-        # NOTE(dtantsur): get_status should not normally raise
-        # let's assume it's a transient failure and retry later
-        LOG.exception('Unexpected exception while getting '
-                      'inspection status for node %s, will retry later',
-                      node.uuid)
-        return
-
-    if not status.error and not status.is_finished:
-        return
-
-    # If the inspection has finished or failed, we need to update the node, so
-    # upgrade our lock to an exclusive one.
-    task.upgrade_lock()
-    node = task.node
-
-    inspect_utils.clear_lookup_addresses(node)
-
-    if status.error:
-        LOG.error('Inspection failed for node %(uuid)s with error: %(err)s',
-                  {'uuid': node.uuid, 'err': status.error})
-        error = _('ironic-inspector inspection failed: %s') % status.error
-        inspection_error_handler(task, error)
-    elif status.is_finished:
-        clean_up(task)
-        if CONF.inventory.data_backend == 'none':
-            LOG.debug('Inspection data storage is disabled, the data will '
-                      'not be saved for node %s', node.uuid)
-            return
-        introspection_data = inspector_client.get_introspection_data(
-            node.uuid, processed=True)
-        # TODO(dtantsur): having no inventory is an abnormal state, handle it.
-        inventory = introspection_data.pop('inventory', {})
-        inspect_utils.store_inspection_data(node, inventory,
-                                            introspection_data,
-                                            task.context)
 
 
 def clean_up(task, finish=True, always_power_off=False):

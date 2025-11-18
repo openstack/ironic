@@ -17,7 +17,6 @@ import os
 from oslo_config import cfg
 
 from ironic.common.i18n import _
-from ironic.conf import auth
 
 
 VALID_ADD_PORTS_VALUES = {
@@ -62,21 +61,20 @@ opts = [
                        'finishes. Ignored for nodes that have fast '
                        'track mode enabled.')),
     cfg.StrOpt('callback_endpoint_override',
+               deprecated_for_removal=True,
+               deprecated_reason=_('This option was used by inspector '
+                                   'inspect interface, which was removed.'),
                help=_('endpoint to use as a callback for posting back '
                       'introspection data when boot is managed by ironic. '
                       'Standard keystoneauth options are used by default.')),
-    # TODO(dtantsur): change the default to True when ironic-inspector is no
-    # longer supported (and update the help string).
-    cfg.BoolOpt('require_managed_boot', default=None,
+    cfg.BoolOpt('require_managed_boot', default=True,
                 help=_('require that the in-band inspection boot is fully '
                        'managed by the node\'s boot interface. Set this to '
                        'False if your installation has a separate (i)PXE boot '
                        'environment for node discovery or unmanaged '
                        'inspection. You may need to set it to False to '
                        'inspect nodes that are not supported by boot '
-                       'interfaces (e.g. because they don\'t have ports). '
-                       'The default value depends on which inspect interface '
-                       'is used: inspector uses False, agent - True.')),
+                       'interfaces (e.g. because they don\'t have ports).')),
     cfg.StrOpt('add_ports',
                default='pxe',
                help=_('Which MAC addresses to add as ports during '
@@ -203,9 +201,3 @@ def register_opts(conf):
     conf.register_opts(discovery_opts, group='auto_discovery')
     conf.register_opts(pxe_filter_opts, group='pxe_filter')
     conf.register_opts(inspection_rule_opts, group='inspection_rules')
-    auth.register_auth_opts(conf, 'inspector',
-                            service_type='baremetal-introspection')
-
-
-def list_opts():
-    return auth.add_auth_opts(opts, service_type='baremetal-introspection')

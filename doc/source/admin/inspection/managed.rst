@@ -34,15 +34,6 @@ inspection specifically. This is where you can configure
    [inspector]
    extra_kernel_params = ipa-inspection-collectors=default,logs ipa-collect-lldp=1
 
-For the callback URL the ironic-inspector endpoint from the service catalog is
-used. If you want to override the endpoint for callback only, set the following
-option:
-
-.. code-block:: ini
-
-   [inspector]
-   callback_endpoint_override = https://example.com/baremetal-introspection/v1/continue
-
 For the built-in inspection, the bare metal API endpoint can be overridden
 instead:
 

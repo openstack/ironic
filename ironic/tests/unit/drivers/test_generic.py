@@ -49,7 +49,7 @@ class ManualManagementHardwareTestCase(db_base.DbTestCase):
             self.assertIsInstance(task.driver.raid, noop.NoRAID)
 
     def test_supported_interfaces(self):
-        self.config(enabled_inspect_interfaces=['inspector', 'no-inspect'],
+        self.config(enabled_inspect_interfaces=['agent', 'no-inspect'],
                     enabled_deploy_interfaces=['direct', 'custom-agent'],
                     enabled_raid_interfaces=['agent'])
         node = obj_utils.create_test_node(self.context,
@@ -62,7 +62,8 @@ class ManualManagementHardwareTestCase(db_base.DbTestCase):
             self.assertIsInstance(task.driver.power, fake.FakePower)
             self.assertIsInstance(task.driver.boot, pxe.PXEBoot)
             self.assertIsInstance(task.driver.deploy, agent.CustomAgentDeploy)
-            self.assertIsInstance(task.driver.inspect, inspector.Inspector)
+            self.assertIsInstance(task.driver.inspect,
+                                  inspector.AgentInspect)
             self.assertIsInstance(task.driver.raid, agent.AgentRAID)
 
     def test_get_properties(self):

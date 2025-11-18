@@ -18,9 +18,6 @@ There are three kinds of inspection supported by Bare Metal service:
 #. :doc:`In-band inspection </admin/inspection/index>` utilizing Ironic Python
    Agent to collect information.
 
-#. :doc:`Older in-band inspection </admin/inspection/inspector>` implementation
-   utilizing the ironic-inspector_ project. This is now **deprecated**.
-
 The node should be in the ``manageable`` state before inspection is initiated.
 If it is in the ``enroll`` or ``available`` state, move it to ``manageable``
 first::
@@ -30,8 +27,6 @@ first::
 Then inspection can be initiated using the following command::
 
     baremetal node inspect <node_UUID>
-
-.. _ironic-inspector: https://pypi.org/project/ironic-inspector
 
 .. _capabilities-discovery:
 

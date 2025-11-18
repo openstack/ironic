@@ -23,10 +23,9 @@ which disk it should pick for the deployment. The list of supported hints is:
 
   .. note::
     A node's 'local_gb' property is often set to a value 1 GiB less than the
-    actual disk size to account for partitioning (this is how DevStack, TripleO
-    and Ironic Inspector work, to name a few). However, in this case ``size``
-    should be the actual size. For example, for a 128 GiB disk ``local_gb``
-    will be 127, but size hint will be 128.
+    actual disk size to account for partitioning. However, in this case
+    ``size`` should be the actual size. For example, for a 128 GiB disk
+    ``local_gb`` will be 127, but size hint will be 128.
 
 * wwn (STRING): unique storage identifier and typically mapping to a device.
   This can be a single device, or a SAN storage controller,

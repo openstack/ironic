@@ -1192,11 +1192,10 @@ To remedy this, try setting ``[pxe_filter]sync_period`` to be less frequent,
 i.e. a larger value to enable conductors to have time between running syncs.
 
 .. note::
-   It is anticipated that as part of the 2024.1 release, Ironic will have
-   this functionality also merged into Ironic directly as part of the
-   merge of the ``ironic-inspector`` service into ``ironic`` itself. This
-   merger will result in a slightly more performant implementation, which may
-   necessitate re-evaluation and tuning of the ``[pxe_filter]sync_period``
+   Ironic now has this functionality also merged into Ironic directly as part
+   of the merge of the ``ironic-inspector`` service into ``ironic`` itself.
+   This merger will result in a slightly more performant implementation, which
+   may necessitate re-evaluation and tuning of the ``[pxe_filter]sync_period``
    parameter.
 
 Some or all of my baremetal nodes disappeared! Help?!

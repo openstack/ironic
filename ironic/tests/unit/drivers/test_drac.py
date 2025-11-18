@@ -38,7 +38,7 @@ class IDRACHardwareTestCase(db_base.DbTestCase):
                     enabled_management_interfaces=['idrac-redfish'],
                     enabled_power_interfaces=['idrac-redfish', 'redfish'],
                     enabled_inspect_interfaces=[
-                        'idrac-redfish', 'inspector',
+                        'idrac-redfish', 'agent',
                         'no-inspect'],
                     enabled_network_interfaces=['flat', 'neutron', 'noop'],
                     enabled_raid_interfaces=[
@@ -99,10 +99,10 @@ class IDRACHardwareTestCase(db_base.DbTestCase):
 
     def test_override_with_inspector(self):
         node = obj_utils.create_test_node(self.context, driver='idrac',
-                                          inspect_interface='inspector')
+                                          inspect_interface='agent')
         with task_manager.acquire(self.context, node.id) as task:
             self._validate_interfaces(task.driver,
-                                      inspect=inspector.Inspector)
+                                      inspect=inspector.AgentInspect)
 
     def test_override_with_raid(self):
         for iface, impl in [('agent', agent.AgentRAID),

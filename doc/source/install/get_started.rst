@@ -40,8 +40,8 @@ ironic-conductor
 
 ironic-python-agent
   A python service which is run in a temporary ramdisk to provide
-  ironic-conductor and ironic-inspector services with remote access, in-band
-  hardware control, and hardware introspection.
+  ironic-conductor with remote access, in-band hardware control, and hardware
+  introspection.
 
 ironic-novncproxy
   A python service which proxies graphical consoles from hosts using the
@@ -124,10 +124,6 @@ additional functionality:
 :ironic-ui-doc:`ironic-ui <>`
   Horizon dashboard, providing graphical interface (GUI) for the Bare Metal
   API.
-
-:ironic-inspector-doc:`ironic-inspector <>`
-  An associated service which performs in-band hardware introspection by
-  PXE booting unregistered hardware into the ironic-python-agent ramdisk.
 
 diskimage-builder_
   A related project to help facilitate the creation of ramdisks and machine

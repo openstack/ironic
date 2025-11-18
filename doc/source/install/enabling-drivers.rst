@@ -93,15 +93,13 @@ deploy
 inspect
     implements fetching hardware information from nodes. Can be implemented
     out-of-band (via contacting the node's BMC) or in-band (via booting
-    a ramdisk on a node). The latter implementation is called ``inspector``
-    and uses a separate service called
-    :ironic-inspector-doc:`ironic-inspector <>`. Example:
+    a ramdisk on a node, mainly achieved by the agent interface).
 
     .. code-block:: ini
 
         [DEFAULT]
         enabled_hardware_types = ipmi,ilo,irmc
-        enabled_inspect_interfaces = ilo,irmc,inspector
+        enabled_inspect_interfaces = ilo,irmc,agent
 
     See :doc:`/admin/inspection` for more details.
 management
