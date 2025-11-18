@@ -31,9 +31,9 @@ ironic-inspector_ service.
    pxe_filter
    migration
 
-Inspection rules have now been migrate into Ironic as of 2025.1 "Epoxy"
-release. This does not include support for reapplying inspection on
-already stored data, nor does it support the ``"scope"`` field.
+Inspection rules have now been migrated into Ironic as of the 2025.1 "Epoxy"
+release. This does not include support for reapplying inspection on already
+stored data, nor does it support the ``"scope"`` field.
 
 The scope field allowed a rule to be applied only to specific nodes with
 matching scope value rather than all nodes where conditions are met.
@@ -53,11 +53,10 @@ Ironic provides an API to manage such rules. There are also built-in rules
 which are pre-saved and loaded from a YAML file and cannot be CRUD through
 the API.
 
-Available conditions and actions are defined by an extendedable set of
-plugins.
+Available conditions and actions are defined by an extendable set of plugins.
 
 Refer to the
-`Ironic API reference for inspection rules <https://docs.openstack.org/api-ref/baremetal/#inspection_rules-inspection_rules>`_
+`Ironic API reference for inspection rules <https://docs.openstack.org/api-ref/baremetal/#inspection-rules-inspection-rules>`_
 for information on how to CRUD inspection rules.
 
 Actions & Conditions
