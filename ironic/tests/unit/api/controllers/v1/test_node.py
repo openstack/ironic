@@ -176,6 +176,25 @@ class TestListNodes(test_api_base.BaseApiTest):
             mock.call().__bool__(),
         ])
 
+    def test_instance_name_field_with_api_version(self):
+        instance_name = 'test-instance-name'
+        obj_utils.create_test_node(self.context,
+                                   chassis_id=self.chassis.id,
+                                   instance_name=instance_name)
+        # Test with API version 1.104 - instance_name should be visible
+        data = self.get_json(
+            '/nodes?fields=uuid,instance_name',
+            headers={api_base.Version.string: '1.104'})
+        self.assertIn('instance_name', data['nodes'][0])
+        self.assertEqual(instance_name, data['nodes'][0]['instance_name'])
+
+        # Test with older API version - instance_name should not be visible
+        data = self.get_json(
+            '/nodes?fields=uuid,instance_name',
+            headers={api_base.Version.string: '1.99'},
+            expect_errors=True)
+        self.assertEqual(http_client.NOT_ACCEPTABLE, data.status_int)
+
     def test_get_one(self):
         node = obj_utils.create_test_node(self.context,
                                           chassis_id=self.chassis.id)
@@ -4487,6 +4506,82 @@ class TestPatch(test_api_base.BaseApiTest):
              'baremetal:node:update_instance_info',
              'baremetal:node:update'],
             node.uuid, with_suffix=True)
+
+    @mock.patch.object(api_utils, 'check_multiple_node_policies_and_retrieve',
+                       autospec=True)
+    def test_patch_display_name_sets_instance_name_when_not_provided(
+            self, mock_cmnpar):
+        node = obj_utils.create_test_node(self.context,
+                                          uuid=uuidutils.generate_uuid())
+        mock_cmnpar.return_value = node
+        self.mock_update_node.return_value = node
+        headers = {api_base.Version.string: '1.104'}
+        display_name = 'my-display-name'
+        response = self.patch_json('/nodes/%s' % node.uuid,
+                                   [{'path': '/instance_info/display_name',
+                                     'value': display_name,
+                                     'op': 'add'}],
+                                   headers=headers)
+        self.assertEqual('application/json', response.content_type)
+        self.assertEqual(http_client.OK, response.status_code)
+        # Verify that update_node was called with instance_name set
+        # to the same value as display_name
+        self.mock_update_node.assert_called_once()
+        updated_node = self.mock_update_node.call_args.args[2]
+        self.assertEqual(display_name, updated_node.instance_name)
+
+    @mock.patch.object(api_utils, 'check_multiple_node_policies_and_retrieve',
+                       autospec=True)
+    def test_patch_display_name_does_not_override_instance_name(
+            self, mock_cmnpar):
+        existing_instance_name = 'existing-instance-name'
+        node = obj_utils.create_test_node(self.context,
+                                          uuid=uuidutils.generate_uuid(),
+                                          instance_name=existing_instance_name)
+        mock_cmnpar.return_value = node
+        self.mock_update_node.return_value = node
+        headers = {api_base.Version.string: '1.104'}
+        display_name = 'different-display-name'
+        response = self.patch_json('/nodes/%s' % node.uuid,
+                                   [{'path': '/instance_info/display_name',
+                                     'value': display_name,
+                                     'op': 'add'},
+                                    {'path': '/instance_name',
+                                     'value': existing_instance_name,
+                                     'op': 'replace'}],
+                                   headers=headers)
+        self.assertEqual('application/json', response.content_type)
+        self.assertEqual(http_client.OK, response.status_code)
+        # Verify that update_node was called with instance_name unchanged
+        self.mock_update_node.assert_called_once()
+        updated_node = self.mock_update_node.call_args.args[2]
+        self.assertEqual(existing_instance_name, updated_node.instance_name)
+
+    @mock.patch.object(api_utils, 'check_multiple_node_policies_and_retrieve',
+                       autospec=True)
+    def test_patch_display_name_preserves_existing_instance_name(
+            self, mock_cmnpar):
+        """display_name doesn't overwrite existing instance_name."""
+        existing_instance_name = 'existing-instance-name'
+        node = obj_utils.create_test_node(self.context,
+                                          uuid=uuidutils.generate_uuid(),
+                                          instance_name=existing_instance_name)
+        mock_cmnpar.return_value = node
+        self.mock_update_node.return_value = node
+        headers = {api_base.Version.string: '1.104'}
+        display_name = 'new-display-name'
+        # Only patch display_name, don't touch instance_name
+        response = self.patch_json('/nodes/%s' % node.uuid,
+                                   [{'path': '/instance_info/display_name',
+                                     'value': display_name,
+                                     'op': 'add'}],
+                                   headers=headers)
+        self.assertEqual('application/json', response.content_type)
+        self.assertEqual(http_client.OK, response.status_code)
+        # Verify that instance_name remains unchanged
+        self.mock_update_node.assert_called_once()
+        updated_node = self.mock_update_node.call_args.args[2]
+        self.assertEqual(existing_instance_name, updated_node.instance_name)
 
 
 def _create_node_locally(node):

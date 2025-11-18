@@ -184,6 +184,8 @@ def node_schema():
             'firmware_interface': {'type': ['string', 'null']},
             'inspect_interface': {'type': ['string', 'null']},
             'instance_info': {'type': ['object', 'null']},
+            'instance_name': {'type': ['string', 'null'], 'minLength': 1,
+                              'maxLength': 255},
             'instance_uuid': {'type': ['string', 'null']},
             'lessee': {'type': ['string', 'null']},
             'management_interface': {'type': ['string', 'null']},
@@ -278,6 +280,7 @@ PATCH_ALLOWED_FIELDS = [
     'extra',
     'inspect_interface',
     'instance_info',
+    'instance_name',
     'instance_uuid',
     'lessee',
     'maintenance',
@@ -1584,6 +1587,7 @@ def _get_fields_for_node_query(fields=None):
                     'inspection_started_at',
                     'inspect_interface',
                     'instance_info',
+                    'instance_name',
                     'instance_uuid',
                     'last_error',
                     'lessee',
@@ -2445,7 +2449,7 @@ class NodesController(rest.RestController):
                               lessee=None, project=None,
                               description_contains=None, shard=None,
                               sharded=None, include_children=None,
-                              parent_node=None):
+                              parent_node=None, instance_name=None):
         if self.from_chassis and not chassis_uuid:
             raise exception.MissingParameterValue(
                 _("Chassis id not specified."))
@@ -2486,6 +2490,7 @@ class NodesController(rest.RestController):
             'project': project,
             'description_contains': description_contains,
             'retired': retired,
+            'instance_name': instance_name,
             'instance_uuid': instance_uuid,
             'sharded': sharded,
             'include_children': include_children,
@@ -2635,7 +2640,8 @@ class NodesController(rest.RestController):
                    owner=args.string, description_contains=args.string,
                    lessee=args.string, project=args.string,
                    shard=args.string_list, sharded=args.boolean,
-                   include_children=args.boolean, parent_node=args.string)
+                   include_children=args.boolean, parent_node=args.string,
+                   instance_name=args.string)
     def get_all(self, chassis_uuid=None, instance_uuid=None, associated=None,
                 maintenance=None, retired=None, provision_state=None,
                 marker=None, limit=None, sort_key='id', sort_dir='asc',
@@ -2643,7 +2649,7 @@ class NodesController(rest.RestController):
                 conductor_group=None, detail=None, conductor=None,
                 owner=None, description_contains=None, lessee=None,
                 project=None, shard=None, sharded=None, include_children=None,
-                parent_node=None):
+                parent_node=None, instance_name=None):
         """Retrieve a list of nodes.
 
         :param chassis_uuid: Optional UUID of a chassis, to get only nodes for
@@ -2692,6 +2698,8 @@ class NodesController(rest.RestController):
         :param sharded: Optional boolean whether to return a list of
                         nodes with or without a shard set. May be combined
                         with other parameters.
+        :param instance_name: Optional string value to get nodes with a
+                              matching instance_name
         """
         project = api_utils.check_list_policy('node', project)
 
@@ -2709,6 +2717,7 @@ class NodesController(rest.RestController):
         api_utils.check_allow_filter_by_shard(shard)
         # Sharded is guarded by the same API version as shard
         api_utils.check_allow_filter_by_shard(sharded)
+        api_utils.check_allow_filter_by_instance_name(instance_name)
         api_utils.check_allow_child_node_params(
             include_children=include_children,
             parent_node=parent_node)
@@ -2732,6 +2741,7 @@ class NodesController(rest.RestController):
                                           project=project,
                                           include_children=include_children,
                                           parent_node=parent_node,
+                                          instance_name=instance_name,
                                           **extra_args)
 
     @METRICS.timer('NodesController.detail')
@@ -2745,7 +2755,8 @@ class NodesController(rest.RestController):
                    conductor_group=args.string, conductor=args.string,
                    owner=args.string, description_contains=args.string,
                    lessee=args.string, project=args.string,
-                   shard=args.string_list, sharded=args.boolean)
+                   shard=args.string_list, sharded=args.boolean,
+                   instance_name=args.string)
     def detail(self, chassis_uuid=None, instance_uuid=None, associated=None,
                maintenance=None, retired=None, provision_state=None,
                marker=None, limit=None, sort_key='id', sort_dir='asc',
@@ -2753,7 +2764,7 @@ class NodesController(rest.RestController):
                conductor_group=None, conductor=None, owner=None,
                description_contains=None, lessee=None, project=None,
                shard=None, sharded=None, include_children=None,
-               parent_node=None):
+               parent_node=None, instance_name=None):
         """Retrieve a list of nodes with detail.
 
         :param chassis_uuid: Optional UUID of a chassis, to get only nodes for
@@ -2797,6 +2808,8 @@ class NodesController(rest.RestController):
         :param sharded: Optional boolean whether to return a list of
                         nodes with or without a shard set. May be combined
                         with other parameters.
+        :param instance_name: Optional string that sets an instance_name to
+                              search for
         """
         project = api_utils.check_list_policy('node', project)
 
@@ -2817,6 +2830,7 @@ class NodesController(rest.RestController):
         api_utils.check_allow_filter_by_shard(shard)
         # Sharded is guarded by the same API version as shard
         api_utils.check_allow_filter_by_shard(sharded)
+        api_utils.check_allow_filter_by_instance_name(instance_name)
 
         extra_args = {'description_contains': description_contains}
         return self._get_nodes_collection(chassis_uuid, instance_uuid,
@@ -2834,6 +2848,7 @@ class NodesController(rest.RestController):
                                           sharded=sharded,
                                           include_children=include_children,
                                           parent_node=parent_node,
+                                          instance_name=instance_name,
                                           **extra_args)
 
     @METRICS.timer('NodesController.validate')
@@ -3063,6 +3078,7 @@ class NodesController(rest.RestController):
             ('/properties', 'baremetal:node:update:properties'),
             ('/chassis_uuid', 'baremetal:node:update:chassis_uuid'),
             ('/instance_uuid', 'baremetal:node:update:instance_uuid'),
+            ('/instance_name', 'baremetal:node:update:instance_info'),
             ('/lessee', 'baremetal:node:update:lessee'),
             ('/owner', 'baremetal:node:update:owner'),
             ('/driver', 'baremetal:node:update:driver_interfaces'),
@@ -3214,6 +3230,15 @@ class NodesController(rest.RestController):
             node_dict, node_patch_schema(), node_patch_validator)
 
         self._update_changed_fields(node_dict, rpc_node)
+
+        # For forward compatibility, sync display_name from instance_info
+        # to instance_name if instance_name is not already set
+        changed_fields = rpc_node.obj_what_changed()
+        if ('instance_info' in changed_fields
+            and not rpc_node.instance_name
+            and rpc_node.instance_info.get('display_name')):
+            rpc_node.instance_name = rpc_node.instance_info['display_name']
+
         # NOTE(tenbrae): we calculate the rpc topic here in case node.driver
         #             has changed, so that update is sent to the
         #             new conductor, not the old one which may fail to

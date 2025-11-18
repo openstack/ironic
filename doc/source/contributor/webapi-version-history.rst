@@ -2,6 +2,14 @@
 REST API Version History
 ========================
 
+1.104 (Gazpacho)
+------------------------
+
+Add a new ``instance_name`` field to the node resource. This field provides
+a human-readable name for the instance deployed on a node and is automatically
+synchronized with ``instance_info.display_name`` for backward compatibility
+with Nova.
+
 1.103 (Gazpacho)
 -----------------------
 

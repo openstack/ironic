@@ -116,11 +116,14 @@ supplied when the Node is created, or the resource may be updated later.
 .. versionadded:: 1.82
   Introduced the ``shard`` field.
 
-.. versionadded: 1.83
+.. versionadded:: 1.83
   Introduced the ``parent_node`` field.
 
-.. versionadded: 1.95
+.. versionadded:: 1.95
   Introduced the ``disable_power_off`` field.
+
+.. versionadded:: 1.104
+  Introduced the ``instance_name`` field.
 
 Normal response codes: 201
 
@@ -160,6 +163,7 @@ Request
     - chassis_uuid: req_chassis_uuid
     - instance_info: req_instance_info
     - instance_uuid: req_instance_uuid
+    - instance_name: req_instance_name
     - maintenance: req_maintenance
     - maintenance_reason: maintenance_reason
     - network_data: network_data
@@ -203,6 +207,7 @@ microversion 1.95.
     - properties: n_properties
     - instance_info: instance_info
     - instance_uuid: instance_uuid
+    - instance_name: instance_name
     - chassis_uuid: chassis_uuid
     - extra: extra
     - console_enabled: console_enabled
@@ -314,6 +319,9 @@ provision state, and maintenance setting for each Node.
   nodes to be enumerated, which are normally hidden as child nodes are not
   normally intended for direct consumption by end users.
 
+.. versionadded:: 1.104
+  Introduced the ``instance_name`` query parameter and response field.
+
 Normal response codes: 200
 
 Error codes: 400,403,406
@@ -324,6 +332,7 @@ Request
 .. rest_parameters:: parameters.yaml
 
    - instance_uuid: r_instance_uuid
+   - instance_name: r_instance_name
    - maintenance: r_maintenance
    - associated: r_associated
    - provision_state: r_provision_state
@@ -412,6 +421,10 @@ Nova instance, eg. with a request to ``v1/nodes/detail?instance_uuid={NOVA INSTA
 .. versionadded:: 1.82
   Introduced the ``shard`` field. Introduced the ``sharded`` request parameter.
 
+.. versionadded:: 1.104
+  Introduced the ``instance_name`` field.
+
+
 Normal response codes: 200
 
 Error codes: 400,403,406
@@ -422,6 +435,7 @@ Request
 .. rest_parameters:: parameters.yaml
 
    - instance_uuid: r_instance_uuid
+   - instance_name: r_instance_name
    - maintenance: r_maintenance
    - fault: r_fault
    - associated: r_associated
@@ -462,6 +476,7 @@ Response
     - properties: n_properties
     - instance_info: instance_info
     - instance_uuid: instance_uuid
+    - instance_name: instance_name
     - chassis_uuid: chassis_uuid
     - extra: extra
     - console_enabled: console_enabled
@@ -571,6 +586,9 @@ only the specified set.
 .. versionadded:: 1.95
   Introduced the ``disable_power_off`` field.
 
+.. versionadded:: 1.104
+  Introduced the ``instance_name`` field.
+
 Normal response codes: 200
 
 Error codes: 400,403,404,406
@@ -605,6 +623,7 @@ Response
     - properties: n_properties
     - instance_info: instance_info
     - instance_uuid: instance_uuid
+    - instance_name: instance_name
     - chassis_uuid: chassis_uuid
     - extra: extra
     - console_enabled: console_enabled
@@ -668,6 +687,9 @@ managed through sub-resources.
 .. versionadded:: 1.82
   Introduced the ability to set/unset a node's shard.
 
+.. versionadded:: 1.104
+  Introduced the ability to set/unset node's instance_name.
+
 Normal response codes: 200
 
 Error codes: 400,403,404,406,409
@@ -715,6 +737,7 @@ Response
     - properties: n_properties
     - instance_info: instance_info
     - instance_uuid: instance_uuid
+    - instance_name: instance_name
     - chassis_uuid: chassis_uuid
     - extra: extra
     - console_enabled: console_enabled

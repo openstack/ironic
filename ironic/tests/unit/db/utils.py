@@ -197,6 +197,7 @@ def get_test_node(**kw):
         'provision_updated_at': kw.get('provision_updated_at'),
         'last_error': kw.get('last_error'),
         'instance_uuid': kw.get('instance_uuid'),
+        'instance_name': kw.get('instance_name'),
         'instance_info': kw.get('instance_info', fake_instance_info),
         'driver': kw.get('driver', 'fake-hardware'),
         'driver_info': kw.get('driver_info', fake_driver_info),

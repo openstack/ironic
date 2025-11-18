@@ -332,6 +332,13 @@ r_fault:
   in: query
   required: false
   type: string
+r_instance_name:
+  description: |
+    Filter the list of returned nodes, and only return the node with this
+    specific instance name, or an empty set if not found.
+  in: query
+  required: false
+  type: string
 r_instance_uuid:
   description: |
     Filter the list of returned nodes, and only return the node with this
@@ -1288,6 +1295,14 @@ instance_info:
   in: body
   required: true
   type: JSON
+instance_name:
+  description: |
+    A human-readable name for the instance deployed on this node. This is
+    automatically synchronized with the ``display_name`` from the node's
+    ``instance_info`` for backward compatibility with Nova.
+  in: body
+  required: false
+  type: string
 instance_uuid:
   description: |
     UUID of the Nova instance associated with this Node.
@@ -1897,6 +1912,14 @@ req_instance_info:
   in: body
   required: false
   type: JSON
+req_instance_name:
+  description: |
+    A human-readable name for the instance deployed on this node. This is
+    automatically synchronized with the ``display_name`` from the node's
+    ``instance_info`` for backward compatibility with Nova.
+  in: body
+  required: false
+  type: string
 req_instance_uuid:
   description: |
     UUID of the Nova instance associated with this Node.

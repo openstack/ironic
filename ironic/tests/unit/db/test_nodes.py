@@ -125,6 +125,11 @@ class DbNodeTestCase(base.DbTestCase):
                           self.dbapi.get_node_by_name,
                           'spam-eggs-bacon-spam')
 
+    def test_create_node_with_instance_name(self):
+        instance_name = 'test-instance-name'
+        node = utils.create_test_node(instance_name=instance_name)
+        self.assertEqual(instance_name, node.instance_name)
+
     def test_get_nodeinfo_list_defaults(self):
         node_id_list = []
         for i in range(1, 6):
