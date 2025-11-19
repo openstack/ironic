@@ -1120,15 +1120,20 @@ class AgentMethodsTestCase(db_base.DbTestCase):
     @mock.patch.object(pxe.PXEBoot, 'clean_up_ramdisk', autospec=True)
     @mock.patch('ironic.drivers.modules.network.flat.FlatNetwork.'
                 'remove_servicing_network', autospec=True)
+    @mock.patch('ironic.common.neutron.update_neutron_port', autospec=True)
     @mock.patch('ironic.conductor.utils.node_power_action', autospec=True)
     def test_tear_down_inband_service(
-            self, power_mock, remove_service_network_mock,
+            self, power_mock, update_neutron_port_mock,
+            remove_service_network_mock,
             clean_up_ramdisk_mock, prepare_instance_mock):
         # NOTE(TheJulia): This should be back to servicing upon a heartbeat
         # operation, before we go back to WAIT. We wouldn't know to teardown
         # in a wait state anyway.
         self.node.provision_state = states.SERVICING
         self.node.save()
+
+        self.ports[0].internal_info = {'tenant_vif_port_id': 'fake-vif-id'}
+        self.ports[0].save()
         with task_manager.acquire(
                 self.context, self.node.uuid, shared=False) as task:
             utils.tear_down_inband_service(task)
@@ -1163,9 +1168,11 @@ class AgentMethodsTestCase(db_base.DbTestCase):
     @mock.patch.object(pxe.PXEBoot, 'clean_up_ramdisk', autospec=True)
     @mock.patch('ironic.drivers.modules.network.flat.FlatNetwork.'
                 'remove_servicing_network', autospec=True)
+    @mock.patch('ironic.common.neutron.update_neutron_port', autospec=True)
     @mock.patch('ironic.conductor.utils.node_power_action', autospec=True)
     def test_tear_down_inband_service_disable_power_off(
-            self, power_mock, remove_service_network_mock,
+            self, power_mock, update_neutron_port_mock,
+            remove_service_network_mock,
             clean_up_ramdisk_mock, prepare_instance_mock):
         # NOTE(TheJulia): This should be back to servicing upon a heartbeat
         # operation, before we go back to WAIT. We wouldn't know to teardown
@@ -1173,6 +1180,9 @@ class AgentMethodsTestCase(db_base.DbTestCase):
         self.node.provision_state = states.SERVICING
         self.node.disable_power_off = True
         self.node.save()
+
+        self.ports[0].internal_info = {'tenant_vif_port_id': 'fake-vif-id'}
+        self.ports[0].save()
         with task_manager.acquire(
                 self.context, self.node.uuid, shared=False) as task:
             utils.tear_down_inband_service(task)

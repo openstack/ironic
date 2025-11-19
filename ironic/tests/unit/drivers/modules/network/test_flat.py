@@ -249,6 +249,21 @@ class TestFlatInterface(db_base.DbTestCase):
             self.assertRaises(exception.NetworkError,
                               self.interface._bind_flat_ports, task)
 
+    def test__bind_flat_ports_no_vifs_bound_raise(self):
+        utils.create_test_port(self.context, node_id=self.node.id,
+                               address='52:54:00:cf:2d:33',
+                               internal_info={},
+                               uuid=uuidutils.generate_uuid())
+        internal_info = {'cleaning_vif_port_id': uuidutils.generate_uuid()}
+        utils.create_test_port(self.context, node_id=self.node.id,
+                               address='52:54:00:cf:2d:34',
+                               internal_info=internal_info,
+                               uuid=uuidutils.generate_uuid())
+        with task_manager.acquire(self.context, self.node.id) as task:
+            self.assertRaisesRegex(exception.NetworkError,
+                                   'Failed to bind any flat network ports',
+                                   self.interface._bind_flat_ports, task)
+
     @mock.patch.object(flat_interface.FlatNetwork, '_bind_flat_ports',
                        autospec=True)
     def test_add_rescuing_network(self, bind_mock):
