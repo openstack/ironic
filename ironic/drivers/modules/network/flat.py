@@ -79,6 +79,11 @@ class FlatNetwork(common.NeutronVIFPortIDMixin,
                          '%(err)s') % {'port_id': vif_port_id, 'err': e})
                 LOG.exception(msg)
                 raise exception.NetworkError(msg)
+        if not bound_ports:
+            msg = (_('Failed to bind any flat network ports for node %s') %
+                   task.node.uuid)
+            LOG.error(msg)
+            raise exception.NetworkError(msg)
         LOG.debug("Finished binding flat network ports, attached: %s",
                   ' '.join(bound_ports))
 
