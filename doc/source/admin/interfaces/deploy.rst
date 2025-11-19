@@ -338,12 +338,6 @@ deployment workflow (from ``manageable`` to ``available`` to ``deploying`` to
 Nova to properly track the instances while Ironic skips all conductor-side
 deployment actions.
 
-.. note::
-   The ``noop`` deploy interface completely bypasses cleaning operations.
-   Even if a user cannot update ``Node.automated_clean``, as long as they set
-   ``Node.instance_info[deploy_interface]`` to ``noop``, cleaning will be
-   skipped.
-
 Configuration
 -------------
 
@@ -351,3 +345,9 @@ Enable the interface in ``ironic.conf``::
 
     [DEFAULT]
     enabled_deploy_interfaces = direct,ramdisk,noop
+
+.. warning::
+   The ``noop`` deploy interface completely bypasses cleaning operations.
+   Even if a user cannot update ``Node.automated_clean``, as long as they set
+   ``Node.instance_info[deploy_interface]`` to ``noop``, cleaning will be
+   skipped.
