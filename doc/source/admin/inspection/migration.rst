@@ -20,7 +20,7 @@ Removed
 Some rarely used or controversial features have not been migrated to ironic.
 This list currently includes:
 
-* `Retrieving unprocesses inspection data
+* `Retrieving unprocessed inspection data
   <https://docs.openstack.org/api-ref/baremetal-introspection/#get-unprocessed-introspection-data>`_
 * `Reapplying the processing pipeline on new data
   <https://docs.openstack.org/api-ref/baremetal-introspection/#reapply-introspection-on-data>`_
