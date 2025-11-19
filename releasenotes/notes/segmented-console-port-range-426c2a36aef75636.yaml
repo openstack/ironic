@@ -1,0 +1,7 @@
+---
+features:
+  - |
+    The ``[console]port_range`` configuration option now supports segmented
+    port ranges, allowing multiple non-consecutive port ranges to be specified
+    as comma-separated values. For example, ``1000:1100,2000:2500`` can be
+    used instead of requiring a single consecutive range.

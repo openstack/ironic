@@ -152,13 +152,18 @@ def make_persistent_password_file(path, password):
 
 def _get_port_range():
     config_range = CONF.console.port_range
+    ranges = []
 
-    start, stop = map(int, config_range.split(':'))
-    if start >= stop:
-        msg = _("[console]port_range should be in the "
-                "format <start>:<stop> and start < stop")
-        raise exception.InvalidParameterValue(msg)
-    return start, stop
+    for range_str in config_range.split(','):
+        start, stop = map(int, range_str.split(':'))
+        if start >= stop:
+            msg = _("[console]port_range should be in the "
+                    "format <start>:<stop> or comma-separated ranges, "
+                    "and start < stop for each range")
+            raise exception.InvalidParameterValue(msg)
+        ranges.append((start, stop))
+
+    return ranges
 
 
 def _verify_port(port, host=None):
@@ -189,21 +194,22 @@ def _verify_port(port, host=None):
 def acquire_port(host=None):
     """Returns a free TCP port on current host.
 
-    Find and returns a free TCP port in the range
+    Find and returns a free TCP port in the range(s)
     of 'CONF.console.port_range'.
     """
 
-    start, stop = _get_port_range()
+    ranges = _get_port_range()
 
-    for port in range(start, stop):
-        if port in ALLOCATED_PORTS:
-            continue
-        try:
-            _verify_port(port, host=host)
-            ALLOCATED_PORTS.add(port)
-            return port
-        except exception.Conflict:
-            pass
+    for start, stop in ranges:
+        for port in range(start, stop):
+            if port in ALLOCATED_PORTS:
+                continue
+            try:
+                _verify_port(port, host=host)
+                ALLOCATED_PORTS.add(port)
+                return port
+            except exception.Conflict:
+                pass
 
     raise exception.NoFreeIPMITerminalPorts(host=CONF.host)
 
