@@ -190,6 +190,15 @@ class RedfishInspect(base.InspectInterface):
 
         plugin_data = {}
 
+        # Collect LLDP data from Redfish NetworkAdapter Ports
+        # This method can be overridden by vendor-specific implementations
+        lldp_raw_data = self._collect_lldp_data(task, system)
+        if lldp_raw_data:
+            plugin_data['parsed_lldp'] = lldp_raw_data
+            LOG.info('Collected LLDP data for %(count)d interface(s) on '
+                     'node %(node)s',
+                     {'count': len(lldp_raw_data), 'node': task.node.uuid})
+
         inspect_utils.run_inspection_hooks(task, inventory, plugin_data,
                                            self.hooks, None)
         inspect_utils.store_inspection_data(task.node,
@@ -373,3 +382,136 @@ class RedfishInspect(base.InspectInterface):
         if function.revision_id is not None:
             info['revision'] = function.revision_id
         return info
+
+    def _collect_lldp_data(self, task, system):
+        """Collect LLDP data from Redfish NetworkAdapter Ports.
+
+        This method can be overridden by vendor-specific implementations
+        to provide alternative LLDP data sources (e.g., Dell OEM endpoints).
+
+        Default implementation uses standard Redfish LLDP data from
+        Port.Ethernet.LLDPReceive via Sushy NetworkAdapter/Port resources.
+
+        :param task: A TaskManager instance
+        :param system: Sushy system object
+        :returns: Dict mapping interface names to parsed LLDP data
+                   Format: {'interface_name': {'switch_chassis_id': '..',
+                                               'switch_port_id': '..'}}
+        """
+        parsed_lldp = {}
+
+        try:
+            # Check if chassis exists
+            if not system.chassis:
+                return parsed_lldp
+
+            # Process each chassis
+            for chassis in system.chassis:
+                try:
+                    # Get NetworkAdapters collection
+                    network_adapters = (
+                        chassis.network_adapters.get_members())
+                except sushy.exceptions.SushyError as ex:
+                    LOG.debug('Failed to get network adapters for chassis '
+                              'on node %(node)s: %(error)s',
+                              {'node': task.node.uuid, 'error': ex})
+                    continue
+
+                # Process each NetworkAdapter
+                for adapter in network_adapters:
+                    try:
+                        # Get Ports collection using Sushy
+                        ports = adapter.ports.get_members()
+                    except sushy.exceptions.SushyError as ex:
+                        LOG.debug('Failed to get ports for adapter '
+                                  'on node %(node)s: %(error)s',
+                                  {'node': task.node.uuid, 'error': ex})
+                        continue
+
+                    # Process each Port
+                    for port in ports:
+                        try:
+                            # Check if LLDP data exists using Sushy
+                            if (not port.ethernet
+                                    or not port.ethernet.lldp_receive):
+                                continue
+
+                            lldp_receive = port.ethernet.lldp_receive
+
+                            # Convert directly to parsed LLDP format
+                            lldp_dict = self._convert_lldp_receive_to_dict(
+                                lldp_receive)
+
+                            if not lldp_dict:
+                                continue
+
+                            # Use port identity directly as interface name
+                            if port.identity:
+                                parsed_lldp[port.identity] = lldp_dict
+
+                        except Exception as e:
+                            LOG.debug('Failed to process LLDP data for port '
+                                      '%(port)s on node %(node)s: %(error)s',
+                                      {'port': port.identity,
+                                       'node': task.node.uuid, 'error': e})
+                            continue
+
+        except Exception as e:
+            LOG.warning('Failed to collect standard Redfish LLDP data for '
+                        'node %(node)s: %(error)s',
+                        {'node': task.node.uuid, 'error': e})
+        return parsed_lldp
+
+    def _convert_lldp_receive_to_dict(self, lldp_receive):
+        """Convert Sushy LLDPReceive object directly to parsed dict format.
+
+        :param lldp_receive: Sushy LLDPReceiveField object or dict
+        :returns: Dict with parsed LLDP data or None
+        """
+        lldp_dict = {}
+
+        # Chassis ID
+        chassis_id = self._get_lldp_value(lldp_receive, 'chassis_id',
+                                          'ChassisId')
+        if chassis_id:
+            lldp_dict['switch_chassis_id'] = chassis_id
+
+        # Port ID
+        port_id = self._get_lldp_value(lldp_receive, 'port_id', 'PortId')
+        if port_id:
+            lldp_dict['switch_port_id'] = port_id
+
+        # System Name
+        system_name = self._get_lldp_value(lldp_receive, 'system_name',
+                                           'SystemName')
+        if system_name:
+            lldp_dict['switch_system_name'] = system_name
+
+        # System Description
+        system_description = self._get_lldp_value(lldp_receive,
+                                                  'system_description',
+                                                  'SystemDescription')
+        if system_description:
+            lldp_dict['switch_system_description'] = system_description
+
+        # Management VLAN ID
+        vlan_id = self._get_lldp_value(lldp_receive, 'management_vlan_id',
+                                       'ManagementVlanId')
+        if vlan_id:
+            lldp_dict['switch_vlan_id'] = vlan_id
+
+        return lldp_dict if lldp_dict else None
+
+    def _get_lldp_value(self, lldp_receive, attr_name, json_key):
+        """Get value from LLDP receive, handling both dict and object.
+
+        :param lldp_receive: LLDP data (Sushy object or dict)
+        :param attr_name: Sushy attribute name
+        :param json_key: JSON property name (required)
+        :returns: The value or None
+        """
+        # Being defensive to handle both Sushy object and dict
+        if isinstance(lldp_receive, dict):
+            return lldp_receive.get(json_key)
+        else:
+            return getattr(lldp_receive, attr_name, None)

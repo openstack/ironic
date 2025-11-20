@@ -858,6 +858,203 @@ class RedfishInspectTestCase(db_base.DbTestCase):
         self.assertEqual(expected_pcie_devices,
                          inventory['inventory']['pci_devices'])
 
+    @mock.patch.object(redfish_utils, 'get_enabled_macs', autospec=True)
+    @mock.patch.object(redfish_utils, 'get_system', autospec=True)
+    def test_collect_lldp_data_with_complete_lldp(
+            self, mock_get_system, mock_get_enabled_macs):
+        """Test LLDP collection with complete LLDP data"""
+        system_mock = self.init_system_mock(mock_get_system.return_value)
+
+        # Mock NetworkAdapters and Ports with LLDP data
+        mock_chassis = mock.Mock()
+        mock_chassis.identity = 'System.Embedded.1'
+
+        # Mock Port with complete LLDP data
+        mock_lldp = mock.Mock()
+        mock_lldp.chassis_id = 'c4:7e:e0:e4:55:3f'
+        mock_lldp.chassis_id_subtype = mock.Mock(value='MacAddr')
+        mock_lldp.port_id = 'Ethernet1/8'
+        mock_lldp.port_id_subtype = mock.Mock(value='IfName')
+        mock_lldp.system_name = 'switch-01.example.com'
+        mock_lldp.system_description = 'Cisco IOS XE'
+        mock_lldp.system_capabilities = [
+            mock.Mock(value='Bridge'),
+            mock.Mock(value='Router')]
+        mock_lldp.management_address_ipv4 = '192.168.1.1'
+        mock_lldp.management_address_ipv6 = None
+        mock_lldp.management_address_mac = None
+        mock_lldp.management_vlan_id = 100
+
+        mock_ethernet = mock.Mock()
+        mock_ethernet.lldp_receive = mock_lldp
+        mock_ethernet.associated_mac_addresses = ['14:23:F3:F5:3B:A0']
+
+        mock_port = mock.Mock()
+        mock_port.identity = 'NIC.Slot.1-1'
+        mock_port.ethernet = mock_ethernet
+
+        mock_adapter = mock.Mock()
+        mock_adapter.identity = 'NIC.Slot.1'
+        mock_adapter.ports.get_members.return_value = [mock_port]
+
+        mock_chassis.network_adapters.get_members.return_value = [mock_adapter]
+        system_mock.chassis = [mock_chassis]
+
+        # Mock ethernet interface for mapping
+        mock_iface = mock.Mock()
+        mock_iface.identity = 'NIC.Slot.1-1-1'
+        mock_iface.mac_address = '14:23:F3:F5:3B:A0'
+        system_mock.ethernet_interfaces.get_members.return_value = [mock_iface]
+
+        with task_manager.acquire(self.context, self.node.uuid,
+                                  shared=True) as task:
+            task.driver.inspect.inspect_hardware(task)
+
+        inventory = inspect_utils.get_inspection_data(self.node, self.context)
+
+        # Verify parsed_lldp was collected
+        self.assertIn('parsed_lldp', inventory['plugin_data'])
+        parsed_lldp = inventory['plugin_data']['parsed_lldp']
+
+        # Should have one interface with LLDP data using Port ID as name
+        self.assertEqual(1, len(parsed_lldp))
+        self.assertIn('NIC.Slot.1-1', parsed_lldp)
+
+        # Verify parsed LLDP format
+        lldp_data = parsed_lldp['NIC.Slot.1-1']
+        self.assertIsInstance(lldp_data, dict)
+        self.assertIn('switch_chassis_id', lldp_data)
+        self.assertIn('switch_port_id', lldp_data)
+        self.assertIn('switch_system_name', lldp_data)
+        self.assertIn('switch_system_description', lldp_data)
+
+        # Verify expected values
+        self.assertEqual('c4:7e:e0:e4:55:3f', lldp_data['switch_chassis_id'])
+        self.assertEqual('Ethernet1/8', lldp_data['switch_port_id'])
+        self.assertEqual('switch-01.example.com',
+                         lldp_data['switch_system_name'])
+        self.assertEqual('Cisco IOS XE',
+                         lldp_data['switch_system_description'])
+
+    @mock.patch.object(redfish_utils, 'get_enabled_macs', autospec=True)
+    @mock.patch.object(redfish_utils, 'get_system', autospec=True)
+    def test_collect_lldp_data_empty_lldp_receive(
+            self, mock_get_system, mock_get_enabled_macs):
+        """Test LLDP collection with empty LLDPReceive (Dell scenario)"""
+        system_mock = self.init_system_mock(mock_get_system.return_value)
+
+        mock_chassis = mock.Mock()
+        mock_chassis.identity = 'System.Embedded.1'
+
+        # Mock Port with None lldp_receive
+        mock_ethernet = mock.Mock()
+        mock_ethernet.lldp_receive = None
+
+        mock_port = mock.Mock()
+        mock_port.identity = 'NIC.Slot.1-1'
+        mock_port.ethernet = mock_ethernet
+
+        mock_adapter = mock.Mock()
+        mock_adapter.ports.get_members.return_value = [mock_port]
+
+        mock_chassis.network_adapters.get_members.return_value = [mock_adapter]
+        system_mock.chassis = [mock_chassis]
+
+        with task_manager.acquire(self.context, self.node.uuid,
+                                  shared=True) as task:
+            task.driver.inspect.inspect_hardware(task)
+
+        inventory = inspect_utils.get_inspection_data(self.node, self.context)
+
+        # parsed_lldp should not be in plugin_data when empty
+        self.assertNotIn('parsed_lldp', inventory['plugin_data'])
+
+    @mock.patch.object(redfish_utils, 'get_enabled_macs', autospec=True)
+    @mock.patch.object(redfish_utils, 'get_system', autospec=True)
+    def test_collect_lldp_data_no_network_adapters(
+            self, mock_get_system, mock_get_enabled_macs):
+        """Test LLDP collection when NetworkAdapters not available"""
+        system_mock = self.init_system_mock(mock_get_system.return_value)
+
+        mock_chassis = mock.Mock()
+        mock_chassis.identity = 'System.Embedded.1'
+        # Raise exception when accessing network_adapters
+        mock_chassis.network_adapters.get_members.side_effect = (
+            Exception('Not found'))
+        system_mock.chassis = [mock_chassis]
+
+        with task_manager.acquire(self.context, self.node.uuid,
+                                  shared=True) as task:
+            task.driver.inspect.inspect_hardware(task)
+
+        inventory = inspect_utils.get_inspection_data(self.node, self.context)
+
+        # Should handle gracefully and not include parsed_lldp
+        self.assertNotIn('parsed_lldp', inventory['plugin_data'])
+
+    def test_convert_lldp_receive_to_dict_complete(self):
+        """Test dict conversion with complete LLDP data"""
+        mock_lldp = mock.Mock()
+        mock_lldp.chassis_id = 'c4:7e:e0:e4:55:3f'
+        mock_lldp.chassis_id_subtype = mock.Mock(value='MacAddr')
+        mock_lldp.port_id = 'Ethernet1/8'
+        mock_lldp.port_id_subtype = mock.Mock(value='IfName')
+        mock_lldp.system_name = 'switch-01'
+        mock_lldp.system_description = 'Cisco IOS'
+        mock_lldp.system_capabilities = [mock.Mock(value='Bridge')]
+        mock_lldp.management_address_ipv4 = '192.168.1.1'
+        mock_lldp.management_address_ipv6 = None
+        mock_lldp.management_address_mac = None
+        mock_lldp.management_vlan_id = 100
+
+        with task_manager.acquire(self.context, self.node.uuid,
+                                  shared=True) as task:
+            lldp_dict = task.driver.inspect._convert_lldp_receive_to_dict(
+                mock_lldp)
+
+        # Verify dict format
+        self.assertIsInstance(lldp_dict, dict)
+        self.assertIn('switch_chassis_id', lldp_dict)
+        self.assertIn('switch_port_id', lldp_dict)
+        self.assertIn('switch_system_name', lldp_dict)
+        self.assertIn('switch_system_description', lldp_dict)
+        self.assertIn('switch_vlan_id', lldp_dict)
+
+        # Verify expected values
+        self.assertEqual('c4:7e:e0:e4:55:3f', lldp_dict['switch_chassis_id'])
+        self.assertEqual('Ethernet1/8', lldp_dict['switch_port_id'])
+        self.assertEqual('switch-01', lldp_dict['switch_system_name'])
+        self.assertEqual('Cisco IOS', lldp_dict['switch_system_description'])
+        self.assertEqual(100, lldp_dict['switch_vlan_id'])
+
+    def test_convert_lldp_receive_to_dict_minimal(self):
+        """Test dict conversion with minimal LLDP data"""
+        mock_lldp = mock.Mock()
+        mock_lldp.chassis_id = 'aa:bb:cc:dd:ee:ff'
+        mock_lldp.chassis_id_subtype = None
+        mock_lldp.port_id = 'port-1'
+        mock_lldp.port_id_subtype = None
+        mock_lldp.system_name = None
+        mock_lldp.system_description = None
+        mock_lldp.system_capabilities = None
+        mock_lldp.management_address_ipv4 = None
+        mock_lldp.management_address_ipv6 = None
+        mock_lldp.management_address_mac = None
+        mock_lldp.management_vlan_id = None
+
+        with task_manager.acquire(self.context, self.node.uuid,
+                                  shared=True) as task:
+            lldp_dict = task.driver.inspect._convert_lldp_receive_to_dict(
+                mock_lldp)
+
+        # Should have Chassis ID and Port ID only
+        self.assertEqual(2, len(lldp_dict))
+        self.assertIn('switch_chassis_id', lldp_dict)
+        self.assertIn('switch_port_id', lldp_dict)
+        self.assertEqual('aa:bb:cc:dd:ee:ff', lldp_dict['switch_chassis_id'])
+        self.assertEqual('port-1', lldp_dict['switch_port_id'])
+
+
 
 class ContinueInspectionTestCase(db_base.DbTestCase):
     def setUp(self):

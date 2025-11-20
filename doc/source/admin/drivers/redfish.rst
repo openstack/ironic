@@ -386,7 +386,10 @@ Out-Of-Band inspection
 The ``redfish`` hardware type can inspect the bare metal node by querying
 Redfish compatible BMC. This process is quick and reliable compared to the
 way the ``agent`` hardware type works i.e. booting bare metal node into
-the introspection ramdisk.
+the introspection ramdisk. The inspection collects various hardware
+information including LLDP (Link Layer Discovery Protocol) data when
+available from the BMC, such as chassis ID, port ID, system name, system
+description, system capabilities, and management addresses.
 
 .. note::
 
