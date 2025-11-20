@@ -14,7 +14,6 @@ import sys
 
 from oslo_config import cfg
 from oslo_log import log
-from oslo_service import service
 
 from ironic.command import conductor as conductor_cmd
 from ironic.command import utils
@@ -39,11 +38,9 @@ def main():
     # Parse config file and command line options, then start logging
     ironic_service.prepare_service('ironic', sys.argv)
 
-    # Choose the launcher based upon if vnc is enabled or not.
-    # The VNC proxy has to be run in the parent process, not
-    # a sub-process.
-    launcher = service.ServiceLauncher(CONF, restart_method='mutate',
-                                       no_fork=CONF.vnc.enabled)
+    # The VNC proxy has to be run in the parent process (no_fork=True) for
+    # signal handling, otherwise forking is fine (no_fork=False, default).
+    launcher = ironic_service.process_launcher(no_fork=CONF.vnc.enabled)
 
     mgr = rpc_service.RPCService(CONF.host,
                                  'ironic.conductor.manager',

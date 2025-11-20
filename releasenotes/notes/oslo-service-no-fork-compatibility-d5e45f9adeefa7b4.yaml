@@ -1,0 +1,13 @@
+---
+fixes:
+  - |
+    Fixes compatibility with oslo.service versions 4.4.0 and later. The
+    combined Ironic service (``ironic`` command) was passing the ``no_fork``
+    parameter to ``ServiceLauncher``, which worked in oslo.service <= 4.3.0
+    because ``ServiceLauncher`` was mapped to ``ProcessLauncher`` (which
+    supports ``no_fork``). In oslo.service 4.4.0, this mapping was changed
+    and ``ServiceLauncher`` became a distinct class that doesn't accept
+    ``no_fork``, causing ``TypeError`` when starting the service. The code
+    now directly uses ``ProcessLauncher`` via ``process_launcher()``, which
+    properly supports ``no_fork`` and ensures VNC signal handling works
+    correctly when ``[vnc]enabled=True``.
