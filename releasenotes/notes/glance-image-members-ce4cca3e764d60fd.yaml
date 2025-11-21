@@ -1,0 +1,7 @@
+---
+fixes:
+  - |
+    A feature was added in 2025.2 to allow Ironic conductor to access images
+    shared with its project in addition to its own images but the check did
+    not use the Glance API correctly resulting in non-function. This fixes
+    it and exposes a type checked method. Bug #2099276.
