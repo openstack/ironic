@@ -317,6 +317,12 @@ class TestGlanceImageService(base.TestCase):
         self.assertRaises(exception.ImageNotFound, stub_service.download,
                           image_id, writer)
 
+    def test_member_list(self):
+        image_id = uuidutils.generate_uuid()
+        result = self.service.member_list(image_id)
+        self.assertEqual(len(result), 1)
+        self.assertEqual(result[0].member_id, self.client.member_id)
+
 
 @mock.patch('ironic.common.keystone.get_auth', autospec=True,
             return_value=mock.sentinel.auth)
