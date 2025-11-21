@@ -180,6 +180,8 @@ class RedfishFirmware(base.FirmwareInterface):
         for net_adp in chassis.network_adapters.get_members():
             for net_adp_ctrl in net_adp.controllers:
                 fw_pkg_v = net_adp_ctrl.firmware_package_version
+                if not fw_pkg_v:
+                    continue
                 net_adp_fw = {'component': redfish_utils.NIC_COMPONENT_PREFIX
                               + net_adp.identity, 'current_version': fw_pkg_v}
                 nic_list.append(net_adp_fw)
