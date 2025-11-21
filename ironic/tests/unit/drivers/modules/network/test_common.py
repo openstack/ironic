@@ -492,6 +492,76 @@ class TestCommonFunctions(db_base.DbTestCase):
                 nclient, self.vif_id, 'ACTIVE', fail_on_binding_failure=True)
             self.assertTrue(mock_update.called)
 
+    @mock.patch.object(neutron_common, 'update_neutron_port', autospec=True)
+    @mock.patch.object(neutron_common, 'wait_for_port_status', autospec=True)
+    @mock.patch.object(neutron_common, 'get_client', autospec=True)
+    def test_plug_port_to_tenant_network_with_physical_network(
+            self, mock_gc, wait_mock_status, mock_update):
+        # Test that physical_network is included in binding:profile for port
+        nclient = mock.MagicMock()
+        mock_gc.return_value = nclient
+        self.port.internal_info = {common.TENANT_VIF_KEY: self.vif_id}
+        self.port.physical_network = 'physnet1'
+        self.port.save()
+
+        expected_attrs = {
+            'binding:vnic_type': neutron_common.VNIC_BAREMETAL,
+            'binding:host_id': self.node.uuid,
+            'mac_address': self.port.address,
+            'binding:profile': {
+                'local_link_information': [self.port.local_link_connection],
+                'physical_network': 'physnet1'
+            }
+        }
+
+        with task_manager.acquire(self.context, self.node.id) as task:
+            common.plug_port_to_tenant_network(task, self.port)
+            mock_update.assert_called_once_with(
+                task.context, self.vif_id, expected_attrs)
+
+    @mock.patch.object(neutron_common, 'update_neutron_port', autospec=True)
+    @mock.patch.object(neutron_common, 'wait_for_port_status', autospec=True)
+    @mock.patch.object(neutron_common, 'get_client', autospec=True)
+    def test_plug_portgroup_to_tenant_network_with_physical_network(
+            self, mock_gc, wait_mock_status, mock_update):
+        # Test that physical_network is included in binding:profile for
+        # a portgroup
+        nclient = mock.MagicMock()
+        mock_gc.return_value = nclient
+        pg = obj_utils.create_test_portgroup(
+            self.context, node_id=self.node.id, address='00:54:00:cf:2d:01',
+            physical_network='physnet1')
+        port1 = obj_utils.create_test_port(
+            self.context, node_id=self.node.id, address='52:54:00:cf:2d:01',
+            portgroup_id=pg.id, uuid=uuidutils.generate_uuid())
+        port2 = obj_utils.create_test_port(
+            self.context, node_id=self.node.id, address='52:54:00:cf:2d:02',
+            portgroup_id=pg.id, uuid=uuidutils.generate_uuid())
+        pg.internal_info = {common.TENANT_VIF_KEY: self.vif_id}
+        pg.save()
+
+        expected_attrs = {
+            'binding:vnic_type': neutron_common.VNIC_BAREMETAL,
+            'binding:host_id': self.node.uuid,
+            'mac_address': pg.address,
+            'binding:profile': {
+                'local_link_information': [port1.local_link_connection,
+                                           port2.local_link_connection],
+                'local_group_information': {
+                    'id': pg.uuid,
+                    'name': pg.name,
+                    'bond_mode': pg.mode,
+                    'bond_properties': {}
+                },
+                'physical_network': 'physnet1'
+            }
+        }
+
+        with task_manager.acquire(self.context, self.node.id) as task:
+            common.plug_port_to_tenant_network(task, pg)
+            mock_update.assert_called_once_with(
+                task.context, self.vif_id, expected_attrs)
+
 
 class TestVifPortIDMixin(db_base.DbTestCase):
 

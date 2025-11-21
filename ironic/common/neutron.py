@@ -371,6 +371,10 @@ def add_ports_to_network(task, network_uuid, security_groups=None):
             binding_profile['vtep-logical-switch'] = vtep_logical_switch
             binding_profile['vtep-physical-switch'] = vtep_physical_switch
 
+        # Include physical_network if available
+        if ironic_port.physical_network:
+            binding_profile['physical_network'] = ironic_port.physical_network
+
         update_port_attrs['binding:profile'] = binding_profile
 
         if not ironic_port.pxe_enabled:
