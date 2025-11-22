@@ -681,7 +681,8 @@ class NeutronVIFPortIDMixin(VIFPortIDMixin):
         # NOTE(vsaienko): allow to unplug VIFs from ACTIVE instance.
         # NOTE(TheJulia): Also ensure that we delete the vif when in
         # DELETING state.
-        if task.node.provision_state in [states.ACTIVE, states.DELETING]:
+        if task.node.provision_state in [states.ACTIVE, states.DELETING,
+                                         states.AVAILABLE]:
             neutron.unbind_neutron_port(vif_id, context=task.context)
 
     def get_node_network_data(self, task):
