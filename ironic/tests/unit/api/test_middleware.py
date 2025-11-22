@@ -41,7 +41,7 @@ class TestCORSMiddleware(base.BaseApiTest):
 
         # Load up our valid domain values before the application is created.
         cfg.CONF.set_override("allowed_origin",
-                              "http://valid.example.com",
+                              ["http://valid.example.com"],
                               group='cors')
 
         # Create the application.
