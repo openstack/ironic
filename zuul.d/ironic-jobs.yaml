@@ -100,6 +100,8 @@
         IRONIC_LOG_STEPS_TO_SYSLOG: True
         IRONIC_TEMPEST_BUILD_TIMEOUT: 2000
         IRONIC_TEMPEST_WHOLE_DISK_IMAGE: False
+        # NOTE(JayF): If basic ram requirements change for our images, search
+        #             for the relevant variable in our docs and update it too.
         IRONIC_VM_COUNT: 2
         IRONIC_VM_EPHEMERAL_DISK: 1
         IRONIC_VM_SPECS_RAM: 2750
