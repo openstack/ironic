@@ -374,7 +374,7 @@ An example is setting the BMC clock using the Redfish management interface::
     "clean_steps": [{
       "interface": "management",
       "step": "set_bmc_clock",
-      "args": {"datetime": "2025-07-22T12:34:56+00:00"}
+      "args": {"target_datetime": "2025-07-22T12:34:56+00:00"}
     }]
   }
 
