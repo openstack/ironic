@@ -23,7 +23,7 @@ from ironic.objects import node
 from ironic.objects import port
 
 
-NODE_COUNT = 10000
+NODE_COUNT = 5000
 PORTS_PER_NODE = 2
 
 
@@ -55,7 +55,7 @@ def _create_test_nodes():
     for i in range(0, NODE_COUNT):
         new_node = node.Node()
         new_node.power_state = 'power off'
-        new_node.driver = 'ipmi'
+        new_node.driver = 'fake-hardware'
         new_node.driver_internal_info = {'test-meow': i}
         new_node.name = 'BenchmarkTestNode-%s' % i
         new_node.driver_info = {
@@ -108,6 +108,7 @@ def _mix_up_nodes_data():
     for command in commands:
         print("Executing SQL command: \\" + command + ";\n")
         conn.execute(sql.text(command))
+        conn.commit()
         print("* Completed command. %0.04f elapsed since start of commands."
               % (time.time() - start))
 
@@ -116,7 +117,7 @@ def main():
     service.prepare_command()
     CONF.set_override('debug', False)
     _create_test_nodes()
-
+    _mix_up_nodes_data()
 
 if __name__ == '__main__':
     sys.exit(main())
