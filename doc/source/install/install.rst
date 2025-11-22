@@ -19,9 +19,6 @@ More installation projects are developed by other OpenStack teams:
   can install ironic in containers as part of OpenStack.
 * OpenStack-Ansible has a `role to install ironic
   <https://docs.openstack.org/openstack-ansible-os_ironic/latest/>`_.
-* TripleO uses ironic for provisioning bare metal nodes and can also be used
-  `to install ironic
-  <https://docs.openstack.org/project-deploy-guide/tripleo-docs/latest/features/baremetal_overcloud.html>`_.
 
 .. NOTE(dtantsur): add your favourite installation tool, but please link to the
    **Ironic guide**, not to the generic page. If a separate Ironic guide does
