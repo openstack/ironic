@@ -64,7 +64,7 @@ class TestLookup(test_api_base.BaseApiTest):
         node.driver_internal_info = driver_internal
         self.mock_get_node_with_token.return_value = node
 
-    def _check_config(self, data):
+    def _check_config(self, data, skip_bmc_detect=False):
         expected_config = {
             'agent_containers': {
                 'allow_arbitrary_containers': CONF.agent_containers
@@ -97,6 +97,7 @@ class TestLookup(test_api_base.BaseApiTest):
             'agent_md5_checksum_enable': CONF.agent.allow_md5_checksum,
             'disable_deep_image_inspection': CONF.conductor.disable_deep_image_inspection,  # noqa
             'permitted_image_formats': CONF.conductor.permitted_image_formats,
+            'agent_skip_bmc_detect': skip_bmc_detect,
         }
         self.assertEqual(expected_config, data['config'])
         self.assertIsNotNone(data['config']['agent_token'])
@@ -225,6 +226,85 @@ class TestLookup(test_api_base.BaseApiTest):
                 (','.join(self.addresses), self.node.uuid),
                 headers={api_base.Version.string: str(api_v1.max_version())})
             self.assertEqual(self.node.uuid, data['node']['uuid'])
+
+    def test_bmc_detect_skip_for_redfish(self):
+        """Test BMC detection skip is enabled for Redfish interface."""
+        self.node.management_interface = 'redfish'
+        self.node.save()
+        self._set_secret_mock(self.node, 'test-token')
+
+        data = self.get_json(
+            '/lookup?node_uuid=%s' % self.node.uuid,
+            headers={api_base.Version.string: str(api_v1.max_version())})
+
+        self.assertEqual(self.node.uuid, data['node']['uuid'])
+        self._check_config(data, skip_bmc_detect=True)
+
+    def test_bmc_detect_skip_for_ilo_variants(self):
+        """Test BMC detection skip is enabled for iLO variants."""
+        for ilo_interface in ['ilo', 'ilo5', 'ilo6']:
+            self.node.management_interface = ilo_interface
+            self.node.save()
+            self._set_secret_mock(self.node, 'test-token')
+
+            data = self.get_json(
+                '/lookup?node_uuid=%s' % self.node.uuid,
+                headers={api_base.Version.string: str(api_v1.max_version())})
+
+            self.assertEqual(self.node.uuid, data['node']['uuid'])
+            self._check_config(data, skip_bmc_detect=True)
+
+    def test_bmc_detect_skip_for_idrac_redfish(self):
+        """Test BMC detection skip is enabled for iDRAC Redfish."""
+        self.node.management_interface = 'idrac-redfish'
+        self.node.save()
+        self._set_secret_mock(self.node, 'test-token')
+
+        data = self.get_json(
+            '/lookup?node_uuid=%s' % self.node.uuid,
+            headers={api_base.Version.string: str(api_v1.max_version())})
+
+        self.assertEqual(self.node.uuid, data['node']['uuid'])
+        self._check_config(data, skip_bmc_detect=True)
+
+    def test_bmc_detect_skip_for_irmc(self):
+        """Test BMC detection skip is enabled for iRMC."""
+        self.node.management_interface = 'irmc'
+        self.node.save()
+        self._set_secret_mock(self.node, 'test-token')
+
+        data = self.get_json(
+            '/lookup?node_uuid=%s' % self.node.uuid,
+            headers={api_base.Version.string: str(api_v1.max_version())})
+
+        self.assertEqual(self.node.uuid, data['node']['uuid'])
+        self._check_config(data, skip_bmc_detect=True)
+
+    def test_bmc_detect_not_skipped_for_ipmi(self):
+        """Test BMC detection is NOT skipped for IPMI interface."""
+        self.node.management_interface = 'ipmitool'
+        self.node.save()
+        self._set_secret_mock(self.node, 'test-token')
+
+        data = self.get_json(
+            '/lookup?node_uuid=%s' % self.node.uuid,
+            headers={api_base.Version.string: str(api_v1.max_version())})
+
+        self.assertEqual(self.node.uuid, data['node']['uuid'])
+        self._check_config(data, skip_bmc_detect=False)
+
+    def test_bmc_detect_not_skipped_for_fake(self):
+        """Test BMC detection is NOT skipped for fake interface."""
+        self.node.management_interface = 'fake'
+        self.node.save()
+        self._set_secret_mock(self.node, 'test-token')
+
+        data = self.get_json(
+            '/lookup?node_uuid=%s' % self.node.uuid,
+            headers={api_base.Version.string: str(api_v1.max_version())})
+
+        self.assertEqual(self.node.uuid, data['node']['uuid'])
+        self._check_config(data, skip_bmc_detect=False)
 
 
 @mock.patch.object(rpcapi.ConductorAPI, 'get_topic_for',
