@@ -462,7 +462,7 @@ def _get_connection(node, lambda_fun, *args):
         except sushy.exceptions.AccessError as e:
             LOG.warning('For node %(node)s, we received an authentication '
                         'access error from address %(address)s with auth_type '
-                        '%(auth_type)s. The client will not be re-used upon '
+                        '%(auth_type)s. The client will not be reused upon '
                         'the next re-attempt. Please ensure your using the '
                         'correct credentials. Error: %(error)s',
                         {'address': driver_info['address'],

@@ -473,7 +473,7 @@ see :doc:`/admin/power-sync`. When this issue has been corrected with the
 credential, modern Ironic users should find the node recover automatically.
 
 .. warning::
-   Operators re-using the same credentials with a centrally managed credential
+   Operators reusing the same credentials with a centrally managed credential
    management system with separate BMC configuration should be careful about
    credential rotations. These operators risk causing the account to access the
    BMC to be locked out, and should likely explicitly set nodes to ``maintenance``
@@ -486,7 +486,7 @@ credential, modern Ironic users should find the node recover automatically.
 The Ironic project recommends:
 
 * Unique passwords be used for each baremetal node.
-* Operators leverage good password practices by not re-using the credentials
+* Operators leverage good password practices by not reusing the credentials
   for other tools or systems.
 
 Disk Images

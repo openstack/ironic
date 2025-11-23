@@ -226,7 +226,7 @@ Indexes will not fix everything
 -------------------------------
 
 Indexes are not a magical cure-all for all API or database performance issues,
-but they are an increadibly important part depending on data access and query
+but they are an incredibly important part depending on data access and query
 patterns.
 
 The underlying object layer and data conversions including record pagination
