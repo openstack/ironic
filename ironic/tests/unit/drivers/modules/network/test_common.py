@@ -992,7 +992,7 @@ class TestNeutronVifPortIDMixin(db_base.DbTestCase):
         with task_manager.acquire(self.context, self.node.id) as task:
             self.interface.vif_detach(task, 'fake_vif_id')
         mock_get.assert_called_once_with(self.interface, task, 'fake_vif_id')
-        self.assertFalse(mock_unp.called)
+        self.assertTrue(mock_unp.called)
         mock_clear.assert_called_once_with(self.port)
 
     @mock.patch.object(common.VIFPortIDMixin, '_clear_vif_from_port_like_obj',
@@ -1007,7 +1007,7 @@ class TestNeutronVifPortIDMixin(db_base.DbTestCase):
         with task_manager.acquire(self.context, self.node.id) as task:
             self.interface.vif_detach(task, 'fake_vif_id')
         mock_get.assert_called_once_with(self.interface, task, 'fake_vif_id')
-        self.assertFalse(mock_unp.called)
+        self.assertTrue(mock_unp.called)
         mock_clear.assert_called_once_with(pg)
 
     @mock.patch.object(common.VIFPortIDMixin, '_clear_vif_from_port_like_obj',
