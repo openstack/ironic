@@ -3572,7 +3572,7 @@ function identify_port_for_switch {
     # TODO(TheJulia): The exisence of this function is kind of awful.
     # tl;dr, we don't have the port id for ngs, so we *should wire things
     # up so inspection can trigger and we can discover these via lldp...
-    # Ideall, before the fixme so the fixme is just a bug.
+    # Ideally, before the fixme so the fixme is just a bug.
     # FIXME(TheJulia): this only maps up with 2 ports per VM.
     local simulator=$1
     local vm_port=$2
