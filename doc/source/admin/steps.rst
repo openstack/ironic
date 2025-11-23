@@ -145,7 +145,7 @@ supports the Redfish interface.
 How to Enable
 ---------------
  The feature is controlled by the following configuration option
- in `` ironic.conf``:
+ in ``ironic.conf``:
 
  .. code-block:: ini
 
