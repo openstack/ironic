@@ -1031,6 +1031,12 @@ class ChildNodeLocked(Conflict):
                  "completed.")
 
 
+class InvalidMetricConfig(Invalid):
+    """Error raised when a metric config is invalid."""
+
+    message = "Invalid value for metrics config option."
+
+
 class MetricsNotSupported(IronicException):
     _msg_fmt = _("Metrics action is not supported. You may need to "
                  "adjust the [metrics] section in ironic.conf.")
