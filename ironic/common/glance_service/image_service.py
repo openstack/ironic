@@ -24,6 +24,7 @@ from urllib import parse as urlparse
 from keystoneauth1 import exceptions as ks_exception
 import openstack
 from openstack.connection import exceptions as openstack_exc
+from openstack.image import v2 as glance_v2
 from oslo_log import log
 from oslo_utils import uuidutils
 import tenacity
@@ -209,6 +210,15 @@ class GlanceImageService(object):
             raise exception.ImageDownloadFailed(
                 image_href=image_href, reason=_('image contains no data.'))
         return image_data
+
+    @check_image_service
+    def member_list(self, image_id: str) -> list[glance_v2.member.Member]:
+        """Calls out to Glance to find the members for an image_id
+
+        :param image_id: The image ID.
+        :returns: list of member IDs
+        """
+        return self.call('members', image_id)
 
     def _generate_temp_url(self, path, seconds, key, method, endpoint,
                            image_id):

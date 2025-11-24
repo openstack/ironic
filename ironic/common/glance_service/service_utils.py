@@ -211,9 +211,9 @@ def get_conductor_project_id():
 def get_image_member_list(image_id, context):
     try:
         glance_service = service.GlanceImageService(context=context)
-        members = glance_service.client.image.members(image_id)
+        members = glance_service.member_list(image_id)
         return [
-            member['member_id']
+            member.member_id
             for member in members
         ]
     except Exception as e:

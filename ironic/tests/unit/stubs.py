@@ -15,6 +15,7 @@
 import io
 
 from openstack.connection import exceptions as openstack_exc
+from oslo_utils import uuidutils
 
 
 NOW_GLANCE_FORMAT = "2010-10-11T10:30:22"
@@ -23,6 +24,7 @@ NOW_GLANCE_FORMAT = "2010-10-11T10:30:22"
 class StubGlanceClient(object):
 
     image_data = b'this is an image'
+    member_id = uuidutils.generate_uuid()
 
     def __init__(self, images=None):
         self._images = []
@@ -41,6 +43,9 @@ class StubGlanceClient(object):
             return io.BytesIO(self.image_data)
         else:
             return FakeImageDownload(self.image_data)
+
+    def members(self, image_id):
+        return [type('Member', (object,), dict(member_id=self.member_id))]
 
 
 class FakeImageDownload(object):
