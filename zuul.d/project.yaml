@@ -43,9 +43,6 @@
         - ironic-tempest-bfv
         - ironic-tempest-ipa-partition-uefi-pxe-grub2
         - ironic-tempest-uefi-redfish-vmedia-4k
-        # NOTE(rpittau): Currently broken because of an issue with parted
-        - metalsmith-integration-glance-centos9-uefi:
-            voting: false
         - openstacksdk-functional-devstack:
             files:
               - ^ironic/api/.*$
@@ -108,7 +105,6 @@
         - ironic-tempest-ipa-partition-uefi-pxe-grub2
         - ironic-tempest-uefi-redfish-vmedia-4k
         # NOTE(rpittau): Currently broken because of an issue with parted
-        #- metalsmith-integration-glance-centos9-uefi
         # NOTE(TheJulia): At present, metal3 doesn't leverage
         # stable branches, and as far as we are aware these jobs
         # can be removed once this branch is made stable.
