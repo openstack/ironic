@@ -361,7 +361,7 @@ class IronicImagesTestCase(base.TestCase):
         images.image_to_raw('image_href', 'path', 'path_tmp')
         info.safety_check.assert_not_called()
         detect_format_mock.assert_has_calls([
-            mock.call('path')])
+            mock.call('path_tmp')])
         self.assertEqual(2, info.__str__.call_count)
         convert_image_mock.assert_called_once_with('path_tmp',
                                                    'path.converted', 'raw',
@@ -390,7 +390,7 @@ class IronicImagesTestCase(base.TestCase):
         info.safety_check.assert_not_called()
         self.assertEqual(2, info.__str__.call_count)
         detect_format_mock.assert_has_calls([
-            mock.call('path')])
+            mock.call('path_tmp')])
         convert_image_mock.assert_called_once_with('path_tmp',
                                                    'path.converted', 'raw',
                                                    source_format='vmdk')

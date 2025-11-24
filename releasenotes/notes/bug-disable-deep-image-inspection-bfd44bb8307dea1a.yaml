@@ -1,0 +1,7 @@
+---
+fixes:
+  - |
+    When disable_deep_image_inspection = true, the code path uses the destination
+    filename as the source file name resulting in a failure. Due to the way the
+    code attempts to clean up, this error is swallowed and only caught later on
+    when the file is used.

@@ -531,12 +531,13 @@ def image_to_raw(image_href, path, path_tmp):
                            'format': fmt})
                 raise exception.InvalidImage()
         else:
-            fmt = get_source_format(image_href, path)
+            fmt = get_source_format(image_href, path_tmp)
             LOG.warning("Security: Image safety checking has been disabled. "
                         "This is unsafe operation. Attempting to continue "
-                        "the detected format %(img_fmt)s for %(path)s.",
+                        "with the detected format %(img_fmt)s for "
+                        "image %(image_href)s.",
                         {'img_fmt': fmt,
-                         'path': path})
+                         'image_href': image_href})
 
         if fmt not in RAW_IMAGE_FORMATS and fmt != "iso":
             # When the target format is NOT raw, we need to convert it.
