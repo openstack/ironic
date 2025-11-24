@@ -1,0 +1,7 @@
+---
+fixes:
+  - |
+    Fixes excessive logging of JSON-RPC transactions by reducing the logging
+    of these transactions to the minimally needful, the request ID value.
+    This behavior can be disabled, and the prior pattern of verbose logging can
+    be enabled by setting ``[json_rpc]debug_log_request_id_only`` to False.

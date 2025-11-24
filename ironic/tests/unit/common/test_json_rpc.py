@@ -696,6 +696,123 @@ class TestClient(TestCase):
         resp_text = mock_log.call_args_list[1][0][3]
         self.assertEqual(body.replace('passw0rd', '***'), resp_text)
 
+    @mock.patch.object(client.LOG, 'debug', autospec=True)
+    def test_debug_log_request_id_only_with_request_id(self, mock_log,
+                                                       mock_session):
+        response = mock_session.return_value.post.return_value
+        response.json.return_value = {
+            'jsonrpc': '2.0',
+            'result': 42
+        }
+        self.context.request_id = 'req-1234'
+        cctx = self.client.prepare('foo.example.com')
+        result = cctx.call(self.context, 'do_something', answer=42)
+        self.assertEqual(42, result)
+
+        # Check that only request_id is logged, not full request/response
+        self.assertEqual(2, mock_log.call_count)
+
+        # First call should log the request with request_id only
+        first_call_args = mock_log.call_args_list[0][0]
+        self.assertIn('request_id', first_call_args[0])
+        self.assertEqual('do_something', first_call_args[1])
+        self.assertIn('example.com:8089', first_call_args[2])
+        self.assertEqual(self.context.request_id, first_call_args[3])
+
+        # Second call should log successful completion with request_id
+        second_call_args = mock_log.call_args_list[1][0]
+        self.assertIn('completed successfully', second_call_args[0])
+        self.assertEqual('do_something', second_call_args[1])
+        self.assertIn('example.com:8089', second_call_args[2])
+        self.assertEqual(self.context.request_id, second_call_args[3])
+
+    @mock.patch.object(client.LOG, 'debug', autospec=True)
+    def test_debug_log_request_id_only_without_request_id(self, mock_log,
+                                                          mock_session):
+        self.config(debug_log_request_id_only=True, group='json_rpc')
+        # Create context without request_id
+        context_without_id = FakeContext({'user_name': 'admin'})
+        context_without_id.request_id = None
+        context_without_id.to_dict()
+
+        response = mock_session.return_value.post.return_value
+        response.json.return_value = {
+            'jsonrpc': '2.0',
+            'result': 42
+        }
+        response.text = '{"jsonrpc": "2.0", "result": 42}'
+
+        cctx = self.client.prepare('foo.example.com')
+        result = cctx.call(context_without_id, 'do_something', answer=42)
+        self.assertEqual(42, result)
+
+        # Check that full request/response is logged when no request_id
+        self.assertEqual(2, mock_log.call_count)
+
+        # First call should log full request body since no request_id
+        first_call_args = mock_log.call_args_list[0][0]
+        self.assertIn('RPC', first_call_args[0])
+        self.assertIn('with', first_call_args[0])
+        # Should contain the masked request body
+        logged_body = first_call_args[3]
+        self.assertIn('do_something', str(logged_body))
+        self.assertIn('answer', str(logged_body))
+
+        # Second call should log full response since no request_id
+        second_call_args = mock_log.call_args_list[1][0]
+        self.assertIn('returned', second_call_args[0])
+
+    @mock.patch.object(client.LOG, 'debug', autospec=True)
+    def test_debug_log_request_id_only_disabled(self, mock_log, mock_session):
+        self.config(debug_log_request_id_only=False, group='json_rpc')
+        response = mock_session.return_value.post.return_value
+        response.json.return_value = {
+            'jsonrpc': '2.0',
+            'result': 42
+        }
+        response.text = '{"jsonrpc": "2.0", "result": 42}'
+
+        cctx = self.client.prepare('foo.example.com')
+        result = cctx.call(self.context, 'do_something', answer=42)
+        self.assertEqual(42, result)
+
+        # Check that full request/response is logged when option is disabled
+        self.assertEqual(2, mock_log.call_count)
+
+        # Should always log full request/response when disabled
+        first_call_args = mock_log.call_args_list[0][0]
+        self.assertIn('RPC', first_call_args[0])
+        self.assertIn('with', first_call_args[0])
+        logged_body = first_call_args[3]
+        self.assertIn('do_something', str(logged_body))
+
+        second_call_args = mock_log.call_args_list[1][0]
+        self.assertIn('returned', second_call_args[0])
+
+    @mock.patch.object(client.LOG, 'debug', autospec=True)
+    def test_debug_log_request_id_only_with_exception(self, mock_log,
+                                                      mock_session):
+        self.config(debug_log_request_id_only=True, group='json_rpc')
+        mock_session.return_value.post.side_effect = RuntimeError(
+            'Connection failed')
+        self.context.request_id = 'req-1234'
+        cctx = self.client.prepare('foo.example.com')
+        self.assertRaises(RuntimeError, cctx.call, self.context,
+                          'do_something', answer=42)
+
+        # Check that exception logging uses request_id only format
+        self.assertEqual(2, mock_log.call_count)
+
+        # First call should log the request with request_id
+        first_call_args = mock_log.call_args_list[0][0]
+        self.assertIn('request_id', first_call_args[0])
+
+        # Second call should log the failure with request_id
+        second_call_args = mock_log.call_args_list[1][0]
+        self.assertIn('failed', second_call_args[0])
+        self.assertIn('request_id', second_call_args[0])
+        self.assertEqual(self.context.request_id, second_call_args[3])
+
 
 @mock.patch('ironic.common.json_rpc.client.keystone', autospec=True)
 class TestSession(TestCase):

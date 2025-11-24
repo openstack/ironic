@@ -150,6 +150,38 @@ class _CallContext(object):
             raise importutils.import_object(cls, message,
                                             code=error.get('code', 500))
 
+    def _debug_log_rpc(self, method, url, params, body=None,
+                       result_text=None, exception=None):
+        """Helper to log RPC calls with optional request_id-only logging."""
+        request_id = None
+        if CONF.json_rpc.debug_log_request_id_only:
+            request_id = params.get('context', {}).get('request_id')
+
+        if exception:
+            # Log failure
+            if request_id:
+                LOG.debug('RPC %s to %s with request_id %s failed with %s',
+                          method, url, request_id, exception)
+            else:
+                LOG.debug('RPC %s to %s failed with %s', method, url,
+                          exception)
+        elif result_text is not None:
+            # Log success response
+            if request_id:
+                LOG.debug('RPC %s to %s with request_id %s completed '
+                          'successfully', method, url, request_id)
+            else:
+                LOG.debug('RPC %s to %s returned %s', method, url,
+                          strutils.mask_password(result_text or '<None>'))
+        else:
+            # Log request
+            if request_id:
+                LOG.debug("RPC %s to %s with request_id %s", method, url,
+                          request_id)
+            else:
+                LOG.debug("RPC %s to %s with %s", method, url,
+                          strutils.mask_dict_password(body))
+
     def call(self, context, method, version=None, **kwargs):
         """Call conductor RPC.
 
@@ -216,15 +248,15 @@ class _CallContext(object):
         url = '%s://%s:%d' % (scheme,
                               netutils.escape_ipv6(self.host),
                               self.port)
-        LOG.debug("RPC %s to %s with %s", method, url,
-                  strutils.mask_dict_password(body))
+        self._debug_log_rpc(method, url, params, body=body)
+
         try:
             result = _get_session(self.conf_group).post(url, json=body)
         except Exception as exc:
-            LOG.debug('RPC %s to %s failed with %s', method, url, exc)
+            self._debug_log_rpc(method, url, params, exception=exc)
             raise
-        LOG.debug('RPC %s to %s returned %s', method, url,
-                  strutils.mask_password(result.text or '<None>'))
+
+        self._debug_log_rpc(method, url, params, result_text=result.text)
         if not cast:
             result = result.json()
             self._handle_error(result.get('error'))
