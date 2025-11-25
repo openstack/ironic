@@ -11,6 +11,5 @@
 # under the License.
 
 from ironic.drivers.modules.inspector.agent import AgentInspect
-from ironic.drivers.modules.inspector.interface import Inspector
 
-__all__ = ['AgentInspect', 'Inspector']
+__all__ = ['AgentInspect']

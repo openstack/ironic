@@ -145,7 +145,7 @@ The ``ilo`` hardware type supports following hardware interfaces:
        management engine.
 
 * inspect
-    Supports ``ilo`` and ``inspector``. The default is ``ilo``. They
+    Supports ``ilo`` and ``agent``. The default is ``ilo``. They
     can be enabled by using the :oslo.config:option:`DEFAULT.enabled_inspect_interfaces` option
     in ``ironic.conf`` as given below:
 
@@ -153,11 +153,7 @@ The ``ilo`` hardware type supports following hardware interfaces:
 
         [DEFAULT]
         enabled_hardware_types = ilo
-        enabled_inspect_interfaces = ilo,inspector
-
-    .. note::
-       :ironic-inspector-doc:`Ironic Inspector <>`
-       needs to be configured to use ``inspector`` as the inspect interface.
+        enabled_inspect_interfaces = ilo,agent
 
 * management
     Supports only ``ilo``. It can be enabled by using the

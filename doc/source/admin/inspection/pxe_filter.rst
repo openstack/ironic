@@ -6,10 +6,6 @@ that is responsible for :ref:`unmanaged-inspection`. Running it allows
 this dnsmasq instance to co-exist with the OpenStack Networking service's DHCP
 server on the same physical network.
 
-.. warning::
-   The PXE filter service is currently experimental. For a production grade
-   solution, please stay with ironic-inspector for the time being.
-
 How it works?
 -------------
 

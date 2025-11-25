@@ -28,12 +28,9 @@ components participating in the bare metal provisioning:
 
 * The :glance-doc:`Image service <>` provides images for bare metal instances.
 
-The following services can be optionally used by the Bare Metal service:
+The following service can be optionally used by the Bare Metal service:
 
 * The :cinder-doc:`Volume service <>` provides volumes to boot bare metal instances from.
-
-* The :ironic-inspector-doc:`Bare Metal Introspection service <>` simplifies enrolling new bare metal
-  machines by conducting in-band introspection.
 
 Node roles
 ----------
@@ -188,17 +185,6 @@ The following components of the Bare Metal service are installed on a
   service to assist with binding bare metal ports.
 
   The :ironic-neutron-agent-doc:`ironic-neutron-agent <>` service should be started as well.
-
-* If the Bare Metal introspection is used, its ``ironic-inspector`` process
-  has to be installed on all *controllers*. Each such process works as both
-  Bare Metal Introspection API and conductor service. A load balancer should
-  be used to spread the API load between *controllers*.
-
-  The API has to be served on the *control plane network*. Additionally,
-  it has to be exposed to the *bare metal network* for the ramdisk callback
-  API.
-
-.. TODO(dtantsur): a nice picture to illustrate the above
 
 Shared services
 ~~~~~~~~~~~~~~~

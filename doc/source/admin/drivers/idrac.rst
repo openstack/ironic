@@ -92,7 +92,7 @@ Interface            Supported Implementations
 ``deploy``           ``direct``, ``ansible``, ``ramdisk``
 ``firmware``         ``redfish``, ``no-firmware``
 ``inspect``          ``idrac-redfish``,
-                     ``inspector``, ``no-inspect``
+                     ``agent``, ``no-inspect``
 ``management``       ``idrac-redfish``
 ``network``          ``flat``, ``neutron``, ``noop``
 ``power``            ``redfish``, ``idrac-redfish``

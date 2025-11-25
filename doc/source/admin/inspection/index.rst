@@ -7,19 +7,10 @@ information directly from it. This process is more fragile and time-consuming
 than the out-of-band inspection, but it is not vendor-specific and works
 across a wide range of hardware.
 
-In the 2023.2 "Bobcat" release series, Ironic received an experimental
-implementation of in-band inspection that does not require the separate
-ironic-inspector_ service.
-
 .. note::
    The implementation described in this document is not 100% compatible with
-   the previous one (based on ironic-inspector_). Check the documentation and
+   the previous one (based on ironic-inspector). Check the documentation and
    the release notes for which features are currently available.
-
-   Use :doc:`inspector` for production deployments of Ironic 2023.2 or earlier
-   releases.
-
-.. _ironic-inspector: https://pypi.org/project/ironic-inspector
 
 .. toctree::
    :maxdepth: 2
@@ -37,8 +28,6 @@ stored data, nor does it support the ``"scope"`` field.
 
 The scope field allowed a rule to be applied only to specific nodes with
 matching scope value rather than all nodes where conditions are met.
-
-:ironic-inspector-doc:`Inspection rules <user/usage.html#introspection-rules>`
 
 Inspection Rules
 ----------------

@@ -385,8 +385,8 @@ Out-Of-Band inspection
 
 The ``redfish`` hardware type can inspect the bare metal node by querying
 Redfish compatible BMC. This process is quick and reliable compared to the
-way the ``inspector`` hardware type works i.e. booting bare metal node
-into the introspection ramdisk.
+way the ``agent`` hardware type works i.e. booting bare metal node into
+the introspection ramdisk.
 
 .. note::
 

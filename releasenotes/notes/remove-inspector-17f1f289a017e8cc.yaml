@@ -1,0 +1,10 @@
+---
+upgrade:
+  - |
+    The deprecated ``inspector`` inspect interface has been removed. Use
+    the ``agent`` interface instead.
+
+    See `migration guide
+    <https://docs.openstack.org/ironic/latest/admin/inspection/migration.html>`_
+    to learn how existing deployments with ironic-inspector can be migrated to
+    a new architecture with the built-in inspection feature.

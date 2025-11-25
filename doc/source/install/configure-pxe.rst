@@ -528,11 +528,6 @@ it is a misconfiguration of the deployment.
 Configuring unmanaged in-band inspection
 ----------------------------------------
 
-This section must be followed if you intend to use :ref:`unmanaged-inspection`
-without ironic-inspector. For ironic-inspector support, check `its installation
-guide
-<https://docs.openstack.org/ironic-inspector/latest/install/index.html#configuration>`_.
-
 With PXE
 ~~~~~~~~
 

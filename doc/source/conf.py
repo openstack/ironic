@@ -71,7 +71,6 @@ openstackdocs_projects = [
     'cinder',
     'glance',
     'ironic',
-    'ironic-inspector',
     'ironic-lib',
     'ironic-neutron-agent',
     'ironic-python-agent',
@@ -88,7 +87,6 @@ openstackdocs_projects = [
     'osprofiler',
     'os-traits',
     'python-ironicclient',
-    'python-ironic-inspector-client',
     'python-openstackclient',
     'swift',
 ]

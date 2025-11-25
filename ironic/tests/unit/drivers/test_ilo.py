@@ -70,10 +70,10 @@ class IloHardwareTestCase(db_base.DbTestCase):
                                   noop.NoRescue)
 
     def test_override_with_inspector(self):
-        self.config(enabled_inspect_interfaces=['inspector', 'ilo'])
+        self.config(enabled_inspect_interfaces=['agent', 'ilo'])
         node = obj_utils.create_test_node(
             self.context, driver='ilo',
-            inspect_interface='inspector',
+            inspect_interface='agent',
             raid_interface='agent',
             vendor_interface='no-vendor')
         with task_manager.acquire(self.context, node.id) as task:
@@ -84,7 +84,7 @@ class IloHardwareTestCase(db_base.DbTestCase):
             self.assertIsInstance(task.driver.deploy,
                                   agent.AgentDeploy)
             self.assertIsInstance(task.driver.inspect,
-                                  inspector.Inspector)
+                                  inspector.AgentInspect)
             self.assertIsInstance(task.driver.management,
                                   ilo.management.IloManagement)
             self.assertIsInstance(task.driver.power,
@@ -122,7 +122,7 @@ class IloHardwareTestCase(db_base.DbTestCase):
                                   ilo.vendor.VendorPassthru)
 
     def test_override_with_agent_rescue(self):
-        self.config(enabled_inspect_interfaces=['inspector', 'ilo'])
+        self.config(enabled_inspect_interfaces=['agent', 'ilo'])
         node = obj_utils.create_test_node(
             self.context, driver='ilo',
             rescue_interface='agent',

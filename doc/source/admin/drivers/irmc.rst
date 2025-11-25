@@ -65,13 +65,8 @@ hardware interfaces:
     The default is ``ipmitool-socat``.
 
 * inspect
-    Supports ``irmc``, ``inspector``, and ``no-inspect``.
+    Supports ``irmc``, ``agent``, and ``no-inspect``.
     The default is ``irmc``.
-
-    .. note::
-       :ironic-inspector-doc:`Ironic Inspector <>`
-       needs to be present and configured to use ``inspector`` as the
-       inspect interface.
 
 * management
     Supports only ``irmc``.
@@ -100,7 +95,7 @@ interfaces enabled for ``irmc`` hardware type.
    enabled_boot_interfaces = irmc-virtual-media,irmc-pxe
    enabled_console_interfaces = ipmitool-socat,ipmitool-shellinabox,no-console
    enabled_deploy_interfaces = direct
-   enabled_inspect_interfaces = irmc,inspector,no-inspect
+   enabled_inspect_interfaces = irmc,agent,no-inspect
    enabled_management_interfaces = irmc
    enabled_network_interfaces = flat,neutron
    enabled_power_interfaces = irmc
