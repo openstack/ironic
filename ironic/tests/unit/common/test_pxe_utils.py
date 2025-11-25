@@ -16,6 +16,7 @@
 
 import collections
 import os
+import pathlib
 import shutil
 import tempfile
 from unittest import mock
@@ -2669,7 +2670,7 @@ class TFTPImageCacheTestCase(db_base.DbTestCase):
         self.assertEqual(30 * 60, cache._cache_ttl)
 
 
-@mock.patch.object(os, 'makedirs', autospec=True)
+@mock.patch.object(pathlib.Path, 'mkdir', autospec=True)
 @mock.patch.object(os, 'chmod', autospec=True)
 @mock.patch.object(shutil, 'copy2', autospec=True)
 class TestPXEUtilsBootloader(db_base.DbTestCase):
@@ -2678,80 +2679,83 @@ class TestPXEUtilsBootloader(db_base.DbTestCase):
         super(TestPXEUtilsBootloader, self).setUp()
 
     def test_place_loaders_for_boot_default_noop(self, mock_copy2,
-                                                 mock_chmod, mock_makedirs):
+                                                 mock_chmod, mock_mkdir):
         res = pxe_utils.place_loaders_for_boot('/httpboot')
         self.assertIsNone(res)
         self.assertFalse(mock_copy2.called)
         self.assertFalse(mock_chmod.called)
-        self.assertFalse(mock_makedirs.called)
-        self.assertFalse(mock_makedirs.called)
+        self.assertFalse(mock_mkdir.called)
 
     def test_place_loaders_for_boot_no_source(self, mock_copy2,
-                                              mock_chmod, mock_makedirs):
+                                              mock_chmod, mock_mkdir):
         self.config(loader_file_paths='grubaa64.efi:/path/to/file',
                     group='pxe')
         mock_copy2.side_effect = FileNotFoundError('No such file or directory')
         self.assertRaises(exception.IncorrectConfiguration,
                           pxe_utils.place_loaders_for_boot,
                           '/tftpboot')
+
         self.assertTrue(mock_copy2.called)
         self.assertFalse(mock_chmod.called)
-        self.assertFalse(mock_makedirs.called)
+        mock_mkdir.assert_called()
 
     def test_place_loaders_for_boot_two_files(self, mock_copy2,
-                                              mock_chmod, mock_makedirs):
+                                              mock_chmod, mock_mkdir):
         self.config(loader_file_paths='bootx64.efi:/path/to/shimx64.efi,'
                                       'grubx64.efi:/path/to/grubx64.efi',
                     group='pxe')
         self.config(file_permission=420, group='pxe')
-        res = pxe_utils.place_loaders_for_boot('/tftpboot')
+        dest = pathlib.Path('/tftpboot')
+        res = pxe_utils.place_loaders_for_boot(dest)
         self.assertIsNone(res)
         mock_copy2.assert_has_calls([
-            mock.call('/path/to/shimx64.efi', '/tftpboot/bootx64.efi'),
-            mock.call('/path/to/grubx64.efi', '/tftpboot/grubx64.efi')
+            mock.call('/path/to/shimx64.efi', dest.joinpath('bootx64.efi')),
+            mock.call('/path/to/grubx64.efi', dest.joinpath('grubx64.efi'))
         ])
         mock_chmod.assert_has_calls([
-            mock.call('/tftpboot/bootx64.efi', CONF.pxe.file_permission),
-            mock.call('/tftpboot/grubx64.efi', CONF.pxe.file_permission)
+            mock.call(dest.joinpath('bootx64.efi'), CONF.pxe.file_permission),
+            mock.call(dest.joinpath('grubx64.efi'), CONF.pxe.file_permission)
         ])
-        self.assertFalse(mock_makedirs.called)
+        self.assertTrue(mock_mkdir.called)
 
     def test_place_loaders_for_boot_two_files_exception_on_copy(
-            self, mock_copy2, mock_chmod, mock_makedirs):
+            self, mock_copy2, mock_chmod, mock_mkdir):
         self.config(loader_file_paths='bootx64.efi:/path/to/shimx64.efi,'
                                       'grubx64.efi:/path/to/grubx64.efi',
                     group='pxe')
         self.config(file_permission=420, group='pxe')
         mock_copy2.side_effect = PermissionError('Permission denied')
+        dest = pathlib.Path('/tftpboot')
         self.assertRaises(exception.IncorrectConfiguration,
                           pxe_utils.place_loaders_for_boot,
-                          '/tftpboot')
+                          dest)
         mock_copy2.assert_has_calls([
-            mock.call('/path/to/shimx64.efi', '/tftpboot/bootx64.efi'),
+            mock.call('/path/to/shimx64.efi', dest.joinpath('bootx64.efi')),
         ])
         mock_chmod.assert_not_called()
-        self.assertFalse(mock_makedirs.called)
+        mock_mkdir.assert_called()
 
     def test_place_loaders_for_boot_two_files_exception_on_chmod(
-            self, mock_copy2, mock_chmod, mock_makedirs):
+            self, mock_copy2, mock_chmod, mock_mkdir):
         self.config(loader_file_paths='bootx64.efi:/path/to/shimx64.efi,'
                                       'grubx64.efi:/path/to/grubx64.efi',
                     group='pxe')
         self.config(file_permission=420, group='pxe')
         mock_chmod.side_effect = OSError('Chmod not permitted')
+        dest = pathlib.Path('/tftpboot')
         self.assertRaises(exception.IncorrectConfiguration,
                           pxe_utils.place_loaders_for_boot,
-                          '/tftpboot')
+                          dest)
         mock_copy2.assert_has_calls([
-            mock.call('/path/to/shimx64.efi', '/tftpboot/bootx64.efi'),
+            mock.call('/path/to/shimx64.efi', dest.joinpath('bootx64.efi')),
         ])
         mock_chmod.assert_has_calls([
-            mock.call('/tftpboot/bootx64.efi', CONF.pxe.file_permission),
+            mock.call(dest.joinpath('bootx64.efi'), CONF.pxe.file_permission),
         ])
-        self.assertFalse(mock_makedirs.called)
+        mock_mkdir.assert_called()
 
     def test_place_loaders_for_boot_raises_exception_with_absolute_path(
-            self, mock_copy2, mock_chmod, mock_makedirs):
+            self, mock_copy2, mock_chmod, mock_mkdir):
         self.config(
             loader_file_paths='/tftpboot/bootx64.efi:/path/to/shimx64.efi',
             group='pxe')
@@ -2763,25 +2767,30 @@ class TestPXEUtilsBootloader(db_base.DbTestCase):
                          '/tftpboot/bootx64.efi', str(exc))
 
     def test_place_loaders_for_boot_two_files_relative_path(
-            self, mock_copy2, mock_chmod, mock_makedirs):
+            self, mock_copy2, mock_chmod, mock_mkdir):
         self.config(loader_file_paths='grub/bootx64.efi:/path/to/shimx64.efi,'
                                       'grub/grubx64.efi:/path/to/grubx64.efi',
                     group='pxe')
         self.config(dir_permission=484, group='pxe')
         self.config(file_permission=420, group='pxe')
-        res = pxe_utils.place_loaders_for_boot('/tftpboot')
+        dest = pathlib.Path('/tftpboot')
+        res = pxe_utils.place_loaders_for_boot(dest)
         self.assertIsNone(res)
         mock_copy2.assert_has_calls([
-            mock.call('/path/to/shimx64.efi', '/tftpboot/grub/bootx64.efi'),
-            mock.call('/path/to/grubx64.efi', '/tftpboot/grub/grubx64.efi')
+            mock.call('/path/to/shimx64.efi',
+                      dest.joinpath('grub/bootx64.efi')),
+            mock.call('/path/to/grubx64.efi',
+                      dest.joinpath('grub/grubx64.efi'))
         ])
         mock_chmod.assert_has_calls([
-            mock.call('/tftpboot/grub/bootx64.efi', CONF.pxe.file_permission),
-            mock.call('/tftpboot/grub/grubx64.efi', CONF.pxe.file_permission)
+            mock.call(dest.joinpath('grub/bootx64.efi'),
+                      CONF.pxe.file_permission),
+            mock.call(dest.joinpath('grub/grubx64.efi'),
+                      CONF.pxe.file_permission)
         ])
-        mock_makedirs.assert_has_calls([
-            mock.call('/tftpboot/grub', mode=CONF.pxe.dir_permission,
-                      exist_ok=True),
-            mock.call('/tftpboot/grub', mode=CONF.pxe.dir_permission,
-                      exist_ok=True),
+        mock_mkdir.assert_has_calls([
+            mock.call(dest.joinpath('grub'), mode=CONF.pxe.dir_permission,
+                      parents=True, exist_ok=True),
+            mock.call(dest.joinpath('grub'), mode=CONF.pxe.dir_permission,
+                      parents=True, exist_ok=True),
         ])
