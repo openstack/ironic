@@ -1569,7 +1569,7 @@ class TestMigrationsMySQL(MigrationCheckersMixin,
             insert_node = nodes.insert().values(data)
             connection.execute(insert_node)
 
-            # Re-uses the same query to fetch current results
+            # Reuses the same query to fetch current results
             i_info = connection.execute(
                 sqlalchemy.text(
                     "SELECT instance_info from nodes WHERE uuid = "
