@@ -16,6 +16,7 @@
 
 import copy
 import os
+import pathlib
 import shutil
 import tempfile
 from urllib import parse as urlparse
@@ -1353,7 +1354,7 @@ def clean_up_pxe_env(task, images_info, ipxe_enabled=False):
     TFTPImageCache().clean_up()
 
 
-def place_loaders_for_boot(base_path):
+def place_loaders_for_boot(base_path: str | os.PathLike):
     """Place configured bootloaders from the host OS.
 
     Example: grubaa64.efi:/path/to/grub-aarch64.efi,...
@@ -1364,29 +1365,27 @@ def place_loaders_for_boot(base_path):
     if not loaders or not base_path:
         # Do nothing, return.
         return
+    dir_mode = CONF.pxe.dir_permission or 0o755
+
+    base_path = pathlib.Path(base_path)
 
     for dest, src in loaders.items():
-        (head, _tail) = os.path.split(dest)
-        if head:
-            if head.startswith('/'):
-                # NOTE(TheJulia): The intent here is to error if the operator
-                # has put absolute paths in place, as we can and likely should
-                # copy to multiple folders based upon the protocol operation
-                # being used. Absolute paths are problematic there, where
-                # as a relative path is more a "well, that is silly, but okay
-                # misconfiguration.
-                msg = ('File paths configured for [pxe]loader_file_paths '
-                       'must be relative paths. Entry: %s') % dest
-                raise exception.IncorrectConfiguration(msg)
-            else:
-                try:
-                    ensure_tree(os.path.join(base_path, head))
-                except OSError as e:
-                    msg = ('Failed to create supplied directories in '
-                           'asset copy paths. Error: %s') % e
-                    raise exception.IncorrectConfiguration(msg)
+        dest = pathlib.Path(dest)
+        if dest.is_absolute():
+            msg = ('File paths configured for [pxe]loader_file_paths '
+                   'must be relative paths. Entry: %s') % dest
+            raise exception.IncorrectConfiguration(msg)
 
-        full_dest = os.path.join(base_path, dest)
+        full_dest = base_path.joinpath(dest)
+        try:
+            # ensure that we have somewhere to copy the files to
+            # notice the use of the parent path of the file
+            full_dest.parent.mkdir(mode=dir_mode, parents=True, exist_ok=True)
+        except OSError as e:
+            msg = (_('Failed to create bootloader destination path. Error: %s')
+                    % e)
+            raise exception.IncorrectConfiguration(msg)
+
         LOG.debug('Copying bootloader %(dest)s from %(src)s.',
                   {'src': src, 'dest': full_dest})
         try:
