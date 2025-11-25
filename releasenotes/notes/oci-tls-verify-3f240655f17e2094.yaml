@@ -1,0 +1,5 @@
+---
+features:
+  - |
+    Adds a new configuration option ``[oci]verify_ca`` that overrides
+    ``webserver_verify_ca`` for OCI URLs only.
