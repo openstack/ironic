@@ -1,0 +1,6 @@
+---
+other:
+  - |
+    Remove the fallback to loading sushy-oem-idrac since Ironic now requires at
+    a minimum a version of sushy that has sushy-oem-idrac integrated and will
+    always load that first.
