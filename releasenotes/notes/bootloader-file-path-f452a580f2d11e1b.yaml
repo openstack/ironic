@@ -1,0 +1,7 @@
+---
+fixes:
+  - |
+    ``[pxe]loader_file_paths`` allowed nested paths but this was never an
+    intended function of the code. Other places in Ironic expect the file to
+    just be a base path without a directory. Remove the ability provide nested
+    paths to avoid user issues in the future.
