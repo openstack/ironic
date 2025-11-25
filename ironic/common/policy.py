@@ -1077,7 +1077,7 @@ node_policies = [
         scope_types=['system', 'project'],
         description='Attach a virtual media device to a node',
         operations=[
-            {'path': '/nodes/{node_ident}/vmedia', 'method': 'POST'}\
+            {'path': '/nodes/{node_ident}/vmedia', 'method': 'POST'}
         ],
     ),
     policy.DocumentedRuleDefault(
