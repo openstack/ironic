@@ -21,10 +21,6 @@
             voting: false
         - ironic-tempest-bios-redfish-pxe
         - ironic-tempest-uefi-redfish-vmedia
-        # NOTE(TheJulia): Non-voting due to
-        # https://bugs.launchpad.net/ironic/+bug/2106674
-        - ironic-tempest-ramdisk-bios-snmp-pxe:
-            voting: false
         - ironic-tempest-uefi-redfish-https
         - ironic-tempest-ovn-uefi-ipmi-pxe:
             voting: false
@@ -91,9 +87,6 @@
         #- ironic-standalone-redfish
         - ironic-tempest-bios-redfish-pxe
         - ironic-tempest-uefi-redfish-vmedia
-        # NOTE(TheJulia): 20250725 - Disabling CI job for snmp due to
-        # https://bugs.launchpad.net/ironic/+bug/2106674
-        # - ironic-tempest-ramdisk-bios-snmp-pxe
         - ironic-tempest-uefi-redfish-https
         # - ironic-tempest-ovn-uefi-ipmi-pxe
         # - ironic-tempest-ovn-uefi-ipxe-ipv6
