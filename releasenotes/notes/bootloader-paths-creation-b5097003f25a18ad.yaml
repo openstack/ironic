@@ -1,0 +1,5 @@
+---
+fixes:
+  - |
+    Ensure that the path to where we are copying the bootloader exists before
+    attempting to copy the bootloader in.
