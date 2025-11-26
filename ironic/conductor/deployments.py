@@ -555,7 +555,8 @@ def _store_configdrive(node, configdrive):
     if CONF.deploy.configdrive_use_object_store:
         # Don't store the JSON source in swift.
         if isinstance(configdrive, dict):
-            configdrive = utils.build_configdrive(node, configdrive)
+            configdrive = configdrive_utils.build_configdrive(
+                node, configdrive)
 
         # NOTE(lucasagomes): No reason to use a different timeout than
         # the one used for deploying the node

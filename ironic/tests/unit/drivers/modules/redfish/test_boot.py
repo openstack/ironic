@@ -20,6 +20,7 @@ import sushy
 from ironic.common import boot_devices
 from ironic.common import exception
 from ironic.common import states
+from ironic.conductor import configdrive_utils
 from ironic.conductor import task_manager
 from ironic.conductor import utils as manager_utils
 from ironic.drivers.modules import boot_mode_utils
@@ -1210,7 +1211,7 @@ class RedfishVirtualMediaBootTestCase(db_base.DbTestCase):
 
             mock_boot_mode_utils.sync_boot_mode.assert_called_once_with(task)
 
-    @mock.patch.object(redfish_boot.manager_utils, 'build_configdrive',
+    @mock.patch.object(configdrive_utils, 'build_configdrive',
                        autospec=True)
     @mock.patch.object(redfish_boot.RedfishVirtualMediaBoot,
                        '_eject_all', autospec=True)

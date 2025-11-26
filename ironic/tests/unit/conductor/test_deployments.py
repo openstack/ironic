@@ -1260,15 +1260,17 @@ class StoreConfigDriveTestCase(db_base.DbTestCase):
         self.node.refresh()
         self.assertEqual(expected_instance_info, self.node.instance_info)
 
-    @mock.patch.object(conductor_utils, 'build_configdrive', autospec=True)
-    def test_store_configdrive_swift_build(self, mock_cd, mock_swift):
+    @mock.patch('ironic.conductor.configdrive_utils.build_configdrive',
+                autospec=True)
+    def test_store_configdrive_swift_build(
+            self, mock_cd, mock_swift):
         container_name = 'foo_container'
         timeout = 123
         expected_obj_name = 'configdrive-%s' % self.node.uuid
         expected_obj_header = {'X-Delete-After': str(timeout)}
         expected_instance_info = {'configdrive': 'http://1.2.3.4'}
 
-        mock_cd.return_value = 'fake'
+        mock_cd.return_value = 'fake_configdrive_content'
 
         # set configs and mocks
         CONF.set_override('configdrive_use_object_store', True,
