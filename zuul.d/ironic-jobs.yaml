@@ -95,8 +95,6 @@
         IRONIC_BUILD_DEPLOY_RAMDISK: False
         IRONIC_CALLBACK_TIMEOUT: 1800
         IRONIC_DEPLOY_DRIVER: ipmi
-        IRONIC_INSPECTOR_BUILD_RAMDISK: False
-        IRONIC_INSPECTOR_TEMPEST_INTROSPECTION_TIMEOUT: 1200
         IRONIC_LOG_STEPS_TO_SYSLOG: True
         IRONIC_TEMPEST_BUILD_TIMEOUT: 2000
         IRONIC_TEMPEST_WHOLE_DISK_IMAGE: False
@@ -660,53 +658,6 @@
         c-vol: True
         cinder: True
 
-# TODO(JayF): Ironic inspector is deprecated and scheduled for retirement
-# we should remove this job soon. Apr 7 2025
-- job:
-    name: ironic-inspector-tempest
-    description: ironic-inspector-tempest
-    parent: ironic-base
-    required-projects:
-      - opendev.org/openstack/ironic-inspector
-    irrelevant-files:
-      - ^.*\.rst$
-      - ^api-ref/.*$
-      - ^doc/.*$
-      - ^driver-requirements.txt$
-      - ^install-guide/.*$
-      - ^ironic/locale/.*$
-      - ^ironic/tests/.*$
-      # This job is also run on inspector
-      - ^ironic_inspector/locale/.*$
-      - ^ironic_inspector/test/.*$
-      - ^\.pre-commit-config\.yaml$
-      - ^redfish-interop-profiles/.*$
-      - ^releasenotes/.*$
-      - ^setup.cfg$
-      - ^test-requirements.txt$
-      - ^tools/.*$
-      - ^tox.ini$
-    vars:
-      tempest_test_regex: InspectorBasicTest
-      devstack_localrc:
-        IRONIC_INSPECTOR_MANAGE_FIREWALL: True
-        IRONIC_TEMPEST_WHOLE_DISK_IMAGE: True
-        IRONIC_VM_EPHEMERAL_DISK: 0
-        IRONIC_VM_COUNT: 1
-        IRONIC_AUTOMATED_CLEAN_ENABLED: False
-        SWIFT_ENABLE_TEMPURLS: True
-        SWIFT_TEMPURL_KEY: secretkey
-      devstack_plugins:
-        ironic-inspector: https://opendev.org/openstack/ironic-inspector
-      devstack_services:
-        atop: True
-        s-account: True
-        s-container: True
-        s-object: True
-        s-proxy: True
-
-# TODO(JayF): Ironic inspector is deprecated and scheduled for retirement
-# we should remove this job soon. Apr 7 2025
 - job:
     name: ironic-tempest-functional-python3
     description: This runs the API-based tempest tests from
@@ -803,7 +754,6 @@
         IRONIC_ENABLED_MANAGEMENT_INTERFACES: redfish
         IRONIC_REDFISH_EMULATOR_FEATURE_SET: vmedia
         IRONIC_ENABLED_NETWORK_INTERFACES: flat,neutron
-        IRONIC_INSPECTOR_BUILD_RAMDISK: False
         IRONIC_NETWORK_INTERFACE: neutron
         IRONIC_PROVISION_NETWORK_NAME: ironic-provision
         IRONIC_PROVISION_SUBNET_GATEWAY: 10.0.5.1
@@ -985,20 +935,6 @@
       typical unit test runs.
     vars:
       tox_envlist: mysql-migrations
-
-# TODO(JayF): Ironic inspector is deprecated and scheduled for retirement
-# we should restructure and rename this job to ensure it keeps working.
-# This is the only job that tests fast track. Apr 7 2025
-- job:
-    name: ironic-inspector-tempest-discovery-fast-track
-    description: ironic-inspector-tempest-discovery-fast-track
-    parent: ironic-inspector-tempest-discovery
-    vars:
-      tempest_test_regex: BareMetalFastTrackTest
-      devstack_localrc:
-        IRONIC_INSPECTOR_POWER_OFF: False
-        IRONIC_DEPLOY_FAST_TRACK: True
-        IRONIC_DEPLOY_FAST_TRACK_CLEANING: True
 
 - job:
     name: ironic-tempest-ipa-partition-uefi-pxe-grub2
@@ -1369,7 +1305,6 @@
           IRONIC_BUILD_DEPLOY_RAMDISK: False
           IRONIC_CALLBACK_TIMEOUT: 600
           IRONIC_DEPLOY_DRIVER: ipmi
-          IRONIC_INSPECTOR_BUILD_RAMDISK: False
           IRONIC_TEMPEST_WHOLE_DISK_IMAGE: True
           IRONIC_VM_COUNT: 2
           IRONIC_VM_EPHEMERAL_DISK: 0
