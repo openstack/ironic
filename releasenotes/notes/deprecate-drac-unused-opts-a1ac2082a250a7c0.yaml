@@ -1,0 +1,8 @@
+---
+deprecations:
+  - |
+    The following options are now formally deprecated. These have been unused
+    since the idrac wsman driver interfaces were removed in 26.0.0 release.
+
+    - ``[drac] config_job_max_retries``
+    - ``[drac] bios_factory_reset_timeout``

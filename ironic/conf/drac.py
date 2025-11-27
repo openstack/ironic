@@ -32,6 +32,9 @@ opts = [
     cfg.IntOpt('config_job_max_retries',
                default=240,
                min=1,
+               deprecated_for_removal=True,
+               deprecated_reason=_('This option has has no effect since '
+                                   '26.0.0'),
                help=_('Maximum number of retries for '
                       'the configuration job to complete '
                       'successfully.')),
@@ -43,6 +46,9 @@ opts = [
     cfg.IntOpt('bios_factory_reset_timeout',
                default=600,
                min=1,
+               deprecated_for_removal=True,
+               deprecated_reason=_('This option has has no effect since '
+                                   '26.0.0'),
                help=_('Maximum time (in seconds) to wait for factory reset of '
                       'BIOS settings to complete.')),
     cfg.IntOpt('raid_job_timeout',
