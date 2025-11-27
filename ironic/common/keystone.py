@@ -180,8 +180,7 @@ def register_auth_opts(conf, group, service_type=None):
         conf.set_default('service_type', service_type, group=group)
     else:
         types = os_service_types.get_service_types()
-        key = 'ironic-inspector' if group == 'inspector' else group
-        service_types = types.service_types_by_project.get(key)
+        service_types = types.service_types_by_project.get(group)
         if service_types:
             conf.set_default('service_type', service_types[0], group=group)
 

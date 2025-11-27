@@ -180,9 +180,9 @@ class Common(base.InspectInterface):
         task.node.save()
 
         LOG.debug('Starting inspection for node %(uuid)s. Booting is '
-                  'managed by %(project)s',
+                  '%(managed)s by ironic',
                   {'uuid': task.node.uuid,
-                   'project': 'ironic' if manage_boot else 'ironic-inspector'})
+                   'managed': manage_boot})
 
         if manage_boot:
             try:

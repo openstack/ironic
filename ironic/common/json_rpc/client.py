@@ -77,7 +77,6 @@ class Client(object):
 
     allowed_exception_namespaces = [
         "ironic.common.exception.",
-        "ironic_inspector.utils.",
     ]
 
     def __init__(self, serializer, version_cap=None,

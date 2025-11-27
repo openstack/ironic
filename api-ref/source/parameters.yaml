@@ -1439,8 +1439,8 @@ n_ports:
   type: array
 n_properties:
   description: |
-    Physical characteristics of this Node. Populated by ironic-inspector during
-    inspection. May be edited via the REST API at any time.
+    Physical characteristics of this Node. Populated during inspection. May be
+    edited via the REST API at any time.
   in: body
   required: true
   type: JSON

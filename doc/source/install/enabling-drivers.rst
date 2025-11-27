@@ -181,7 +181,7 @@ IPMI and Redfish, with a few additional features:
     enabled_boot_interfaces = pxe
     enabled_console_interfaces = ipmitool-socat,no-console
     enabled_deploy_interfaces = direct
-    enabled_inspect_interfaces = inspector
+    enabled_inspect_interfaces = agent
     enabled_management_interfaces = ipmitool,redfish
     enabled_network_interfaces = flat,neutron
     enabled_power_interfaces = ipmitool,redfish
