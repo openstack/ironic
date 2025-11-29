@@ -694,31 +694,31 @@ class ConsoleUtilsTestCase(db_base.DbTestCase):
         self.assertTrue(mock_log_warning.called)
 
     def test_valid_console_port_range(self):
-        self.config(port_range='10000:20000', group='console')
+        self.config(port_range=['10000:20000'], group='console')
         ranges = console_utils._get_port_range()
         self.assertEqual(ranges, [(10000, 20000)])
 
     def test_valid_console_port_range_segmented(self):
-        self.config(port_range='1000:1100,2000:2500,3000:3100',
+        self.config(port_range=['1000:1100', '2000:2500', '3000:3100'],
                     group='console')
         ranges = console_utils._get_port_range()
         self.assertEqual(ranges, [(1000, 1100),
                                   (2000, 2500), (3000, 3100)])
 
     def test_invalid_console_port_range(self):
-        self.config(port_range='20000:10000', group='console')
+        self.config(port_range=['20000:10000'], group='console')
         self.assertRaises(exception.InvalidParameterValue,
                           console_utils._get_port_range)
 
     def test_invalid_console_port_range_segmented(self):
-        self.config(port_range='1000:1100,2500:2000', group='console')
+        self.config(port_range=['1000:1100', '2500:2000'], group='console')
         self.assertRaises(exception.InvalidParameterValue,
                           console_utils._get_port_range)
 
     @mock.patch.object(console_utils, 'ALLOCATED_PORTS', autospec=True)
     @mock.patch.object(console_utils, '_verify_port', autospec=True)
     def test_allocate_port_success(self, mock_verify, mock_ports):
-        self.config(port_range='10000:10001', group='console')
+        self.config(port_range=['10000:10001'], group='console')
         port = console_utils.acquire_port()
         mock_verify.assert_called_once_with(10000, host=None)
         self.assertEqual(port, 10000)
@@ -727,7 +727,7 @@ class ConsoleUtilsTestCase(db_base.DbTestCase):
     @mock.patch.object(console_utils, 'ALLOCATED_PORTS', autospec=True)
     @mock.patch.object(console_utils, '_verify_port', autospec=True)
     def test_allocate_port_range_retry(self, mock_verify, mock_ports):
-        self.config(port_range='10000:10003', group='console')
+        self.config(port_range=['10000:10003'], group='console')
         mock_verify.side_effect = (exception.Conflict, exception.Conflict,
                                    None)
         port = console_utils.acquire_port()
@@ -741,7 +741,7 @@ class ConsoleUtilsTestCase(db_base.DbTestCase):
     @mock.patch.object(console_utils, 'ALLOCATED_PORTS', autospec=True)
     @mock.patch.object(console_utils, '_verify_port', autospec=True)
     def test_allocate_port_no_free_ports(self, mock_verify, mock_ports):
-        self.config(port_range='10000:10005', group='console')
+        self.config(port_range=['10000:10005'], group='console')
         mock_verify.side_effect = exception.Conflict
         self.assertRaises(exception.NoFreeIPMITerminalPorts,
                           console_utils.acquire_port)
@@ -752,7 +752,7 @@ class ConsoleUtilsTestCase(db_base.DbTestCase):
     @mock.patch.object(console_utils, '_verify_port', autospec=True)
     def test_allocate_port_segmented_range_first_range(self, mock_verify,
                                                        mock_ports):
-        self.config(port_range='1000:1001,2000:2001', group='console')
+        self.config(port_range=['1000:1001', '2000:2001'], group='console')
         port = console_utils.acquire_port()
         mock_verify.assert_called_once_with(1000, host=None)
         self.assertEqual(port, 1000)
@@ -762,7 +762,7 @@ class ConsoleUtilsTestCase(db_base.DbTestCase):
     @mock.patch.object(console_utils, '_verify_port', autospec=True)
     def test_allocate_port_segmented_range_second_range(self, mock_verify,
                                                         mock_ports):
-        self.config(port_range='1000:1001,2000:2001', group='console')
+        self.config(port_range=['1000:1001', '2000:2001'], group='console')
         # Port 1000 is already allocated
         mock_ports.__contains__ = mock.Mock(side_effect=lambda x: x == 1000)
         mock_verify.side_effect = (None,)
@@ -775,7 +775,7 @@ class ConsoleUtilsTestCase(db_base.DbTestCase):
     @mock.patch.object(console_utils, '_verify_port', autospec=True)
     def test_allocate_port_segmented_range_exhausted_first(self, mock_verify,
                                                            mock_ports):
-        self.config(port_range='1000:1002,2000:2002', group='console')
+        self.config(port_range=['1000:1002', '2000:2002'], group='console')
         # First range ports are in ALLOCATED_PORTS
         mock_ports.__contains__ = mock.Mock(
             side_effect=lambda x: x in (1000, 1001))
@@ -790,7 +790,7 @@ class ConsoleUtilsTestCase(db_base.DbTestCase):
     @mock.patch.object(console_utils, '_verify_port', autospec=True)
     def test_allocate_port_segmented_range_no_free_ports(self, mock_verify,
                                                          mock_ports):
-        self.config(port_range='1000:1002,2000:2002', group='console')
+        self.config(port_range=['1000:1002', '2000:2002'], group='console')
         mock_verify.side_effect = exception.Conflict
         self.assertRaises(exception.NoFreeIPMITerminalPorts,
                           console_utils.acquire_port)

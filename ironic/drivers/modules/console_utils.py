@@ -154,7 +154,7 @@ def _get_port_range():
     config_range = CONF.console.port_range
     ranges = []
 
-    for range_str in config_range.split(','):
+    for range_str in config_range:
         start, stop = map(int, range_str.split(':'))
         if start >= stop:
             msg = _("[console]port_range should be in the "
