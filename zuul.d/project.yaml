@@ -62,8 +62,6 @@
         - metal3-ironic-standalone-operator-functional:
             voting: false
         # Non-voting jobs
-        - ironic-inspector-tempest:
-            voting: false
         - ironic-standalone-aarch64:
             voting: false
         - ironic-tempest-ipa-wholedisk-bios-ipmi-direct-dib:
@@ -110,6 +108,4 @@
         # TODO(dtantsur): these jobs are useful but currently hopelessly
         # broken. Fix them and bring back to the gate.
         - ironic-grenade-multinode-multitenant:
-            voting: false
-        - ironic-inspector-tempest-discovery-fast-track:
             voting: false
