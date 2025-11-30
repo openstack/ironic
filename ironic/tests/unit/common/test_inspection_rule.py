@@ -526,6 +526,37 @@ class TestOperators(TestInspectionRules):
                 result = op(task, **test_cases[1])
                 self.assertFalse(result)
 
+    def test_is_empty_with_missing_field(self):
+        """Test is-empty condition with missing field in inventory."""
+        with task_manager.acquire(self.context, self.node.uuid) as task:
+            condition = {
+                'op': 'is-empty',
+                'args': {'value': '{inventory[i.do.not.exist]}'}
+            }
+
+            op = inspection_rules.operators.EmptyOperator()
+            result = op.check_condition(task, condition, self.inventory,
+                                        self.plugin_data)
+            self.assertTrue(result)
+
+            condition2 = {
+                'op': 'is-empty',
+                'args': {'value': '{inventory[bmc_address]}'}
+            }
+            result2 = op.check_condition(task, condition2, self.inventory,
+                                         self.plugin_data)
+            self.assertFalse(result2)
+
+            test_inventory = self.inventory.copy()
+            test_inventory['empty_field'] = ''
+            condition3 = {
+                'op': 'is-empty',
+                'args': {'value': '{inventory[empty_field]}'}
+            }
+            result3 = op.check_condition(task, condition3, test_inventory,
+                                         self.plugin_data)
+            self.assertTrue(result3)
+
 
 class TestActions(TestInspectionRules):
     """Test inspection rule actions"""
@@ -1025,6 +1056,17 @@ class TestInterpolation(TestInspectionRules):
             value = "{inventory[missing][key]}"
             result = base.Base.interpolate_variables(
                 value, task.node, self.inventory, self.plugin_data)
+            self.assertEqual(value, result)
+
+            value = "{inventory[i.do.not.exist]}"
+            result = base.Base.interpolate_variables(
+                value, task.node, self.inventory, self.plugin_data,
+                op='is-empty')
+            self.assertIsNone(result)
+
+            value = "{inventory[missing][key]}"
+            result = base.Base.interpolate_variables(
+                value, task.node, self.inventory, self.plugin_data, op='eq')
             self.assertEqual(value, result)
 
 

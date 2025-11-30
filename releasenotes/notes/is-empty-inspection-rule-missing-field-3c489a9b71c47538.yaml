@@ -1,0 +1,9 @@
+---
+fixes:
+  - |
+    Fixes the ``is-empty`` inspection rule to properly handle missing fields
+    in the inventory. Previously, when checking for empty values using fields
+    that don't exist in the inventory, the rule would fail with a KeyError
+    during variable interpolation. Now, missing fields are treated as empty
+    for the ``is-empty`` operation, allowing the rule to pass when checking
+    for non-existent inventory fields.

@@ -106,7 +106,7 @@ class Base(object):
                 _("args must be either a list or dictionary"))
 
     def interpolate_variables(value, node, inventory, plugin_data,
-                              loop_context=None):
+                              loop_context=None, op=None):
         loop_context = loop_context or {}
         format_context = {
             'node': node,
@@ -115,12 +115,20 @@ class Base(object):
             **loop_context
         }
 
-        def safe_format(val, context):
+        def safe_format(val, context, op=None):
             if isinstance(val, str):
                 try:
                     return val.format(**context)
                 except (AttributeError, KeyError, ValueError, IndexError,
                         TypeError) as e:
+                    if isinstance(e, KeyError):
+                        # Treat missing fields as empty for 'is-empty'.
+                        if op == 'is-empty':
+                            LOG.debug(
+                                "Interpolation failed (missing field) "
+                                "for 'is-empty': %(value)s, returning None",
+                                {'value': val})
+                            return None
                     LOG.warning(
                         "Interpolation failed: %(value)s: %(error_class)s, "
                         "%(error)s", {'value': val,
@@ -148,21 +156,21 @@ class Base(object):
             #           'path': 'driver_info/ipmi_address',
             #           'value': '{inventory[bmc_address]}'
             #       }
-            value = safe_format(value, format_context)
+            value = safe_format(value, format_context, op)
 
         if isinstance(value, str):
-            return safe_format(value, format_context)
+            return safe_format(value, format_context, op)
         elif isinstance(value, dict):
             return {
-                safe_format(k, format_context): Base.interpolate_variables(
-                    v, node, inventory, plugin_data, loop_context)
+                safe_format(k, format_context, op): Base.interpolate_variables(
+                    v, node, inventory, plugin_data, loop_context, op)
                 for k, v in value.items()
             }
         elif isinstance(value, list):
             return [
-                safe_format(v, format_context) if isinstance(v, str)
+                safe_format(v, format_context, op) if isinstance(v, str)
                 else Base.interpolate_variables(
-                    v, node, inventory, plugin_data, loop_context)
+                    v, node, inventory, plugin_data, loop_context, op)
                 for v in value
             ]
         return value
@@ -192,7 +200,7 @@ class Base(object):
         formatted_args = getattr(self, 'FORMATTED_ARGS', [])
         return {
             k: (Base.interpolate_variables(
-                v, node, inventory, plugin_data, loop_context)
+                v, node, inventory, plugin_data, loop_context, op)
                 if (k in formatted_args or loop_context) else v)
             for k, v in dict_args.items()
         }
