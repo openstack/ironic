@@ -53,9 +53,8 @@ opts = [
                        'ensures LLDP collection across all interfaces.')),
     cfg.StrOpt('extra_kernel_params', default='',
                help=_('extra kernel parameters to pass to the inspection '
-                      'ramdisk when boot is managed by ironic (not '
-                      'ironic-inspector). Pairs key=value separated by '
-                      'spaces.')),
+                      'ramdisk when boot is managed by ironic. Pairs '
+                      'key=value separated by spaces.')),
     cfg.BoolOpt('power_off', default=True,
                 help=_('whether to power off a node after inspection '
                        'finishes. Ignored for nodes that have fast '
