@@ -68,7 +68,7 @@
             voting: false
         - ironic-standalone-anaconda:
             voting: false
-        - bifrost-integration-tinyipa-ubuntu-noble:
+        - bifrost-integration-on-ubuntu-noble:
             voting: false
         - bifrost-integration-redfish-vmedia-uefi-ubuntu-noble:
             voting: false
