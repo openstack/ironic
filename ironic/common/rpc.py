@@ -34,6 +34,7 @@ EXTRA_EXMODS = []
 GLOBAL_MANAGER = None
 
 MANAGER_TOPIC = 'ironic.conductor_manager'
+NETWORKING_TOPIC = 'ironic.networking_manager'
 
 
 def init(conf):

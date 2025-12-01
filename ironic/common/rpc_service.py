@@ -55,19 +55,22 @@ class BaseRPCService(service.Service):
         else:
             self._started = True
 
+    def _rpc_transport(self):
+        return CONF.rpc_transport
+
     def _real_start(self):
         admin_context = context.get_admin_context()
 
         serializer = objects_base.IronicObjectSerializer(is_server=True)
         # Perform preparatory actions before starting the RPC listener
         self.manager.prepare_host()
-        if CONF.rpc_transport == 'json-rpc':
+        if self._rpc_transport() == 'json-rpc':
             conf_group = getattr(self.manager, 'json_rpc_conf_group',
                                  'json_rpc')
             self.rpcserver = json_rpc.WSGIService(
                 self.manager, serializer, context.RequestContext.from_dict,
                 conf_group=conf_group)
-        elif CONF.rpc_transport != 'none':
+        elif self._rpc_transport() != 'none':
             target = messaging.Target(topic=self.topic, server=self.host)
             endpoints = [self.manager]
             self.rpcserver = rpc.get_server(target, endpoints, serializer)
@@ -80,4 +83,4 @@ class BaseRPCService(service.Service):
         LOG.info('Created RPC server with %(transport)s transport for service '
                  '%(service)s on host %(host)s.',
                  {'service': self.topic, 'host': self.host,
-                  'transport': CONF.rpc_transport})
+                  'transport': self._rpc_transport()})
