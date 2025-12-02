@@ -92,7 +92,7 @@ An example of the request body for this API::
 
   {
     "target":"service",
-    "sevice_steps": [{
+    "service_steps": [{
       "interface": "raid",
       "step": "apply_configuration",
       "args": {"create_nonroot_volumes": True}
