@@ -971,9 +971,16 @@ def get_image_service_auth_override(node, permit_user_auth=True):
     authentication requirements which are not presently available,
     or where specific authentication details are required.
 
+    This method also explicitly prefers pull secrets and contents over
+    ``image_server_user`` and ``image_server_password`` parameters.
+
     :param task: A Node object instance.
     :param permit_user_auth: Option to allow the caller to indicate if
                              user provided authentication should be permitted.
+                             For example, downloads of agent ramdisks should
+                             never be performed with user credentials, and
+                             only the caller of this method knows if that
+                             is the case.
     :returns: A dictionary with username and password keys containing
               credential to utilize or None if no value found.
     """
@@ -985,24 +992,81 @@ def get_image_service_auth_override(node, permit_user_auth=True):
     # here could similarly be leveraged to *enable* private user image access.
     # While that wouldn't necessarily be right here in the code, it would
     # likely need to be able to be picked up for user based authentication.
-    if permit_user_auth and 'image_pull_secret' in node.instance_info:
-        return {
-            # Pull secrets appear to leverage basic auth, but provide a blank
-            # username, where the password is understood to be the pre-shared
-            # secret to leverage for authentication.
-            'username': '',
-            'password': node.instance_info.get('image_pull_secret'),
+
+    def __extract_secret(info):
+        if "image_pull_secret" not in info:
+            # No secret here, nothing to return.
+            return None
+        secret = info.get("image_pull_secret")
+        if not secret:
+            # There is no value present here, we can
+            # return None to indicate nothing is present.
+            return None
+
+        if ":" not in secret:
+            # Shortcut to just return the secret if it doesn't
+            # look like delimited values.
+            return {"username": "",
+                    "password": secret}
+
+        split_secret = secret.split(":", 1)
+        if len(split_secret) == 2:
+            # In this case, it appears that we have been handed creds
+            # in the form of "user:pass", which is a valid style.
+            return {"username": split_secret[0],
+                    "password": split_secret[1]}
+
+        if secret:
+            # Fallback to any value in the field and return that as
+            # the secret.
+            return {"username": "",
+                    "password": secret}
+        # Otherwise, return none.
+        return None
+
+    possible_secret = None
+    if permit_user_auth and "image_pull_secret" in node.instance_info:
+        # If the user is permitted to provide authentication details,
+        # attempt to extract it from the instance_info. The caller knows
+        # if the user authentication is permitted or not, which is a pattern
+        # we *really* should have taken with other image services previously.
+        possible_secret = __extract_secret(node.instance_info)
+        if possible_secret:
+            LOG.debug(
+                "Obtained OCI credential from node %s instance_info field.",
+                node.uuid
+            )
+    if not possible_secret and "image_pull_secret" in node.driver_info:
+        # Otherwise it might be present as part of the driver_info.
+        possible_secret = __extract_secret(node.driver_info)
+        if possible_secret:
+            LOG.debug(
+                "Obtained OCI credential from node %s driver_info field.",
+                node.uuid
+            )
+    if (not possible_secret
+            and CONF.deploy.image_server_user
+            and CONF.deploy.image_server_password):
+        # Fallback to image_server_user and image_server_password if configured
+        # on the deploy interface.
+        possible_secret = {
+            'username': CONF.deploy.image_server_user,
+            'password': CONF.deploy.image_server_password,
         }
-    elif 'image_pull_secret' in node.driver_info:
-        # Enables fallback to the driver_info field, as it is considered
-        # administratively set.
-        return {
-            'username': '',
-            'password': node.driver_info.get('image_pull_secret'),
-        }
-    # In the future, we likely want to add logic here to enable condutor
-    # configuration housed credentials.
+        if possible_secret:
+            LOG.debug(
+                "Obtained OCI credential for node %s from service "
+                "configuration.",
+                node.uuid
+            )
+
+    if possible_secret:
+        return possible_secret
     else:
+        LOG.debug(
+            "No OCI credential information was identified for node %s.",
+            node.uuid
+        )
         return None
 
 

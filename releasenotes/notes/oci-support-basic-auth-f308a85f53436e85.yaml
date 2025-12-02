@@ -1,0 +1,7 @@
+---
+features:
+  - |
+    Adds support for accessing an OCI Registry Service utilizing Basic
+    authentication with the ``instance_info\image_pull_secret`` parameter.
+    The credentials should be set as colon delimited string in the format
+    of "username:password".

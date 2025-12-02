@@ -1335,6 +1335,122 @@ class ServiceGetterTestCase(base.TestCase):
         res = image_service.get_image_service_auth_override(test_node)
         self.assertIsNone(res)
 
+    def test_get_image_service_auth_override_user_pass_format(self):
+        """Test image_pull_secret with 'username:password' format."""
+        test_node = mock.Mock()
+        test_node.instance_info = {'image_pull_secret': 'myuser:mypass'}
+        test_node.driver_info = {}
+        res = image_service.get_image_service_auth_override(test_node)
+        self.assertDictEqual({'username': 'myuser',
+                              'password': 'mypass'}, res)
+
+    def test_get_image_service_auth_override_user_pass_driver_info(
+            self):
+        """Test image_pull_secret with 'user:pass' in driver_info."""
+        test_node = mock.Mock()
+        test_node.instance_info = {}
+        test_node.driver_info = {
+            'image_pull_secret': 'adminuser:adminpass'}
+        res = image_service.get_image_service_auth_override(test_node)
+        self.assertDictEqual({'username': 'adminuser',
+                              'password': 'adminpass'}, res)
+
+    def test_get_image_service_auth_override_password_with_colon(self):
+        """Test that passwords containing colons are handled correctly."""
+        test_node = mock.Mock()
+        test_node.instance_info = {
+            'image_pull_secret': 'user:pass:with:colons'}
+        test_node.driver_info = {}
+        res = image_service.get_image_service_auth_override(test_node)
+        # Only the first colon splits user:pass, rest is part of password
+        self.assertDictEqual({'username': 'user',
+                              'password': 'pass:with:colons'}, res)
+
+    def test_get_image_service_auth_override_config_fallback(self):
+        """Test fallback to CONF.deploy.image_server_user/password."""
+        cfg.CONF.set_override('image_server_user', 'config_user', 'deploy')
+        cfg.CONF.set_override('image_server_password', 'config_pass',
+                              'deploy')
+        test_node = mock.Mock()
+        test_node.instance_info = {}
+        test_node.driver_info = {}
+        res = image_service.get_image_service_auth_override(test_node)
+        self.assertDictEqual({'username': 'config_user',
+                              'password': 'config_pass'}, res)
+
+    def test_get_image_service_auth_override_instance_over_config(self):
+        """Test that instance_info takes priority over config values."""
+        cfg.CONF.set_override('image_server_user', 'config_user', 'deploy')
+        cfg.CONF.set_override('image_server_password', 'config_pass',
+                              'deploy')
+        test_node = mock.Mock()
+        test_node.instance_info = {'image_pull_secret': 'instance_secret'}
+        test_node.driver_info = {}
+        res = image_service.get_image_service_auth_override(test_node)
+        self.assertDictEqual({'username': '',
+                              'password': 'instance_secret'}, res)
+
+    def test_get_image_service_auth_override_driver_over_config(self):
+        """Test that driver_info takes priority over config values."""
+        cfg.CONF.set_override('image_server_user', 'config_user', 'deploy')
+        cfg.CONF.set_override('image_server_password', 'config_pass',
+                              'deploy')
+        test_node = mock.Mock()
+        test_node.instance_info = {}
+        test_node.driver_info = {'image_pull_secret': 'driver:secret'}
+        res = image_service.get_image_service_auth_override(test_node)
+        self.assertDictEqual({'username': 'driver',
+                              'password': 'secret'}, res)
+
+    def test_get_image_service_auth_override_partial_config(self):
+        """Test that config fallback requires both user and password."""
+        # Only user set, no password
+        cfg.CONF.set_override('image_server_user', 'config_user', 'deploy')
+        cfg.CONF.set_override('image_server_password', None, 'deploy')
+        test_node = mock.Mock()
+        test_node.instance_info = {}
+        test_node.driver_info = {}
+        res = image_service.get_image_service_auth_override(test_node)
+        self.assertIsNone(res)
+
+        # Only password set, no user
+        cfg.CONF.set_override('image_server_user', None, 'deploy')
+        cfg.CONF.set_override('image_server_password', 'config_pass',
+                              'deploy')
+        res = image_service.get_image_service_auth_override(test_node)
+        self.assertIsNone(res)
+
+    def test_get_image_service_auth_override_no_user_auth_config(self):
+        """Test permit_user_auth=False still allows config fallback."""
+        cfg.CONF.set_override('image_server_user', 'config_user', 'deploy')
+        cfg.CONF.set_override('image_server_password', 'config_pass',
+                              'deploy')
+        test_node = mock.Mock()
+        test_node.instance_info = {'image_pull_secret': 'user_secret'}
+        test_node.driver_info = {}
+        res = image_service.get_image_service_auth_override(
+            test_node, permit_user_auth=False)
+        # Should fallback to config since instance_info is not permitted
+        self.assertDictEqual({'username': 'config_user',
+                              'password': 'config_pass'}, res)
+
+    def test_get_image_service_auth_override_empty_secret(self):
+        """Test handling of empty image_pull_secret."""
+        test_node = mock.Mock()
+        test_node.instance_info = {'image_pull_secret': ''}
+        test_node.driver_info = {}
+        res = image_service.get_image_service_auth_override(test_node)
+        self.assertIsNone(res)
+
+    def test_get_image_service_auth_override_username_only(self):
+        """Test handling of 'username:' format (no password after colon)."""
+        test_node = mock.Mock()
+        test_node.instance_info = {'image_pull_secret': 'username:'}
+        test_node.driver_info = {}
+        res = image_service.get_image_service_auth_override(test_node)
+        self.assertDictEqual({'username': 'username',
+                              'password': ''}, res)
+
     def test_is_container_registry_url(self):
         self.assertFalse(image_service.is_container_registry_url(None))
         self.assertFalse(image_service.is_container_registry_url('https://'))
