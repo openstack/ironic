@@ -26,6 +26,7 @@ import tenacity
 from ironic.common import driver_factory
 from ironic.common import exception
 from ironic.common import fsm
+from ironic.common import state_machine
 from ironic.common import states
 from ironic.conductor import notification_utils
 from ironic.conductor import task_manager
@@ -743,7 +744,7 @@ class TaskManagerTestCase(db_base.DbTestCase):
         on_error_handler.assert_called_once_with(expected_exception,
                                                  'fake-argument')
 
-    @mock.patch.object(states.machine, 'copy', autospec=True)
+    @mock.patch.object(state_machine.machine, 'copy', autospec=True)
     def test_init_prepares_fsm(
             self, copy_mock, get_volconn_mock, get_voltgt_mock,
             get_portgroups_mock, get_ports_mock,

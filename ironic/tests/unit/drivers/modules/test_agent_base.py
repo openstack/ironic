@@ -20,6 +20,7 @@ from oslo_config import cfg
 from testtools import matchers
 
 from ironic.common import exception
+from ironic.common import state_machine
 from ironic.common import states
 from ironic.conductor import cleaning
 from ironic.conductor import servicing
@@ -236,7 +237,7 @@ class HeartbeatMixinTest(AgentDeployMixinBaseTest):
                    states.DEPLOYING, states.CLEANING, states.RESCUING,
                    states.DEPLOYHOLD, states.CLEANHOLD, states.SERVICEHOLD,
                    states.SERVICING, states.SERVICEWAIT}
-        for state in set(states.machine.states) - allowed:
+        for state in set(state_machine.machine.states) - allowed:
             for m in (next_step_mock, log_mock):
                 m.reset_mock()
             with task_manager.acquire(self.context, self.node.uuid,
@@ -258,7 +259,7 @@ class HeartbeatMixinTest(AgentDeployMixinBaseTest):
                           group='conductor')
         allowed = {states.DEPLOYWAIT, states.CLEANWAIT,
                    states.SERVICEWAIT}
-        for state in set(states.machine.states) - allowed:
+        for state in set(state_machine.machine.states) - allowed:
             next_step_mock.reset_mock()
             with task_manager.acquire(self.context, self.node.uuid,
                                       shared=True) as task:

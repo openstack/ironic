@@ -114,6 +114,7 @@ import tenacity
 from ironic.common import driver_factory
 from ironic.common import exception
 from ironic.common.i18n import _
+from ironic.common import state_machine
 from ironic.common import states
 from ironic.conductor import notification_utils as notify
 from ironic import objects
@@ -220,7 +221,7 @@ class TaskManager(object):
         self._retry = retry
         self._patient = patient
 
-        self.fsm = states.machine.copy()
+        self.fsm = state_machine.machine.copy()
         self._purpose = purpose
         self._debug_timer = timeutils.StopWatch()
 
@@ -500,7 +501,7 @@ class TaskManager(object):
         if self.node is None:
             # Rare case if resource released before notification
             task = copy.copy(self)
-            task.fsm = states.machine.copy()
+            task.fsm = state_machine.machine.copy()
             task.node = self._saved_node
         else:
             task = self

@@ -47,6 +47,7 @@ from ironic.common import exception
 from ironic.common.i18n import _
 from ironic.common import metrics_utils
 from ironic.common import policy
+from ironic.common import state_machine
 from ironic.common import states as ir_states
 from ironic.conductor import steps as conductor_steps
 import ironic.conf
@@ -1240,7 +1241,7 @@ class NodeStatesController(rest.RestController):
         # This code does upfront state sanity checking, in that we're past
         # basic RBAC policy checking, and we're shifting gears to content
         # validation.
-        m = ir_states.machine.copy()
+        m = state_machine.machine.copy()
         m.initialize(rpc_node.provision_state)
         if not m.is_actionable_event(ir_states.VERBS.get(target, target)):
             # Normally, we let the task manager recognize and deal with
