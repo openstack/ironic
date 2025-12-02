@@ -357,6 +357,10 @@ class OciClient(object):
     # directly handle credentials to IPA.
     _cached_auth = None
 
+    # An override protocol scheme for use on the connection class if
+    # the client class instance needs to fall back to utilizing HTTP.
+    _override_protocol_scheme = None
+
     def __init__(self, verify):
         """Initialize the OCI container registry client class.
 
@@ -380,18 +384,31 @@ class OciClient(object):
                  registry requires authentication but we do not have a
                  credentials.
         """
-        url = self._image_to_url(image_url)
-        image, tag = self._image_tag_from_url(url)
+        parsed_url = self._image_to_url(image_url)
+        image, tag = self._image_tag_from_url(parsed_url)
         scope = 'repository:%s:pull' % image[1:]
 
-        url = self._build_url(url, path='/')
+        url = self._build_url(parsed_url, path='/')
 
         # If authenticate is called an additional time....
         # clear the authorization in the client.
         if self.session:
             self.session.headers.pop('Authorization', None)
+        try:
+            r = self.session.get(url,
+                                 timeout=CONF.webserver_connection_timeout)
+        except requests.exceptions.SSLError as e:
+            if CONF.oci.permit_fallback_to_http_transport:
+                LOG.error("Error encountered while attempting to access an "
+                          "OCI registry utilizing HTTPS. Will retry with "
+                          "HTTP. Error: %s", e)
+                url = self._build_url(parsed_url, path='/', scheme='http')
+            else:
+                raise
+            # Retry without https if permitted by configuration.
+            r = self.session.get(url,
+                                 timeout=CONF.webserver_connection_timeout)
 
-        r = self.session.get(url, timeout=CONF.webserver_connection_timeout)
         LOG.debug('%s status code %s', url, r.status_code)
         if r.status_code == 200:
             # "Auth" was successful, returning.
@@ -499,18 +516,26 @@ class OciClient(object):
             resource['dockerContentDigest'] = contentDigest
         return resource
 
-    @classmethod
-    def _build_url(cls, url, path):
+    def _build_url(self, url, path, scheme='https'):
         """Build an HTTPS URL from the input urlparse data.
 
         :param url: The urlparse result object with the netloc object which
                     is extracted and used by this method.
         :param path: The path in the form of a string which is then assembled
                      into an HTTPS URL to be used for access.
+        :param scheme: The scheme to utilize for the protocol, defaults to
+                       'https'. If an alternative scheme is passed,
+                       such as 'http', then that scheme is saved for future
+                       use by this method because it signifies the remote
+                       registry is utilizing a protocol which is not HTTPS.
         :returns: A fully formed url in the form of https://ur.
         """
+        if not self._override_protocol_scheme and scheme != 'https':
+            self._override_protocol_scheme = scheme
+        elif self._override_protocol_scheme:
+            scheme = self._override_protocol_scheme
+
         netloc = url.netloc
-        scheme = 'https'
         return '%s://%s/v2%s' % (scheme, netloc, path)
 
     def _get_manifest(self, image_url, digest=None):
@@ -528,12 +553,32 @@ class OciClient(object):
         # Explicitly ask for the OCI artifact index
         manifest_headers = {'Accept': ", ".join([MEDIA_OCI_MANIFEST_V1])}
         try:
-            manifest_r = RegistrySessionHelper.get(
-                self.session,
-                manifest_url,
-                headers=manifest_headers,
-                timeout=CONF.webserver_connection_timeout
-            )
+            try:
+                manifest_r = RegistrySessionHelper.get(
+                    self.session,
+                    manifest_url,
+                    headers=manifest_headers,
+                    timeout=CONF.webserver_connection_timeout
+                )
+            except requests.exceptions.SSLError as e:
+                if CONF.oci.permit_fallback_to_http_transport:
+                    LOG.error("Error encountered while attempting to access "
+                              "an OCI registry utilizing HTTPS. Will retry "
+                              "with HTTP. Error: %s", e)
+                    manifest_url = self._build_url(
+                        image_url,
+                        CALL_MANIFEST % {'image': image_path,
+                                         'tag': digest},
+                        scheme='http')
+                else:
+                    raise
+                # Retry without SSL if permitted by configuration.
+                manifest_r = RegistrySessionHelper.get(
+                    self.session,
+                    manifest_url,
+                    headers=manifest_headers,
+                    timeout=CONF.webserver_connection_timeout
+                )
         except requests.exceptions.HTTPError as e:
             LOG.error('Encountered error while attempting to download '
                       'manifest %s for image %s: %s',
@@ -563,12 +608,30 @@ class OciClient(object):
                                               MEDIA_OCI_MANIFEST_V1])}
 
         try:
-            index_r = RegistrySessionHelper.get(
-                self.session,
-                index_url,
-                headers=index_headers,
-                timeout=CONF.webserver_connection_timeout
-            )
+            try:
+                index_r = RegistrySessionHelper.get(
+                    self.session,
+                    index_url,
+                    headers=index_headers,
+                    timeout=CONF.webserver_connection_timeout
+                )
+            except requests.exceptions.SSLError as e:
+                if CONF.oci.permit_fallback_to_http_transport:
+                    LOG.error("Error encountered while attempting to access "
+                              "an OCI registry utilizing HTTPS. Will retry "
+                              "with HTTP. Error: %s", e)
+                    index_url = self._build_url(
+                        image_url, CALL_MANIFEST % parts, scheme='http'
+                    )
+                else:
+                    raise
+                index_r = RegistrySessionHelper.get(
+                    self.session,
+                    index_url,
+                    headers=index_headers,
+                    timeout=CONF.webserver_connection_timeout
+                )
+
         except requests.exceptions.HTTPError as e:
             LOG.error('Encountered error while attempting to download '
                       'artifact index %s for image %s: %s',
@@ -601,10 +664,22 @@ class OciClient(object):
         )
         tag_headers = {'Accept': ", ".join([MEDIA_OCI_INDEX_V1])}
         try:
-            tags_r = RegistrySessionHelper.get(
-                self.session, tags_url,
-                headers=tag_headers,
-                timeout=CONF.webserver_connection_timeout)
+            try:
+                tags_r = RegistrySessionHelper.get(
+                    self.session, tags_url,
+                    headers=tag_headers,
+                    timeout=CONF.webserver_connection_timeout)
+            except requests.exceptions.SSLError:
+                if CONF.oci.permit_fallback_to_http_transport:
+                    tags_url = self._build_url(
+                        image_url, CALL_TAGS % parts, scheme='http'
+                    )
+                else:
+                    raise
+                tags_r = RegistrySessionHelper.get(
+                    self.session, tags_url,
+                    headers=tag_headers,
+                    timeout=CONF.webserver_connection_timeout)
         except requests.exceptions.HTTPError as e:
             LOG.error('Encountered error while attempting to download '
                       'the tag list %s for image %s: %s',
@@ -620,10 +695,24 @@ class OciClient(object):
         while 'next' in tags_r.links:
             next_url = parse.urljoin(tags_url, tags_r.links['next']['url'])
             try:
-                tags_r = RegistrySessionHelper.get(
-                    self.session, next_url,
-                    headers=tag_headers,
-                    timeout=CONF.webserver_connection_timeout)
+                try:
+                    tags_r = RegistrySessionHelper.get(
+                        self.session, next_url,
+                        headers=tag_headers,
+                        timeout=CONF.webserver_connection_timeout)
+                except requests.exceptions.SSLError as e:
+                    if CONF.oci.permit_fallback_to_http_transport:
+                        LOG.error("Error encountered while attempting to "
+                                  "access an OCI registry utilizing HTTPS. "
+                                  "Will retry with HTTP. Error: %s", e)
+                        # Replace https with http in the next_url
+                        next_url = next_url.replace('https://', 'http://')
+                    else:
+                        raise
+                    tags_r = RegistrySessionHelper.get(
+                        self.session, next_url,
+                        headers=tag_headers,
+                        timeout=CONF.webserver_connection_timeout)
             except requests.exceptions.HTTPError as e:
                 LOG.error('Encountered error while attempting to download '
                           'the next tag list %s for image %s: %s',

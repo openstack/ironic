@@ -1,0 +1,7 @@
+---
+features:
+  - |
+    Adds a capability to permit OCI URL support to be automatically able to
+    fallback to using HTTP instead of the expected HTTPS for transport.
+    By default, this option is disabled but can be enabled via the
+    ``[oci]permit_fallback_to_http_transport`` configuration option.

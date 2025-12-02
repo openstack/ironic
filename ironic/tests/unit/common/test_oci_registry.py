@@ -472,6 +472,122 @@ class OciClientRequestTestCase(base.TestCase):
             timeout=60)
         get_mock.assert_has_calls([call_mock])
 
+    def test__resolve_tag_ssl_error_with_http_fallback_enabled(
+            self, get_mock):
+        """Test tag resolution falls back to HTTP on SSLError when enabled."""
+        CONF.set_override('permit_fallback_to_http_transport', True,
+                          group='oci')
+        ssl_error = requests.exceptions.SSLError('SSL handshake failed')
+        response_http = mock.Mock()
+        response_http.json.return_value = {'tags': ['latest', 'foo']}
+        response_http.status_code = 200
+        response_http.links = {}
+        get_mock.side_effect = iter([ssl_error, response_http])
+
+        res = self.client._resolve_tag(
+            parse.urlparse('oci://localhost/local'))
+
+        self.assertDictEqual({'image': '/local', 'tag': 'latest'}, res)
+        self.assertEqual(2, get_mock.call_count)
+        # First call should be HTTPS
+        get_mock.assert_any_call(
+            mock.ANY,
+            'https://localhost/v2/local/tags/list',
+            headers={'Accept': 'application/vnd.oci.image.index.v1+json'},
+            timeout=60)
+        # Second call should be HTTP
+        get_mock.assert_any_call(
+            mock.ANY,
+            'http://localhost/v2/local/tags/list',
+            headers={'Accept': 'application/vnd.oci.image.index.v1+json'},
+            timeout=60)
+
+    def test__resolve_tag_ssl_error_with_http_fallback_disabled(
+            self, get_mock):
+        """Test SSLError is raised when tag resolution fallback disabled."""
+        CONF.set_override('permit_fallback_to_http_transport', False,
+                          group='oci')
+        ssl_error = requests.exceptions.SSLError('SSL handshake failed')
+        get_mock.side_effect = ssl_error
+
+        self.assertRaises(
+            requests.exceptions.SSLError,
+            self.client._resolve_tag,
+            parse.urlparse('oci://localhost/local'))
+
+        # Only one HTTPS call should be made
+        self.assertEqual(1, get_mock.call_count)
+        get_mock.assert_called_once_with(
+            mock.ANY,
+            'https://localhost/v2/local/tags/list',
+            headers={'Accept': 'application/vnd.oci.image.index.v1+json'},
+            timeout=60)
+
+    def test__resolve_tag_follows_links_with_ssl_error_fallback(
+            self, get_mock):
+        """Test paginated tag list falls back to HTTP on SSLError."""
+        CONF.set_override('permit_fallback_to_http_transport', True,
+                          group='oci')
+        # First request succeeds with HTTPS
+        response1 = mock.Mock()
+        response1.json.return_value = {'tags': ['foo', 'bar']}
+        response1.status_code = 200
+        response1.links = {'next': {'url': 'list2'}}
+
+        # Second (paginated) request fails with SSL, then succeeds with HTTP
+        ssl_error = requests.exceptions.SSLError('SSL handshake failed')
+        response2 = mock.Mock()
+        response2.json.return_value = {'tags': ['zoo']}
+        response2.status_code = 200
+        response2.links = {}
+
+        get_mock.side_effect = iter([response1, ssl_error, response2])
+
+        res = self.client._resolve_tag(
+            parse.urlparse('oci://localhost/local:zoo'))
+
+        self.assertDictEqual({'image': '/local', 'tag': 'zoo'}, res)
+        self.assertEqual(3, get_mock.call_count)
+        # First call for initial tag list
+        get_mock.assert_any_call(
+            mock.ANY,
+            'https://localhost/v2/local/tags/list',
+            headers={'Accept': 'application/vnd.oci.image.index.v1+json'},
+            timeout=60)
+        # Second call for paginated list (HTTPS fails)
+        get_mock.assert_any_call(
+            mock.ANY,
+            'https://localhost/v2/local/tags/list2',
+            headers={'Accept': 'application/vnd.oci.image.index.v1+json'},
+            timeout=60)
+        # Third call for paginated list (HTTP succeeds)
+        get_mock.assert_any_call(
+            mock.ANY,
+            'http://localhost/v2/local/tags/list2',
+            headers={'Accept': 'application/vnd.oci.image.index.v1+json'},
+            timeout=60)
+
+    def test__resolve_tag_after_previous_http_fallback(self, get_mock):
+        """Test tag resolution uses HTTP after override scheme is set."""
+        # Simulate previous fallback
+        self.client._override_protocol_scheme = 'http'
+        response = mock.Mock()
+        response.json.return_value = {'tags': ['latest', 'foo']}
+        response.status_code = 200
+        response.links = {}
+        get_mock.return_value = response
+
+        res = self.client._resolve_tag(
+            parse.urlparse('oci://localhost/local'))
+
+        self.assertDictEqual({'image': '/local', 'tag': 'latest'}, res)
+        # Should use HTTP directly
+        get_mock.assert_called_once_with(
+            mock.ANY,
+            'http://localhost/v2/local/tags/list',
+            headers={'Accept': 'application/vnd.oci.image.index.v1+json'},
+            timeout=60)
+
     def test_authenticate_noop(self, get_mock):
         """Test authentication when the remote endpoint doesn't require it."""
         response = mock.Mock()
@@ -899,6 +1015,279 @@ class OciClientRequestTestCase(base.TestCase):
             mock_file)
         mock_file.write.assert_not_called()
         self.assertEqual(2, get_mock.call_count)
+
+    def test_authenticate_ssl_error_with_http_fallback_enabled(
+            self, get_mock):
+        """Test authentication falls back to HTTP on SSLError when enabled."""
+        CONF.set_override('permit_fallback_to_http_transport', True,
+                          group='oci')
+        response_https = mock.Mock()
+        response_https.status_code = 200
+        ssl_error = requests.exceptions.SSLError('SSL handshake failed')
+        response_http = mock.Mock()
+        response_http.status_code = 200
+        get_mock.side_effect = iter([ssl_error, response_http])
+
+        self.client.authenticate('oci://localhost/foo/bar:latest')
+
+        self.assertEqual(2, get_mock.call_count)
+        # First call should be HTTPS
+        get_mock.assert_any_call(
+            mock.ANY, 'https://localhost/v2/', timeout=60)
+        # Second call should be HTTP
+        get_mock.assert_any_call(
+            mock.ANY, 'http://localhost/v2/', timeout=60)
+        # Verify override scheme is set
+        self.assertEqual('http', self.client._override_protocol_scheme)
+
+    def test_authenticate_ssl_error_with_http_fallback_disabled(
+            self, get_mock):
+        """Test SSLError is raised when HTTP fallback is disabled."""
+        CONF.set_override('permit_fallback_to_http_transport', False,
+                          group='oci')
+        ssl_error = requests.exceptions.SSLError('SSL handshake failed')
+        get_mock.side_effect = ssl_error
+
+        self.assertRaises(
+            requests.exceptions.SSLError,
+            self.client.authenticate,
+            'oci://localhost/foo/bar:latest')
+
+        # Only one HTTPS call should be made
+        self.assertEqual(1, get_mock.call_count)
+        get_mock.assert_called_once_with(
+            mock.ANY, 'https://localhost/v2/', timeout=60)
+
+    def test_authenticate_successful_https_no_fallback(self, get_mock):
+        """Test normal authentication without needing fallback."""
+        response = mock.Mock()
+        response.status_code = 200
+        get_mock.return_value = response
+
+        self.client.authenticate('oci://localhost/foo/bar:latest')
+
+        # Only HTTPS call should be made
+        get_mock.assert_called_once_with(
+            mock.ANY, 'https://localhost/v2/', timeout=60)
+        # Override scheme should not be set
+        self.assertIsNone(self.client._override_protocol_scheme)
+
+    def test_get_manifest_ssl_error_with_http_fallback_enabled(
+            self, get_mock):
+        """Test manifest retrieval falls back to HTTP on SSLError."""
+        CONF.set_override('permit_fallback_to_http_transport', True,
+                          group='oci')
+        csum = ('44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c0'
+                '60f61caaff8a')
+
+        ssl_error = requests.exceptions.SSLError('SSL handshake failed')
+        response_http = mock.Mock()
+        response_http.status_code = 200
+        response_http.text = '{}'
+        response_http.headers = {}
+        get_mock.side_effect = iter([ssl_error, response_http])
+
+        res = self.client.get_manifest(
+            'oci://localhost/local@sha256:' + csum)
+
+        self.assertEqual({}, res)
+        self.assertEqual(2, get_mock.call_count)
+        # First call HTTPS
+        get_mock.assert_any_call(
+            mock.ANY,
+            'https://localhost/v2/local/manifests/sha256:' + csum,
+            headers={'Accept': 'application/vnd.oci.image.manifest.v1+json'},
+            timeout=60)
+        # Second call HTTP
+        get_mock.assert_any_call(
+            mock.ANY,
+            'http://localhost/v2/local/manifests/sha256:' + csum,
+            headers={'Accept': 'application/vnd.oci.image.manifest.v1+json'},
+            timeout=60)
+
+    def test_get_manifest_ssl_error_with_http_fallback_disabled(
+            self, get_mock):
+        """Test SSLError is raised when manifest fallback is disabled."""
+        CONF.set_override('permit_fallback_to_http_transport', False,
+                          group='oci')
+        csum = ('44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c0'
+                '60f61caaff8a')
+
+        ssl_error = requests.exceptions.SSLError('SSL handshake failed')
+        get_mock.side_effect = ssl_error
+
+        self.assertRaises(
+            requests.exceptions.SSLError,
+            self.client.get_manifest,
+            'oci://localhost/local@sha256:' + csum)
+
+        self.assertEqual(1, get_mock.call_count)
+
+    def test_get_manifest_after_previous_http_fallback(self, get_mock):
+        """Test manifest uses HTTP after override scheme is set."""
+        # Simulate previous fallback
+        self.client._override_protocol_scheme = 'http'
+        csum = ('44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c0'
+                '60f61caaff8a')
+
+        response = mock.Mock()
+        response.status_code = 200
+        response.text = '{}'
+        response.headers = {}
+        get_mock.return_value = response
+
+        res = self.client.get_manifest(
+            'oci://localhost/local@sha256:' + csum)
+
+        self.assertEqual({}, res)
+        # Should use HTTP directly
+        get_mock.assert_called_once_with(
+            mock.ANY,
+            'http://localhost/v2/local/manifests/sha256:' + csum,
+            headers={'Accept': 'application/vnd.oci.image.manifest.v1+json'},
+            timeout=60)
+
+    @mock.patch.object(oci_registry.OciClient, '_resolve_tag',
+                       autospec=True)
+    def test_get_artifact_index_ssl_error_with_http_fallback_enabled(
+            self, resolve_tag_mock, get_mock):
+        """Test index retrieval falls back to HTTP on SSLError."""
+        CONF.set_override('permit_fallback_to_http_transport', True,
+                          group='oci')
+        resolve_tag_mock.return_value = {
+            'image': '/local',
+            'tag': 'tag'
+        }
+
+        ssl_error = requests.exceptions.SSLError('SSL handshake failed')
+        response_http = mock.Mock()
+        response_http.status_code = 200
+        response_http.text = '{}'
+        response_http.headers = {}
+        get_mock.side_effect = iter([ssl_error, response_http])
+
+        res = self.client.get_artifact_index('oci://localhost/local:tag')
+
+        self.assertEqual({}, res)
+        self.assertEqual(2, get_mock.call_count)
+        # First call HTTPS
+        get_mock.assert_any_call(
+            mock.ANY,
+            'https://localhost/v2/local/manifests/tag',
+            headers={'Accept': ('application/vnd.oci.image.index.v1+json, '
+                                'application/vnd.oci.image.manifest.v1+json')},
+            timeout=60)
+        # Second call HTTP
+        get_mock.assert_any_call(
+            mock.ANY,
+            'http://localhost/v2/local/manifests/tag',
+            headers={'Accept': ('application/vnd.oci.image.index.v1+json, '
+                                'application/vnd.oci.image.manifest.v1+json')},
+            timeout=60)
+
+    @mock.patch.object(oci_registry.OciClient, '_resolve_tag',
+                       autospec=True)
+    def test_get_artifact_index_ssl_error_with_http_fallback_disabled(
+            self, resolve_tag_mock, get_mock):
+        """Test SSLError is raised when index fallback is disabled."""
+        CONF.set_override('permit_fallback_to_http_transport', False,
+                          group='oci')
+        resolve_tag_mock.return_value = {
+            'image': '/local',
+            'tag': 'tag'
+        }
+
+        ssl_error = requests.exceptions.SSLError('SSL handshake failed')
+        get_mock.side_effect = ssl_error
+
+        self.assertRaises(
+            requests.exceptions.SSLError,
+            self.client.get_artifact_index,
+            'oci://localhost/local:tag')
+
+        self.assertEqual(1, get_mock.call_count)
+
+    @mock.patch.object(oci_registry.OciClient, '_resolve_tag',
+                       autospec=True)
+    def test_get_artifact_index_after_previous_http_fallback(
+            self, resolve_tag_mock, get_mock):
+        """Test index uses HTTP after override scheme is set."""
+        # Simulate previous fallback
+        self.client._override_protocol_scheme = 'http'
+        resolve_tag_mock.return_value = {
+            'image': '/local',
+            'tag': 'tag'
+        }
+
+        response = mock.Mock()
+        response.status_code = 200
+        response.text = '{}'
+        response.headers = {}
+        get_mock.return_value = response
+
+        res = self.client.get_artifact_index('oci://localhost/local:tag')
+
+        self.assertEqual({}, res)
+        # Should use HTTP directly
+        get_mock.assert_called_once_with(
+            mock.ANY,
+            'http://localhost/v2/local/manifests/tag',
+            headers={'Accept': ('application/vnd.oci.image.index.v1+json, '
+                                'application/vnd.oci.image.manifest.v1+json')},
+            timeout=60)
+
+
+class OciClientBuildUrlTestCase(base.TestCase):
+
+    def setUp(self):
+        super().setUp()
+        # Create an instance for testing
+        self.client = oci_registry.OciClient(verify=True)
+
+    def test_build_url_default_https_scheme(self):
+        """Test _build_url uses HTTPS by default."""
+        url = parse.urlparse('oci://localhost/foo/bar')
+        result = self.client._build_url(url, '/test')
+
+        self.assertEqual('https://localhost/v2/test', result)
+        self.assertIsNone(self.client._override_protocol_scheme)
+
+    def test_build_url_with_http_scheme(self):
+        """Test _build_url with HTTP scheme sets override."""
+        url = parse.urlparse('oci://localhost/foo/bar')
+        result = self.client._build_url(url, '/test', scheme='http')
+
+        self.assertEqual('http://localhost/v2/test', result)
+        self.assertEqual('http', self.client._override_protocol_scheme)
+
+    def test_build_url_uses_cached_override_scheme(self):
+        """Test _build_url uses cached override for subsequent calls."""
+        self.client._override_protocol_scheme = 'http'
+        url = parse.urlparse('oci://localhost/foo/bar')
+
+        # Call with default scheme, should use cached http
+        result = self.client._build_url(url, '/test')
+
+        self.assertEqual('http://localhost/v2/test', result)
+        self.assertEqual('http', self.client._override_protocol_scheme)
+
+    def test_build_url_override_persists(self):
+        """Test override scheme persists across multiple calls."""
+        url = parse.urlparse('oci://localhost/foo/bar')
+
+        # First call with http
+        result1 = self.client._build_url(
+            url, '/test1', scheme='http')
+        self.assertEqual('http://localhost/v2/test1', result1)
+
+        # Second call without specifying scheme
+        result2 = self.client._build_url(url, '/test2')
+        self.assertEqual('http://localhost/v2/test2', result2)
+
+        # Third call explicitly with https, should still use http
+        result3 = self.client._build_url(
+            url, '/test3', scheme='https')
+        self.assertEqual('http://localhost/v2/test3', result3)
 
 
 class TestRegistrySessionHelper(base.TestCase):
