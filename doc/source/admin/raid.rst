@@ -100,21 +100,29 @@ disk and have no default values:
 Optional properties
 ^^^^^^^^^^^^^^^^^^^
 
-These properties have default values and they may be overridden in the
-specification of any logical disk. None of these options are supported for
-software RAID.
+These properties have default values, and they may be overridden in the
+specification of any logical disk.
 
 - ``volume_name`` - Name of the volume. Should be unique within the Node.
-  If not specified, volume name will be auto-generated.
+  If not specified, the volume name will be auto-generated.
 
 - ``is_root_volume`` - Set to ``true`` if this is the root volume. At
   most one logical disk can have this set to ``true``; the other
-  logical disks must have this set to ``false``. The default is ``false``.
+  logical disks must have this set to ``false`` or left unspecified.
 
-  This value currently only affects the ``create_root_volume`` and
-  ``create_nonroot_volumes`` parameters to the ``create_configuration`` step,
-  but out-of-tree RAID interfaces may also use it to populate *root device
-  hints*. Otherwise, you need to populate the hints yourself.
+  For hardware RAID, this value currently only affects the
+  ``create_root_volume`` and  ``create_nonroot_volumes`` parameters to the
+  ``create_configuration`` step, but out-of-tree RAID interfaces may also use
+  it to populate *root device hints*. Otherwise, you need to populate the hints
+  yourself.
+
+  For software RAID (since the Gazpacho release - through the change
+  `962670 <https://review.opendev.org/c/openstack/ironic/+/962670/>`_),
+  setting the parameter to ``false``, prevents it from being
+  picked up as the root volume. If both ``root device hint``, and the
+  ``is_root_volume`` (set to ``true``) parameters are set, the
+  ``is_root_volume`` parameter takes priority, and the volume should be
+  picked up for the root device.
 
 Backing physical disk hints
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -173,7 +181,7 @@ Examples for ``target_raid_config``
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 *Example 1*. Single RAID disk of RAID level 5 with all of the space
-available.
+available. Make this the root volume to which Ironic deploys the image:
 
 .. code-block:: json
 
@@ -181,7 +189,8 @@ available.
     "logical_disks": [
       {
         "size_gb": "MAX",
-        "raid_level": "5"
+        "raid_level": "5",
+        "is_root_volume": true
       }
     ]
   }
@@ -251,7 +260,8 @@ Another with RAID level 1 of 500 GiB and use HDD:
     ]
   }
 
-*Example 5*. Software RAID with two RAID devices:
+*Example 5*. Software RAID with two RAID devices. The smaller one should be
+picked up as a root device:
 
 .. code-block:: json
 
@@ -260,6 +270,7 @@ Another with RAID level 1 of 500 GiB and use HDD:
       {
         "size_gb": 100,
         "raid_level": "1",
+        "is_root_volume": true,
         "controller": "software"
       },
       {
@@ -281,6 +292,27 @@ devices with the size exceeding 100 GiB:
         "size_gb": "MAX",
         "raid_level": "0",
         "controller": "software",
+        "physical_disks": [
+          {"size": "> 100"},
+          {"size": "> 100"}
+        ]
+      }
+    ]
+  }
+
+*Example 7*. Single RAID disk of RAID level 1 which spans two disks.
+The ``is_root_volume`` set to false prevents the array from being picked
+up as the root volume. Therefore, unless there is a third disk present, this
+configuration would end up in an error:
+
+.. code-block:: json
+
+  {
+    "logical_disks": [
+      {
+        "size_gb": "MAX",
+        "raid_level": "1",
+        "is_root_volume": false,
         "physical_disks": [
           {"size": "> 100"},
           {"size": "> 100"}
