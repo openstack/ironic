@@ -27,6 +27,7 @@ import tempfile
 
 from oslo_config import cfg
 from oslo_log import log
+from oslo_utils import excutils
 
 from ironic.common import exception
 from ironic.common.i18n import _
@@ -254,22 +255,21 @@ class NetworkingDriverAdapter:
             LOG.info("Generated driver config file: %s", output_file)
 
         except Exception as e:
-            LOG.error("Failed to generate config file: %s", e)
-            # Clean up temp file if it still exists
-            if temp_fd is not None:
-                try:
-                    os.close(temp_fd)
-                except OSError as cleanup_error:
-                    LOG.debug("Failed to close temp file descriptor: %s",
-                              cleanup_error)
-            if temp_path is not None:
-                try:
-                    os.unlink(temp_path)
-                except OSError as cleanup_error:
-                    LOG.debug("Failed to remove temp file %s: %s",
-                              temp_path, cleanup_error)
-            # Re-raise the original exception
-            raise e
+            with excutils.save_and_reraise_exception():
+                LOG.error("Failed to generate config file: %s", e)
+                # Clean up temp file if it still exists
+                if temp_fd is not None:
+                    try:
+                        os.close(temp_fd)
+                    except OSError as cleanup_error:
+                        LOG.debug("Failed to close temp file descriptor: %s",
+                                  cleanup_error)
+                if temp_path is not None:
+                    try:
+                        os.unlink(temp_path)
+                    except OSError as cleanup_error:
+                        LOG.debug("Failed to remove temp file %s: %s",
+                                  temp_path, cleanup_error)
 
     def reload_configuration(self, output_file):
         """Reload and regenerate switch configuration files.

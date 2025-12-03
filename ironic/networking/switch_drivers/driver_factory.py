@@ -25,6 +25,7 @@ from oslo_log import log
 
 from ironic.common import driver_factory
 from ironic.common import exception
+from ironic.common.i18n import _
 from ironic.conf import CONF
 
 LOG = log.getLogger(__name__)
@@ -73,11 +74,10 @@ class BaseSwitchDriverFactory(driver_factory.BaseDriverFactory):
         for item, cnt in counter:
             if not item:
                 raise exception.ConfigInvalid(
-                    error_msg=(
+                    error_msg=_(
                         'An empty switch driver was specified in the "%s" '
-                        "configuration option. Please fix your ironic.conf "
-                        "file." % cls._enabled_driver_list_config_option
-                    )
+                        'configuration option. Please fix your ironic.conf '
+                        'file.') % cls._enabled_driver_list_config_option
                 )
             if cnt > 1:
                 duplicated_drivers.append(item)
@@ -85,11 +85,10 @@ class BaseSwitchDriverFactory(driver_factory.BaseDriverFactory):
 
         if duplicated_drivers:
             raise exception.ConfigInvalid(
-                error_msg=(
+                error_msg=_(
                     'The switch driver(s) "%s" is/are duplicated in the '
-                    "list of enabled drivers. Please check your "
-                    "configuration file." % ", ".join(duplicated_drivers)
-                )
+                    'list of enabled drivers. Please check your '
+                    'configuration file.') % ", ".join(duplicated_drivers)
             )
 
     @classmethod
