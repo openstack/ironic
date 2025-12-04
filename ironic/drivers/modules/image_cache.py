@@ -226,30 +226,41 @@ class ImageCache(object):
         tmp_path = os.path.join(tmp_dir, os.path.basename(master_path))
         force_raw = force_raw if force_raw is not None else self._force_raw
         try:
-            with _concurrency_semaphore:
-                _fetch(ctx, href, tmp_path, force_raw, expected_format,
-                       expected_checksum=expected_checksum,
-                       expected_checksum_algo=expected_checksum_algo,
-                       disable_validation=self._disable_validation,
-                       image_auth_data=image_auth_data)
+            try:
+                with _concurrency_semaphore:
+                    _fetch(ctx, href, tmp_path, force_raw, expected_format,
+                           expected_checksum=expected_checksum,
+                           expected_checksum_algo=expected_checksum_algo,
+                           disable_validation=self._disable_validation,
+                           image_auth_data=image_auth_data)
+            except OSError as exc:
+                msg = (_("Could not download image %(img_href)s to temp file "
+                         "%(tmp_path)s, error: %(exc)s") %
+                       {'img_href': href, 'tmp_path': tmp_path, 'exc': exc})
+                LOG.error(msg)
+                raise exception.ImageDownloadFailed(msg)
 
-            if img_info.get('no_cache'):
-                LOG.debug("Caching is disabled for image %s", href)
-                # Cache disabled, link directly to destination
-                os.link(tmp_path, dest_path)
-            else:
-                # NOTE(dtantsur): no need for global lock here - master_path
-                # will have link count >1 at any moment, so won't be cleaned up
-                os.link(tmp_path, master_path)
-                os.link(master_path, dest_path)
-        except OSError as exc:
-            msg = (_("Could not link image %(img_href)s from %(src_path)s "
-                     "to %(dst_path)s, error: %(exc)s") %
-                   {'img_href': href, 'src_path': master_path,
-                    'dst_path': dest_path, 'exc': exc})
-            LOG.error(msg)
-            raise exception.ImageDownloadFailed(msg)
+            try:
+                if img_info.get('no_cache'):
+                    LOG.debug("Caching is disabled for image %s", href)
+                    # Cache disabled, link directly to destination
+                    os.link(tmp_path, dest_path)
+                else:
+                    # NOTE(dtantsur): no need for global lock here
+                    # master_path will have link count >1 at any moment, so
+                    # won't be cleaned up
+                    os.link(tmp_path, master_path)
+                    os.link(master_path, dest_path)
+            except OSError as exc:
+                msg = (_("Could not link image %(img_href)s from %(src_path)s "
+                         "to %(dst_path)s, error: %(exc)s") %
+                       {'img_href': href, 'src_path': master_path,
+                        'dst_path': dest_path, 'exc': exc})
+                LOG.error(msg)
+                raise exception.ImageDownloadFailed(msg)
         finally:
+            # NOTE(cardoe): This finally block is to ensure we clean up no
+            # matter the error path
             utils.rmtree_without_raise(tmp_dir)
 
     @lockutils.synchronized('master_image')
