@@ -20,6 +20,9 @@ ENV APP='fake'
 ENV APP_INFO={}
 ENV READ_ONLY=False
 ENV DEBUG=0
+ENV FIREFOX=firefox
+ENV FIREFOX_CONFIG_DIR=/home/firefox/.mozilla/firefox
+ENV EXTENSION_PATH="/usr/share/mozilla/extensions/{ec8030f7-c20a-464f-9b0e-13a3a9e97384}/@ironic-console.openstack.org"
 
 ADD bin/* /usr/local/bin
 ADD drivers /drivers

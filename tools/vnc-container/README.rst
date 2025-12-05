@@ -18,7 +18,7 @@ Building and using
 To build the container image for local use, install ``buildah`` and run the
 following as the user which runs ironic-conductor::
 
-    buildah bud -f ./Containerfile -t localhost/ironic-vnc-container
+    buildah bud -f ./Containerfile.ubuntu -t localhost/ironic-vnc-container
 
 The ``systemd`` container provider (or an external provider) can then be configured
 to use this image in ``ironic.conf``:

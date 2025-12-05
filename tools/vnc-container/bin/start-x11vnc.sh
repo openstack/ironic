@@ -1,9 +1,6 @@
 #!/bin/bash
 
-set -ex
-
-
-extension_path="/usr/share/mozilla/extensions/{ec8030f7-c20a-464f-9b0e-13a3a9e97384}/@ironic-console.openstack.org"
+set -x
 
 set +e
 APP_NAME=$(discover-app.py)
@@ -11,17 +8,16 @@ if [ $? -ne 0 ]; then
     export ERROR="${APP_NAME}"
     APP_NAME="error"
 fi
-
 set -e
 
-cat << EOF > "${extension_path}/config.js"
+cat << EOF > "${EXTENSION_PATH}/config.js"
 let config = {
     app: "${APP_NAME}",
     app_info: ${APP_INFO}
 };
 EOF
 
-sed -i "s#APP_NAME#${APP_NAME}#g" "${extension_path}/manifest.json"
+sed -i "s#APP_NAME#${APP_NAME}#g" "${EXTENSION_PATH}/manifest.json"
 
 mkdir -p /etc/firefox/policies
 policies.py > /etc/firefox/policies/policies.json

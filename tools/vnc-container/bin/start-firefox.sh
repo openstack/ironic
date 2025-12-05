@@ -2,16 +2,16 @@
 
 set -ex
 
-if pgrep -x firefox >/dev/null; then
+if pgrep -x $FIREFOX >/dev/null; then
     echo "Firefox is already running. Exiting."
     exit 0
 fi
 
-rm -rf ~/.mozilla/firefox
+rm -rf $FIREFOX_CONFIG_DIR
 
-firefox -CreateProfile ironic-vnc
+$FIREFOX -CreateProfile ironic-vnc
 
-pushd ~/.mozilla/firefox/*.ironic-vnc
+pushd $FIREFOX_CONFIG_DIR/*.ironic-vnc
 cert-override.py > cert_override.txt
 popd
 
@@ -19,11 +19,11 @@ popd
 DEBUG=${DEBUG:-0}
 if [ "$DEBUG" = "2" ]; then
     # show tabs and a javascript console
-    firefox -width ${DISPLAY_WIDTH} -height ${DISPLAY_HEIGHT} -P ironic-vnc -jsconsole &
+    $FIREFOX -width ${DISPLAY_WIDTH} -height ${DISPLAY_HEIGHT} -P ironic-vnc -jsconsole &
 elif [ "$DEBUG" = "1" ]; then
     # show tabs
-    firefox -width ${DISPLAY_WIDTH} -height ${DISPLAY_HEIGHT} -P ironic-vnc &
+    $FIREFOX -width ${DISPLAY_WIDTH} -height ${DISPLAY_HEIGHT} -P ironic-vnc &
 else
     # fully locked down kiosk mode
-    firefox -width ${DISPLAY_WIDTH} -height ${DISPLAY_HEIGHT} -P ironic-vnc --kiosk &
+    $FIREFOX -width ${DISPLAY_WIDTH} -height ${DISPLAY_HEIGHT} -P ironic-vnc --kiosk &
 fi
