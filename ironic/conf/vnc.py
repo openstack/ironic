@@ -98,11 +98,14 @@ opts = [
              '"systemd" manages containers as systemd units via podman '
              'Quadlet support. The default is "fake" which returns an '
              'unusable VNC host and port. This needs to be changed if enabled '
-             'is True'),
+             'is True. '
+             '"kubernetes" manages containers as pods using template driven '
+             'resource creation.'),
     cfg.StrOpt(
         'console_image',
         mutable=True,
-        help='Container image reference for the "systemd" console container '
+        help='Container image reference for the "systemd" and '
+             '"kubernetes" console container '
              'provider, and any other out-of-tree provider which requires a '
              'configurable image reference.'),
     cfg.StrOpt(
@@ -126,6 +129,22 @@ opts = [
              'have no authentication or encryption so they also should not '
              'be exposed to public access. Additionally, the containers '
              'need to be able to access BMC management endpoints. '),
+    cfg.StrOpt(
+        'kubernetes_container_template',
+        default=os.path.join(
+            '$pybasedir',
+            'console/container/ironic-console-pod.yaml.template'),
+        mutable=True,
+        help='For the kubernetes provider, path to the template for defining '
+             'the console resources. The default template creates one Secret '
+             'to store the app info, and one Pod to run a console '
+             'container. A custom template must include namespace metadata, '
+             'and must define labels which can be used as a delete-all '
+             'selector.'),
+    cfg.IntOpt('kubernetes_pod_timeout',
+               default=120,
+               help='For the kubernetes provider, the time (in seconds) to '
+                    'wait for the console pod to start.'),
     cfg.StrOpt(
         'ssl_cert_file',
         help="Certificate file to use when starting the server securely."),
