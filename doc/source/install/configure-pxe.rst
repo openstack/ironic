@@ -123,8 +123,14 @@ In Debian or Ubuntu, xinetd can be used to run tftp server service.
 RHEL or CentOS
 ~~~~~~~~~~~~~~
 
-In RHEL or CentOS, xinetd is not available. So use a dedicated dnsmasq instance
-to run tftp server service.
+.. note::
+   Starting with CentOS 9 and RHEL 9, xinetd is not available. Use systemd
+   socket activation instead. See the `DevStack TFTP setup
+   <https://opendev.org/openstack/ironic/src/branch/master/devstack/tools/ironic/templates/tftp-server.conf>`_
+   for an example configuration.
+
+For CentOS 8 and earlier, or RHEL 8 and earlier, use a dedicated dnsmasq
+instance to run the TFTP server service.
 
 #. Make sure the tftp root directory exists and can be written to by the
    user the ``ironic-conductor`` is running as. For example::
@@ -136,13 +142,13 @@ to run tftp server service.
 
     sudo dnf install openstack-ironic-dnsmasq-tftp-server
 
-#. Using dndmasq to provide a tftp server setup to serve ``/tftpboot``.
+#. Using dnsmasq to provide a tftp server setup to serve ``/tftpboot``.
    Edit ``/etc/ironic/dnsmasq-tftp-server.conf`` as below::
 
     port=0
     bind-interfaces
     enable-tftp
-    tftp-root=/tftproot
+    tftp-root=/tftpboot
 
    and restart the ``openstack-ironic-dnsmasq-tftp-server`` service::
 

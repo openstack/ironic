@@ -940,6 +940,18 @@ function restart_libvirt {
     restart_service $libvirt_service_name
 }
 
+# Test if systemd TFTP configuration is needed (CentOS 9+, Fedora 35+)
+function needs_systemd_tftp {
+    if is_fedora; then
+        if grep -qiE "(CentOS|Red Hat).*release 9" /etc/redhat-release; then
+            return 0  # CentOS/RHEL 9+
+        elif grep -qiE "Fedora.*release (3[5-9]|[4-9][0-9])" /etc/redhat-release; then
+            return 0  # Fedora 35+
+        fi
+    fi
+    return 1
+}
+
 # Test if any Ironic services are enabled
 # is_ironic_enabled
 function is_ironic_enabled {
@@ -3749,12 +3761,7 @@ function configure_tftpd {
         # stop tftpd and setup serving via xinetd
         stop_service tftpd-hpa || true
         [ -f /etc/init/tftpd-hpa.conf ] && echo "manual" | sudo tee /etc/init/tftpd-hpa.override
-        sudo cp $IRONIC_TEMPLATES_DIR/tftpd-xinetd.template /etc/xinetd.d/tftp
-        sudo sed -e "s|%TFTPBOOT_DIR%|$IRONIC_TFTPBOOT_DIR|g" -i /etc/xinetd.d/tftp
-        sudo sed -e "s|%MAX_BLOCKSIZE%|$IRONIC_TFTP_BLOCKSIZE|g" -i /etc/xinetd.d/tftp
-        if [[ "$IRONIC_IP_VERSION" == '6' ]]; then
-            sudo sed -e "s|IPv4|IPv6|g" -i /etc/xinetd.d/tftp
-        fi
+
         # setup tftp file mapping to satisfy requests at the root (booting) and
         # /tftpboot/ sub-dir (as per deploy-ironic elements)
         # this section is only for ubuntu and fedora
@@ -3773,7 +3780,31 @@ function configure_tftpd {
         fi
 
         sudo chmod -R 0755 $IRONIC_TFTPBOOT_DIR
-        restart_service xinetd
+
+        if needs_systemd_tftp; then
+            # Configure TFTP using systemd socket activation (CentOS 9+, Fedora 35+)
+            sudo mkdir -p /etc/systemd/system/tftp.service.d
+            sudo cp $IRONIC_TEMPLATES_DIR/tftp-server.conf /etc/systemd/system/tftp.service.d/ironic.conf
+            sudo sed -e "s|%TFTPBOOT_DIR%|$IRONIC_TFTPBOOT_DIR|g" -i /etc/systemd/system/tftp.service.d/ironic.conf
+            sudo sed -e "s|%MAX_BLOCKSIZE%|$IRONIC_TFTP_BLOCKSIZE|g" -i /etc/systemd/system/tftp.service.d/ironic.conf
+            if [[ "$IRONIC_IP_VERSION" == '6' ]]; then
+                sudo sed -e "s|%IPV6_FLAG%|Environment=IPV6=1|g" -i /etc/systemd/system/tftp.service.d/ironic.conf
+            else
+                sudo sed -e "s|%IPV6_FLAG%||g" -i /etc/systemd/system/tftp.service.d/ironic.conf
+            fi
+            sudo systemctl daemon-reload
+            sudo systemctl enable tftp.socket
+            sudo systemctl start tftp.socket
+        else
+            # Configure TFTP using xinetd (Ubuntu, older Fedora/CentOS)
+            sudo cp $IRONIC_TEMPLATES_DIR/tftpd-xinetd.template /etc/xinetd.d/tftp
+            sudo sed -e "s|%TFTPBOOT_DIR%|$IRONIC_TFTPBOOT_DIR|g" -i /etc/xinetd.d/tftp
+            sudo sed -e "s|%MAX_BLOCKSIZE%|$IRONIC_TFTP_BLOCKSIZE|g" -i /etc/xinetd.d/tftp
+            if [[ "$IRONIC_IP_VERSION" == '6' ]]; then
+                sudo sed -e "s|IPv4|IPv6|g" -i /etc/xinetd.d/tftp
+            fi
+            restart_service xinetd
+        fi
     fi
 }
 
@@ -4212,8 +4243,17 @@ SUBSHELL
 
     sudo ovs-vsctl --if-exists del-br $IRONIC_VM_NETWORK_BRIDGE
 
-    sudo rm -rf /etc/xinetd.d/tftp /etc/init/tftpd-hpa.override
-    restart_service xinetd
+    if needs_systemd_tftp; then
+        # Cleanup systemd TFTP configuration
+        sudo systemctl stop tftp.socket || true
+        sudo systemctl disable tftp.socket || true
+        sudo rm -rf /etc/systemd/system/tftp.service.d/ironic.conf
+        sudo systemctl daemon-reload
+    else
+        # Cleanup xinetd TFTP configuration
+        sudo rm -rf /etc/xinetd.d/tftp /etc/init/tftpd-hpa.override
+        restart_service xinetd
+    fi
     sudo iptables -D INPUT -d $HOST_IP -p udp --dport 69 -j ACCEPT || true
     sudo iptables -D INPUT -d $HOST_IP -p tcp --dport $IRONIC_SERVICE_PORT -j ACCEPT || true
     sudo iptables -D INPUT -d $HOST_IP -p tcp --dport 80 -j ACCEPT || true

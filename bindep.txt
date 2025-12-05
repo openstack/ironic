@@ -3,7 +3,7 @@ ipmitool [default]
 ipxe [platform:dpkg default]
 ipxe-bootimgs [platform:rpm default]
 socat [default]
-xinetd [default]
+xinetd [default !platform:centos-9 !platform:rhel-9]
 tftpd-hpa [platform:dpkg default]
 tftp-server [platform:rpm default]
 # Starting with Debian Jessie (and thus in Ubuntu Xenial too),
