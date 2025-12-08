@@ -1,0 +1,6 @@
+---
+fixes:
+  - |
+    Moves the ``check_image_size`` to ``deploy_utils`` so it runs earlier in
+    the deploy flow and only when it matters, reusing already-fetched image
+    information.

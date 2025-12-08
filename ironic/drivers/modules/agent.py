@@ -17,7 +17,6 @@ from urllib import parse as urlparse
 
 from oslo_log import log
 from oslo_utils import strutils
-from oslo_utils import units
 import tenacity
 
 from ironic.common import async_steps
@@ -100,46 +99,6 @@ PARTITION_IMAGE_LABELS = ('kernel', 'ramdisk', 'root_gb', 'root_mb', 'swap_mb',
                           'ephemeral_mb', 'ephemeral_format', 'configdrive',
                           'preserve_ephemeral', 'image_type',
                           'deploy_boot_mode')
-
-
-@METRICS.timer('check_image_size')
-def check_image_size(task):
-    """Check if the requested image is larger than the ram size.
-
-    :param task: a TaskManager instance containing the node to act on.
-    :raises: InvalidParameterValue if size of the image is greater than
-        the available ram size.
-    """
-    node = task.node
-    properties = node.properties
-    image_source = node.instance_info.get('image_source')
-    image_disk_format = node.instance_info.get('image_disk_format')
-    # skip check if 'memory_mb' is not defined
-    if 'memory_mb' not in properties:
-        LOG.debug('Skip the image size check as memory_mb is not '
-                  'defined in properties on node %s.', node.uuid)
-        return
-
-    image_show = images.image_show(task.context, image_source)
-    if CONF.agent.stream_raw_images and (image_show.get('disk_format') == 'raw'
-                                         or image_disk_format == 'raw'):
-        LOG.debug('Skip the image size check since the image is going to be '
-                  'streamed directly onto the disk for node %s', node.uuid)
-        return
-
-    memory_size = int(properties.get('memory_mb'))
-    image_size = int(image_show['size'])
-    reserved_size = CONF.agent.memory_consumed_by_agent
-    if (image_size + (reserved_size * units.Mi)) > (memory_size * units.Mi):
-        msg = (_('Memory size is too small for requested image, if it is '
-                 'less than (image size + reserved RAM size), will break '
-                 'the IPA deployments. Image size: %(image_size)d MiB, '
-                 'Memory size: %(memory_size)d MiB, Reserved size: '
-                 '%(reserved_size)d MiB.')
-               % {'image_size': image_size / units.Mi,
-                  'memory_size': memory_size,
-                  'reserved_size': reserved_size})
-        raise exception.InvalidParameterValue(msg)
 
 
 @METRICS.timer('validate_image_proxies')
@@ -610,7 +569,6 @@ class AgentDeploy(CustomAgentDeploy):
         task.node.instance_info = (
             deploy_utils.build_instance_info_for_deploy(task))
         task.node.save()
-        check_image_size(task)
 
     @METRICS.timer('AgentDeploy.validate')
     def validate(self, task):
