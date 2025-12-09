@@ -1369,23 +1369,22 @@ def place_loaders_for_boot(base_path: str | os.PathLike):
 
     base_path = pathlib.Path(base_path)
 
+    try:
+        # ensure that we have somewhere to copy the files to
+        base_path.mkdir(mode=dir_mode, parents=True, exist_ok=True)
+    except OSError as e:
+        msg = (_('Failed to create bootloader destination path. Error: %s')
+                % e)
+        raise exception.IncorrectConfiguration(msg)
+
     for dest, src in loaders.items():
         dest = pathlib.Path(dest)
-        if dest.is_absolute():
+        if len(dest.parts) != 1:
             msg = ('File paths configured for [pxe]loader_file_paths '
-                   'must be relative paths. Entry: %s') % dest
+                   'must be a base path. Entry: %s') % dest
             raise exception.IncorrectConfiguration(msg)
 
         full_dest = base_path.joinpath(dest)
-        try:
-            # ensure that we have somewhere to copy the files to
-            # notice the use of the parent path of the file
-            full_dest.parent.mkdir(mode=dir_mode, parents=True, exist_ok=True)
-        except OSError as e:
-            msg = (_('Failed to create bootloader destination path. Error: %s')
-                    % e)
-            raise exception.IncorrectConfiguration(msg)
-
         LOG.debug('Copying bootloader %(dest)s from %(src)s.',
                   {'src': src, 'dest': full_dest})
         try:
