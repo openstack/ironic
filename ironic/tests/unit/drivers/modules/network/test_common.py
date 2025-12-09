@@ -803,6 +803,7 @@ class TestNeutronVifPortIDMixin(db_base.DbTestCase):
                         mock_save, mock_update_port):
         vif = {'id': "fake_vif_id"}
         mock_gfp.return_value = self.port
+        mock_gpbpi.return_value = {'physnet1', 'physnet2'}
         with task_manager.acquire(self.context, self.node.id) as task:
             self.interface.vif_attach(task, vif)
             mock_client.assert_called_once_with(context=task.context)
@@ -820,8 +821,10 @@ class TestNeutronVifPortIDMixin(db_base.DbTestCase):
                            'binding:profile': {}},
                           client=None)
             ])
-        self.assertFalse(mock_gpbpi.called)
-        mock_gfp.assert_called_once_with(task, 'fake_vif_id', set(),
+        mock_gpbpi.assert_called_once_with(mock_client.return_value,
+                                           'fake_vif_id')
+        mock_gfp.assert_called_once_with(task, 'fake_vif_id',
+                                         mock_gpbpi.return_value,
                                          {'id': 'fake_vif_id'})
         mock_save.assert_called_once_with(self.port, "fake_vif_id")
 
@@ -839,7 +842,8 @@ class TestNeutronVifPortIDMixin(db_base.DbTestCase):
         with task_manager.acquire(self.context, self.node.id) as task:
             self.assertRaises(exception.NoFreePhysicalPorts,
                               self.interface.vif_attach, task, vif)
-        mock_gfp.assert_called_once_with(task, 'fake_vif_id', set(),
+        mock_gfp.assert_called_once_with(task, 'fake_vif_id',
+                                         mock_gpbpi.return_value,
                                          {'id': 'fake_vif_id'})
         self.assertFalse(mock_save.called)
 
@@ -898,14 +902,17 @@ class TestNeutronVifPortIDMixin(db_base.DbTestCase):
         self.node.save()
         vif = {'id': "fake_vif_id"}
         mock_gfp.return_value = self.port
+        mock_gpbpi.return_value = {'physnet1'}
         with task_manager.acquire(self.context, self.node.id) as task:
             self.interface.vif_attach(task, vif)
             mock_client.assert_called_once_with(context=task.context)
             mock_upa.assert_called_once_with(
                 "fake_vif_id", self.port.address, context=task.context)
             mock_port_update.assert_not_called()
-        self.assertFalse(mock_gpbpi.called)
-        mock_gfp.assert_called_once_with(task, 'fake_vif_id', set(),
+        mock_gpbpi.assert_called_once_with(mock_client.return_value,
+                                           "fake_vif_id")
+        mock_gfp.assert_called_once_with(task, 'fake_vif_id',
+                                         set(['physnet1']),
                                          {'id': 'fake_vif_id'})
         mock_save.assert_called_once_with(self.port, "fake_vif_id")
         mock_plug.assert_called_once_with(task, self.port, mock.ANY)
@@ -932,8 +939,10 @@ class TestNeutronVifPortIDMixin(db_base.DbTestCase):
             mock_client.assert_called_once_with(context=task.context)
             mock_upa.assert_called_once_with(
                 "fake_vif_id", self.port.address, context=task.context)
-        self.assertFalse(mock_gpbpi.called)
-        mock_gfp.assert_called_once_with(task, 'fake_vif_id', set(),
+        mock_gpbpi.assert_called_once_with(mock_client.return_value,
+                                           'fake_vif_id')
+        mock_gfp.assert_called_once_with(task, 'fake_vif_id',
+                                         mock_gpbpi.return_value,
                                          {'id': 'fake_vif_id'})
         mock_save.assert_called_once_with(self.port, "fake_vif_id")
         mock_plug.assert_called_once_with(task, self.port, mock.ANY)
@@ -970,8 +979,10 @@ class TestNeutronVifPortIDMixin(db_base.DbTestCase):
                           client=None)
             ])
 
-        self.assertFalse(mock_gpbpi.called)
-        mock_gfp.assert_called_once_with(task, 'fake_vif_id', set(),
+        mock_gpbpi.assert_called_once_with(mock_client.return_value,
+                                           'fake_vif_id')
+        mock_gfp.assert_called_once_with(task, 'fake_vif_id',
+                                         mock_gpbpi.return_value,
                                          {'id': 'fake_vif_id'})
         self.assertFalse(mock_client.return_value.show_port.called)
         self.assertFalse(mock_upa.called)
@@ -1024,34 +1035,6 @@ class TestNeutronVifPortIDMixin(db_base.DbTestCase):
             mock_client.assert_called_once_with(context=task.context)
         mock_gpbpi.assert_called_once_with(mock_client.return_value,
                                            'fake_vif_id')
-        self.assertFalse(mock_upa.called)
-        self.assertFalse(mock_save.called)
-
-    @mock.patch.object(common.VIFPortIDMixin, '_save_vif_to_port_like_obj',
-                       autospec=True)
-    @mock.patch.object(common, 'get_free_port_like_object', autospec=True)
-    @mock.patch.object(neutron_common, 'get_client', autospec=True)
-    @mock.patch.object(neutron_common, 'update_port_address', autospec=True)
-    @mock.patch.object(neutron_common, 'get_physnets_by_port_uuid',
-                       autospec=True)
-    def test_vif_attach_multiple_segment_mappings(self, mock_gpbpi, mock_upa,
-                                                  mock_client, mock_gfp,
-                                                  mock_save):
-        self.port.physical_network = 'physnet1'
-        self.port.save()
-        obj_utils.create_test_port(
-            self.context, node_id=self.node.id, uuid=uuidutils.generate_uuid(),
-            address='52:54:00:cf:2d:33', physical_network='physnet2')
-        vif = {'id': "fake_vif_id"}
-        mock_gpbpi.return_value = {'physnet1', 'physnet2'}
-        with task_manager.acquire(self.context, self.node.id) as task:
-            self.assertRaises(
-                exception.VifInvalidForAttach,
-                self.interface.vif_attach, task, vif)
-            mock_client.assert_called_once_with(context=task.context)
-        mock_gpbpi.assert_called_once_with(mock_client.return_value,
-                                           'fake_vif_id')
-        self.assertFalse(mock_gfp.called)
         self.assertFalse(mock_upa.called)
         self.assertFalse(mock_save.called)
 
