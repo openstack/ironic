@@ -3078,7 +3078,7 @@ class NodesController(rest.RestController):
             ('/properties', 'baremetal:node:update:properties'),
             ('/chassis_uuid', 'baremetal:node:update:chassis_uuid'),
             ('/instance_uuid', 'baremetal:node:update:instance_uuid'),
-            ('/instance_name', 'baremetal:node:update:instance_info'),
+            ('/instance_name', 'baremetal:node:update_instance_info'),
             ('/lessee', 'baremetal:node:update:lessee'),
             ('/owner', 'baremetal:node:update:owner'),
             ('/driver', 'baremetal:node:update:driver_interfaces'),
