@@ -29,6 +29,8 @@ from ironic.common.i18n import _
 from ironic.common import metrics_utils
 from ironic.common import rpc
 from ironic.conf import CONF
+from ironic.drivers.modules.switch.base import SwitchDriverException
+from ironic.drivers.modules.switch.base import SwitchMethodNotImplemented
 from ironic.networking import switch_config
 from ironic.networking.switch_drivers import driver_adapter
 from ironic.networking.switch_drivers import driver_factory
@@ -40,18 +42,17 @@ METRICS = metrics_utils.get_metrics_logger(__name__)
 
 
 def validate_vlan_configuration(
-    switch_id_arg_name="switch_id", operation_description="operation"
-):
+    operation,
+    switch_id_arg_name="switch_id"):
     """Decorator to validate VLAN configuration against allowed/denied lists.
 
     This decorator extracts native_vlan and allowed_vlans from method
     arguments and validates them against the switch's VLAN configuration.
 
+    :param operation: Description of the operation for error messages.
     :param switch_id_arg_name: Name of the argument containing the switch ID.
                               For multi-switch operations, this should be the
                               argument containing the list of switch IDs.
-    :param operation_description: Description of the operation for error
-                                   messages.
     :returns: Decorated function that applies VLAN validation.
     """
 
@@ -85,7 +86,9 @@ def validate_vlan_configuration(
                 driver = self._get_switch_driver(primary_switch_id)
 
                 # Build list of VLANs to check
-                vlans_to_check = [native_vlan]
+                vlans_to_check = []
+                if native_vlan:
+                    vlans_to_check.append(native_vlan)
                 if allowed_vlans:
                     vlans_to_check.extend(allowed_vlans)
 
@@ -94,7 +97,7 @@ def validate_vlan_configuration(
                     vlans_to_check,
                     driver,
                     primary_switch_id,
-                    operation_description,
+                    operation,
                 )
 
             return func(self, context, *args, **kwargs)
@@ -250,7 +253,7 @@ class NetworkingManager(object):
                     "Error checking driver '%s' for switch '%s': %s",
                     driver_name,
                     switch_id,
-                    str(e),
+                    e,
                 )
                 continue
 
@@ -321,7 +324,7 @@ class NetworkingManager(object):
         exception.NetworkError,
         exception.SwitchNotFound,
     )
-    @validate_vlan_configuration(operation_description="port configuration")
+    @validate_vlan_configuration("update_port")
     def update_port(
         self,
         context,
@@ -350,7 +353,7 @@ class NetworkingManager(object):
         :raises: NetworkError if the network operation fails.
         :returns: Dictionary containing the updated port configuration.
         """
-        LOG.info(
+        LOG.debug(
             "RPC update_port called for switch %(switch)s, port %(port)s",
             {"switch": switch_id, "port": port_name},
         )
@@ -405,14 +408,14 @@ class NetworkingManager(object):
             # Re-raise NetworkError as-is
             raise
         except Exception as e:
-            LOG.error(
+            LOG.exception(
                 "Failed to configure port %(port)s on switch "
-                "%(switch)s: %(error)s",
-                {"port": port_name, "switch": switch_id, "error": str(e)},
+                "%(switch)s",
+                {"port": port_name, "switch": switch_id},
             )
             raise exception.NetworkError(
-                _("Failed to configure network port: %s") % str(e)
-            )
+                _("Failed to configure network port: %s") % e
+            ) from e
 
     def _reset_port_impl(
         self, switch_id, port_name, native_vlan, allowed_vlans=None,
@@ -482,7 +485,7 @@ class NetworkingManager(object):
         :raises: NetworkError if the network operation fails.
         :returns: Dictionary containing the reset port configuration.
         """
-        LOG.info(
+        LOG.debug(
             "RPC reset_port called for switch %(switch)s, port %(port)s",
             {"switch": switch_id, "port": port_name},
         )
@@ -502,14 +505,14 @@ class NetworkingManager(object):
             # Re-raise SwitchNotFound as-is
             raise
         except Exception as e:
-            LOG.error(
+            LOG.exception(
                 "Failed to reset port %(port)s on switch "
-                "%(switch)s: %(error)s",
-                {"port": port_name, "switch": switch_id, "error": str(e)},
+                "%(switch)s",
+                {"port": port_name, "switch": switch_id},
             )
             raise exception.NetworkError(
-                _("Failed to reset network port: %s") % str(e)
-            )
+                _("Failed to reset network port: %s") % e
+            ) from e
 
     @METRICS.timer("NetworkingManager.update_lag")
     @messaging.expected_exceptions(
@@ -517,11 +520,10 @@ class NetworkingManager(object):
         exception.NetworkError,
         exception.SwitchNotFound,
         exception.Invalid,
+        SwitchMethodNotImplemented,
     )
-    @validate_vlan_configuration(
-        switch_id_arg_name="switch_ids",
-        operation_description="lag configuration",
-    )
+    @validate_vlan_configuration("update_lag",
+                                 switch_id_arg_name="switch_ids")
     def update_lag(
         self,
         context,
@@ -547,10 +549,10 @@ class NetworkingManager(object):
         :param default_vlan: VLAN ID to restore onto the port (optional).
         :raises: InvalidParameterValue if validation fails.
         :raises: NetworkError if the network operation fails.
-        :raises: NotImplemented - LAG is not yet supported.
+        :raises: SwitchMethodNotImplemented - LAG is not yet supported.
         :returns: Dictionary containing the updated LAG configuration.
         """
-        raise exception.Invalid(
+        raise SwitchMethodNotImplemented(
             _("LAG operations are not yet supported")
         )
 
@@ -560,6 +562,7 @@ class NetworkingManager(object):
         exception.NetworkError,
         exception.SwitchNotFound,
         exception.Invalid,
+        SwitchMethodNotImplemented,
     )
     def delete_lag(self, context, switch_ids, lag_name):
         """Delete a link aggregation group (LAG) configuration (stub).
@@ -569,10 +572,10 @@ class NetworkingManager(object):
         :param lag_name: Name of the LAG to delete.
         :raises: InvalidParameterValue if validation fails.
         :raises: NetworkError if the network operation fails.
-        :raises: NotImplemented - LAG is not yet supported.
+        :raises: SwitchMethodNotImplemented - LAG is not yet supported.
         :returns: Dictionary containing the deletion status.
         """
-        raise exception.Invalid(
+        raise SwitchMethodNotImplemented(
             _("LAG operations are not yet supported")
         )
 
@@ -599,37 +602,35 @@ class NetworkingManager(object):
         for driver_name in driver_names:
             try:
                 driver = self._switch_driver_factory.get_driver(driver_name)
-            except exception.DriverNotFound:
-                LOG.error("Driver %(driver)s not found",
-                          {"driver": driver_name})
-                continue
-            except Exception as e:
-                LOG.error("Error accessing driver %(driver)s: %(error)s",
-                          {"driver": driver_name, "error": str(e)})
-                continue
+            except (exception.DriverNotFound, exception.DriverLoadError) as e:
+                LOG.error(
+                    "Error accessing driver %(driver)s: %(error)s",
+                    {"driver": driver_name, "error": e}
+                )
+                raise exception.NetworkError(
+                    _("Error accessing driver %(driver)s: %(error)s") % {
+                        "driver": driver_name, "error": e
+                    }
+                ) from e
 
             try:
                 switch_ids = driver.get_switch_ids()
                 for switch_id in switch_ids:
-                    try:
-                        switch_info = driver.get_switch_info(switch_id)
-                        if switch_info:
-                            switches[switch_id] = switch_info
-                    except Exception as e:
-                        LOG.error(
-                            "Failed to get info for switch "
-                            "%(switch)s from driver %(driver)s: "
-                            "%(error)s",
-                            {
-                                "switch": switch_id,
-                                "driver": driver_name,
-                                "error": str(e),
-                            },
-                        )
-            except Exception as e:
-                LOG.warning("Failed to get switch IDs from driver "
-                            "%(driver)s: %(error)s",
-                            {"driver": driver_name, "error": str(e)})
+                    switch_info = driver.get_switch_info(switch_id)
+                    if switch_info:
+                        switches[switch_id] = switch_info
+            except SwitchDriverException as e:
+                LOG.error(
+                    "Failed to get switch information from driver "
+                    "%(driver)s: %(error)s",
+                    {"driver": driver_name, "error": e}
+                )
+                raise exception.NetworkError(
+                    _("Failed to get switch information from driver "
+                      "%(driver)s: %(error)s") % {
+                        "driver": driver_name, "error": e
+                    }
+                ) from e
 
         LOG.info("Successfully retrieved %(count)d switch config sections",
                  {"count": len(switches)})
