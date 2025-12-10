@@ -293,7 +293,7 @@ r_conductor_group:
   in: query
   required: false
   type: string
-r_conductor_groups:
+r_conductor_group_port:
   description: |
     Filter the list of returned ports or portgroups, and only return those with
     the specified ``conductor_group`` or an empty set if none found. List of
