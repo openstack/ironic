@@ -133,6 +133,36 @@ class RedfishInspectTestCase(db_base.DbTestCase):
             }
         )
 
+        # PCIe device mocks
+        mock_pcie_function1 = mock.Mock()
+        mock_pcie_function1.device_class = 'NetworkController'
+        mock_pcie_function1.device_id = '0x16d7'
+        mock_pcie_function1.vendor_id = '0x14e4'
+        mock_pcie_function1.subsystem_id = '0x1402'
+        mock_pcie_function1.subsystem_vendor_id = '0x14e4'
+        mock_pcie_function1.revision_id = '0x01'
+
+        mock_pcie_function2 = mock.Mock()
+        mock_pcie_function2.device_class = 'MassStorageController'
+        mock_pcie_function2.device_id = '0x1234'
+        mock_pcie_function2.vendor_id = '0x1000'
+        mock_pcie_function2.subsystem_id = None
+        mock_pcie_function2.subsystem_vendor_id = None
+        mock_pcie_function2.revision_id = '0x02'
+
+        mock_pcie_device1 = mock.Mock()
+        mock_pcie_device1.pcie_functions.get_members.return_value = [
+            mock_pcie_function1]
+
+        mock_pcie_device2 = mock.Mock()
+        mock_pcie_device2.pcie_functions.get_members.return_value = [
+            mock_pcie_function2]
+
+        system_mock.pcie_devices.get_members.return_value = [
+            mock_pcie_device1,
+            mock_pcie_device2
+        ]
+
         system_mock.name = 'System1'
 
         system_mock.serial_number = '123456'
@@ -142,6 +172,8 @@ class RedfishInspectTestCase(db_base.DbTestCase):
         system_mock.sku = 'DELL123456'
 
         system_mock.uuid = '12345678-1234-1234-1234-12345'
+
+        system_mock.model = 'PowerEdge R1234'
 
         return system_mock
 
@@ -217,6 +249,21 @@ class RedfishInspectTestCase(db_base.DbTestCase):
         expected_disks = [{'name': 'storage-drive', 'size': '128'}]
         self.assertEqual(expected_disks,
                          inventory["inventory"]['disks'])
+
+        expected_pcie_devices = [
+            {'class': 'NetworkController',
+             'product_id': '0x16d7',
+             'vendor_id': '0x14e4',
+             'subsystem_id': '0x1402',
+             'subsystem_vendor_id': '0x14e4',
+             'revision': '0x01'},
+            {'class': 'MassStorageController',
+             'product_id': '0x1234',
+             'vendor_id': '0x1000',
+             'revision': '0x02'}
+        ]
+        self.assertEqual(expected_pcie_devices,
+                         inventory['inventory']['pci_devices'])
 
     @mock.patch.object(redfish_utils, 'get_enabled_macs', autospec=True)
     @mock.patch.object(redfish_utils, 'get_system', autospec=True)
@@ -712,6 +759,7 @@ class RedfishInspectTestCase(db_base.DbTestCase):
         system_mock.manufacturer = None
         system_mock.sku = None
         system_mock.uuid = None
+        system_mock.model = None
 
         with task_manager.acquire(self.context, self.node.uuid,
                                   shared=True) as task:
@@ -728,6 +776,87 @@ class RedfishInspectTestCase(db_base.DbTestCase):
             task.driver.inspect._get_pxe_port_macs(task)
             self.assertEqual(expected_properties,
                              task.driver.inspect._get_pxe_port_macs(task))
+
+    @mock.patch.object(redfish_utils, 'get_enabled_macs', autospec=True)
+    @mock.patch.object(redfish_utils, 'get_system', autospec=True)
+    def test_inspect_hardware_ignore_missing_pcie_devices(
+            self, mock_get_system, mock_get_enabled_macs):
+        system_mock = self.init_system_mock(mock_get_system.return_value)
+        system_mock.pcie_devices = None
+
+        with task_manager.acquire(self.context, self.node.uuid,
+                                  shared=True) as task:
+            task.driver.inspect.inspect_hardware(task)
+
+        inventory = inspect_utils.get_inspection_data(self.node,
+                                                      self.context)
+        self.assertNotIn('pci_devices', inventory['inventory'])
+
+    @mock.patch.object(redfish_utils, 'get_enabled_macs', autospec=True)
+    @mock.patch.object(redfish_utils, 'get_system', autospec=True)
+    def test_inspect_hardware_ignore_empty_pcie_devices(
+            self, mock_get_system, mock_get_enabled_macs):
+        system_mock = self.init_system_mock(mock_get_system.return_value)
+        system_mock.pcie_devices.get_members.return_value = []
+
+        with task_manager.acquire(self.context, self.node.uuid,
+                                  shared=True) as task:
+            task.driver.inspect.inspect_hardware(task)
+
+        inventory = inspect_utils.get_inspection_data(self.node,
+                                                      self.context)
+        self.assertNotIn('pci_devices', inventory['inventory'])
+
+    @mock.patch.object(redfish_utils, 'get_enabled_macs', autospec=True)
+    @mock.patch.object(redfish_utils, 'get_system', autospec=True)
+    def test_inspect_hardware_ignore_pcie_device_without_functions(
+            self, mock_get_system, mock_get_enabled_macs):
+        system_mock = self.init_system_mock(mock_get_system.return_value)
+        mock_pcie_device = mock.Mock()
+        mock_pcie_device.pcie_functions = None
+        system_mock.pcie_devices.get_members.return_value = [mock_pcie_device]
+
+        with task_manager.acquire(self.context, self.node.uuid,
+                                  shared=True) as task:
+            task.driver.inspect.inspect_hardware(task)
+
+        inventory = inspect_utils.get_inspection_data(self.node,
+                                                      self.context)
+        self.assertNotIn('pci_devices', inventory['inventory'])
+
+    @mock.patch.object(redfish_utils, 'get_enabled_macs', autospec=True)
+    @mock.patch.object(redfish_utils, 'get_system', autospec=True)
+    def test_inspect_hardware_pcie_partial_data(
+            self, mock_get_system, mock_get_enabled_macs):
+        system_mock = self.init_system_mock(mock_get_system.return_value)
+        # Create a PCIe function with partial data, some fields None
+        mock_pcie_function = mock.Mock()
+        mock_pcie_function.device_class = 'NetworkController'
+        mock_pcie_function.device_id = '0x16d7'
+        mock_pcie_function.vendor_id = None
+        mock_pcie_function.subsystem_id = '0x1402'
+        mock_pcie_function.subsystem_vendor_id = None
+        mock_pcie_function.revision_id = '0x01'
+
+        mock_pcie_device = mock.Mock()
+        mock_pcie_device.pcie_functions.get_members.return_value = [
+            mock_pcie_function]
+        system_mock.pcie_devices.get_members.return_value = [mock_pcie_device]
+
+        with task_manager.acquire(self.context, self.node.uuid,
+                                  shared=True) as task:
+            task.driver.inspect.inspect_hardware(task)
+
+        inventory = inspect_utils.get_inspection_data(self.node,
+                                                      self.context)
+        expected_pcie_devices = [
+            {'class': 'NetworkController',
+             'product_id': '0x16d7',
+             'subsystem_id': '0x1402',
+             'revision': '0x01'}
+        ]
+        self.assertEqual(expected_pcie_devices,
+                         inventory['inventory']['pci_devices'])
 
 
 class ContinueInspectionTestCase(db_base.DbTestCase):

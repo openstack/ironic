@@ -148,6 +148,10 @@ class RedfishInspect(base.InspectInterface):
                          'name': eth.identity}
                 inventory['interfaces'].append(iface)
 
+        pcie_devices = self._get_pcie_devices(system.pcie_devices)
+        if pcie_devices:
+            inventory['pci_devices'] = pcie_devices
+
         system_vendor = {}
         if system.name:
             system_vendor['product_name'] = str(system.name)
@@ -319,3 +323,53 @@ class RedfishInspect(base.InspectInterface):
             processor.instruction_set) or ''
 
         return cpu
+
+    def _get_pcie_devices(self, pcie_devices_collection):
+        """Extract PCIe device information from Redfish collection.
+
+        :param pcie_devices_collection: Redfish PCIe devices collection
+        :returns: List of PCIe device dictionaries
+        """
+        # Return empty list if collection is None
+        if pcie_devices_collection is None:
+            return []
+
+        device_list = []
+
+        # Process each PCIe device
+        for pcie_device in pcie_devices_collection.get_members():
+            # Skip devices that don't have functions
+            if (not hasattr(pcie_device, 'pcie_functions')
+                    or not pcie_device.pcie_functions):
+                continue
+
+            # Process each function on this device
+            for pcie_function in pcie_device.pcie_functions.get_members():
+                function_info = self._extract_function_info(pcie_function)
+                if function_info:
+                    device_list.append(function_info)
+
+        return device_list
+
+    def _extract_function_info(self, function):
+        """Extract information from a PCIe function.
+
+        :param function: PCIe function object
+        :returns: Dictionary with function attributes
+        """
+        info = {}
+        # Naming them same as in IPA for compatibility
+        # IPA  has extra bus and numa_node_id which BMC doesn't have.
+        if function.device_class is not None:
+            info['class'] = str(function.device_class)
+        if function.device_id is not None:
+            info['product_id'] = function.device_id
+        if function.vendor_id is not None:
+            info['vendor_id'] = function.vendor_id
+        if function.subsystem_id is not None:
+            info['subsystem_id'] = function.subsystem_id
+        if function.subsystem_vendor_id is not None:
+            info['subsystem_vendor_id'] = function.subsystem_vendor_id
+        if function.revision_id is not None:
+            info['revision'] = function.revision_id
+        return info
