@@ -1,0 +1,7 @@
+---
+features:
+  - |
+    The ``/v1/portgroups`` API endpoint now accepts filtering by shard.
+    In API version 1.106, requests with the ``shard`` parameter will only
+    return portgroups associated with nodes assigned to that shard.
+
