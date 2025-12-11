@@ -32,6 +32,10 @@ By default, this query will return the UUID, name and address for each Portgroup
   Added the ``detail`` boolean request parameter. When specified ``True`` this
   causes the response to include complete details about each portgroup.
 
+.. versionadded:: 1.99
+  Added the ability to filter portgroups based on the ``conductor_group`` of the
+  node they are associated with.
+
 Normal response code: 200
 
 Error codes: 400,401,403,404
@@ -49,6 +53,7 @@ Request
     - sort_dir: sort_dir
     - sort_key: sort_key
     - detail: detail
+    - conductor_group: r_conductor_group_port
 
 Response
 --------

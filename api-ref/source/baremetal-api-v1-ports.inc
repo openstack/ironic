@@ -50,11 +50,15 @@ By default, this query will return the uuid and address for each Port.
   Added the ``is_smartnic`` field.
 
 .. versionadded:: 1.82
-  Added the ability to filter ports based on the shard of the node they are
-  associated with.
+  Added the ability to filter ports based on the ``shard`` of the node they
+  are associated with.
 
 .. versionadded:: 1.97
   Added the ``description`` field.
+
+.. versionadded:: 1.99
+  Added the ability to filter ports based on the ``conductor_group`` of the
+  node they are associated with.
 
 .. versionadded:: 1.100
   Added the ``vendor`` field.
@@ -74,6 +78,7 @@ Request
     - portgroup: r_port_portgroup_ident
     - address: r_port_address
     - shard: r_port_shard
+    - conductor_group: r_conductor_group_port
     - fields: fields
     - limit: limit
     - marker: marker
