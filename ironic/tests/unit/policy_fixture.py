@@ -13,6 +13,7 @@
 # under the License.
 
 import os
+import yaml
 
 import fixtures
 from oslo_config import cfg
@@ -25,11 +26,9 @@ CONF = cfg.CONF
 # NOTE(tenbrae): We ship a default that always masks passwords, but for testing
 #             we need to override that default to ensure passwords can be
 #             made visible by operators that choose to do so.
-policy_data = """
-{
+policy_data = {
     "show_password": "tenant:admin"
 }
-"""
 
 
 class PolicyFixture(fixtures.Fixture):
@@ -37,9 +36,9 @@ class PolicyFixture(fixtures.Fixture):
         super(PolicyFixture, self).setUp()
         self.policy_dir = self.useFixture(fixtures.TempDir())
         self.policy_file_name = os.path.join(self.policy_dir.path,
-                                             'policy.json')
+                                             'policy.yaml')
         with open(self.policy_file_name, 'w') as policy_file:
-            policy_file.write(policy_data)
+            policy_file.write(yaml.dump(policy_data))
         policy_opts.set_defaults(CONF)
         CONF.set_override('policy_file', self.policy_file_name, 'oslo_policy')
         ironic_policy._ENFORCER = None
