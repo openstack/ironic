@@ -20,7 +20,7 @@ import sys
 
 from automaton.converters import pydot
 
-from ironic.common import states
+from ironic.common import state_machine
 
 top_dir = os.path.abspath(os.path.join(os.path.dirname(__file__),
                                        os.pardir))
@@ -118,7 +118,7 @@ def main():
             attrs['fontcolor'] = 'gray'
         return attrs
 
-    source = states.machine
+    source = state_machine.machine
     graph_name = '"Ironic states"'
     graph_attrs = {'size': 0}
     g = pydot.convert(source, graph_name, graph_attrs=graph_attrs,

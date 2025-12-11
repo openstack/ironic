@@ -38,6 +38,7 @@ from ironic.common import exception
 from ironic.common import faults
 from ironic.common.i18n import _
 from ironic.common import policy
+from ironic.common import state_machine
 from ironic.common import states
 from ironic.common import utils
 from ironic.conductor import steps as conductor_steps
@@ -957,7 +958,7 @@ def check_for_invalid_state_and_allow_filter(provision_state):
         if (api.request.version.minor
                 < versions.MINOR_9_PROVISION_STATE_FILTER):
             raise exception.NotAcceptable()
-        valid_states = states.machine.states
+        valid_states = state_machine.machine.states
         if provision_state not in valid_states:
             raise exception.InvalidParameterValue(
                 _('Provision state "%s" is not valid') % provision_state)
