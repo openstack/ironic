@@ -16,10 +16,10 @@
 import unittest
 from unittest import mock
 
-from ironic.networking.switch_drivers import driver_translators
+from ironic.drivers.modules.switch.base import BaseTranslator
 
 
-class ConcreteTranslatorForTesting(driver_translators.BaseTranslator):
+class ConcreteTranslatorForTesting(BaseTranslator):
     """Concrete implementation of BaseTranslator for testing purposes."""
 
     def _get_section_name(self, switch_name):

@@ -50,6 +50,10 @@ class BaseSwitchDriverFactory(driver_factory.BaseDriverFactory):
     # Template for logging loaded drivers
     _logging_template = "Loaded the following switch drivers: %s"
 
+    # Use two-phase initialization: load classes first, initialize later
+    # This allows config preprocessing before driver initialization
+    _invoke_on_load = False
+
     @classmethod
     def _set_enabled_drivers(cls):
         """Set the list of enabled drivers from configuration.

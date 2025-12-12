@@ -187,6 +187,9 @@ root-device = "ironic.drivers.modules.inspector.hooks.root_device:RootDeviceHook
 local-link-connection = "ironic.drivers.modules.inspector.hooks.local_link_connection:LocalLinkConnectionHook"
 parse-lldp = "ironic.drivers.modules.inspector.hooks.parse_lldp:ParseLLDPHook"
 
+[project.entry-points."ironic.networking.switch_drivers"]
+noop = "ironic.drivers.modules.switch:NoOpSwitchDriver"
+
 [project.entry-points."oslo.config.opts"]
 ironic = "ironic.conf.opts:list_opts"
 

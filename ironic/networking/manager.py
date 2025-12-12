@@ -24,6 +24,7 @@ from oslo_log import log
 import oslo_messaging as messaging
 
 from ironic.common import exception
+from ironic.common.exception import ConfigInvalid
 from ironic.common.i18n import _
 from ironic.common import metrics_utils
 from ironic.common import rpc
@@ -153,13 +154,37 @@ class NetworkingManager(object):
     def init_host(self, admin_context=None):
         """Initialize the networking service host.
 
+        This method implements two-phase driver initialization:
+        1. Load driver classes (but don't initialize instances yet)
+        2. Get translators from driver classes and preprocess config
+        3. Initialize driver instances (config files now exist)
+
         :param admin_context: admin context (unused but kept for compatibility)
         """
         LOG.info("Initializing networking service on host %s", self.host)
 
-        # Initialize driver adapter for configuration preprocessing
+        # Phase 1: Load driver classes (invoke_on_load=False)
+        self._switch_driver_factory = (
+            driver_factory.get_switch_driver_factory()
+        )
+        available_drivers = self._switch_driver_factory.names
+        if not available_drivers:
+            LOG.error("No switch drivers loaded")
+            raise ConfigInvalid(_("No switch drivers loaded"))
+
+        LOG.info("Available switch drivers: %s", ", ".join(available_drivers))
+
+        # Phase 2: Get driver classes and create adapter
         try:
-            self._driver_adapter = driver_adapter.NetworkingDriverAdapter()
+            # Get driver classes (not instances)
+            driver_classes = self._switch_driver_factory.get_driver_classes()
+
+            # Create adapter with driver classes
+            self._driver_adapter = (
+                driver_adapter.NetworkingDriverAdapter(driver_classes)
+            )
+
+            # Preprocess config - writes driver-specific config files
             count = self._driver_adapter.preprocess_config(
                 _get_switch_config_filename()
             )
@@ -167,28 +192,17 @@ class NetworkingManager(object):
                 "Generated %d driver-specific config files during init", count
             )
         except Exception as e:
-            LOG.error("Failed to initialize driver adapter: %s", e)
-            raise e
+            LOG.exception("Failed to preprocess driver configuration: %s", e)
+            raise
 
-        # Initialize switch driver factory
-        self._switch_driver_factory = (
-            driver_factory.get_switch_driver_factory()
-        )
-        available_drivers = self._switch_driver_factory.names
-        if available_drivers:
-            LOG.info(
-                "Networking service initialized with switch drivers: %s",
-                ", ".join(available_drivers),
-            )
-        else:
-            # Allow service to start for monitoring and dynamic reload,
-            # but warn about limited functionality
-            LOG.warning(
-                "No switch drivers loaded - networking service will "
-                "operate without switch management capabilities. "
-                "Configure enabled_switch_drivers to enable "
-                "functionality."
-            )
+        # Phase 3: Now initialize driver instances (config files are ready)
+        try:
+            self._switch_driver_factory.initialize_drivers()
+            LOG.info("Successfully initialized switch driver instances")
+        except Exception as e:
+            LOG.exception("Failed to initialize switch drivers: %s", e)
+            raise
+
 
     def _get_switch_driver(self, switch_id):
         """Get the appropriate switch driver for a switch.
