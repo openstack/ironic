@@ -1468,6 +1468,54 @@ class RedfishVirtualMediaBootTestCase(db_base.DbTestCase):
 
             self.assertEqual(mock_vmedia_dvd_2.insert_media.call_count, 1)
 
+    @mock.patch('time.sleep', lambda *args, **kwargs: None)
+    @mock.patch.object(redfish_boot, '_has_vmedia_via_systems', autospec=True)
+    @mock.patch.object(redfish_utils, 'get_system', autospec=True)
+    def test__insert_vmedia_multiple_errors(self, mock_sys, mock_vmd_sys):
+        mock_vmd_sys.return_value = False
+        with task_manager.acquire(self.context, self.node.uuid,
+                                  shared=True) as task:
+            err_msgs = []
+            first_error = "Previous error"
+            err_msgs.append(first_error)
+
+            mock_vmedia_cd = mock.MagicMock(
+                inserted=False,
+                media_types=[sushy.VIRTUAL_MEDIA_CD])
+
+            error = "Unable to locate the ISO or IMG image file"
+            mock_response = mock.MagicMock()
+            mock_response.json.return_value = {
+                "error": {"message": error}
+            }
+
+            server_error = sushy.exceptions.ServerSideError(
+                "POST", 'img-url', mock_response)
+            server_error.message = error
+
+            mock_vmedia_cd.insert_media.side_effect = server_error
+            mock_manager = mock.MagicMock()
+            mock_manager.virtual_media.get_members.return_value = [
+                mock_vmedia_cd]
+
+            result = redfish_boot._insert_vmedia_in_resource(
+                task, mock_manager, 'img-url',
+                sushy.VIRTUAL_MEDIA_CD, err_msgs)
+
+            self.assertFalse(result)
+            self.assertEqual(2, len(err_msgs))
+            self.assertIn(first_error, err_msgs[0])
+            self.assertIn(error, err_msgs[1])
+
+            joined_errors = "; ".join(err_msgs)
+            self.assertIn(first_error, joined_errors)
+            self.assertIn(error, joined_errors)
+
+            self.assertRaises(
+                exception.InvalidParameterValue,
+                redfish_boot._insert_vmedia,
+                task, [mock_manager], 'img-url', sushy.VIRTUAL_MEDIA_CD)
+
     @mock.patch.object(redfish_boot, '_has_vmedia_via_systems', autospec=True)
     @mock.patch.object(redfish_utils, 'get_system', autospec=True)
     def test__insert_vmedia_already_inserted(self, mock_sys, mock_vmd_sys):
@@ -1502,18 +1550,19 @@ class RedfishVirtualMediaBootTestCase(db_base.DbTestCase):
             )
             mock_manager = mock.MagicMock()
 
-            def clear_and_raise(*args, **kwargs):
-                mock_vmedia_cd.insert_media.side_effect = None
-                raise sushy.exceptions.ServerSideError(
-                    "POST", 'img-url', mock.MagicMock())
-            mock_vmedia_cd.insert_media.side_effect = clear_and_raise
+            mock_response = mock.MagicMock()
+            mock_response.json.return_value = {
+                "error": {"message": "Device is ejecting"}
+            }
+
+            mock_vmedia_cd.insert_media.side_effect = mock_response
             mock_manager.virtual_media.get_members.return_value = [
                 mock_vmedia_cd]
 
             redfish_boot._insert_vmedia(
                 task, [mock_manager], 'img-url', sushy.VIRTUAL_MEDIA_CD)
 
-            self.assertEqual(mock_vmedia_cd.insert_media.call_count, 2)
+            self.assertEqual(mock_vmedia_cd.insert_media.call_count, 1)
 
     @mock.patch('time.sleep', lambda *args, **kwargs: None)
     @mock.patch.object(redfish_boot, '_has_vmedia_via_systems', autospec=True)
@@ -2736,18 +2785,19 @@ class RedfishVirtualMediaBootViaSystemTestCase(db_base.DbTestCase):
             )
             mock_manager = mock.MagicMock()
 
-            def clear_and_raise(*args, **kwargs):
-                mock_vmedia_cd.insert_media.side_effect = None
-                raise sushy.exceptions.ServerSideError(
-                    "POST", 'img-url', mock.MagicMock())
-            mock_vmedia_cd.insert_media.side_effect = clear_and_raise
+            mock_response = mock.MagicMock()
+            mock_response.json.return_value = {
+                "error": {"message": "Device is ejecting"}
+            }
+
+            mock_vmedia_cd.insert_media.side_effect = mock_response
             mock_system.return_value.virtual_media.get_members.return_value = [
                 mock_vmedia_cd]
 
             redfish_boot._insert_vmedia(
                 task, [mock_manager], 'img-url', sushy.VIRTUAL_MEDIA_CD)
 
-            self.assertEqual(mock_vmedia_cd.insert_media.call_count, 2)
+            self.assertEqual(mock_vmedia_cd.insert_media.call_count, 1)
 
     @mock.patch('time.sleep', lambda *args, **kwargs: None)
     @mock.patch.object(redfish_boot, '_has_vmedia_via_systems', autospec=True)

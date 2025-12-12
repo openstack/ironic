@@ -278,8 +278,15 @@ def _insert_vmedia(task, managers, boot_url, boot_device):
                 return
 
     if err_msgs:
-        exc_msg = ("All virtual media mount attempts failed. "
-                   "Most recent error: " + err_msgs[-1])
+        if len(err_msgs) == 1:
+            exc_msg = _("All virtual media mount attempts failed. "
+                        "Error encountered: %s") % err_msgs[0]
+        else:
+            exc_msg = _("All virtual media mount attempts failed. "
+                        "First error: %(first)s. Final error: %(final)s") % {
+                'first': err_msgs[0],
+                'final': err_msgs[-1]
+            }
     else:
         exc_msg = 'No suitable virtual media device found'
     raise exception.InvalidParameterValue(exc_msg)
@@ -374,8 +381,12 @@ def _insert_vmedia_in_resource(task, resource, boot_url, boot_device,
             LOG.warning(err_msg)
             continue
         except sushy.exceptions.ServerSideError as e:
+            err_msg = str(e)
+            if err_msg not in err_msgs:
+                err_msgs.append(err_msg)
+
             e.node_uuid = task.node.uuid
-            raise
+            return False
 
         LOG.info("Inserted boot media %(boot_url)s into "
                  "%(boot_device)s for node "
