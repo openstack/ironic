@@ -283,7 +283,17 @@ on the Bare Metal service node(s) where ``ironic-conductor`` is running.
 
    RHEL/CentOS/Fedora::
 
-       dnf install ipxe-bootimgs
+       dnf install ipxe-snponly-x86_64
+
+.. note::
+   Some distributions have chosen to minimize iPXE packaging to the
+   ``snponly`` build of the iPXE binaries. This is because the drivers provided
+   in the legacy ``ipxe.efi`` binary are geared for BIOS booting machines
+   and can create an unrealiable experience. Furtheremore, if the ``snponly``
+   version does not work on a particular piece of hardware, the fault likely
+   lies with the UEFI firmware on the host or device itself. An alternative
+   may be Grub2, however Grub2 is not designed around network boot as it's
+   first class use case.
 
 .. note::
    The Ironic project is unaware of any vendor signed iPXE binaries to enable
@@ -301,9 +311,11 @@ on the Bare Metal service node(s) where ``ironic-conductor`` is running.
 
    Fedora/RHEL/CentOS::
 
-       cp /usr/share/ipxe/{undionly.kpxe,ipxe-x86_64.efi,ipxe-snponly-x86_64.efi} /tftpboot
+       cp /usr/share/ipxe/{undionly.kpxe,ipxe-snponly-x86_64.efi} /tftpboot
 
-   .. note:: ``snponly`` variants may not be available for all distributions.
+   .. note::
+       ``snponly.efi`` may not be available for all distributions,
+       and similarly not all distributions may have ``ipxe.efi``
 
 #. Enable/Configure iPXE overrides in the Bare Metal Service's configuration
    file **if required** (/etc/ironic/ironic.conf):
@@ -332,6 +344,7 @@ on the Bare Metal service node(s) where ``ironic-conductor`` is running.
       in other words setting a line to something like ``ipxe_bootfile_name=``
       will result in ironic falling back to the default values of the non-iPXE
       PXE settings. This is for backwards compatibility.
+
 
 #. Ensure iPXE is the default PXE, if applicable.
 
