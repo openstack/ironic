@@ -84,9 +84,16 @@ class AgentInspect(common.Common):
         :param inventory: hardware inventory from the node.
         :param plugin_data: optional plugin-specific data.
         """
-        # Run the inspection hooks
-        inspect_utils.run_inspection_hooks(task, inventory, plugin_data,
-                                           self.hooks, _store_logs)
+
+        try:
+            # Run the inspection hooks
+            inspect_utils.run_inspection_hooks(task, inventory, plugin_data,
+                                               self.hooks, _store_logs)
+        except Exception as exc:
+            error = _("failed to run inspection hooks: %s") % exc
+            common.inspection_error_handler(task, error, raise_exc=True,
+                                            clean_up=True)
+
         if CONF.agent.deploy_logs_collect == 'always':
             _store_logs(plugin_data, task.node)
         common.clean_up(task, finish=False, always_power_off=True)
