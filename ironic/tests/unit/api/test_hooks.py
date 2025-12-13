@@ -225,11 +225,8 @@ class TestContextHook(base.BaseApiTest):
         ctx.to_policy_values.return_value = policy_dict
         mock_policy.return_value = False
         context_hook.before(reqstate)
-        creds_dict = {'is_public_api': is_public_api}
         if auth_token_info:
-            creds_dict['auth_token_info'] = auth_token_info
-            mock_ctx.from_environ.assert_called_once_with(
-                environ, **creds_dict)
+            mock_ctx.from_environ.assert_called_once_with(environ)
         mock_policy.assert_not_called()
         if auth_strategy == 'noauth':
             self.assertIsNone(ctx.auth_token)
