@@ -330,6 +330,10 @@ class BaseDriverFactory(object):
     _enabled_driver_list = None
     # Template for logging loaded drivers
     _logging_template = "Loaded the following drivers: %s"
+    # Control whether to invoke driver constructors on load
+    _invoke_on_load = True
+    # Track whether drivers have been initialized (for two-phase init)
+    _drivers_initialized = False
 
     def __init__(self):
         if not self.__class__._extension_manager:
@@ -339,6 +343,19 @@ class BaseDriverFactory(object):
         return self._extension_manager[name]
 
     def get_driver(self, name):
+        """Get a driver instance by name.
+
+        :param name: Name of the driver to retrieve.
+        :returns: Driver instance.
+        :raises: DriverNotFound if driver is not found.
+        :raises: DriverLoadError if drivers not initialized when required.
+        """
+        if (not self.__class__._invoke_on_load
+                and not self.__class__._drivers_initialized):
+            raise exception.DriverLoadError(
+                driver=name,
+                reason=_("Drivers not initialized. Call initialize_drivers() "
+                         "before accessing driver instances."))
         return self[name].obj
 
     # NOTE(tenbrae): Drivers raise "DriverLoadError" if they are unable to
@@ -407,14 +424,17 @@ class BaseDriverFactory(object):
                 stevedore.NamedExtensionManager(
                     cls._entrypoint_name,
                     cls._enabled_driver_list,
-                    invoke_on_load=True,
+                    invoke_on_load=cls._invoke_on_load,
                     on_load_failure_callback=cls._catch_driver_not_found,
                     propagate_map_exceptions=True,
                     on_missing_entrypoints_callback=cls._missing_callback))
 
+            # Mark as initialized if we invoked on load
+            cls._drivers_initialized = cls._invoke_on_load
+
             # warn for any untested/unsupported/deprecated drivers or
-            # interfaces
-            if cls._enabled_driver_list:
+            # interfaces (only if drivers are initialized)
+            if cls._enabled_driver_list and cls._drivers_initialized:
                 cls._extension_manager.map(_warn_if_unsupported)
 
         LOG.info(cls._logging_template, cls._extension_manager.names())
@@ -427,6 +447,78 @@ class BaseDriverFactory(object):
     def items(self):
         """Iterator over pairs (name, instance)."""
         return ((ext.name, ext.obj) for ext in self._extension_manager)
+
+    def get_driver_classes(self):
+        """Get driver classes without invoking them.
+
+        This is useful when drivers need to be loaded but not instantiated,
+        such as when configuration must be prepared before driver
+        initialization.
+
+        :returns: Dictionary mapping driver name to driver class.
+        """
+        if self.__class__._drivers_initialized:
+            # If already initialized, return classes from instances
+            return {ext.name: ext.obj.__class__
+                    for ext in self._extension_manager}
+        else:
+            # Return plugin classes directly
+            return {ext.name: ext.plugin
+                    for ext in self._extension_manager}
+
+    @classmethod
+    def initialize_drivers(cls):
+        """Initialize all loaded driver classes.
+
+        This method is used for two-phase initialization when drivers
+        are loaded with invoke_on_load=False. Call this after any
+        necessary configuration preprocessing has been completed.
+
+        This method is idempotent - calling it multiple times will
+        only initialize drivers once.
+
+        :raises: DriverLoadError if driver initialization fails.
+        """
+        if cls._drivers_initialized:
+            LOG.debug("Drivers already initialized for %s",
+                      cls._entrypoint_name)
+            return
+
+        if not cls._extension_manager:
+            raise exception.DriverLoadError(
+                driver='N/A',
+                reason="Extension manager not initialized")
+
+        LOG.debug("Initializing drivers for %s", cls._entrypoint_name)
+
+        with lockutils.lock(cls._entrypoint_name, do_log=False):
+            # Double-check after acquiring lock
+            if cls._drivers_initialized:
+                return
+
+            # Initialize each driver by invoking its plugin class
+            for ext in cls._extension_manager:
+                try:
+                    # Invoke the driver class to create an instance
+                    driver_instance = ext.plugin()
+                    # Replace the extension's obj with the instance
+                    ext.obj = driver_instance
+                except Exception as exc:
+                    # Use the same error handling as _catch_driver_not_found
+                    if not isinstance(exc, exception.DriverLoadError):
+                        raise exception.DriverLoadError(
+                            driver=ext.name, reason=exc)
+                    raise exc
+
+            # Mark as initialized
+            cls._drivers_initialized = True
+
+            # Now warn for unsupported drivers
+            if cls._enabled_driver_list:
+                cls._extension_manager.map(_warn_if_unsupported)
+
+        LOG.info("Successfully initialized drivers for %s",
+                 cls._entrypoint_name)
 
 
 class InterfaceFactory(BaseDriverFactory):
