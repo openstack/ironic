@@ -61,126 +61,6 @@ class TestAgentMethods(db_base.DbTestCase):
                                                   deploy_interface='direct')
         dhcp_factory.DHCPFactory._dhcp_provider = None
 
-    @mock.patch.object(images, 'image_show', autospec=True)
-    def test_check_image_size(self, show_mock):
-        show_mock.return_value = {
-            'size': 10 * 1024 * 1024,
-            'disk_format': 'qcow2',
-        }
-        with task_manager.acquire(self.context, self.node.uuid,
-                                  shared=False) as task:
-            task.node.properties['memory_mb'] = 10
-            task.node.instance_info['image_source'] = 'fake-image'
-            agent.check_image_size(task)
-            show_mock.assert_called_once_with(self.context, 'fake-image')
-
-    @mock.patch.object(images, 'image_show', autospec=True)
-    def test_check_image_size_without_memory_mb(self, show_mock):
-        with task_manager.acquire(self.context, self.node.uuid,
-                                  shared=False) as task:
-            task.node.properties.pop('memory_mb', None)
-            task.node.instance_info['image_source'] = 'fake-image'
-            agent.check_image_size(task)
-            self.assertFalse(show_mock.called)
-
-    @mock.patch.object(images, 'image_show', autospec=True)
-    def test_check_image_size_fail(self, show_mock):
-        show_mock.return_value = {
-            'size': 11 * 1024 * 1024,
-            'disk_format': 'qcow2',
-        }
-        with task_manager.acquire(self.context, self.node.uuid,
-                                  shared=False) as task:
-            task.node.properties['memory_mb'] = 10
-            task.node.instance_info['image_source'] = 'fake-image'
-            self.assertRaises(exception.InvalidParameterValue,
-                              agent.check_image_size,
-                              task)
-            show_mock.assert_called_once_with(self.context, 'fake-image')
-
-    @mock.patch.object(images, 'image_show', autospec=True)
-    def test_check_image_size_fail_by_agent_consumed_memory(self, show_mock):
-        self.config(memory_consumed_by_agent=2, group='agent')
-        show_mock.return_value = {
-            'size': 9 * 1024 * 1024,
-            'disk_format': 'qcow2',
-        }
-        with task_manager.acquire(self.context, self.node.uuid,
-                                  shared=False) as task:
-            task.node.properties['memory_mb'] = 10
-            task.node.instance_info['image_source'] = 'fake-image'
-            self.assertRaises(exception.InvalidParameterValue,
-                              agent.check_image_size,
-                              task)
-            show_mock.assert_called_once_with(self.context, 'fake-image')
-
-    @mock.patch.object(images, 'image_show', autospec=True)
-    def test_check_image_size_raw_stream_enabled(self, show_mock):
-        CONF.set_override('stream_raw_images', True, 'agent')
-        # Image is bigger than memory but it's raw and will be streamed
-        # so the test should pass
-        show_mock.return_value = {
-            'size': 15 * 1024 * 1024,
-            'disk_format': 'raw',
-        }
-        with task_manager.acquire(self.context, self.node.uuid,
-                                  shared=False) as task:
-            task.node.properties['memory_mb'] = 10
-            task.node.instance_info['image_source'] = 'fake-image'
-            agent.check_image_size(task)
-            show_mock.assert_called_once_with(self.context, 'fake-image')
-
-    @mock.patch.object(images, 'image_show', autospec=True)
-    def test_check_image_size_raw_stream_enabled_format_raw(self, show_mock):
-        CONF.set_override('stream_raw_images', True, 'agent')
-        # Image is bigger than memory but it's raw and will be streamed
-        # so the test should pass
-        show_mock.return_value = {
-            'size': 15 * 1024 * 1024,
-        }
-        with task_manager.acquire(self.context, self.node.uuid,
-                                  shared=False) as task:
-            task.node.properties['memory_mb'] = 10
-            task.node.instance_info['image_source'] = 'fake-image'
-            task.node.instance_info['image_disk_format'] = 'raw'
-            agent.check_image_size(task)
-            show_mock.assert_called_once_with(self.context, 'fake-image')
-
-    @mock.patch.object(images, 'image_show', autospec=True)
-    def test_check_image_size_raw_stream_enabled_format_qcow2(self, show_mock):
-        CONF.set_override('stream_raw_images', True, 'agent')
-        # Image is bigger than memory and won't be streamed
-        show_mock.return_value = {
-            'size': 15 * 1024 * 1024,
-        }
-        with task_manager.acquire(self.context, self.node.uuid,
-                                  shared=False) as task:
-            task.node.properties['memory_mb'] = 10
-            task.node.instance_info['image_source'] = 'fake-image'
-            task.node.instance_info['image_disk_format'] = 'qcow2'
-            self.assertRaises(exception.InvalidParameterValue,
-                              agent.check_image_size,
-                              task)
-            show_mock.assert_called_once_with(self.context, 'fake-image')
-
-    @mock.patch.object(images, 'image_show', autospec=True)
-    def test_check_image_size_raw_stream_disabled(self, show_mock):
-        CONF.set_override('stream_raw_images', False, 'agent')
-        show_mock.return_value = {
-            'size': 15 * 1024 * 1024,
-            'disk_format': 'raw',
-        }
-        with task_manager.acquire(self.context, self.node.uuid,
-                                  shared=False) as task:
-            task.node.properties['memory_mb'] = 10
-            task.node.instance_info['image_source'] = 'fake-image'
-            # Image is raw but stream is disabled, so test should fail since
-            # the image is bigger than the RAM size
-            self.assertRaises(exception.InvalidParameterValue,
-                              agent.check_image_size,
-                              task)
-            show_mock.assert_called_once_with(self.context, 'fake-image')
-
     @mock.patch.object(deploy_utils, 'check_for_missing_params', autospec=True)
     def test_validate_http_provisioning_http_image(self, utils_mock):
         i_info = self.node.instance_info
@@ -975,8 +855,6 @@ class TestAgentDeploy(CommonTestsMixin, db_base.DbTestCase):
                 self.context, self.node['uuid'], shared=False) as task:
             self.assertEqual(0, len(task.volume_targets))
 
-    @mock.patch('ironic.drivers.modules.agent.check_image_size',
-                autospec=True)
     @mock.patch.object(noop_storage.NoopStorage, 'attach_volumes',
                        autospec=True)
     @mock.patch.object(deploy_utils, 'populate_storage_driver_internal_info',
@@ -997,7 +875,7 @@ class TestAgentDeploy(CommonTestsMixin, db_base.DbTestCase):
             unconfigure_tenant_net_mock, add_provisioning_net_mock,
             build_instance_info_mock, build_options_mock,
             pxe_prepare_ramdisk_mock, storage_driver_info_mock,
-            storage_attach_volumes_mock, check_image_size_mock):
+            storage_attach_volumes_mock):
         node = self.node
         node.network_interface = 'flat'
         node.save()
@@ -1017,12 +895,9 @@ class TestAgentDeploy(CommonTestsMixin, db_base.DbTestCase):
             build_options_mock.assert_called_once_with(task.node)
             pxe_prepare_ramdisk_mock.assert_called_once_with(
                 task.driver.boot, task, {'a': 'b'})
-            check_image_size_mock.assert_called_once_with(task)
         self.node.refresh()
         self.assertEqual('bar', self.node.instance_info['foo'])
 
-    @mock.patch('ironic.drivers.modules.agent.check_image_size',
-                autospec=True)
     @mock.patch.object(noop_storage.NoopStorage, 'attach_volumes',
                        autospec=True)
     @mock.patch.object(deploy_utils, 'populate_storage_driver_internal_info',
@@ -1044,7 +919,7 @@ class TestAgentDeploy(CommonTestsMixin, db_base.DbTestCase):
             unconfigure_tenant_net_mock, add_provisioning_net_mock,
             build_instance_info_mock, build_options_mock,
             pxe_prepare_ramdisk_mock, storage_driver_info_mock,
-            storage_attach_volumes_mock, check_image_size_mock):
+            storage_attach_volumes_mock):
         node = self.node
         node.network_interface = 'neutron'
         node.save()
@@ -1064,12 +939,9 @@ class TestAgentDeploy(CommonTestsMixin, db_base.DbTestCase):
             build_options_mock.assert_called_once_with(task.node)
             pxe_prepare_ramdisk_mock.assert_called_once_with(
                 task.driver.boot, task, {'a': 'b'})
-            check_image_size_mock.assert_called_once_with(task)
         self.node.refresh()
         self.assertEqual('bar', self.node.instance_info['foo'])
 
-    @mock.patch('ironic.drivers.modules.agent.check_image_size',
-                autospec=True)
     @mock.patch.object(flat_network.FlatNetwork, 'add_provisioning_network',
                        spec_set=True, autospec=True)
     @mock.patch.object(flat_network.FlatNetwork, 'validate',
@@ -1081,8 +953,7 @@ class TestAgentDeploy(CommonTestsMixin, db_base.DbTestCase):
     def test_prepare_manage_agent_boot_false(
             self, build_instance_info_mock,
             build_options_mock, pxe_prepare_ramdisk_mock,
-            validate_net_mock, add_provisioning_net_mock,
-            check_image_size_mock):
+            validate_net_mock, add_provisioning_net_mock):
         self.config(group='agent', manage_agent_boot=False)
         node = self.node
         node.network_interface = 'flat'
@@ -1097,7 +968,6 @@ class TestAgentDeploy(CommonTestsMixin, db_base.DbTestCase):
             validate_net_mock.assert_called_once_with(mock.ANY, task)
             build_instance_info_mock.assert_called_once_with(task)
             add_provisioning_net_mock.assert_called_once_with(mock.ANY, task)
-            check_image_size_mock.assert_called_once_with(task)
             self.assertFalse(build_options_mock.called)
             self.assertFalse(pxe_prepare_ramdisk_mock.called)
 
@@ -1262,8 +1132,6 @@ class TestAgentDeploy(CommonTestsMixin, db_base.DbTestCase):
             build_options_mock.assert_not_called()
             pxe_prepare_ramdisk_mock.assert_not_called()
 
-    @mock.patch('ironic.drivers.modules.agent.check_image_size',
-                autospec=True)
     @mock.patch('ironic.conductor.utils.is_fast_track', autospec=True)
     @mock.patch.object(noop_storage.NoopStorage, 'attach_volumes',
                        autospec=True)
@@ -1285,8 +1153,7 @@ class TestAgentDeploy(CommonTestsMixin, db_base.DbTestCase):
             unconfigure_tenant_net_mock, add_provisioning_net_mock,
             build_instance_info_mock, build_options_mock,
             pxe_prepare_ramdisk_mock, storage_driver_info_mock,
-            storage_attach_volumes_mock, is_fast_track_mock,
-            check_image_size_mock):
+            storage_attach_volumes_mock, is_fast_track_mock):
         # TODO(TheJulia): We should revisit this test. Smartnic
         # support didn't wire in tightly on testing for power in
         # these tests, and largely fast_track impacts power operations.
@@ -1303,7 +1170,6 @@ class TestAgentDeploy(CommonTestsMixin, db_base.DbTestCase):
             validate_net_mock.assert_called_once_with(mock.ANY, task)
             add_provisioning_net_mock.assert_called_once_with(mock.ANY, task)
             unconfigure_tenant_net_mock.assert_called_once_with(mock.ANY, task)
-            check_image_size_mock.assert_called_once_with(task)
             self.assertTrue(storage_attach_volumes_mock.called)
             self.assertTrue(build_instance_info_mock.called)
             # TODO(TheJulia): We should likely consider executing the
@@ -1870,8 +1736,6 @@ class TestAgentDeploy(CommonTestsMixin, db_base.DbTestCase):
             self.assertIsNone(driver_return)
             self.assertTrue(mock_pxe_instance.called)
 
-    @mock.patch('ironic.drivers.modules.agent.check_image_size',
-                autospec=True)
     @mock.patch.object(manager_utils, 'restore_power_state_if_needed',
                        autospec=True)
     @mock.patch.object(manager_utils, 'power_on_node_if_needed',
@@ -1898,7 +1762,7 @@ class TestAgentDeploy(CommonTestsMixin, db_base.DbTestCase):
             build_instance_info_mock, build_options_mock,
             pxe_prepare_ramdisk_mock, storage_driver_info_mock,
             storage_attach_volumes_mock, power_on_node_if_needed_mock,
-            restore_power_state_mock, check_image_size_mock):
+            restore_power_state_mock):
         node = self.node
         node.network_interface = 'flat'
         node.save()
@@ -1923,7 +1787,6 @@ class TestAgentDeploy(CommonTestsMixin, db_base.DbTestCase):
             power_on_node_if_needed_mock.assert_called_once_with(task)
             restore_power_state_mock.assert_called_once_with(
                 task, states.POWER_OFF)
-            check_image_size_mock.assert_called_once_with(task)
         self.node.refresh()
         self.assertEqual('bar', self.node.instance_info['foo'])
 

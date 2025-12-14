@@ -1261,6 +1261,123 @@ class AgentMethodsTestCase(db_base.DbTestCase):
             utils.direct_deploy_should_convert_raw_image(self.node))
 
 
+class CheckImageSizeTestCase(db_base.DbTestCase):
+    """Tests for check_image_size function."""
+
+    def setUp(self):
+        super().setUp()
+        self.node = obj_utils.create_test_node(
+            self.context, boot_interface='pxe',
+            instance_info=INST_INFO_DICT,
+            driver_info=DRV_INFO_DICT,
+            driver_internal_info=DRV_INTERNAL_INFO_DICT,
+        )
+
+    def test_check_image_size(self):
+        image_info = {
+            'size': 10 * 1024 * 1024,
+            'disk_format': 'qcow2',
+        }
+        self.node.properties['memory_mb'] = 20
+        utils.check_image_size(self.node, image_info)
+
+    def test_check_image_size_without_memory_mb(self):
+        image_info = {
+            'size': 10 * 1024 * 1024,
+            'disk_format': 'qcow2',
+        }
+        self.node.properties.pop('memory_mb', None)
+        # Should not raise any exception
+        utils.check_image_size(self.node, image_info)
+
+    def test_check_image_size_fail(self):
+        """Test check fails when image is larger than available memory."""
+        cfg.CONF.set_override('force_raw_images', False)
+        image_info = {
+            'size': 11 * 1024 * 1024,  # 11 MiB
+            'disk_format': 'qcow2',
+        }
+        self.node.properties['memory_mb'] = 10
+        self.assertRaises(exception.InvalidParameterValue,
+                          utils.check_image_size,
+                          self.node, image_info)
+
+    def test_check_image_size_fail_by_agent_consumed_memory(self):
+        """Test check fails when accounting for agent memory consumption."""
+        cfg.CONF.set_override('force_raw_images', False)
+        cfg.CONF.set_override('memory_consumed_by_agent', 2, group='agent')
+        image_info = {
+            'size': 9 * 1024 * 1024,  # 9 MiB
+            'disk_format': 'qcow2',
+        }
+        self.node.properties['memory_mb'] = 10
+        # 9 MiB image + 2 MiB agent > 10 MiB memory
+        self.assertRaises(exception.InvalidParameterValue,
+                          utils.check_image_size,
+                          self.node, image_info)
+
+    def test_check_image_size_raw_stream_enabled(self):
+        """Test check is skipped for raw images when streaming is enabled."""
+        cfg.CONF.set_override('stream_raw_images', True, group='agent')
+        image_info = {
+            'size': 15 * 1024 * 1024,  # 15 MiB - larger than memory
+            'disk_format': 'raw',
+        }
+        self.node.properties['memory_mb'] = 10
+        # Should not raise - raw image will be streamed
+        utils.check_image_size(self.node, image_info)
+
+    def test_check_image_size_raw_stream_enabled_format_raw(self):
+        """Test check skipped when instance_info specifies raw format."""
+        cfg.CONF.set_override('stream_raw_images', True, group='agent')
+        image_info = {
+            'size': 15 * 1024 * 1024,
+        }
+        self.node.properties['memory_mb'] = 10
+        self.node.instance_info['image_disk_format'] = 'raw'
+        # Should not raise - raw image will be streamed
+        utils.check_image_size(self.node, image_info)
+
+    def test_check_image_size_raw_stream_enabled_format_qcow2(self):
+        """Test check fails for qcow2 image even with streaming enabled."""
+        cfg.CONF.set_override('force_raw_images', False)
+        cfg.CONF.set_override('stream_raw_images', True, group='agent')
+        image_info = {
+            'size': 15 * 1024 * 1024,
+        }
+        self.node.properties['memory_mb'] = 10
+        self.node.instance_info['image_disk_format'] = 'qcow2'
+        # Should raise - qcow2 won't be streamed
+        self.assertRaises(exception.InvalidParameterValue,
+                          utils.check_image_size,
+                          self.node, image_info)
+
+    def test_check_image_size_raw_stream_disabled(self):
+        """Test check fails for raw images when streaming is disabled."""
+        cfg.CONF.set_override('stream_raw_images', False, group='agent')
+        image_info = {
+            'size': 15 * 1024 * 1024,
+            'disk_format': 'raw',
+        }
+        self.node.properties['memory_mb'] = 10
+        # Should raise - streaming disabled, image too large
+        self.assertRaises(exception.InvalidParameterValue,
+                          utils.check_image_size,
+                          self.node, image_info)
+
+    def test_check_image_size_conductor_converts_raw(self):
+        """Test check is skipped when conductor converts image to raw."""
+        cfg.CONF.set_override('force_raw_images', True)
+        cfg.CONF.set_override('stream_raw_images', True, group='agent')
+        image_info = {
+            'size': 15 * 1024 * 1024,  # 15 MiB - larger than memory
+            'disk_format': 'qcow2',
+        }
+        self.node.properties['memory_mb'] = 10
+        # When conductor converts to raw, agent will stream it
+        utils.check_image_size(self.node, image_info)
+
+
 class ValidateImagePropertiesTestCase(db_base.DbTestCase):
 
     def setUp(self):
@@ -2723,7 +2840,8 @@ class TestBuildInstanceInfoForHttpProvisioning(db_base.DbTestCase):
         self.image_info = {'checksum': 'aa', 'disk_format': 'qcow2',
                            'os_hash_algo': 'sha512',
                            'os_hash_value': 'fake-sha512',
-                           'container_format': 'bare', 'properties': {}}
+                           'container_format': 'bare', 'properties': {},
+                           'size': 1024 * 1024 * 1024}
 
     @mock.patch.object(image_service.HttpImageService, 'validate_href',
                        autospec=True)

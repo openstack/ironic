@@ -21,6 +21,7 @@ from oslo_log import log as logging
 from oslo_utils import excutils
 from oslo_utils import fileutils
 from oslo_utils import strutils
+from oslo_utils import units
 
 from ironic.common import async_steps
 from ironic.common import checksum_utils
@@ -1426,6 +1427,52 @@ def _instance_info_for_glance(task, instance_info, image_download_source,
     return instance_info, image_info
 
 
+@METRICS.timer('check_image_size')
+def check_image_size(node, image_info):
+    """Check if the requested image is larger than the ram size.
+
+    :param node: a Node object containing the node to act on.
+    :param image_info: A dict containing image information.
+    :raises: InvalidParameterValue if size of the image is greater than
+        the available ram size.
+    """
+    properties = node.properties
+    image_disk_format = node.instance_info.get('image_disk_format')
+
+    # Skip check if 'memory_mb' is not defined
+    if 'memory_mb' not in properties:
+        LOG.debug('Skip the image size check as memory_mb is not '
+                  'defined in properties on node %s.', node.uuid)
+        return
+
+    if direct_deploy_should_convert_raw_image(node):
+        LOG.debug('Skip the image size check since the conductor is '
+                  'converting the image to raw format for node %s.',
+                  node.uuid)
+        return
+
+    image_format = image_info.get('disk_format')
+    if CONF.agent.stream_raw_images and (image_format == 'raw'
+                                         or image_disk_format == 'raw'):
+        LOG.debug('Skip the image size check since the image is going to be '
+                  'streamed directly onto the disk for node %s', node.uuid)
+        return
+
+    memory_size = int(properties.get('memory_mb'))
+    image_size = int(image_info['size'])
+    reserved_size = CONF.agent.memory_consumed_by_agent
+    if (image_size + (reserved_size * units.Mi)) > (memory_size * units.Mi):
+        msg = (_('Memory size is too small for requested image, if it is '
+                 'less than (image size + reserved RAM size), will break '
+                 'the IPA deployments. Image size: %(image_size)d MiB, '
+                 'Memory size: %(memory_size)d MiB, Reserved size: '
+                 '%(reserved_size)d MiB.')
+               % {'image_size': image_size / units.Mi,
+                  'memory_size': memory_size,
+                  'reserved_size': reserved_size})
+        raise exception.InvalidParameterValue(msg)
+
+
 @METRICS.timer('build_instance_info_for_deploy')
 def build_instance_info_for_deploy(task):
     """Build instance_info necessary for deploying to a node.
@@ -1488,6 +1535,8 @@ def build_instance_info_for_deploy(task):
             task, instance_info, image_download_source, image_source,
             iwdi)
 
+        check_image_size(node, image_info)
+
     elif image_service.is_container_registry_url(image_source):
         # Is an oci image, we need to figure out the particulars...
         # but we *don't* need to also handle special casing with Swift.
@@ -1524,6 +1573,9 @@ def build_instance_info_for_deploy(task):
         # will work as expected.
         di_info['image_source'] = image_source
         node.driver_internal_info = di_info
+
+        check_image_size(node, image_info)
+
     if not is_glance_image:
         if (image_source.startswith('file://')
                 or image_download_source == 'local'):
