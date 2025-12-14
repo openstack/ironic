@@ -944,7 +944,7 @@ RELEASE_MAPPING = {
     # make it below. To release, we will preserve a version matching
     # the release as a separate block of text, like above.
     'master': {
-        'api': '1.106',
+        'api': '1.107',
         'rpc': '1.62',
         'networking_rpc': '1.0',
         'objects': {

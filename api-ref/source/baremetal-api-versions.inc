@@ -84,9 +84,13 @@ Response Example
     - id: id
     - links: links
     - openstack-request-id: openstack-request-id
+    - x-openstack-request-id: x-openstack-request-id
     - x-openstack-ironic-api-version: header_version
     - x-openstack-ironic-api-min-version: x-openstack-ironic-api-min-version
     - x-openstack-ironic-api-max-version: x-openstack-ironic-api-max-version
 
 .. literalinclude:: samples/api-v1-root-response.json
    :language: javascript
+
+.. versionadded:: 1.107
+  Added the ``X-OpenStack-Request-Id`` header.

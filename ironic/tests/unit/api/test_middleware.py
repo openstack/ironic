@@ -28,6 +28,16 @@ from ironic.tests.unit.api import base
 from ironic.tests.unit.db import utils as db_utils
 
 
+class TestRequestIdMiddleware(base.BaseApiTest):
+
+    def test_request_id(self):
+        response = self.app.get('/chassis')
+        self.assertIn('X-OpenStack-Request-Id', response.headers)
+        self.assertIn('OpenStack-Request-Id', response.headers)
+        self.assertEqual(response.headers['X-OpenStack-Request-Id'],
+                         response.headers['OpenStack-Request-Id'])
+
+
 class TestCORSMiddleware(base.BaseApiTest):
     '''Provide a basic smoke test to ensure CORS middleware is active.
 

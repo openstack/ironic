@@ -242,18 +242,6 @@ class TestContextHook(base.BaseApiTest):
     def test_context_hook_noauth_token_removed(self):
         self._test_context_hook(auth_strategy='noauth')
 
-    def test_context_hook_after_add_request_id(self):
-        context_hook, reqstate = self._test_context_hook(request_id='fake-id')
-        context_hook.after(reqstate)
-        self.assertEqual('fake-id',
-                         reqstate.response.headers['Openstack-Request-Id'])
-
-    def test_context_hook_after_miss_context(self):
-        response = self.get_json('/bad/path',
-                                 expect_errors=True)
-        self.assertNotIn('Openstack-Request-Id',
-                         response.headers)
-
     def test_context_hook_auth_token_info(self):
         self._test_context_hook(auth_token_info='data-dict')
 

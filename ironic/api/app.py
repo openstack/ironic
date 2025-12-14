@@ -21,6 +21,7 @@ from oslo_config import cfg
 import oslo_middleware.cors as cors_middleware
 from oslo_middleware import healthcheck
 from oslo_middleware import http_proxy_to_wsgi
+from oslo_middleware import request_id
 import osprofiler.web as osprofiler_web
 import pecan
 
@@ -36,6 +37,9 @@ from ironic.common import exception
 from ironic.conf import CONF
 
 
+HTTP_RESP_HEADER_REQUEST_ID = 'openstack-request-id'
+
+
 class IronicCORS(cors_middleware.CORS):
     """Ironic-specific CORS class
 
@@ -49,6 +53,16 @@ class IronicCORS(cors_middleware.CORS):
         base.Version.min_string,
         base.Version.string
     ]
+
+
+class IronicRequestId(request_id.RequestId):
+    """Ironic-specific request id middleware
+
+    Base request id middleware uses x-openstack-request-id but ironic has been
+    using openstack-request-id historically. Replace the header for backward
+    compatibility.
+    """
+    compat_headers = [HTTP_RESP_HEADER_REQUEST_ID]
 
 
 def get_pecan_config():
@@ -128,6 +142,8 @@ def setup_app(pecan_config=None, extra_hooks=None):
     # is reached.
     if CONF.healthcheck.enabled:
         app = healthcheck.Healthcheck(app, CONF)
+
+    app = IronicRequestId(app, CONF)
 
     # Create a CORS wrapper, and attach ironic-specific defaults that must be
     # included in all CORS responses.
