@@ -485,7 +485,8 @@ def remove_ports_from_network(task, network_uuid):
     :param network_uuid: UUID of a neutron network ports will be deleted from.
     :raises: NetworkError
     """
-    add_all_ports = CONF.neutron.add_all_ports
+    pxe_capability = 'pxe_boot' in task.driver.boot.capabilities
+    add_all_ports = CONF.neutron.add_all_ports or not pxe_capability
     if not add_all_ports:
         macs = [p.address for p in task.ports if p.pxe_enabled]
     else:
