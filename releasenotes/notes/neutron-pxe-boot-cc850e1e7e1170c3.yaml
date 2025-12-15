@@ -1,0 +1,7 @@
+---
+fixes:
+  - |
+    Fixed iPXE boot interfaces (``ipxe`` and ``http-ipxe``) not being
+    recognized as PXE-capable by the neutron network interface. This
+    resolves inconsistent neutron port creation and deletion during
+    cleaning operations that could lead to orphaned neutron ports.
