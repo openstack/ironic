@@ -1,0 +1,7 @@
+---
+fixes:
+  - |
+    [`Bug 2135265 <https://bugs.launchpad.net/ironic/+bug/2135265>`_]
+    Fixes an issue where an exception in one of the inspection hooks when
+    using the agent inspector interface would result in the node not being
+    cleaned up.
