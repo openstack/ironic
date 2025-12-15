@@ -1392,7 +1392,9 @@ class RedfishFirmwareTestCase(db_base.DbTestCase):
                                   firmware._validate_resources_stability,
                                   task.node)
 
-    def test__validate_resources_stability_intermittent_failures(self):
+    @mock.patch.object(redfish_fw, 'LOG', autospec=True)
+    def test__validate_resources_stability_intermittent_failures(
+            self, mock_log):
         """Test BMC resource validation with intermittent failures."""
         cfg.CONF.set_override('firmware_update_required_successes', 3,
                               'redfish')
@@ -1440,6 +1442,14 @@ class RedfishFirmwareTestCase(db_base.DbTestCase):
                 # Manager and chassis called only 5 times (not on failed)
                 self.assertEqual(manager_mock.call_count, 5)
                 self.assertEqual(chassis_mock.call_count, 5)
+
+                # Verify verbose logging about BMC recovery was called
+                expected_log_call = mock.call(
+                    'BMC resource validation failed for node %(node)s: '
+                    '%(error)s. This may indicate the BMC is still '
+                    'restarting or recovering from firmware update.',
+                    {'node': task.node.uuid, 'error': mock.ANY})
+                mock_log.debug.assert_has_calls([expected_log_call])
 
     def test__validate_resources_stability_manager_failure(self):
         """Test BMC resource validation when Manager resource fails."""
@@ -1601,7 +1611,8 @@ class RedfishFirmwareTestCase(db_base.DbTestCase):
                 self.assertEqual(manager_mock.call_count, 3)
                 self.assertEqual(chassis_mock.call_count, 3)
 
-    def test__validate_resources_stability_badrequest_error(self):
+    @mock.patch.object(redfish_fw, 'LOG', autospec=True)
+    def test__validate_resources_stability_badrequest_error(self, mock_log):
         """Test BMC resource validation handles BadRequestError correctly."""
         firmware = redfish_fw.RedfishFirmware()
 
@@ -1618,13 +1629,23 @@ class RedfishFirmwareTestCase(db_base.DbTestCase):
                 system_mock.side_effect = sushy.exceptions.BadRequestError(
                     'http://test', mock_response, mock_response)
 
-                # Mock time progression to exceed timeout
-                time_mock.side_effect = [0, 350]
+                # Mock time progression: start at 0, try once at 10, timeout
+                # at 350, this allows at least one loop iteration to trigger
+                # the exception
+                time_mock.side_effect = [0, 10, 350]
 
                 # Should raise RedfishError due to timeout
                 self.assertRaises(exception.RedfishError,
                                   firmware._validate_resources_stability,
                                   task.node)
+
+                # Verify verbose logging about BMC recovery was called
+                expected_log_call = mock.call(
+                    'BMC resource validation failed for node %(node)s: '
+                    '%(error)s. This may indicate the BMC is still '
+                    'restarting or recovering from firmware update.',
+                    {'node': task.node.uuid, 'error': mock.ANY})
+                mock_log.debug.assert_has_calls([expected_log_call])
 
     @mock.patch.object(redfish_utils, 'get_manager', autospec=True)
     @mock.patch.object(redfish_utils, 'get_system', autospec=True)
