@@ -133,7 +133,7 @@ class RedfishInspectTestCase(db_base.DbTestCase):
             }
         )
 
-        system_mock.name = 'System1'
+        system_mock.model = 'PowerEdge R1234'
 
         system_mock.serial_number = '123456'
 
@@ -186,7 +186,7 @@ class RedfishInspectTestCase(db_base.DbTestCase):
                                                       self.context)
 
         system_vendor = inventory['inventory']['system_vendor']
-        expected_product_name = 'System1'
+        expected_product_name = 'PowerEdge R1234'
         expected_serial_number = '123456'
         expected_manufacturer = 'Sushy Emulator'
         expected_sku = 'DELL123456'
@@ -707,7 +707,7 @@ class RedfishInspectTestCase(db_base.DbTestCase):
     def test_inspect_hardware_ignore_missing_system_vendor(
             self, mock_get_system, mock_get_enabled_macs):
         system_mock = self.init_system_mock(mock_get_system.return_value)
-        system_mock.name = None
+        system_mock.model = None
         system_mock.serial_number = None
         system_mock.manufacturer = None
         system_mock.sku = None
