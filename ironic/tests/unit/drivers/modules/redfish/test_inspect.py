@@ -218,7 +218,7 @@ class RedfishInspectTestCase(db_base.DbTestCase):
                                                       self.context)
 
         system_vendor = inventory['inventory']['system_vendor']
-        expected_product_name = 'System1'
+        expected_product_name = 'PowerEdge R1234'
         expected_serial_number = '123456'
         expected_manufacturer = 'Sushy Emulator'
         expected_sku = 'DELL123456'
