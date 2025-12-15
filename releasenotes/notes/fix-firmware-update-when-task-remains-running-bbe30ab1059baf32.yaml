@@ -1,0 +1,7 @@
+---
+fixes:
+  - |
+    Some BMCs maybe return they are not processing the firmware update when
+    the task is still in RUNNING, STARTING, or PENDING state. Previously,
+    Ironic will treat it as complete and stop polling for the update.
+    Now, Ironic will continue polling for the update until it is complete.
