@@ -17,14 +17,6 @@
 """This module provides mock 'specs' for third party modules that can be used
 when needing to mock those third party modules"""
 
-# sushy_oem_idrac
-SUSHY_OEM_IDRAC_MOD_SPEC = (
-    'PHYSICAL_DISK_STATE_MODE_RAID',
-    'PHYSICAL_DISK_STATE_MODE_NONRAID',
-    'JOB_TYPE_RT_NO_REBOOT_CONF',
-    'JOB_TYPE_RAID_CONF',
-)
-
 # proliantutils
 PROLIANTUTILS_SPEC = (
     'exception',

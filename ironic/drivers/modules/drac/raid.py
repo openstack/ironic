@@ -16,7 +16,6 @@ DRAC RAID specific methods
 """
 
 from oslo_log import log as logging
-from oslo_utils import importutils
 import sushy
 import tenacity
 
@@ -33,10 +32,7 @@ from ironic.drivers.modules.drac import utils as drac_utils
 from ironic.drivers.modules.redfish import raid as redfish_raid
 from ironic.drivers.modules.redfish import utils as redfish_utils
 
-try:
-    from sushy.oem import dell as sushy_oem_idrac
-except ModuleNotFoundError:
-    sushy_oem_idrac = importutils.try_import('sushy_oem_idrac')
+from sushy.oem import dell as sushy_oem_idrac
 
 LOG = logging.getLogger(__name__)
 

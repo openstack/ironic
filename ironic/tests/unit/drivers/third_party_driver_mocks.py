@@ -26,7 +26,6 @@ Current list of mocked libraries:
 - proliantutils
 - pysnmp
 - scciclient
-- sushy_oem_idrac
 """
 
 import importlib
@@ -77,20 +76,6 @@ if not redfish:
 
 if 'ironic.drivers.redfish' in sys.modules:
     importlib.reload(sys.modules['ironic.drivers.modules.redfish'])
-
-sushy_oem_idrac = importutils.try_import('sushy_oem_idrac')
-if not sushy_oem_idrac:
-    raidmode = mock.sentinel.PHYSICAL_DISK_STATE_MODE_RAID
-    nonraidmode = mock.sentinel.PHYSICAL_DISK_STATE_MODE_NONRAID
-    sushy_oem_idrac = mock.MagicMock(
-        spec_set=mock_specs.SUSHY_OEM_IDRAC_MOD_SPEC,
-        PHYSICAL_DISK_STATE_MODE_RAID=raidmode,
-        PHYSICAL_DISK_STATE_MODE_NONRAID=nonraidmode,
-        JOB_TYPE_RT_NO_REBOOT_CONF=mock.sentinel.JOB_TYPE_RT_NO_REBOOT_CONF,
-        JOB_TYPE_RAID_CONF=mock.sentinel.JOB_TYPE_RAID_CONF
-    )
-
-    sys.modules['sushy_oem_idrac'] = sushy_oem_idrac
 
 # attempt to load the external 'pysnmp' library, which is required by
 # the optional drivers.modules.snmp module
