@@ -145,6 +145,14 @@ opts = [
                       'start applying firmware, while others can begin '
                       'immediately. This timeout helps determine which '
                       'behavior the hardware exhibits.')),
+    cfg.IntOpt('firmware_update_overall_timeout',
+               min=0,
+               default=7200,
+               help=_('Maximum time (in seconds) allowed for the entire '
+                      'firmware update operation to complete. This provides '
+                      'a safety net for firmware updates that get stuck. '
+                      'Set to 0 to disable this timeout (not recommended). '
+                      'Default is 7200 seconds (2 hours).')),
     cfg.StrOpt('firmware_source',
                choices=[('http', _('If firmware source URL is also HTTP, then '
                                    'serve from original location, otherwise '

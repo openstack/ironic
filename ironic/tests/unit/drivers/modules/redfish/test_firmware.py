@@ -778,6 +778,121 @@ class RedfishFirmwareTestCase(db_base.DbTestCase):
             firmware._check_node_redfish_firmware_update(task)
             return task, firmware
 
+    @mock.patch.object(redfish_utils, 'get_update_service', autospec=True)
+    @mock.patch.object(redfish_utils, 'get_task_monitor', autospec=True)
+    def test_check_calls_touch_provisioning(self, mock_task_monitor,
+                                            mock_get_update_service):
+        """Test _check_node_redfish_firmware_update calls touch_provisioning.
+
+        This prevents heartbeat timeouts for firmware updates that don't
+        require the ramdisk agent (requires_ramdisk=False). By calling
+        touch_provisioning on each poll, we keep provision_updated_at fresh.
+        """
+        self._generate_new_driver_internal_info(['bmc'])
+
+        # Mock task still in progress
+        mock_task_monitor.return_value.is_processing = True
+
+        firmware = redfish_fw.RedfishFirmware()
+        with task_manager.acquire(self.context, self.node.uuid,
+                                  shared=False) as task:
+            with mock.patch.object(task.node, 'touch_provisioning',
+                                   autospec=True) as mock_touch:
+                firmware._check_node_redfish_firmware_update(task)
+
+                # Verify touch_provisioning was called
+                mock_touch.assert_called_once_with()
+
+    @mock.patch.object(redfish_utils, 'get_update_service', autospec=True)
+    def test_check_skips_touch_provisioning_on_conn_error(
+            self, mock_get_update_service):
+        """Test touch_provisioning is NOT called when BMC connection fails.
+
+        When the BMC is unresponsive, we should NOT update
+        provision_updated_at. This ensures the process eventually times
+        out if the BMC never recovers, rather than being kept alive.
+        """
+        self._generate_new_driver_internal_info(['bmc'])
+
+        # Mock connection error
+        mock_get_update_service.side_effect = exception.RedfishConnectionError(
+            'Connection failed')
+
+        firmware = redfish_fw.RedfishFirmware()
+        with task_manager.acquire(self.context, self.node.uuid,
+                                  shared=False) as task:
+            with mock.patch.object(task.node, 'touch_provisioning',
+                                   autospec=True) as mock_touch:
+                firmware._check_node_redfish_firmware_update(task)
+
+                # Verify touch_provisioning was NOT called on connection error
+                mock_touch.assert_not_called()
+
+    @mock.patch.object(redfish_fw.manager_utils, 'servicing_error_handler',
+                       autospec=True)
+    @mock.patch.object(redfish_utils, 'get_update_service', autospec=True)
+    def test_check_overall_timeout_exceeded(self, mock_get_update_service,
+                                            mock_error_handler):
+        """Test firmware update fails when overall timeout is exceeded.
+
+        This ensures firmware updates don't run indefinitely - if the
+        overall timeout is exceeded, the update should fail with an error.
+        """
+        self._generate_new_driver_internal_info(['bmc'])
+
+        # Set start time to 3 hours ago (exceeds 2 hour default timeout)
+        past_time = (timeutils.utcnow()
+                     - datetime.timedelta(hours=3)).isoformat()
+        self.node.set_driver_internal_info('redfish_fw_update_start_time',
+                                           past_time)
+        self.node.save()
+
+        firmware = redfish_fw.RedfishFirmware()
+        with task_manager.acquire(self.context, self.node.uuid,
+                                  shared=False) as task:
+            firmware._check_node_redfish_firmware_update(task)
+
+            # Verify error handler was called with timeout message
+            mock_error_handler.assert_called_once()
+            call_args = mock_error_handler.call_args
+            self.assertIn('exceeded', call_args[0][1].lower())
+            self.assertIn('timeout', call_args[0][1].lower())
+
+            # Verify the firmware update info was cleaned up
+            task.node.refresh()
+            self.assertIsNone(
+                task.node.driver_internal_info.get('redfish_fw_updates'))
+            self.assertIsNone(
+                task.node.driver_internal_info.get(
+                    'redfish_fw_update_start_time'))
+
+    @mock.patch.object(redfish_utils, 'get_update_service', autospec=True)
+    @mock.patch.object(redfish_utils, 'get_task_monitor', autospec=True)
+    def test_check_overall_timeout_not_exceeded(self, mock_task_monitor,
+                                                mock_get_update_service):
+        """Test firmware update continues when timeout not exceeded."""
+        self._generate_new_driver_internal_info(['bmc'])
+
+        # Set start time to 1 hour ago (within 2 hour default timeout)
+        past_time = (timeutils.utcnow()
+                     - datetime.timedelta(hours=1)).isoformat()
+        self.node.set_driver_internal_info('redfish_fw_update_start_time',
+                                           past_time)
+        self.node.save()
+
+        # Mock task still in progress
+        mock_task_monitor.return_value.is_processing = True
+
+        firmware = redfish_fw.RedfishFirmware()
+        with task_manager.acquire(self.context, self.node.uuid,
+                                  shared=False) as task:
+            with mock.patch.object(task.node, 'touch_provisioning',
+                                   autospec=True) as mock_touch:
+                firmware._check_node_redfish_firmware_update(task)
+
+                # Verify touch_provisioning was called (update continues)
+                mock_touch.assert_called_once_with()
+
     @mock.patch.object(redfish_fw, 'LOG', autospec=True)
     @mock.patch.object(redfish_utils, 'get_update_service', autospec=True)
     def test_check_conn_error(self, get_us_mock, log_mock):
