@@ -28,10 +28,11 @@ class InspectionPhase(enum.Enum):
 
 # TODO(stephenfin): Everything here can and should be moved to the jsonschema
 # schemas, but doing so will change responses.
-def validate_rule(rule):
+def validate_rule(rule, built_in=False):
     """Validate an inspection rule using the JSON schema.
 
     :param rule: The inspection rule to validate.
+    :param built_in: Should this rule be treated as built in for validation
     :raises: Invalid if the rule is invalid.
     """
     try:
@@ -51,10 +52,10 @@ def validate_rule(rule):
             })
 
     priority = rule.get('priority', 0)
-    if priority < 0 and not rule.get('built_in'):
+    if priority < 0 and not built_in:
         errors.append(
             _("Priority cannot be negative for user-defined rules."))
-    if priority > 9999 and not rule.get('built_in'):
+    if priority > 9999 and not built_in:
         errors.append(
             _("Priority must be between 0 and 9999 for user-defined rules."))
 
