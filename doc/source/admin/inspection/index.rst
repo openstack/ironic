@@ -115,6 +115,11 @@ Available actions include:
   as a list, append to it.
 * ``del-attribute(path)`` - Unset the given path. Fails on invalid node
   attributes, but does not fail on missing subdict fields.
+* ``set-capability(name, value)`` - Adds the given node capability with
+  the supplied value.
+* ``unset-capability(name)`` - Unsets the given node capability.
+* ``add-trait(name)`` -  Adds the given trait to the node.
+* ``remove-trait(name)`` - Removes the given trait from the node.
 * ``set-plugin-data(path, value)`` - Set a value in the plugin data.
 * ``extend-plugin-data(path, value, *, unique=False)`` - Treat a value in the
   plugin data as a list, append to it. If unique is True, do not append if the
@@ -126,6 +131,8 @@ Available actions include:
   given path on the port as a list, append to it.
 * ``del-port-attribute(port_id, path)`` - Unset value on the port identified
   by a MAC or a UUID.
+* ``api-call(url, *, headers=None, proxies=None, timeout=5, retries=3, backoff_factor=0.3)``
+  - Performs an HTTP GET against the supplied URL.
 
 Loops
 ^^^^^
@@ -196,21 +203,21 @@ Configuration
 -------------
 
 In-band inspection is supported by all hardware types. The ``agent``
-*inspect* interface has to be enabled to use it:
+or ``redfish`` *inspect* interface has to be enabled to use it:
 
 .. code-block:: ini
 
     [DEFAULT]
-    enabled_inspect_interfaces = agent,no-inspect
+    enabled_inspect_interfaces = agent,redfish,no-inspect
 
-You can make it the default if you want all nodes to use it automatically:
+You can make ``agent`` the default if you want all nodes to use it automatically:
 
 .. code-block:: ini
 
     [DEFAULT]
     default_inspect_interface = agent
 
-Of course, you can configure it per node:
+Of course, you can configure ``agent`` per node:
 
 .. code-block:: console
 
