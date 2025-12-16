@@ -324,7 +324,9 @@ def prepare_disk_image(task, content, prefix=None):
             image_tmpfile_obj.flush()
 
             image_tmpfile = image_tmpfile_obj.name
-            image_url = img_handler.publish_image(image_tmpfile, object_name)
+            node_http_url = task.node.driver_info.get("external_http_url")
+            image_url = img_handler.publish_image(image_tmpfile, object_name,
+                                                  node_http_url)
 
     LOG.debug("Created a disk image %(name)s for node %(node)s, "
               "exposed as URL %(url)s", {'node': task.node.uuid,

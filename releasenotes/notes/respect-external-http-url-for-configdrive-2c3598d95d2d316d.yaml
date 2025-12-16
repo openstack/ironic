@@ -1,0 +1,5 @@
+---
+fixes:
+  - |
+    Fixes handling of configuration drive ISO storage urls to respect the
+    node ``driver_info\external_http_url`` override value when set.

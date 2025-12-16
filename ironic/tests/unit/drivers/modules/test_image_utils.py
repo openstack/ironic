@@ -316,7 +316,7 @@ class RedfishImageUtilsTestCase(db_base.DbTestCase):
             expected_url = 'https://a.b/c.f?e=f'
             expected_object_name = task.node.uuid
 
-            def _publish(img_handler, tmp_file, object_name):
+            def _publish(img_handler, tmp_file, object_name, node_http_url):
                 self.assertEqual(expected_object_name, object_name)
                 self.assertEqual(b'content', open(tmp_file, 'rb').read())
                 return expected_url
@@ -326,7 +326,8 @@ class RedfishImageUtilsTestCase(db_base.DbTestCase):
             url = image_utils.prepare_disk_image(task, b'content')
 
             mock_publish_image.assert_called_once_with(mock.ANY, mock.ANY,
-                                                       expected_object_name)
+                                                       expected_object_name,
+                                                       None)
 
             self.assertEqual(expected_url, url)
 
@@ -338,7 +339,7 @@ class RedfishImageUtilsTestCase(db_base.DbTestCase):
             expected_url = 'https://a.b/c.f?e=f'
             expected_object_name = 'configdrive-%s' % task.node.uuid
 
-            def _publish(img_handler, tmp_file, object_name):
+            def _publish(img_handler, tmp_file, object_name, node_http_url):
                 self.assertEqual(expected_object_name, object_name)
                 self.assertEqual(b'content', open(tmp_file, 'rb').read())
                 return expected_url
@@ -349,7 +350,8 @@ class RedfishImageUtilsTestCase(db_base.DbTestCase):
                                                  prefix='configdrive')
 
             mock_publish_image.assert_called_once_with(mock.ANY, mock.ANY,
-                                                       expected_object_name)
+                                                       expected_object_name,
+                                                       None)
 
             self.assertEqual(expected_url, url)
 
@@ -375,6 +377,32 @@ class RedfishImageUtilsTestCase(db_base.DbTestCase):
 
             mock_publish_image.assert_called_once_with(mock.ANY, mock.ANY,
                                                        expected_object_name)
+
+            self.assertEqual(expected_url, url)
+
+    @mock.patch.object(image_utils.ImageHandler, 'publish_image',
+                       autospec=True)
+    def test_prepare_disk_image_external_http_url(self, mock_publish_image):
+        with task_manager.acquire(self.context, self.node.uuid,
+                                  shared=True) as task:
+            override_url = 'https://node.external/'
+            task.node.driver_info.update(external_http_url=override_url)
+
+            expected_url = 'https://node.external/c.f?e=f'
+            expected_object_name = task.node.uuid
+
+            def _publish(img_handler, tmp_file, object_name, node_http_url):
+                self.assertEqual(expected_object_name, object_name)
+                self.assertEqual(b'content', open(tmp_file, 'rb').read())
+                return expected_url
+
+            mock_publish_image.side_effect = _publish
+
+            url = image_utils.prepare_disk_image(task, b'content')
+
+            mock_publish_image.assert_called_once_with(mock.ANY, mock.ANY,
+                                                       expected_object_name,
+                                                       override_url)
 
             self.assertEqual(expected_url, url)
 
