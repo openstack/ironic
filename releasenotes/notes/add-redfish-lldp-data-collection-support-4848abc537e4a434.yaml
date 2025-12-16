@@ -1,0 +1,9 @@
+---
+features:
+  - |
+    Adds Redfish LLDP data collection support to the Redfish inspection interface.
+    This enables collecting Link Layer Discovery Protocol (LLDP) data from
+    Redfish-compliant hardware during the inspection process. The collected
+    data includes chassis ID, port ID, system name, system description,
+    system capabilities, and management addresses, formatted as TLVs
+    compatible with Ironic Python Agent inspection hooks and rules.
