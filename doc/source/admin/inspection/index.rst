@@ -61,24 +61,30 @@ Conditions
 
 Available conditions include:
 
+* ``eq(*values, *, force_strings=False)`` - Check if all values are
+  equal. If force_strings, all values will be converted
+  to strings first before the check.
+* ``lt(*values, *, force_strings=False)`` - Check if all values are
+  less than. If force_strings, all values will be converted
+  to strings first before the check.
+* ``gt(*values, *, force_strings=False)`` - Check if all values are
+  greater than. If force_strings, all values will be converted
+  to strings first before the check.
+* ``is-empty(value)`` - Check if value is None or an empty string,
+  list or a dictionary.
+* ``in-net(address, subnet)`` - Check if the given address is in the provided
+  subnet.
+* ``matches(value, regex)`` - Check if the value fully matches the given
+  regular expression.
+* ``contains(value, regex)`` - Check if the value contains the given regular
+  expression.
+* ``one-of(value, values)`` - Check if the value is in the provided list.
+  Similar to contains, but also works for non-string values.
+* ``is-none(value)`` - Check if value is None.
 * ``is-true(value)`` - Check if value evaluates to boolean True.
   This operator supports booleans, non-zero numbers and strings "yes", "true".
 * ``is-false(value)`` - Check if value evaluates to boolean False.
   Supports booleans, zero, None and strings "no", "false".
-* ``is-none(value)`` - Check if value is None.
-* ``is-empty(value)`` - Check if value is None or an empty string,
-  list or a dictionary.
-* ``eq/lt/gt(*values, *, force_strings=False)`` - Check if all values are
-  equal, less/greater than. If force_strings, all values will be converted
-  to strings first before the check.
-* ``in-net(address, subnet)`` - Check if the given address is in the provided
-  subnet.
-* ``contains(value, regex)`` - Check if the value contains the given regular
-  expression.
-* ``matches(value, regex)`` - Check if the value fully matches the given
-  regular expression.
-* ``one-of(value, values)`` - Check if the value is in the provided list.
-  Similar to contains, but also works for non-string values.
 
 To check for the inverse of any of these conditions, prefix the operator with
 an exclamation mark (with an optional space) before the op. E.g.
@@ -90,11 +96,6 @@ Actions
 Available actions include:
 
 * ``fail(msg)`` - Fail inspection with the given message.
-* ``set-plugin-data(path, value)`` - Set a value in the plugin data.
-* ``extend-plugin-data(path, value, *, unique=False)`` - Treat a value in the
-  plugin data as a list, append to it. If unique is True, do not append if the
-  item exists.
-* ``unset-plugin-data(path)`` - Unset a value in the plugin data.
 * ``log(msg, level="info")`` - Write the message to the Ironic logs.
 * ``set-attribute(path, value)`` - Set the given path
   (in the sense of JSON patch) to the value.
@@ -102,6 +103,11 @@ Available actions include:
   as a list, append to it.
 * ``del-attribute(path)`` - Unset the given path. Fails on invalid node
   attributes, but does not fail on missing subdict fields.
+* ``set-plugin-data(path, value)`` - Set a value in the plugin data.
+* ``extend-plugin-data(path, value, *, unique=False)`` - Treat a value in the
+  plugin data as a list, append to it. If unique is True, do not append if the
+  item exists.
+* ``unset-plugin-data(path)`` - Unset a value in the plugin data.
 * ``set-port-attribute(port_id, path, value)`` - Set value on the port
   identified by a MAC or a UUID.
 * ``extend-port-attribute(port_id, path, value, *, unique=False)`` - Treat the
@@ -135,9 +141,9 @@ iteration, the 'system' is any of the models in the ``loop`` list:
 .. code-block:: yaml
 
     - op: eq
-    args: ["{inventory.system.product_name}", "{item}"]
-    loop: ["HPE ProLiant DL380 Gen10", "PowerEdge R640", "Cisco UCS"]
-    multiple: any
+      args: ["{inventory.system.product_name}", "{item}"]
+      loop: ["HPE ProLiant DL380 Gen10", "PowerEdge R640", "Cisco UCS"]
+      multiple: any
 
 Whereas in actions, each iteration of the loop executes same action with the
 current item value.
