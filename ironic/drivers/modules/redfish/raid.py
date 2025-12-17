@@ -288,12 +288,14 @@ def _calculate_volume_props(logical_disk, physical_disks, free_space_bytes,
         logical_disk['raid_level'], selected_disks, free_space_bytes,
         spans_count=spans_count)
 
+    original_size_bytes = logical_disk['size_bytes']
     if logical_disk['size_bytes'] == 'MAX':
         if max_volume_size_bytes == 0:
             error_msg = _("size set to 'MAX' but could not allocate physical "
                           "disk space")
             raise exception.RedfishError(error=error_msg)
 
+        original_size_bytes = 'MAX'
         logical_disk['size_bytes'] = max_volume_size_bytes
     elif max_volume_size_bytes < logical_disk['size_bytes']:
         error_msg = _('The physical disk space (%(max_vol_size)s bytes) is '
@@ -305,6 +307,8 @@ def _calculate_volume_props(logical_disk, physical_disks, free_space_bytes,
 
     disk_usage = _volume_usage_per_disk_bytes(logical_disk, selected_disks,
                                               spans_count=spans_count)
+
+    logical_disk['size_bytes'] = original_size_bytes
 
     for disk in selected_disks:
         if free_space_bytes[disk] < disk_usage:
@@ -607,8 +611,13 @@ def _construct_volume_payload(
         disk_name=None, span_length=None, span_depth=None):
     payload = {
         'RAIDType': RAID_LEVELS[raid_level]['raid_type'],
-        'CapacityBytes': size_bytes
     }
+
+    # NOTE(cid): Omit CapacityBytes when size_bytes is 'MAX' to let the
+    # Redfish controller calculate the optimal size, accounting for metadata
+    # overhead. See bug/2132936 for more details.
+    if size_bytes != 'MAX':
+        payload['CapacityBytes'] = size_bytes
     if physical_disks:
         payload['Links'] = {
             "Drives": [{"@odata.id": _drive_path(storage, d)} for d in

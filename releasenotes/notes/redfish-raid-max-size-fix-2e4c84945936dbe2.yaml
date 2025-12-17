@@ -1,0 +1,8 @@
+---
+fixes:
+  - |
+    Fixes Redfish RAID volume creation failure when size_gb='MAX' is
+    specified. Ironic now omits CapacityBytes from the Redfish payload
+    for MAX size volumes, allowing the controller to calculate the
+    optimal size accounting for metadata overhead. The actual volume
+    size is queried and stored after creation.

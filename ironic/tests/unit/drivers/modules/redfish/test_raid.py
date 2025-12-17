@@ -1505,3 +1505,188 @@ class RedfishRAIDTestCase(db_base.DbTestCase):
 
         self.assertEqual([], self.node.raid_config['logical_disks'])
         mock_log.warning.assert_called_once()
+
+
+@mock.patch.object(redfish_utils, 'get_system', autospec=True)
+class RedfishRAIDMAXSizeTestCase(db_base.DbTestCase):
+    """Test cases for MAX size_gb handling in Redfish RAID."""
+
+    def setUp(self):
+        super(RedfishRAIDMAXSizeTestCase, self).setUp()
+        self.config(enabled_hardware_types=['redfish'],
+                    enabled_power_interfaces=['redfish'],
+                    enabled_boot_interfaces=['redfish-virtual-media'],
+                    enabled_management_interfaces=['redfish'],
+                    enabled_inspect_interfaces=['redfish'],
+                    enabled_bios_interfaces=['redfish'],
+                    enabled_raid_interfaces=['redfish'])
+        self.node = obj_utils.create_test_node(
+            self.context, driver='redfish', driver_info=INFO_DICT)
+        self.mock_storage = mock.MagicMock(identity='RAID controller 1')
+        self.drive_id1 = '35D38F11ACEF7BD3'
+        self.drive_id2 = '3F5A8C54207B7233'
+        mock_drives = []
+        for i in [self.drive_id1, self.drive_id2]:
+            mock_drives.append(_mock_drive(
+                identity=i, block_size_bytes=512,
+                capacity_bytes=899527000000,
+                media_type='HDD', name='Drive',
+                protocol=sushy.PROTOCOL_TYPE_SAS))
+        self.mock_storage.drives = mock_drives
+
+    def test_construct_volume_payload_omits_capacity_bytes_for_max(
+            self, mock_get_system):
+        """Test that CapacityBytes is omitted when size_bytes is 'MAX'."""
+        node = self.node
+        storage = self.mock_storage
+
+        payload = redfish_raid._construct_volume_payload(
+            node, storage, 'controller1', [self.drive_id1, self.drive_id2],
+            '1', 'MAX')
+
+        self.assertNotIn('CapacityBytes', payload)
+        self.assertEqual(payload['RAIDType'], 'RAID1')
+        self.assertIn('Links', payload)
+
+    def test_construct_volume_payload_includes_capacity_bytes_for_exact_size(
+            self, mock_get_system):
+        """Test that CapacityBytes is included when size_bytes is exact."""
+        node = self.node
+        storage = self.mock_storage
+        size_bytes = 100 * units.Gi
+
+        payload = redfish_raid._construct_volume_payload(
+            node, storage, 'controller1', [self.drive_id1, self.drive_id2],
+            '1', size_bytes)
+
+        self.assertIn('CapacityBytes', payload)
+        self.assertEqual(payload['CapacityBytes'], size_bytes)
+        self.assertEqual(payload['RAIDType'], 'RAID1')
+
+    def test_calculate_volume_props_preserves_max(
+            self, mock_get_system):
+        """Test that _calculate_volume_props preserves 'MAX' as size_bytes."""
+        logical_disk = {
+            'size_bytes': 'MAX',
+            'raid_level': '1',
+            'physical_disks': [self.drive_id1, self.drive_id2]
+        }
+        physical_disks = self.mock_storage.drives
+        free_space_bytes = {
+            disk: disk.capacity_bytes for disk in physical_disks}
+        disk_to_storage = {
+            disk: self.mock_storage for disk in physical_disks}
+
+        redfish_raid._calculate_volume_props(
+            logical_disk, physical_disks, free_space_bytes, disk_to_storage)
+
+        # MAX should be preserved
+        self.assertEqual(logical_disk['size_bytes'], 'MAX')
+        # Controller should be set
+        self.assertIn('controller', logical_disk)
+
+    def test_create_configuration_with_max_size_omits_capacity_bytes(
+            self, mock_get_system):
+        """Test that create_configuration omits CapacityBytes for MAX size."""
+        target_raid_config = {
+            'logical_disks': [
+                {
+                    'size_gb': 'MAX',
+                    'raid_level': '1',
+                    'is_root_volume': True,
+                    'physical_disks': [self.drive_id1, self.drive_id2]
+                }
+            ]
+        }
+        created_volumes = [
+            _mock_volume('1', raid_type=sushy.RAIDType.RAID1,
+                        capacity_bytes=899527000000)
+        ]
+        volumes = mock.MagicMock()
+        volumes.get_members.return_value = created_volumes
+        volumes.operation_apply_time_support = None
+        self.mock_storage.volumes = volumes
+        mock_get_system.return_value.storage.get_members.return_value = [
+            self.mock_storage]
+        resource = mock.MagicMock(spec=['resource_name'])
+        resource.resource_name = 'volume'
+        volumes.create.return_value = resource
+        self.node.target_raid_config = target_raid_config
+        self.node.save()
+
+        with task_manager.acquire(self.context, self.node.uuid,
+                                  shared=True) as task:
+            task.driver.raid.create_configuration(task)
+
+            # Verify CapacityBytes was NOT in the payload
+            call_args = volumes.create.call_args
+            payload = call_args[0][0]
+            self.assertNotIn('CapacityBytes', payload)
+            self.assertEqual(payload['RAIDType'], 'RAID1')
+
+            # Verify volume was created
+            self.assertEqual(volumes.create.call_count, 1)
+
+    def test_create_configuration_with_exact_size_includes_capacity_bytes(
+            self, mock_get_system):
+        """Test inclusion of CapacityBytes for exact size."""
+        target_raid_config = {
+            'logical_disks': [
+                {
+                    'size_gb': 100,
+                    'raid_level': '1',
+                    'is_root_volume': True,
+                    'physical_disks': [self.drive_id1, self.drive_id2]
+                }
+            ]
+        }
+        created_volumes = [
+            _mock_volume('1', raid_type=sushy.RAIDType.RAID1,
+                        capacity_bytes=100 * units.Gi)
+        ]
+        volumes = mock.MagicMock()
+        volumes.get_members.return_value = created_volumes
+        volumes.operation_apply_time_support = None
+        self.mock_storage.volumes = volumes
+        mock_get_system.return_value.storage.get_members.return_value = [
+            self.mock_storage]
+        resource = mock.MagicMock(spec=['resource_name'])
+        resource.resource_name = 'volume'
+        volumes.create.return_value = resource
+        self.node.target_raid_config = target_raid_config
+        self.node.save()
+
+        with task_manager.acquire(self.context, self.node.uuid,
+                                  shared=True) as task:
+            task.driver.raid.create_configuration(task)
+
+            # Verify CapacityBytes WAS in the payload
+            call_args = volumes.create.call_args
+            payload = call_args[0][0]
+            self.assertIn('CapacityBytes', payload)
+            self.assertEqual(payload['CapacityBytes'], 100 * units.Gi)
+            self.assertEqual(payload['RAIDType'], 'RAID1')
+
+    def test_update_raid_config_stores_actual_size_for_max_volume(
+            self, mock_get_system):
+        """Test that update_raid_config queries and stores actual size."""
+        # Create a volume with actual size (simulating what controller created)
+        actual_size_bytes = 899527000000  # Actual size from controller
+        created_volumes = [
+            _mock_volume('1', raid_type=sushy.RAIDType.RAID1,
+                        capacity_bytes=actual_size_bytes)
+        ]
+        volumes = mock.MagicMock()
+        volumes.get_members.return_value = created_volumes
+        self.mock_storage.volumes = volumes
+        mock_get_system.return_value.storage.get_members.return_value = [
+            self.mock_storage]
+
+        redfish_raid.update_raid_config(self.node)
+
+        # Verify the actual size was stored (not 'MAX')
+        self.assertIn('logical_disks', self.node.raid_config)
+        logical_disk = self.node.raid_config['logical_disks'][0]
+        expected_size_gb = int(actual_size_bytes / units.Gi)
+        self.assertEqual(logical_disk['size_gb'], expected_size_gb)
+        self.assertNotEqual(logical_disk['size_gb'], 'MAX')
