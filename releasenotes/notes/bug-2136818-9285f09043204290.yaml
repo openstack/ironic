@@ -1,0 +1,7 @@
+---
+fixes:
+  - |
+    Fix bug where Ironic fails to execute in-band servicing steps.
+    This issue was caused by a prohibited "service wait" state during node lookup,
+    which prevented execution of in-band servicing steps. For more details,
+    refer to the bug report #2136818 https://bugs.launchpad.net/ironic/+bug/2136818
