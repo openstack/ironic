@@ -106,7 +106,7 @@ other registries may have aggressive quotas in place which require users to
 be authenticated to download artifacts. Furthermore, private image registries
 may require authentication for any access.
 
-As such, there are three available paths for providing configuration:
+As such, there are four available paths for providing configuration:
 
 * A node ``instance_info`` value of ``image_pull_secret``. This value may be
   utilized to retrieve an image artifact, but is not intended for pulling
@@ -128,6 +128,11 @@ As such, there are three available paths for providing configuration:
   *if* a specific secret has not been defined to utilize, and is intended
   to be compaitble with the the format used by docker ``config.json`` to
   store authentication detail.
+* Basic authentication can also be used, but is not advised for production
+  usage. In this context, a "user:password" string can be supplied as a
+  pull secret value, or the ``ironic.conf`` configuration file ``[deploy]``
+  setting parameters section for basic authentication credentials can
+  alternatively be used.
 
 An example of the configuration file looks something like the following
 example.
@@ -210,11 +215,6 @@ Known Limitations
 * Use of tags may not be viable on some OCI Compliant image registries.
   This may result as an ImageNotFound error being raised when attempting
   to resolve a tag.
-
-* User authentication is presently limited to use of a bearer token,
-  under the model only supporting a "pull secret" style of authentication.
-  If Basic authentication is required, please file a bug in
-  `Ironic Launchpad <https://bugs.launchpad.net/ironic>`_.
 
 How do I upload files to my own registry?
 -----------------------------------------
