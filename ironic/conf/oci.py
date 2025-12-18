@@ -55,6 +55,18 @@ opts = [
                       'and the file can be updated as Ironic operates '
                       'in the event pre-shared tokens need to be '
                       'regenerated.')),
+    cfg.BoolOpt('permit_fallback_to_http_transport',
+                default=False,
+                mutable=False,
+                help=_('Security-Insecure: By default, the  OCI client code '
+                       'expects all OCI registry interactions to take place '
+                       'utilizing HTTPS as the underlying transport '
+                       'mechanism to communicate with the remote registry. '
+                       'In reality, that is not always the case in testing '
+                       'environments, and as such this setting may be '
+                       'utilized to allow the internal OCI mechanism to '
+                       'fallback to HTTP if the remote endpoint lacks '
+                       'support for HTTPS.')),
 ]
 
 
