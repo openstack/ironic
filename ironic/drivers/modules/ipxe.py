@@ -25,7 +25,9 @@ class iPXEBoot(pxe_base.PXEBaseMixin, base.BootInterface):
 
     ipxe_enabled = True
 
-    capabilities = ['iscsi_volume_boot', 'ramdisk_boot', 'ipxe_boot']
+    capabilities = [
+        'iscsi_volume_boot', 'ramdisk_boot', 'ipxe_boot', 'pxe_boot'
+    ]
 
     def __init__(self):
         pxe_utils.create_ipxe_boot_script()
@@ -40,7 +42,9 @@ class iPXEHttpBoot(pxe_base.PXEBaseMixin, base.BootInterface):
 
     http_boot_enabled = True
 
-    capabilities = ['iscsi_volume_boot', 'ramdisk_boot', 'ipxe_boot']
+    capabilities = [
+        'iscsi_volume_boot', 'ramdisk_boot', 'ipxe_boot', 'pxe_boot'
+    ]
 
     def __init__(self):
         pxe_utils.create_ipxe_boot_script()
