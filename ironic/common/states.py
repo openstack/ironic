@@ -267,7 +267,8 @@ to fail state.
 """
 
 _LOOKUP_ALLOWED_STATES = (DEPLOYING, DEPLOYWAIT, CLEANING, CLEANWAIT,
-                          INSPECTING, INSPECTWAIT, RESCUING, RESCUEWAIT)
+                          INSPECTING, INSPECTWAIT, RESCUING, RESCUEWAIT,
+                          SERVICEWAIT)
 LOOKUP_ALLOWED_STATES = frozenset(_LOOKUP_ALLOWED_STATES)
 
 """States when API lookups are normally allowed for nodes."""
