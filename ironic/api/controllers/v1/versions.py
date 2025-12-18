@@ -142,7 +142,8 @@ BASE_VERSION = 1
 # v1.102: Add physical_network field to portgroup.
 # v1.103: Add category field to portgroup
 # v1.104: Add instance_name to node
-
+# v1.103: Add category field to portgroup.
+# v1.105: Remove broken ovn vtep metadata support
 
 MINOR_0_JUNO = 0
 MINOR_1_INITIAL_VERSION = 1
@@ -249,7 +250,7 @@ MINOR_101_PORT_CATEGORY = 101
 MINOR_102_PORTGROUP_PHYSICAL_NETWORK = 102
 MINOR_103_PORTGROUP_CATEGORY = 103
 MINOR_104_NODE_INSTANCE_NAME = 104
-
+MINOR_105_REMOVE_OVN_VTEP = 105
 
 # When adding another version, update:
 # - MINOR_MAX_VERSION
@@ -259,7 +260,7 @@ MINOR_104_NODE_INSTANCE_NAME = 104
 # - Add a comment describing the change above the list of consts
 
 
-MINOR_MAX_VERSION = MINOR_104_NODE_INSTANCE_NAME
+MINOR_MAX_VERSION = MINOR_105_REMOVE_OVN_VTEP
 
 # String representations of the minor and maximum versions
 _MIN_VERSION_STRING = '{}.{}'.format(BASE_VERSION, MINOR_1_INITIAL_VERSION)

@@ -96,6 +96,10 @@ TRAITS_SCHEMA = {
     ]
 }
 
+# NOTE(TheJulia): Support for vtep-physical-switch and
+# vtep-logical-switch has been removed as of API version 1.104,
+# but is still permitted on the API surface in the version range
+# so we don't break overall API interaction compatibility.
 LOCAL_LINK_BASE_SCHEMA = {
     'type': 'object',
     'properties': {
@@ -2093,6 +2097,15 @@ def allow_ovn_vtep_version():
     vtep switches in port.local_link_connection.
     """
     return api.request.version.minor >= versions.MINOR_90_OVN_VTEP
+
+
+def upper_ovn_vtep_version():
+    """Check if the ovn vtep version is at or beyond the removal.
+
+    Version 1.105 removed VTEP support logic, but we need to keep
+    the underlying api compatabity for now.
+    """
+    return api.request.version.minor <= versions.MINOR_105_REMOVE_OVN_VTEP
 
 
 def allow_build_configdrive():

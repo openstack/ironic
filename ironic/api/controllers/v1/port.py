@@ -405,7 +405,8 @@ class PortsController(rest.RestController):
             if (not api_utils.allow_local_link_connection_network_type()
                     and 'network_type' in fields['local_link_connection']):
                 raise exception.NotAcceptable()
-            if (not api_utils.allow_ovn_vtep_version()
+            if ((not api_utils.allow_ovn_vtep_version()
+                    or api_utils.upper_ovn_vtep_version())
                     and 'vtep-logical-switch'
                     in fields['local_link_connection']):
                 raise exception.NotAcceptable()
