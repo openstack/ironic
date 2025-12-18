@@ -11,6 +11,7 @@
 #    under the License.
 
 from unittest import mock
+import yaml
 
 from oslo_utils import uuidutils
 
@@ -22,6 +23,7 @@ from ironic.common.inspection_rules import utils
 from ironic.common.inspection_rules import validation
 from ironic.conductor import task_manager
 from ironic.tests.unit.db import base as db_base
+from ironic.tests.unit.db import utils as db_utils
 from ironic.tests.unit.objects import utils as obj_utils
 
 
@@ -69,6 +71,27 @@ class TestInspectionRules(db_base.DbTestCase):
         self.rule2 = obj_utils.create_test_inspection_rule(self.context)
         self.sensitive_rule = obj_utils.create_test_inspection_rule(
             self.context, sensitive=True)
+
+
+class TestLoadRules(TestInspectionRules):
+    def test_load_rules(self):
+        test_rules = [db_utils.get_test_inspection_rule()]
+        test_rules_yaml = yaml.safe_dump(test_rules)
+        with mock.patch('builtins.open', mock.mock_open(
+                read_data=test_rules_yaml)):
+            loaded_rules = engine.get_built_in_rules("fake_file")
+            for rule in test_rules:
+                del rule["version"]
+            self.assertEqual(test_rules, loaded_rules)
+
+    def test_load_rules_not_list(self):
+        test_rule = db_utils.get_test_inspection_rule()
+        test_rule_yaml = yaml.safe_dump(test_rule)
+        with mock.patch('builtins.open', mock.mock_open(
+                read_data=test_rule_yaml)):
+            self.assertRaises(exception.IronicException,
+                              engine.get_built_in_rules,
+                              "fake_file")
 
 
 @mock.patch('ironic.objects.InspectionRule.list', autospec=True)
