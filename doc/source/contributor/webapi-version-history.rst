@@ -2,6 +2,11 @@
 REST API Version History
 ========================
 
+1.106 (Gazpacho)
+----------------------
+
+Add ability to filter on a node shard when listing portgroups.
+
 1.105 (Gazpacho)
 ----------------------
 

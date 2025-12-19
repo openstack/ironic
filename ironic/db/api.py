@@ -439,6 +439,21 @@ class Connection(object, metaclass=abc.ABCMeta):
         """
 
     @abc.abstractmethod
+    def get_portgroups_by_shards(self, shards, limit=None, marker=None,
+                                 sort_key=None, sort_dir=None):
+        """Return a list of portgroups contained in the provided shards.
+
+        :param shards: A list of shards to filter portgroups by.
+        :param limit: Maximum number of portgroups to return.
+        :param marker: The last item of the previous page; we return the next
+                       result set.
+        :param sort_key: Attribute by which results should be sorted
+        :param sort_dir: Direction in which results should be sorted
+                         (asc, desc)
+        :returns: A list of portgroups.
+        """
+
+    @abc.abstractmethod
     def create_portgroup(self, values):
         """Create a new portgroup.
 

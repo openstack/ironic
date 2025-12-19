@@ -1175,6 +1175,20 @@ def check_allow_filter_by_shard(shard):
              'opr': versions.MINOR_82_NODE_SHARD})
 
 
+def check_allow_portgroup_filter_by_shard(shard):
+    """Check if filtering portgroups by shard is allowed.
+
+    Version 1.106 of the API allows filtering portgroups by shard.
+    """
+    if (shard is not None and api.request.version.minor
+            < versions.MINOR_106_PORTGROUP_SHARD):
+        raise exception.NotAcceptable(_(
+            "Request not acceptable. The minimal required API version "
+            "should be %(base)s.%(opr)s") %
+            {'base': versions.BASE_VERSION,
+             'opr': versions.MINOR_106_PORTGROUP_SHARD})
+
+
 def check_allow_child_node_params(include_children=None,
                                   parent_node=None):
     if ((include_children is not None

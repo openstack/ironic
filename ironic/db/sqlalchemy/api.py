@@ -1263,6 +1263,16 @@ class Connection(api.Connection):
         return _paginate_query(models.Portgroup, limit, marker,
                                sort_key, sort_dir, query)
 
+    def get_portgroups_by_shards(self, shards, limit=None, marker=None,
+                                 sort_key=None, sort_dir=None):
+        shard_node_ids = sa.select(models.Node) \
+            .where(models.Node.shard.in_(shards)) \
+            .with_only_columns(models.Node.id)
+        query = sa.select(models.Portgroup) \
+            .where(models.Portgroup.node_id.in_(shard_node_ids))
+        return _paginate_query(
+            models.Portgroup, limit, marker, sort_key, sort_dir, query)
+
     @oslo_db_api.retry_on_deadlock
     def create_portgroup(self, values):
         if not values.get('uuid'):

@@ -27,6 +27,7 @@ from ironic.api.controllers import base as api_base
 from ironic.api.controllers import v1 as api_v1
 from ironic.api.controllers.v1 import notification_utils
 from ironic.api.controllers.v1 import utils as api_utils
+from ironic.api.controllers.v1 import versions
 from ironic.common import exception
 from ironic.common import states
 from ironic.conductor import rpcapi
@@ -638,6 +639,73 @@ class TestListPortgroups(test_api_base.BaseApiTest):
             '/portgroups?conductor_groups=%s' % 'no_such_group',
             headers={api_base.Version.string: str(api_v1.max_version())})
         self.assertEqual([], data['portgroups'])
+
+
+class TestListPortgroupsByShard(test_api_base.BaseApiTest):
+
+    def setUp(self):
+        super(TestListPortgroupsByShard, self).setUp()
+        self.headers = {
+            api_base.Version.string: '1.%s' %
+            versions.MINOR_106_PORTGROUP_SHARD
+        }
+
+    def _create_portgroup_with_shard(self, shard, address):
+        node = obj_utils.create_test_node(self.context, owner='12345',
+                                          shard=shard,
+                                          uuid=uuidutils.generate_uuid())
+        return obj_utils.create_test_portgroup(
+            self.context, name='portgroup_%s' % shard,
+            node_id=node.id, address=address,
+            uuid=uuidutils.generate_uuid())
+
+    def test_get_by_shard_single_fail_api_version(self):
+        self._create_portgroup_with_shard('test_shard', 'aa:bb:cc:dd:ee:ff')
+        # Use a version that supports portgroups but not shard filtering
+        old_headers = {
+            api_base.Version.string: '1.%s' %
+            versions.MINOR_104_NODE_INSTANCE_NAME
+        }
+        data = self.get_json('/portgroups?shard=test_shard',
+                             headers=old_headers, expect_errors=True)
+        self.assertEqual(406, data.status_int)
+
+    def test_get_by_shard_single(self):
+        portgroup = self._create_portgroup_with_shard('test_shard',
+                                                      'aa:bb:cc:dd:ee:ff')
+        data = self.get_json('/portgroups?shard=test_shard',
+                             headers=self.headers)
+        self.assertEqual(portgroup.uuid, data['portgroups'][0]["uuid"])
+
+    def test_get_by_shard_multi(self):
+        bad_shard_address = 'ee:ee:ee:ee:ee:ee'
+        self._create_portgroup_with_shard('shard1', 'aa:bb:cc:dd:ee:ff')
+        self._create_portgroup_with_shard('shard2', 'ab:bb:cc:dd:ee:ff')
+        self._create_portgroup_with_shard('shard3', bad_shard_address)
+
+        res = self.get_json('/portgroups?shard=shard1,shard2',
+                            headers=self.headers)
+        self.assertEqual(2, len(res['portgroups']))
+        self.assertNotEqual(res['portgroups'][0]['address'], bad_shard_address)
+        self.assertNotEqual(res['portgroups'][1]['address'], bad_shard_address)
+
+    def test_get_by_shard_detail(self):
+        portgroup = self._create_portgroup_with_shard('test_shard',
+                                                      'aa:bb:cc:dd:ee:ff')
+        data = self.get_json('/portgroups/detail?shard=test_shard',
+                             headers=self.headers)
+        self.assertEqual(portgroup.uuid, data['portgroups'][0]["uuid"])
+        self.assertIn('extra', data['portgroups'][0])
+        self.assertIn('node_uuid', data['portgroups'][0])
+
+    def test_get_by_shard_and_node_fails(self):
+        portgroup = self._create_portgroup_with_shard('test_shard',
+                                                      'aa:bb:cc:dd:ee:ff')
+        node_uuid = portgroup.node_uuid
+        data = self.get_json(
+            '/portgroups?shard=test_shard&node=%s' % node_uuid,
+            headers=self.headers, expect_errors=True)
+        self.assertEqual(400, data.status_int)
 
 
 @mock.patch.object(rpcapi.ConductorAPI, 'update_portgroup', autospec=True)

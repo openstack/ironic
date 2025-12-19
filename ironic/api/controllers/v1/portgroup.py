@@ -195,7 +195,7 @@ class PortgroupsController(pecan.rest.RestController):
         super(PortgroupsController, self).__init__()
         self.parent_node_ident = node_ident
 
-    def _get_portgroups_collection(self, node_ident, address,
+    def _get_portgroups_collection(self, node_ident, address, shard,
                                    marker, limit, sort_key, sort_dir,
                                    resource_url=None, fields=None,
                                    detail=None, project=None,
@@ -204,6 +204,8 @@ class PortgroupsController(pecan.rest.RestController):
 
         :param node_ident: UUID or name of a node.
         :param address: MAC address of a portgroup.
+        :param shard: A list of shards, to get only portgroups for nodes
+                      in those shards.
         :param marker: Pagination marker for large data sets.
         :param limit: Maximum number of resources to return in a single result.
         :param sort_key: Column to sort results by. Default: id.
@@ -229,10 +231,14 @@ class PortgroupsController(pecan.rest.RestController):
 
         node_ident = self.parent_node_ident or node_ident
 
-        if conductor_groups and (node_ident or address):
-            raise exception.Invalid(
-                _("Filtering by conductor_groups and node_ident/address "
-                  "simultaneously is not supported."))
+        exclusive_filters = 0
+        for i in [node_ident, address, shard, conductor_groups]:
+            if i:
+                exclusive_filters += 1
+            if exclusive_filters > 1:
+                raise exception.Invalid(
+                    _("Filtering by node, address, or shard "
+                      "simultaneously is not supported."))
 
         if node_ident:
             # FIXME: Since all we need is the node ID, we can
@@ -247,6 +253,10 @@ class PortgroupsController(pecan.rest.RestController):
         elif address:
             portgroups = self._get_portgroups_by_address(address,
                                                          project=project)
+        elif shard:
+            portgroups = objects.Portgroup.list_by_node_shards(
+                api.request.context, shard, limit,
+                marker_obj, sort_key=sort_key, sort_dir=sort_dir)
         else:
             portgroups = objects.Portgroup.list(
                 api.request.context, limit,
@@ -285,10 +295,11 @@ class PortgroupsController(pecan.rest.RestController):
     @args.validate(node=args.uuid_or_name, address=args.mac_address,
                    marker=args.uuid, limit=args.integer, sort_key=args.string,
                    sort_dir=args.string, fields=args.string_list,
-                   detail=args.boolean, conductor_groups=args.string_list)
+                   detail=args.boolean, shard=args.string_list,
+                   conductor_groups=args.string_list)
     def get_all(self, node=None, address=None, marker=None,
                 limit=None, sort_key='id', sort_dir='asc', fields=None,
-                detail=None, conductor_groups=None):
+                detail=None, shard=None, conductor_groups=None):
         """Retrieve a list of portgroups.
 
         :param node: UUID or name of a node, to get only portgroups for that
@@ -304,6 +315,9 @@ class PortgroupsController(pecan.rest.RestController):
         :param sort_dir: direction to sort. "asc" or "desc". Default: asc.
         :param fields: Optional, a list with a specified set of fields
                        of the resource to be returned.
+        :param shard: Optional, a list of shard ids to filter by, only
+                      portgroups associated with nodes in these shards will
+                      be returned.
         :param conductor_groups: conductor groups, to filter the request by.
         """
         if not api_utils.allow_portgroups():
@@ -318,6 +332,7 @@ class PortgroupsController(pecan.rest.RestController):
             portgroup=True,
             parent_node=self.parent_node_ident)
 
+        api_utils.check_allow_portgroup_filter_by_shard(shard)
         api_utils.check_allowed_portgroup_fields(fields)
         api_utils.check_allowed_portgroup_fields([sort_key])
 
@@ -325,7 +340,7 @@ class PortgroupsController(pecan.rest.RestController):
                                                      _DEFAULT_RETURN_FIELDS)
 
         return self._get_portgroups_collection(
-            node, address, marker, limit, sort_key, sort_dir,
+            node, address, shard, marker, limit, sort_key, sort_dir,
             fields=fields,
             resource_url='portgroups',
             detail=detail,
@@ -336,10 +351,11 @@ class PortgroupsController(pecan.rest.RestController):
     @method.expose()
     @args.validate(node=args.uuid_or_name, address=args.mac_address,
                    marker=args.uuid, limit=args.integer, sort_key=args.string,
-                   sort_dir=args.string, conductor_groups=args.string_list)
+                   sort_dir=args.string, shard=args.string_list,
+                   conductor_groups=args.string_list)
     def detail(self, node=None, address=None, marker=None,
                limit=None, sort_key='id', sort_dir='asc',
-               conductor_groups=None):
+               shard=None, conductor_groups=None):
         """Retrieve a list of portgroups with detail.
 
         :param node: UUID or name of a node, to get only portgroups for that
@@ -353,6 +369,9 @@ class PortgroupsController(pecan.rest.RestController):
                       max_limit resources will be returned.
         :param sort_key: column to sort results by. Default: id.
         :param sort_dir: direction to sort. "asc" or "desc". Default: asc.
+        :param shard: Optional, a list of shard ids to filter by, only
+                      portgroups associated with nodes in these shards will
+                      be returned.
         :param conductor_groups: conductor groups, to filter the request by.
         """
         if not api_utils.allow_portgroups():
@@ -367,6 +386,7 @@ class PortgroupsController(pecan.rest.RestController):
             portgroup=True,
             parent_node=self.parent_node_ident)
 
+        api_utils.check_allow_portgroup_filter_by_shard(shard)
         api_utils.check_allowed_portgroup_fields([sort_key])
 
         # NOTE: /detail should only work against collections
@@ -375,7 +395,7 @@ class PortgroupsController(pecan.rest.RestController):
             raise exception.HTTPNotFound()
 
         return self._get_portgroups_collection(
-            node, address, marker, limit, sort_key, sort_dir,
+            node, address, shard, marker, limit, sort_key, sort_dir,
             resource_url='portgroups/detail', project=project,
             conductor_groups=conductor_groups)
 

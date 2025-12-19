@@ -146,6 +146,38 @@ class DbportgroupTestCase(base.DbTestCase):
         res_uuids = [r.uuid for r in res]
         self.assertJsonEqual(group_a_uuids + group_b_uuids, res_uuids)
 
+    def _create_test_portgroup_with_shard(self, shard, address):
+        node = db_utils.create_test_node(
+            uuid=uuidutils.generate_uuid(),
+            owner='12345', lessee='54321', shard=shard)
+        return db_utils.create_test_portgroup(
+            name='portgroup-%s' % shard,
+            uuid=uuidutils.generate_uuid(),
+            node_id=node.id,
+            address=address)
+
+    def test_get_portgroups_by_shard_no_match(self):
+        res = self.dbapi.get_portgroups_by_shards(['shard1', 'shard2'])
+        self.assertEqual([], res)
+
+    def test_get_portgroups_by_shard_with_match_single(self):
+        self._create_test_portgroup_with_shard('shard1', 'aa:bb:cc:dd:ee:ff')
+
+        res = self.dbapi.get_portgroups_by_shards(['shard1'])
+        self.assertEqual(1, len(res))
+        self.assertEqual('portgroup-shard1', res[0].name)
+
+    def test_get_portgroups_by_shard_with_match_multi(self):
+        self._create_test_portgroup_with_shard('shard1', 'aa:bb:cc:dd:ee:ff')
+        self._create_test_portgroup_with_shard('shard2', 'ab:bb:cc:dd:ee:ff')
+        self._create_test_portgroup_with_shard('shard3', 'ac:bb:cc:dd:ee:ff')
+
+        res = self.dbapi.get_portgroups_by_shards(['shard1', 'shard2'])
+        self.assertEqual(2, len(res))
+        # note(JayF): We do not query for shard3; ensure we don't get it.
+        self.assertNotEqual('portgroup-shard3', res[0].name)
+        self.assertNotEqual('portgroup-shard3', res[1].name)
+
     def test_destroy_portgroup(self):
         self.dbapi.destroy_portgroup(self.portgroup.id)
         self.assertRaises(exception.PortgroupNotFound,
