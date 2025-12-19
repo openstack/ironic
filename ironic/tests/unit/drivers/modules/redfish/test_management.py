@@ -1152,6 +1152,102 @@ class RedfishManagementTestCase(db_base.DbTestCase):
 
         management._check_node_firmware_update.assert_not_called()
 
+    @mock.patch.object(task_manager, 'acquire', autospec=True)
+    def test__query_firmware_update_failed_deployfail(self, mock_acquire):
+        driver_internal_info = {
+            'firmware_updates': [
+                {'task_monitor': '/task/123',
+                 'url': 'test1'}]}
+        self.node.driver_internal_info = driver_internal_info
+        self.node.provision_state = states.DEPLOYFAIL
+        self.node.save()
+        management = redfish_mgmt.RedfishManagement()
+        mock_manager = mock.Mock()
+        node_list = [(self.node.uuid, 'redfish', '', driver_internal_info)]
+        mock_manager.iter_nodes.return_value = node_list
+        task = mock.Mock(node=self.node,
+                         driver=mock.Mock(management=management))
+        mock_acquire.return_value = mock.MagicMock(
+            __enter__=mock.MagicMock(return_value=task))
+        management._clear_firmware_updates = mock.Mock()
+
+        management._query_firmware_update_failed(mock_manager,
+                                                 self.context)
+
+        management._clear_firmware_updates.assert_called_once_with(self.node)
+
+    @mock.patch.object(task_manager, 'acquire', autospec=True)
+    def test__query_firmware_update_failed_servicefail(self, mock_acquire):
+        driver_internal_info = {
+            'firmware_updates': [
+                {'task_monitor': '/task/123',
+                 'url': 'test1'}]}
+        self.node.driver_internal_info = driver_internal_info
+        self.node.provision_state = states.SERVICEFAIL
+        self.node.save()
+        management = redfish_mgmt.RedfishManagement()
+        mock_manager = mock.Mock()
+        node_list = [(self.node.uuid, 'redfish', '', driver_internal_info)]
+        mock_manager.iter_nodes.return_value = node_list
+        task = mock.Mock(node=self.node,
+                         driver=mock.Mock(management=management))
+        mock_acquire.return_value = mock.MagicMock(
+            __enter__=mock.MagicMock(return_value=task))
+        management._clear_firmware_updates = mock.Mock()
+
+        management._query_firmware_update_failed(mock_manager,
+                                                 self.context)
+
+        management._clear_firmware_updates.assert_called_once_with(self.node)
+
+    @mock.patch.object(task_manager, 'acquire', autospec=True)
+    def test__query_firmware_update_status_deploywait(self, mock_acquire):
+        driver_internal_info = {
+            'firmware_updates': [
+                {'task_monitor': '/task/123',
+                 'url': 'test1'}]}
+        self.node.driver_internal_info = driver_internal_info
+        self.node.provision_state = states.DEPLOYWAIT
+        self.node.save()
+        management = redfish_mgmt.RedfishManagement()
+        mock_manager = mock.Mock()
+        node_list = [(self.node.uuid, 'redfish', '', driver_internal_info)]
+        mock_manager.iter_nodes.return_value = node_list
+        task = mock.Mock(node=self.node,
+                         driver=mock.Mock(management=management))
+        mock_acquire.return_value = mock.MagicMock(
+            __enter__=mock.MagicMock(return_value=task))
+        management._check_node_firmware_update = mock.Mock()
+
+        management._query_firmware_update_status(mock_manager,
+                                                 self.context)
+
+        management._check_node_firmware_update.assert_called_once_with(task)
+
+    @mock.patch.object(task_manager, 'acquire', autospec=True)
+    def test__query_firmware_update_status_servicewait(self, mock_acquire):
+        driver_internal_info = {
+            'firmware_updates': [
+                {'task_monitor': '/task/123',
+                 'url': 'test1'}]}
+        self.node.driver_internal_info = driver_internal_info
+        self.node.provision_state = states.SERVICEWAIT
+        self.node.save()
+        management = redfish_mgmt.RedfishManagement()
+        mock_manager = mock.Mock()
+        node_list = [(self.node.uuid, 'redfish', '', driver_internal_info)]
+        mock_manager.iter_nodes.return_value = node_list
+        task = mock.Mock(node=self.node,
+                         driver=mock.Mock(management=management))
+        mock_acquire.return_value = mock.MagicMock(
+            __enter__=mock.MagicMock(return_value=task))
+        management._check_node_firmware_update = mock.Mock()
+
+        management._query_firmware_update_status(mock_manager,
+                                                 self.context)
+
+        management._check_node_firmware_update.assert_called_once_with(task)
+
     @mock.patch.object(redfish_mgmt.LOG, 'warning', autospec=True)
     @mock.patch.object(redfish_utils, 'get_update_service', autospec=True)
     def test__check_node_firmware_update_redfish_conn_error(
@@ -1391,6 +1487,8 @@ class RedfishManagementTestCase(db_base.DbTestCase):
             'firmware_updates': [
                 {'task_monitor': '/task/123', 'url': 'test1'}]}
         self.node.driver_internal_info = driver_internal_info
+        self.node.clean_step = {'interface': 'management',
+                                'step': 'update_firmware'}
         self.node.save()
 
         management = redfish_mgmt.RedfishManagement()
@@ -1403,6 +1501,66 @@ class RedfishManagementTestCase(db_base.DbTestCase):
 
             self.assertTrue(mock_log.called)
             mock_notify_conductor_resume_clean.assert_called_once_with(task)
+            self.assertEqual({'something': 'else'},
+                             task.node.driver_internal_info)
+
+    @mock.patch.object(redfish_mgmt.LOG, 'info', autospec=True)
+    @mock.patch.object(manager_utils, 'notify_conductor_resume_service',
+                       autospec=True)
+    def test__continue_firmware_updates_last_update_service(
+            self,
+            mock_notify_conductor_resume_service,
+            mock_log):
+        mock_update_service = mock.Mock()
+        driver_internal_info = {
+            'something': 'else',
+            'firmware_updates': [
+                {'task_monitor': '/task/123', 'url': 'test1'}]}
+        self.node.driver_internal_info = driver_internal_info
+        self.node.service_step = {'interface': 'management',
+                                   'step': 'update_firmware'}
+        self.node.save()
+
+        management = redfish_mgmt.RedfishManagement()
+        with task_manager.acquire(self.context, self.node.uuid,
+                                  shared=False) as task:
+            management._continue_firmware_updates(
+                task,
+                mock_update_service,
+                [{'task_monitor': '/task/123', 'url': 'test1'}])
+
+            self.assertTrue(mock_log.called)
+            mock_notify_conductor_resume_service.assert_called_once_with(task)
+            self.assertEqual({'something': 'else'},
+                             task.node.driver_internal_info)
+
+    @mock.patch.object(redfish_mgmt.LOG, 'info', autospec=True)
+    @mock.patch.object(manager_utils, 'notify_conductor_resume_deploy',
+                       autospec=True)
+    def test__continue_firmware_updates_last_update_deploy(
+            self,
+            mock_notify_conductor_resume_deploy,
+            mock_log):
+        mock_update_service = mock.Mock()
+        driver_internal_info = {
+            'something': 'else',
+            'firmware_updates': [
+                {'task_monitor': '/task/123', 'url': 'test1'}]}
+        self.node.driver_internal_info = driver_internal_info
+        self.node.deploy_step = {'interface': 'management',
+                                  'step': 'update_firmware'}
+        self.node.save()
+
+        management = redfish_mgmt.RedfishManagement()
+        with task_manager.acquire(self.context, self.node.uuid,
+                                  shared=False) as task:
+            management._continue_firmware_updates(
+                task,
+                mock_update_service,
+                [{'task_monitor': '/task/123', 'url': 'test1'}])
+
+            self.assertTrue(mock_log.called)
+            mock_notify_conductor_resume_deploy.assert_called_once_with(task)
             self.assertEqual({'something': 'else'},
                              task.node.driver_internal_info)
 
