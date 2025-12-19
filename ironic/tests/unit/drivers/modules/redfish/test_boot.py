@@ -1809,6 +1809,30 @@ class RedfishVirtualMediaBootTestCase(db_base.DbTestCase):
             redfish_boot._has_vmedia_device(
                 [mock_manager], sushy.VIRTUAL_MEDIA_FLOPPY, inserted=True))
 
+    def test_validate_rescue_success(self):
+        with task_manager.acquire(self.context, self.node.uuid,
+                                  shared=True) as task:
+            task.node.provision_state = states.RESCUING
+            task.node.driver_info.update(
+                {'rescue_kernel': 'kernel',
+                 'rescue_ramdisk': 'ramdisk',
+                 'bootloader': 'bootloader'}
+            )
+
+            task.driver.boot.validate_rescue(task)
+
+    def test_validate_rescue_failed(self):
+        with task_manager.acquire(self.context, self.node.uuid,
+                                  shared=True) as task:
+            task.node.provision_state = states.RESCUING
+            task.node.driver_info.update(
+                {'rescue_kernel': 'kernel',
+                 'bootloader': 'bootloader'}
+            )
+
+            self.assertRaises(exception.MissingParameterValue,
+                              task.driver.boot.validate_rescue, task)
+
 
 class RedfishHTTPBootTestCase(db_base.DbTestCase):
 

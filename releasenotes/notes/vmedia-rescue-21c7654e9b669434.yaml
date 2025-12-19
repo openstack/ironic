@@ -1,0 +1,5 @@
+---
+fixes:
+  - |
+    Fixes the issue that rescuing a node with virtual media boot
+    interface configured returns redfish does not support validate_rescue.

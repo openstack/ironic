@@ -1016,6 +1016,15 @@ class RedfishVirtualMediaBoot(base.BootInterface):
         """
         manager_utils.node_set_boot_device(task, device, persistent)
 
+    def validate_rescue(self, task):
+        """Validate that the node has required properties for rescue.
+
+        :param task: a TaskManager instance with the node being checked
+        :raises: MissingParameterValue if node is missing one or more required
+            parameters
+        """
+        _parse_driver_info(task.node)
+
 
 class RedfishHttpsBoot(base.BootInterface):
     """A driver which utilizes UefiHttp like virtual media.
