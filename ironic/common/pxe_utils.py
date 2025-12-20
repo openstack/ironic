@@ -478,9 +478,9 @@ def _dhcp_option_file_or_url(task, urlboot=False, ip_version=None,
         result = boot_file
     elif urlboot and not http_boot_enabled:
         if CONF.my_ipv6 and ip_version == 6:
-            host = utils.wrap_ipv6(CONF.my_ipv6)
+            host = netutils.escape_ipv6(CONF.my_ipv6)
         elif not http_boot_enabled:
-            host = utils.wrap_ipv6(CONF.pxe.tftp_server)
+            host = netutils.escape_ipv6(CONF.pxe.tftp_server)
         result = "tftp://{host}/{boot_file}".format(host=host,
                                                     boot_file=boot_file)
     elif http_boot_enabled:

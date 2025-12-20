@@ -21,6 +21,7 @@ from urllib import parse as urlparse
 
 from oslo_log import log
 from oslo_utils import excutils
+from oslo_utils import netutils
 from oslo_utils import strutils
 import rfc3986
 import sushy
@@ -28,7 +29,6 @@ import tenacity
 
 from ironic.common import exception
 from ironic.common.i18n import _
-from ironic.common import utils
 from ironic.conf import CONF
 from ironic.drivers import utils as driver_utils
 
@@ -117,7 +117,11 @@ def parse_driver_info(node):
                                                  'info': missing_info})
 
     # Validate the Redfish address
-    address = utils.wrap_ipv6(driver_info['redfish_address'])
+    address = driver_info['redfish_address']
+
+    if isinstance(address, str):
+        address = netutils.escape_ipv6(address)
+
     try:
         parsed = rfc3986.uri_reference(address)
     except TypeError:

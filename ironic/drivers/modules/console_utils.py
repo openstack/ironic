@@ -32,6 +32,7 @@ from oslo_concurrency import lockutils
 from oslo_log import log as logging
 from oslo_service import loopingcall
 from oslo_utils import fileutils
+from oslo_utils import netutils
 import psutil
 
 from ironic.common import exception
@@ -226,7 +227,7 @@ def get_shellinabox_console_url(port):
     :param port: the terminal port for the node.
     """
 
-    console_host = utils.wrap_ipv6(CONF.my_ip)
+    console_host = netutils.escape_ipv6(CONF.my_ip)
     scheme = 'https' if CONF.console.terminal_cert_dir else 'http'
     return '%(scheme)s://%(host)s:%(port)s' % {'scheme': scheme,
                                                'host': console_host,
@@ -384,7 +385,7 @@ def get_socat_console_url(port):
     :param port: the terminal port (integer) for the node
     :return: an access URL to the socat console of the node
     """
-    console_host = utils.wrap_ipv6(CONF.console.socat_address)
+    console_host = netutils.escape_ipv6(CONF.console.socat_address)
     return 'tcp://%(host)s:%(port)s' % {'host': console_host,
                                         'port': port}
 
