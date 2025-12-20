@@ -19,8 +19,8 @@ from ironic.common.i18n import _
 opts = [
     cfg.StrOpt('storage',
                default='swift',
-               help=_('Configuration mold storage location. Supports "swift" '
-                      'and "http". By default "swift".')),
+               choices=['swift', 'http'],
+               help=_('Configuration mold storage location.')),
     cfg.StrOpt('user',
                help=_('User for "http" Basic auth. By default set empty.')),
     cfg.StrOpt('password',
