@@ -15,6 +15,7 @@
 #    under the License.
 
 from oslo_config import cfg
+from oslo_config import types
 
 from ironic.common.i18n import _
 
@@ -53,15 +54,15 @@ opts = [
               default='$my_ip',
               help=_('IP address of Socat service running on the host of '
                      'ironic conductor. Used only by Socat console.')),
-    cfg.StrOpt('port_range',
-               regex=r'^\d+:\d+(,\d+:\d+)*$',
-               sample_default='10000:20000',
-               help=_('A range of ports available to be used for the console '
-                      'proxy service running on the host of ironic '
-                      'conductor, in the form of <start>:<stop> or '
-                      'comma-separated ranges like '
-                      '<start>:<stop>,<start>:<stop>. This option is used by '
-                      'both Shellinabox and Socat console')),
+    cfg.ListOpt('port_range',
+                item_type=types.String(regex=r'^\d+:\d+$'),
+                sample_default=['10000:20000'],
+                help=_('A range of ports available to be used for the console '
+                       'proxy service running on the host of ironic '
+                       'conductor, in the form of <start>:<stop> or '
+                       'comma-separated ranges like '
+                       '<start>:<stop>,<start>:<stop>. This option is used by '
+                       'both Shellinabox and Socat console')),
 ]
 
 
