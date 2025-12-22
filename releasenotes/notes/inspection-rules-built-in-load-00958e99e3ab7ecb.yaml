@@ -1,0 +1,5 @@
+---
+fixes:
+  - |
+    Fix the loading of built-in inspection rules which are supplied via a file
+    on the conductor. See `bug 2136776 <https://bugs.launchpad.net/ironic/+bug/2136776>`_
