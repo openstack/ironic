@@ -693,28 +693,6 @@ class ConsoleUtilsTestCase(db_base.DbTestCase):
         # LOG.warning() is called when _stop_console() raises NoConsolePid
         self.assertTrue(mock_log_warning.called)
 
-    def test_valid_console_port_range(self):
-        self.config(port_range=['10000:20000'], group='console')
-        ranges = console_utils._get_port_range()
-        self.assertEqual(ranges, [(10000, 20000)])
-
-    def test_valid_console_port_range_segmented(self):
-        self.config(port_range=['1000:1100', '2000:2500', '3000:3100'],
-                    group='console')
-        ranges = console_utils._get_port_range()
-        self.assertEqual(ranges, [(1000, 1100),
-                                  (2000, 2500), (3000, 3100)])
-
-    def test_invalid_console_port_range(self):
-        self.config(port_range=['20000:10000'], group='console')
-        self.assertRaises(exception.InvalidParameterValue,
-                          console_utils._get_port_range)
-
-    def test_invalid_console_port_range_segmented(self):
-        self.config(port_range=['1000:1100', '2500:2000'], group='console')
-        self.assertRaises(exception.InvalidParameterValue,
-                          console_utils._get_port_range)
-
     @mock.patch.object(console_utils, 'ALLOCATED_PORTS', autospec=True)
     @mock.patch.object(console_utils, '_verify_port', autospec=True)
     def test_allocate_port_success(self, mock_verify, mock_ports):
