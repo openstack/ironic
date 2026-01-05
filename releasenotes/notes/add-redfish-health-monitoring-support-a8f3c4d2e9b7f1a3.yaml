@@ -1,0 +1,32 @@
+---
+features:
+  - |
+    Adds hardware health status monitoring and synchronization capability.
+    A new ``health`` field has been added to the Node object and API
+    (microversion 1.109) to expose hardware health status reported by the
+    BMC.
+
+    This feature introduces a new optional ``get_node_health()`` method in
+    the management interface. Drivers can implement this method to retrieve
+    health status from the BMC. During periodic power state synchronization,
+    Ironic automatically calls this method for all nodes. Drivers that don't
+    support health monitoring simply raise ``UnsupportedDriverExtension``
+    and are skipped. When health status changes, it is automatically saved
+    to the node record and logged in the node history.
+
+    The Redfish management interface (including ``idrac-redfish``) provides
+    the first implementation, retrieving health status from the Redfish
+    System resource (``Status.Health`` field). Values include ``OK``,
+    ``Warning``, and ``Critical``. Operators can monitor this field to
+    detect hardware issues proactively.
+
+    Other driver implementations (iLO, iRMC, etc.) can add support by
+    implementing the ``get_node_health()`` method in their management
+    interface.
+
+    The feature is enabled by default but can be disabled using the
+    ``[conductor]/enable_health_monitoring`` configuration option. When
+    disabled, health status queries are not performed, and the node.health
+    field will not be updated automatically. Drivers opt-in to health
+    monitoring by implementing the ``get_node_health()`` interface method.
+

@@ -26,6 +26,7 @@ from ironic.common import boot_devices
 from ironic.common import boot_modes
 from ironic.common import components
 from ironic.common import exception
+from ironic.common import health_states
 from ironic.common import indicator_states
 from ironic.common import states
 from ironic.conductor import task_manager
@@ -2451,3 +2452,83 @@ class SensorDataTestCase(db_base.DbTestCase):
         }
 
         self.assertEqual(result, expected)
+
+    @mock.patch.object(redfish_utils, 'get_system', autospec=True)
+    def test_get_node_health_ok(self, mock_get_system):
+        """Test get_node_health returns OK when system health is OK."""
+        mock_system = mock.Mock()
+        mock_system.status = mock.Mock()
+        mock_system.status.health = sushy.HEALTH_OK
+        mock_get_system.return_value = mock_system
+
+        with task_manager.acquire(self.context, self.node.uuid,
+                                  shared=True) as task:
+            result = task.driver.management.get_node_health(task)
+            self.assertEqual(health_states.HealthState.OK, result)
+            mock_get_system.assert_called_once_with(task.node)
+
+    @mock.patch.object(redfish_utils, 'get_system', autospec=True)
+    def test_get_node_health_warning(self, mock_get_system):
+        """Test get_node_health returns Warning for Warning health."""
+        mock_system = mock.Mock()
+        mock_system.status = mock.Mock()
+        mock_system.status.health = sushy.HEALTH_WARNING
+        mock_get_system.return_value = mock_system
+
+        with task_manager.acquire(self.context, self.node.uuid,
+                                  shared=True) as task:
+            result = task.driver.management.get_node_health(task)
+            self.assertEqual(health_states.HealthState.WARNING, result)
+
+    @mock.patch.object(redfish_utils, 'get_system', autospec=True)
+    def test_get_node_health_critical(self, mock_get_system):
+        """Test get_node_health returns Critical for Critical health."""
+        mock_system = mock.Mock()
+        mock_system.status = mock.Mock()
+        mock_system.status.health = sushy.HEALTH_CRITICAL
+        mock_get_system.return_value = mock_system
+
+        with task_manager.acquire(self.context, self.node.uuid,
+                                  shared=True) as task:
+            result = task.driver.management.get_node_health(task)
+            self.assertEqual(health_states.HealthState.CRITICAL, result)
+
+    @mock.patch.object(redfish_utils, 'get_system', autospec=True)
+    def test_get_node_health_status_none(self, mock_get_system):
+        """Test get_node_health returns None when system.status is None."""
+        mock_system = mock.Mock()
+        mock_system.status = None
+        mock_get_system.return_value = mock_system
+
+        with task_manager.acquire(self.context, self.node.uuid,
+                                  shared=True) as task:
+            result = task.driver.management.get_node_health(task)
+            self.assertIsNone(result)
+
+    @mock.patch.object(redfish_utils, 'get_system', autospec=True)
+    def test_get_node_health_health_none(self, mock_get_system):
+        """Test get_node_health returns None when status.health is None."""
+        mock_system = mock.Mock()
+        mock_system.status = mock.Mock()
+        mock_system.status.health = None
+        mock_get_system.return_value = mock_system
+
+        with task_manager.acquire(self.context, self.node.uuid,
+                                  shared=True) as task:
+            result = task.driver.management.get_node_health(task)
+            self.assertIsNone(result)
+
+    @mock.patch.object(redfish_utils, 'get_system', autospec=True)
+    def test_get_node_health_unknown_value(self, mock_get_system):
+        """Test get_node_health returns None for unmapped health values."""
+        mock_system = mock.Mock()
+        mock_system.status = mock.Mock()
+        # Use a value that's not in HEALTH_MAP
+        mock_system.status.health = 'UnknownHealthValue'
+        mock_get_system.return_value = mock_system
+
+        with task_manager.acquire(self.context, self.node.uuid,
+                                  shared=True) as task:
+            result = task.driver.management.get_node_health(task)
+            # HEALTH_MAP.get() returns None for unknown values
+            self.assertIsNone(result)

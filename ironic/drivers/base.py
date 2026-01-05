@@ -1138,6 +1138,29 @@ class ManagementInterface(BaseInterface):
         raise exception.UnsupportedDriverExtension(
             driver=task.node.driver, extension='set_secure_boot_state')
 
+    def get_node_health(self, task):
+        """Get the current health status for a node.
+
+        Retrieves hardware health status from the BMC if available.
+        This provides insight into the overall hardware condition,
+        including components like fans, power supplies, storage, etc.
+
+        NOTE: Not all drivers support this method. Only drivers with
+              BMC health monitoring capabilities implement this.
+
+        :param task: A task from TaskManager.
+        :raises: MissingParameterValue if a required parameter is missing
+        :raises: DriverOperationError or its derivative in case
+                 of driver runtime error.
+        :raises: UnsupportedDriverExtension if requested operation is
+                 not supported by the driver
+        :returns: One of :mod:`ironic.common.health_states` constants
+                  (OK, WARNING, CRITICAL) or None if health status
+                  is unknown or cannot be determined.
+        """
+        raise exception.UnsupportedDriverExtension(
+            driver=task.node.driver, extension='get_node_health')
+
     @abc.abstractmethod
     def get_sensors_data(self, task):
         """Get sensors data method.

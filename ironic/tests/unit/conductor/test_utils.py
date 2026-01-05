@@ -22,6 +22,7 @@ from oslo_utils import uuidutils
 from ironic.common import boot_devices
 from ironic.common import boot_modes
 from ironic.common import exception
+from ironic.common import health_states
 from ironic.common import network
 from ironic.common import neutron
 from ironic.common import nova
@@ -3303,3 +3304,191 @@ class ServiceUtilsTestCase(db_base.DbTestCase):
             )
             for field in not_in_list:
                 self.assertNotIn(field, task.node.driver_internal_info)
+
+
+class NodeCacheHealthTestCase(db_base.DbTestCase):
+
+    def setUp(self):
+        super(NodeCacheHealthTestCase, self).setUp()
+        self.node = obj_utils.create_test_node(
+            self.context,
+            uuid=uuidutils.generate_uuid(),
+            driver='fake-hardware',
+            power_interface='redfish',
+            health=None)
+        self.config(enabled_power_interfaces=['fake', 'redfish'])
+
+    @mock.patch.object(conductor_utils, 'node_history_record',
+                       autospec=True)
+    def test_node_cache_health_status_changed(self, mock_history):
+        # Mock the management interface to return health status
+        with task_manager.acquire(self.context, self.node.uuid) as task:
+            # Mock get_node_health to return OK
+            task.driver.management.get_node_health = mock.Mock(
+                return_value=health_states.HealthState.OK)
+            conductor_utils.node_cache_health(task)
+            task.node.refresh()
+
+        # Refresh the test node to get updated values
+        self.node.refresh()
+        # Verify health was updated (stored as string value)
+        self.assertEqual(health_states.HealthState.OK.value, self.node.health)
+        # Verify history was recorded
+        mock_history.assert_called_once()
+        self.assertEqual('monitoring',
+                         mock_history.call_args.kwargs['event_type'])
+        self.assertIn('health status changed',
+                      mock_history.call_args.kwargs['event'])
+
+    @mock.patch.object(conductor_utils, 'node_history_record',
+                       autospec=True)
+    def test_node_cache_health_no_change(self, mock_history):
+        # Node already has OK health (stored as string value)
+        self.node.health = health_states.HealthState.OK.value
+        self.node.save()
+
+        with task_manager.acquire(self.context, self.node.uuid) as task:
+            # Mock the management interface to return health status
+            task.driver.management.get_node_health = mock.Mock(
+                return_value=health_states.HealthState.OK)
+            conductor_utils.node_cache_health(task)
+
+        # Verify no history was recorded (no change)
+        mock_history.assert_not_called()
+
+    def test_node_cache_health_non_redfish_node(self):
+        # Node with driver that doesn't support health monitoring
+        self.node.power_interface = 'fake'
+        self.node.save()
+
+        with task_manager.acquire(self.context, self.node.uuid) as task:
+            # Mock the management interface to raise UnsupportedDriverExtension
+            task.driver.management.get_node_health = mock.Mock(
+                side_effect=exception.UnsupportedDriverExtension(
+                    driver=task.node.driver, extension='get_node_health'))
+            conductor_utils.node_cache_health(task)
+
+        # Verify health remains None (driver doesn't support it)
+        self.node.refresh()
+        self.assertIsNone(self.node.health)
+
+    def test_node_cache_health_no_status(self):
+        # Management interface returns None (no status available)
+        with task_manager.acquire(self.context, self.node.uuid) as task:
+            # Mock the management interface to return None
+            task.driver.management.get_node_health = mock.Mock(
+                return_value=None)
+            # Should not raise an exception
+            conductor_utils.node_cache_health(task)
+            task.node.refresh()
+
+        # Verify health remains None
+        # Refresh the test node to get updated values
+        self.node.refresh()
+        self.assertIsNone(self.node.health)
+
+    @mock.patch.object(conductor_utils, 'LOG', autospec=True)
+    @mock.patch.object(conductor_utils, 'node_history_record',
+                       autospec=True)
+    def test_node_cache_health_warning_state(self, mock_history, mock_log):
+        # Create system with Warning health status
+
+        with task_manager.acquire(self.context, self.node.uuid) as task:
+            # Mock the management interface to return health status
+            task.driver.management.get_node_health = mock.Mock(
+                return_value=health_states.HealthState.WARNING)
+            conductor_utils.node_cache_health(task)
+            task.node.refresh()
+
+        # Verify health was updated (stored as string value)
+        self.node.refresh()
+        self.assertEqual(health_states.HealthState.WARNING.value,
+                         self.node.health)
+        # Verify warning was logged
+        mock_log.warning.assert_called_once()
+        self.assertIn('indicates a problem',
+                      mock_log.warning.call_args.args[0])
+
+    @mock.patch.object(conductor_utils, 'LOG', autospec=True)
+    @mock.patch.object(conductor_utils, 'node_history_record',
+                       autospec=True)
+    def test_node_cache_health_critical_state(self, mock_history, mock_log):
+        # Create system with Critical health status
+
+        with task_manager.acquire(self.context, self.node.uuid) as task:
+            # Mock the management interface to return health status
+            task.driver.management.get_node_health = mock.Mock(
+                return_value=health_states.HealthState.CRITICAL)
+            conductor_utils.node_cache_health(task)
+            task.node.refresh()
+
+        # Verify health was updated (stored as string value)
+        self.node.refresh()
+        self.assertEqual(health_states.HealthState.CRITICAL.value,
+                         self.node.health)
+        # Verify warning was logged
+        mock_log.warning.assert_called_once()
+        self.assertIn('indicates a problem',
+                      mock_log.warning.call_args.args[0])
+
+    @mock.patch.object(conductor_utils, 'LOG', autospec=True)
+    @mock.patch.object(conductor_utils, 'node_history_record',
+                       autospec=True)
+    def test_node_cache_health_invalid_value_rejected(self, mock_history,
+                                                      mock_log):
+        # Invalid health values should be rejected and not saved
+
+        with task_manager.acquire(self.context, self.node.uuid) as task:
+            # Mock the management interface to return an invalid health value
+            task.driver.management.get_node_health = mock.Mock(
+                return_value='InvalidValue')
+            conductor_utils.node_cache_health(task)
+            task.node.refresh()
+
+        # Verify health was NOT updated (remains None)
+        self.node.refresh()
+        self.assertIsNone(self.node.health)
+        # Verify no history was recorded (value was rejected)
+        mock_history.assert_not_called()
+        # Verify warning message was logged about invalid value
+        mock_log.warning.assert_called_once()
+        self.assertIn('invalid health value',
+                      mock_log.warning.call_args.args[0])
+
+    @mock.patch.object(conductor_utils, 'LOG', autospec=True)
+    def test_node_cache_health_exception(self, mock_log):
+        # Simulate an exception during health check
+        with task_manager.acquire(self.context, self.node.uuid) as task:
+            # Mock the management interface to raise an exception
+            task.driver.management.get_node_health = mock.Mock(
+                side_effect=Exception('Connection failed'))
+            # Should not raise an exception
+            conductor_utils.node_cache_health(task)
+            task.node.refresh()
+
+        # Verify health remains None
+        # Refresh the test node to get updated values
+        self.node.refresh()
+        self.assertIsNone(self.node.health)
+        # Verify warning message was logged
+        mock_log.warning.assert_called_once()
+        self.assertIn('Could not retrieve health status',
+                      mock_log.warning.call_args.args[0])
+
+    @mock.patch.object(conductor_utils, 'node_history_record',
+                       autospec=True)
+    def test_node_cache_health_only_health_set(self, mock_history):
+        # System has health set
+
+        with task_manager.acquire(self.context, self.node.uuid) as task:
+            # Mock the management interface to return health status
+            task.driver.management.get_node_health = mock.Mock(
+                return_value=health_states.HealthState.OK)
+            conductor_utils.node_cache_health(task)
+            task.node.refresh()
+
+        # Verify only health was updated (stored as string value)
+        self.node.refresh()
+        self.assertEqual(health_states.HealthState.OK.value, self.node.health)
+        # Verify history was recorded
+        mock_history.assert_called_once()

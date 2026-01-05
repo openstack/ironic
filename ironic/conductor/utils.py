@@ -32,6 +32,7 @@ from ironic.common import async_steps
 from ironic.common import boot_devices
 from ironic.common import exception
 from ironic.common import faults
+from ironic.common import health_states
 from ironic.common.i18n import _
 from ironic.common import images
 from ironic.common import network
@@ -1723,6 +1724,92 @@ def node_cache_boot_mode(task):
                  " for node %(node)s",
                  {'boot_mode': boot_mode, 'secure_boot': secure_boot,
                   'node': task.node.uuid})
+
+
+def node_cache_health(task):
+    """Cache node health status from BMC if supported by the driver.
+
+    Attempts to retrieve hardware health status from the node's management
+    interface. If the driver supports health monitoring and the status has
+    changed, the node's health field is updated and an entry is added to
+    node history.
+
+    :param task: a TaskManager instance containing the node to check.
+    """
+    # Skip if health monitoring is disabled
+    if not CONF.conductor.enable_health_monitoring:
+        return
+
+    # Try to retrieve health status from the driver's management interface
+    try:
+        health = task.driver.management.get_node_health(task)
+    except exception.UnsupportedDriverExtension:
+        # Driver doesn't support health monitoring, skip silently
+        return
+    except Exception as exc:
+        # Log error but don't fail if health checking fails
+        LOG.warning(_('Could not retrieve health status for node %(node)s: '
+                      '%(class)s: %(exc)s'),
+                    {'node': task.node.uuid,
+                     'class': type(exc).__name__, 'exc': exc},
+                    exc_info=not isinstance(exc, exception.IronicException))
+        return
+
+    # Validate health value before saving - reject invalid states
+    if (health is not None
+            and not isinstance(health, health_states.HealthState)):
+        LOG.warning(_("Node %(node)s reports invalid health value "
+                      "'%(health)s', ignoring. Expected HealthState enum."),
+                    {'node': task.node.uuid, 'health': health})
+        return
+
+    # Process the health status if retrieved
+    try:
+        # Check if value changed from what's stored
+        old_health = task.node.health
+        # Convert enum to string value for storage and comparison
+        health_value = health.value if health else None
+
+        if health_value != old_health:
+            # Health status changed, need to update node
+            task.upgrade_lock(purpose='caching health status')
+            task.node.health = health_value
+            task.node.save()
+
+            LOG.debug(_("Updated health status for node %(node)s: "
+                        "health=%(health)s (was %(old_health)s)"),
+                      {'node': task.node.uuid, 'health': health_value,
+                       'old_health': old_health})
+
+            # Record change in node history
+            event_msg = (
+                _("Node health status changed: health='%(health)s' "
+                  "(previously '%(old_health)s')") % {
+                    'health': health_value or 'None',
+                    'old_health': old_health or 'None'
+                }
+            )
+            node_history_record(
+                task.node,
+                event=event_msg,
+                event_type='monitoring',
+                error=False
+            )
+
+            # Log warning if health indicates a problem
+            if health in (health_states.HealthState.WARNING,
+                          health_states.HealthState.CRITICAL):
+                LOG.warning(_("Node %(node)s health status indicates a "
+                              "problem: health=%(health)s"),
+                            {'node': task.node.uuid, 'health': health_value})
+
+    except Exception as exc:
+        # Log error but don't fail if health value processing fails
+        LOG.warning(_('Error updating health status for node %(node)s: '
+                      '%(class)s: %(exc)s'),
+                    {'node': task.node.uuid,
+                     'class': type(exc).__name__, 'exc': exc},
+                    exc_info=not isinstance(exc, exception.IronicException))
 
 
 def node_change_boot_mode(task, target_boot_mode):

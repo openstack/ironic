@@ -28,6 +28,7 @@ from ironic.common import boot_devices
 from ironic.common import boot_modes
 from ironic.common import components
 from ironic.common import exception
+from ironic.common import health_states
 from ironic.common.i18n import _
 from ironic.common import indicator_states
 from ironic.common import metrics_utils
@@ -108,6 +109,12 @@ INDICATOR_MAP = {
 
 INDICATOR_MAP_REV = {
     v: k for k, v in INDICATOR_MAP.items()}
+
+HEALTH_MAP = {
+    sushy.HEALTH_OK: health_states.HealthState.OK,
+    sushy.HEALTH_WARNING: health_states.HealthState.WARNING,
+    sushy.HEALTH_CRITICAL: health_states.HealthState.CRITICAL,
+}
 
 
 _FIRMWARE_UPDATE_ARGS = {
@@ -840,6 +847,30 @@ class RedfishManagement(base.ManagementInterface):
                                                   'error': e})
             LOG.error(error_msg)
             raise exception.RedfishError(error=error_msg)
+
+    def get_node_health(self, task):
+        """Get the current health status for a node.
+
+        Retrieves the hardware health status from the Redfish System resource.
+        The health status represents the overall condition of the server
+        hardware, including components like processors, memory, fans,
+        power supplies, storage, etc.
+
+        :param task: A task from TaskManager.
+        :raises: RedfishConnectionError when it fails to connect to Redfish
+        :raises: RedfishError on an error from the Sushy library
+        :returns: One of :mod:`ironic.common.health_states` constants
+                  (OK, WARNING, CRITICAL) or None if health status is
+                  not available.
+        """
+        system = redfish_utils.get_system(task.node)
+
+        # Try to get health status from system.status
+        if system.status and system.status.health:
+            return HEALTH_MAP.get(system.status.health)
+
+        # Health status not available
+        return None
 
     def get_supported_indicators(self, task, component=None):
         """Get a map of the supported indicators (e.g. LEDs).

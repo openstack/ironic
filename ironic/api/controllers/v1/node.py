@@ -1585,6 +1585,7 @@ def _get_fields_for_node_query(fields=None):
                     'extra',
                     'fault',
                     'firmware_interface',
+                    'health',
                     'inspection_finished_at',
                     'inspection_started_at',
                     'inspect_interface',

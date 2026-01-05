@@ -2,6 +2,11 @@
 REST API Version History
 ========================
 
+1.109 (Gazpacho)
+----------------------
+
+Add ``health`` field to the node object.
+
 1.108 (Gazpacho)
 ------------------------
 Add support for ``disable_ramdisk`` parameter to provisioning endpoint

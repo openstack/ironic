@@ -238,6 +238,7 @@ def get_test_node(**kw):
         'parent_node': kw.get('parent_node', None),
         'service_step': kw.get('service_step'),
         'disable_power_off': kw.get('disable_power_off', False),
+        'health': kw.get('health', None),
     }
 
     for iface in drivers_base.ALL_INTERFACES:

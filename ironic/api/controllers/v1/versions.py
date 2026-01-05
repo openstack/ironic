@@ -146,6 +146,7 @@ BASE_VERSION = 1
 # v1.106: Add shard filtering support for portgroups
 # v1.107: Add X-OpenStack-Request-Id header.
 # v1.108: Add disable_ramdisk support for servicing
+# v1.109: Add health field to node object.
 
 MINOR_0_JUNO = 0
 MINOR_1_INITIAL_VERSION = 1
@@ -256,6 +257,7 @@ MINOR_105_REMOVE_OVN_VTEP = 105
 MINOR_106_PORTGROUP_SHARD = 106
 MINOR_107_X_OPENSTACK_REQUEST_ID = 107
 MINOR_108_SERVICE_DISABLE_RAMDISK = 108
+MINOR_109_NODE_HEALTH = 109
 
 # When adding another version, update:
 # - MINOR_MAX_VERSION
@@ -265,7 +267,7 @@ MINOR_108_SERVICE_DISABLE_RAMDISK = 108
 # - Add a comment describing the change above the list of consts
 
 
-MINOR_MAX_VERSION = MINOR_108_SERVICE_DISABLE_RAMDISK
+MINOR_MAX_VERSION = MINOR_109_NODE_HEALTH
 
 # String representations of the minor and maximum versions
 _MIN_VERSION_STRING = '{}.{}'.format(BASE_VERSION, MINOR_1_INITIAL_VERSION)
