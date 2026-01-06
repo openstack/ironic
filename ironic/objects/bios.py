@@ -129,9 +129,6 @@ class BIOSSetting(base.IronicObject):
         the same, older, or newer than the version of the object. This is
         used for DB interactions as well as for serialization/deserialization.
 
-        Version 1.1: remove registry field for unsupported versions if
-            remove_unavailable_fields is True.
-
         :param target_version: the desired version of the object
         :param remove_unavailable_fields: True to remove fields that are
             unavailable in the target version; set this to True when
@@ -140,20 +137,18 @@ class BIOSSetting(base.IronicObject):
         """
         target_version = versionutils.convert_version_to_tuple(target_version)
 
-        for field in self.get_registry_fields():
+        for field in self.registry_fields:
             field_is_set = self.obj_attr_is_set(field)
             if target_version >= (1, 1):
                 # target version supports the major/minor specified
                 if not field_is_set:
                     # set it to its default value if it is not set
                     setattr(self, field, None)
+            # target version does not support the field, and it is set
             elif field_is_set:
-                # target version does not support the field, and it is set
                 if remove_unavailable_fields:
                     # (De)serialising: remove unavailable fields
                     delattr(self, field)
-                elif self.registry:
-                    setattr(self, field, None)
 
 
 @base.IronicObjectRegistry.register

@@ -1,0 +1,6 @@
+---
+fixes:
+  - |
+    Fix retrieving BIOS settings via redfish based interfaces. The code used
+    some references to an earlier version of the spec which was ultimately
+    not adopted. Fixes `bug 2137596 <https://bugs.launchpad.net/ironic/+bug/2137596>`_.
