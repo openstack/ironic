@@ -27,17 +27,23 @@ LOG = log.getLogger(__name__)
 SENSITIVE_FIELDS = ['password', 'auth_token', 'bmc_password']
 
 
-def get_built_in_rules():
+def get_built_in_rules(rules_file):
     """Load built-in inspection rules."""
     built_in_rules = []
-    built_in_rules_dir = CONF.inspection_rules.built_in_rules
 
-    if not built_in_rules_dir:
+    if not rules_file:
         return built_in_rules
 
     try:
-        with open(built_in_rules_dir, 'r') as f:
+        with open(rules_file, 'r') as f:
             rules_data = yaml.safe_load(f)
+
+        if not isinstance(rules_data, list):
+            msg = (
+                _("Built-in rules file (%s) should contain a list of rules") %
+                  rules_file)
+            LOG.error(msg)
+            raise exception.IronicException(msg)
 
         for rule_data in rules_data:
             try:
@@ -45,29 +51,27 @@ def get_built_in_rules():
                     'uuid': rule_data.get('uuid'),
                     'priority': rule_data.get('priority', 0),
                     'description': rule_data.get('description'),
-                    'scope': rule_data.get('scope'),
                     'sensitive': rule_data.get('sensitive', False),
                     'phase': rule_data.get('phase', 'main'),
                     'actions': rule_data.get('actions', []),
                     'conditions': rule_data.get('conditions', []),
-                    'built_in': True
                 }
-                validation.validate_rule(rule)
+                validation.validate_rule(rule, built_in=True)
                 built_in_rules.append(rule)
             except Exception as e:
                 LOG.error(_("Error parsing built-in rule: %s"), e)
                 raise
     except FileNotFoundError:
         LOG.error(_("Built-in rules file not found: %s"),
-                  built_in_rules_dir)
+                  rules_file)
         raise
     except yaml.YAMLError as e:
         LOG.error(_("Error parsing YAML in built-in rules file %s: %s"),
-                  built_in_rules_dir, e)
+                  rules_file, e)
         raise
     except Exception as e:
         LOG.error(_("Error loading built-in rules from %s: %s"),
-                  built_in_rules_dir, e)
+                  rules_file, e)
         raise
 
     return built_in_rules
@@ -148,7 +152,7 @@ def apply_rules(task, inventory, plugin_data, inspection_phase):
         context=task.context,
         filters={'phase': inspection_phase})
 
-    built_in_rules = get_built_in_rules()
+    built_in_rules = get_built_in_rules(CONF.inspection_rules.built_in_rules)
     rules = all_rules + built_in_rules
 
     if not rules:
