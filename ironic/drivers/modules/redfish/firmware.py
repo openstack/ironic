@@ -172,12 +172,26 @@ class RedfishFirmware(base.FirmwareInterface):
         try:
             chassis = redfish_utils.get_chassis(task.node, system)
         except exception.RedfishError:
-            LOG.warning('No chassis available to retrieve NetworkAdapters '
-                        'firmware information on node %(node_uuid)s',
-                        {'node_uuid': task.node.uuid})
+            LOG.debug('No chassis available to retrieve NetworkAdapters '
+                      'firmware information on node %(node_uuid)s',
+                      {'node_uuid': task.node.uuid})
             return nic_list
 
-        for net_adp in chassis.network_adapters.get_members():
+        try:
+            network_adapters = chassis.network_adapters
+            if network_adapters is None:
+                LOG.debug('NetworkAdapters not available on chassis for '
+                          'node %(node_uuid)s',
+                          {'node_uuid': task.node.uuid})
+                return nic_list
+            adapters = network_adapters.get_members()
+        except sushy.exceptions.MissingAttributeError:
+            LOG.debug('NetworkAdapters not available on chassis for '
+                      'node %(node_uuid)s',
+                      {'node_uuid': task.node.uuid})
+            return nic_list
+
+        for net_adp in adapters:
             for net_adp_ctrl in net_adp.controllers:
                 fw_pkg_v = net_adp_ctrl.firmware_package_version
                 if not fw_pkg_v:
@@ -382,9 +396,16 @@ class RedfishFirmware(base.FirmwareInterface):
                 # Test Manager resource
                 redfish_utils.get_manager(node, system)
 
-                # Test NetworkAdapters resource
+                # Test Chassis and NetworkAdapters resource (if available)
+                # Some systems may not have NetworkAdapters, which is valid
                 chassis = redfish_utils.get_chassis(node, system)
-                chassis.network_adapters.get_members()
+                try:
+                    network_adapters = chassis.network_adapters
+                    if network_adapters is not None:
+                        network_adapters.get_members()
+                except sushy.exceptions.MissingAttributeError:
+                    # NetworkAdapters not available is acceptable
+                    pass
 
                 # All resources successful
                 consecutive_successes += 1

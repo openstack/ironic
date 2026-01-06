@@ -262,7 +262,7 @@ class RedfishFirmwareTestCase(db_base.DbTestCase):
                                   shared=True) as task:
             task.driver.firmware.cache_firmware_components(task)
 
-        log_mock.warning.assert_any_call(
+        log_mock.debug.assert_any_call(
             'No chassis available to retrieve NetworkAdapters firmware '
             'information on node %(node_uuid)s',
             {'node_uuid': self.node.uuid}
@@ -410,6 +410,70 @@ class RedfishFirmwareTestCase(db_base.DbTestCase):
                 ]
                 fw_cmp_mock.assert_has_calls(fw_cmp_calls)
                 log_mock.warning.assert_not_called()
+
+    @mock.patch.object(redfish_fw, 'LOG', autospec=True)
+    @mock.patch.object(redfish_utils, 'get_system', autospec=True)
+    @mock.patch.object(redfish_utils, 'get_manager', autospec=True)
+    @mock.patch.object(redfish_utils, 'get_chassis', autospec=True)
+    @mock.patch.object(objects, 'FirmwareComponentList', autospec=True)
+    def test_retrieve_nic_components_network_adapters_none(
+            self, fw_cmp_list, chassis_mock, manager_mock,
+            system_mock, log_mock):
+        """Test that None network_adapters is handled gracefully."""
+        fw_cmp_list.sync_firmware_components.return_value = (
+            [{'component': 'bios', 'current_version': '1.0.0'},
+             {'component': 'bmc', 'current_version': '1.0.0'}],
+            [], [])
+
+        with task_manager.acquire(self.context, self.node.uuid,
+                                  shared=True) as task:
+            system_mock.return_value.bios_version = '1.0.0'
+            manager_mock.return_value.firmware_version = '1.0.0'
+            # network_adapters is None
+            chassis_mock.return_value.network_adapters = None
+
+            task.driver.firmware.cache_firmware_components(task)
+
+        # Should log at debug level, not warning
+        log_mock.debug.assert_any_call(
+            'NetworkAdapters not available on chassis for '
+            'node %(node_uuid)s',
+            {'node_uuid': self.node.uuid}
+        )
+        log_mock.warning.assert_not_called()
+
+    @mock.patch.object(redfish_fw, 'LOG', autospec=True)
+    @mock.patch.object(redfish_utils, 'get_system', autospec=True)
+    @mock.patch.object(redfish_utils, 'get_manager', autospec=True)
+    @mock.patch.object(redfish_utils, 'get_chassis', autospec=True)
+    @mock.patch.object(objects, 'FirmwareComponentList', autospec=True)
+    def test_retrieve_nic_components_missing_attribute_error(
+            self, fw_cmp_list, chassis_mock, manager_mock,
+            system_mock, log_mock):
+        """Test that MissingAttributeError is handled gracefully."""
+        fw_cmp_list.sync_firmware_components.return_value = (
+            [{'component': 'bios', 'current_version': '1.0.0'},
+             {'component': 'bmc', 'current_version': '1.0.0'}],
+            [], [])
+
+        with task_manager.acquire(self.context, self.node.uuid,
+                                  shared=True) as task:
+            system_mock.return_value.bios_version = '1.0.0'
+            manager_mock.return_value.firmware_version = '1.0.0'
+            # network_adapters raises MissingAttributeError
+            type(chassis_mock.return_value).network_adapters = (
+                mock.PropertyMock(
+                    side_effect=sushy.exceptions.MissingAttributeError))
+
+            task.driver.firmware.cache_firmware_components(task)
+
+        # Should log at debug level, not warning
+        log_mock.debug.assert_any_call(
+            'NetworkAdapters not available on chassis for '
+            'node %(node_uuid)s',
+            {'node_uuid': self.node.uuid}
+        )
+        log_mock.warning.assert_not_called()
 
     @mock.patch.object(redfish_utils, 'LOG', autospec=True)
     @mock.patch.object(redfish_utils, '_get_connection', autospec=True)
@@ -1371,6 +1435,71 @@ class RedfishFirmwareTestCase(db_base.DbTestCase):
                 # Verify sleep was called with custom interval
                 expected_calls = [mock.call(5)] * 4  # 4 sleeps between 5
                 sleep_mock.assert_has_calls(expected_calls)
+
+    def test__validate_resources_stability_network_adapters_none(self):
+        """Test validation succeeds when network_adapters is None."""
+        firmware = redfish_fw.RedfishFirmware()
+
+        with task_manager.acquire(self.context, self.node.uuid,
+                                  shared=True) as task:
+            with mock.patch.object(redfish_utils, 'get_system',
+                                   autospec=True) as system_mock, \
+                 mock.patch.object(redfish_utils, 'get_manager',
+                                   autospec=True) as manager_mock, \
+                 mock.patch.object(redfish_utils, 'get_chassis',
+                                   autospec=True) as chassis_mock, \
+                 mock.patch.object(time, 'time', autospec=True) as time_mock, \
+                 mock.patch.object(time, 'sleep', autospec=True):
+
+                # Mock successful resource responses but network_adapters None
+                system_mock.return_value = mock.Mock()
+                manager_mock.return_value = mock.Mock()
+                chassis_mock.return_value.network_adapters = None
+
+                # Mock time progression to simulate consecutive successes
+                time_mock.side_effect = [0, 1, 2, 3]
+
+                # Should complete successfully (None network_adapters is OK)
+                firmware._validate_resources_stability(task.node)
+
+                # Verify all resources were checked 3 times
+                self.assertEqual(system_mock.call_count, 3)
+                self.assertEqual(manager_mock.call_count, 3)
+                self.assertEqual(chassis_mock.call_count, 3)
+
+    def test__validate_resources_stability_network_adapters_missing_attr(self):
+        """Test validation succeeds when network_adapters is missing."""
+        firmware = redfish_fw.RedfishFirmware()
+
+        with task_manager.acquire(self.context, self.node.uuid,
+                                  shared=True) as task:
+            with mock.patch.object(redfish_utils, 'get_system',
+                                   autospec=True) as system_mock, \
+                 mock.patch.object(redfish_utils, 'get_manager',
+                                   autospec=True) as manager_mock, \
+                 mock.patch.object(redfish_utils, 'get_chassis',
+                                   autospec=True) as chassis_mock, \
+                 mock.patch.object(time, 'time', autospec=True) as time_mock, \
+                 mock.patch.object(time, 'sleep', autospec=True):
+
+                # Mock successful resource responses
+                system_mock.return_value = mock.Mock()
+                manager_mock.return_value = mock.Mock()
+                # network_adapters raises MissingAttributeError
+                type(chassis_mock.return_value).network_adapters = (
+                    mock.PropertyMock(
+                        side_effect=sushy.exceptions.MissingAttributeError))
+
+                # Mock time progression to simulate consecutive successes
+                time_mock.side_effect = [0, 1, 2, 3]
+
+                # Should complete successfully (missing network_adapters is OK)
+                firmware._validate_resources_stability(task.node)
+
+                # Verify all resources were checked 3 times
+                self.assertEqual(system_mock.call_count, 3)
+                self.assertEqual(manager_mock.call_count, 3)
+                self.assertEqual(chassis_mock.call_count, 3)
 
     def test__validate_resources_stability_badrequest_error(self):
         """Test BMC resource validation handles BadRequestError correctly."""
