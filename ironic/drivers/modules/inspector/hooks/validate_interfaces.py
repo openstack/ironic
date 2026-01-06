@@ -49,6 +49,11 @@ def get_interfaces(node, inventory):
     result = {}
     pxe_mac = get_pxe_mac(inventory)
 
+    if 'interfaces' not in inventory:
+        raise exception.InvalidNodeInventory(
+            node=node.uuid,
+            reason=_('no interfaces present in inventory'))
+
     for iface in inventory['interfaces']:
         name = iface.get('name')
         mac = iface.get('mac_address')
