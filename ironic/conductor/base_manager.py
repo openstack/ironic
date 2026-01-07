@@ -34,6 +34,7 @@ from ironic.common import mdns
 from ironic.common import release_mappings as versions
 from ironic.common import rpc
 from ironic.common import states
+from ironic.common.trait_based_networking import loader
 from ironic.common import utils as common_utils
 from ironic.conductor import allocations
 from ironic.conductor import notification_utils as notify_utils
@@ -176,6 +177,15 @@ class BaseConductorManager(object):
 
         self._init_executors(CONF.conductor.workers_pool_size,
                              CONF.conductor.reserved_workers_pool_percentage)
+
+        # Load TBN configuration if enabled, and bail if configuration is
+        # invalid.
+        if CONF.conductor.enable_trait_based_networking:
+            loader.tbn_config_file_traits()
+            if not loader.is_config_valid():
+                msg = _("Trait Based Networking configuration file could not "
+                        "be loaded or is invalid.")
+                raise exception.IncorrectConfiguration(error=msg)
 
         # TODO(jroll) delete the use_groups argument and use the default
         # in Stein.

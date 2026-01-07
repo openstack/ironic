@@ -116,6 +116,7 @@ from ironic.common import exception
 from ironic.common.i18n import _
 from ironic.common import state_machine
 from ironic.common import states
+from ironic.common.trait_based_networking.loader import tbn_config_file_traits
 from ironic.conductor import notification_utils as notify
 from ironic import objects
 from ironic.objects import fields
@@ -220,6 +221,7 @@ class TaskManager(object):
         self.shared = shared
         self._retry = retry
         self._patient = patient
+        self._tbn_traits = None
 
         self.fsm = state_machine.machine.copy()
         self._purpose = purpose
@@ -308,6 +310,17 @@ class TaskManager(object):
     @volume_connectors.setter
     def volume_connectors(self, volume_connectors):
         self._volume_connectors = volume_connectors
+
+    @property
+    def tbn_traits(self):
+        try:
+            if self._tbn_traits is None:
+                self._tbn_traits = tbn_config_file_traits()
+        except Exception:
+            with excutils.save_and_reraise_exception():
+                self.release_resources()
+
+        return self._tbn_traits
 
     @property
     def volume_targets(self):
