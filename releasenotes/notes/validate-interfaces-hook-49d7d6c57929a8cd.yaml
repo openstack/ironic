@@ -1,0 +1,5 @@
+---
+fixes:
+  - |
+    Report a better error message than a KeyError when there are no interfaces
+    in the inspection data when running the validate-interfaces inspection hook.
