@@ -1,0 +1,9 @@
+---
+fixes:
+  - |
+    Fixes a bug on where NetworkAdapters Id changes across system
+    reboots, this causes firmware updates to lose the versions as IDs changes,
+    duplicate database entries for same NIC.
+    Now we use SerialNumber as the main source to identify the NetworkAdpter,
+    we fallback to Id in case the SerialNumber is not present.
+

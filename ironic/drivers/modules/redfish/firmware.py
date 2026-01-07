@@ -207,8 +207,22 @@ class RedfishFirmware(base.FirmwareInterface):
                 fw_pkg_v = net_adp_ctrl.firmware_package_version
                 if not fw_pkg_v:
                     continue
+
+                if net_adp.serial_number:
+                    net_adp_id = net_adp.serial_number
+                    LOG.debug('Using SerialNumber %(serial_number)s for '
+                              'NetworkAdapter %(net_adp_id)s',
+                              {'serial_number': net_adp.serial_number,
+                               'net_adp_id': net_adp.identity})
+                else:
+                    net_adp_id = net_adp.identity
+                    LOG.debug('Using Identity %(identity)s for '
+                              'NetworkAdapter %(net_adp_id)s',
+                              {'identity': net_adp.identity,
+                               'net_adp_id': net_adp.identity})
+
                 net_adp_fw = {'component': redfish_utils.NIC_COMPONENT_PREFIX
-                              + net_adp.identity, 'current_version': fw_pkg_v}
+                              + net_adp_id, 'current_version': fw_pkg_v}
                 nic_list.append(net_adp_fw)
 
         return nic_list

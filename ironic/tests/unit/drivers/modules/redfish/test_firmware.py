@@ -250,6 +250,7 @@ class RedfishFirmwareTestCase(db_base.DbTestCase):
             netadp_ctrl.firmware_package_version = "1"
             netadp = mock.MagicMock()
             netadp.identity = 'NIC1'
+            netadp.serial_number = None
             netadp.controllers = [netadp_ctrl]
             net_adapters = mock.MagicMock()
             net_adapters.get_members.return_value = [netadp]
@@ -257,7 +258,10 @@ class RedfishFirmwareTestCase(db_base.DbTestCase):
             task.driver.firmware.cache_firmware_components(task)
 
             log_mock.warning.assert_not_called()
-            log_mock.debug.assert_not_called()
+            log_mock.debug.assert_called_once_with(
+                'Using Identity %(identity)s for '
+                'NetworkAdapter %(net_adp_id)s',
+                {'identity': 'NIC1', 'net_adp_id': 'NIC1'})
             system_mock.assert_called_once_with(task.node)
             fw_cmp_list_mock.sync_firmware_components.assert_called_once_with(
                 task.context, task.node.id,
@@ -509,6 +513,73 @@ class RedfishFirmwareTestCase(db_base.DbTestCase):
             {'node_uuid': self.node.uuid}
         )
         log_mock.warning.assert_not_called()
+
+    @mock.patch.object(redfish_fw, 'LOG', autospec=True)
+    @mock.patch.object(redfish_utils, 'get_system', autospec=True)
+    @mock.patch.object(redfish_utils, 'get_manager', autospec=True)
+    @mock.patch.object(redfish_utils, 'get_chassis', autospec=True)
+    @mock.patch.object(objects, 'FirmwareComponentList', autospec=True)
+    @mock.patch.object(objects, 'FirmwareComponent', spec_set=True,
+                       autospec=True)
+    def test_retrieve_nic_components_serial_number(
+            self, fw_cmp_mock, fw_cmp_list, chassis_mock, manager_mock,
+            system_mock, log_mock):
+        """Test NIC component retrieval uses serial number for HPE systems.
+
+        HPE systems can have NetworkAdapter IDs that change after reboot,
+        so we use the SerialNumber when available for stable identification.
+        """
+        create_list = [
+            {'component': 'bios', 'current_version': 'v1.0.0'},
+            {'component': 'bmc', 'current_version': 'v1.0.0'},
+            {'component': 'nic:SN12345', 'current_version': '1.2.3'},
+            {'component': 'nic:NIC2', 'current_version': '1.2.4'}
+        ]
+        fw_cmp_list.sync_firmware_components.return_value = (
+            create_list, [], []
+        )
+
+        with task_manager.acquire(self.context, self.node.uuid,
+                                  shared=True) as task:
+            manager_mock.return_value.firmware_version = "v1.0.0"
+            system_mock.return_value.bios_version = "v1.0.0"
+
+            # First NIC: has serial number - should use serial number
+            netadp_ctrl1 = mock.MagicMock()
+            netadp_ctrl1.firmware_package_version = "1.2.3"
+            netadp1 = mock.MagicMock()
+            netadp1.identity = 'NIC1'
+            netadp1.serial_number = 'SN12345'
+            netadp1.controllers = [netadp_ctrl1]
+
+            # Second NIC: no serial number - should fall back to identity
+            netadp_ctrl2 = mock.MagicMock()
+            netadp_ctrl2.firmware_package_version = "1.2.4"
+            netadp2 = mock.MagicMock()
+            netadp2.identity = 'NIC2'
+            netadp2.serial_number = None
+            netadp2.controllers = [netadp_ctrl2]
+
+            net_adapters = mock.MagicMock()
+            net_adapters.get_members.return_value = [netadp1, netadp2]
+            chassis_mock.return_value.network_adapters = net_adapters
+
+            task.driver.firmware.cache_firmware_components(task)
+
+            # Verify components include serial number for first NIC
+            fw_cmp_list.sync_firmware_components.assert_called_once_with(
+                task.context, task.node.id,
+                [{'component': 'bios', 'current_version': 'v1.0.0'},
+                 {'component': 'bmc', 'current_version': 'v1.0.0'},
+                 {'component': 'nic:SN12345', 'current_version': '1.2.3'},
+                 {'component': 'nic:NIC2', 'current_version': '1.2.4'}])
+
+            # Verify debug log was called for serial number usage
+            log_mock.debug.assert_any_call(
+                'Using SerialNumber %(serial_number)s for '
+                'NetworkAdapter %(net_adp_id)s',
+                {'serial_number': 'SN12345', 'net_adp_id': 'NIC1'})
+
 
     @mock.patch.object(redfish_utils, 'LOG', autospec=True)
     @mock.patch.object(redfish_utils, '_get_connection', autospec=True)
