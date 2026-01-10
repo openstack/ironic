@@ -1,0 +1,8 @@
+---
+fixes:
+  - |
+    Fixes excessive logging when Redfish-managed servers do not have
+    NetworkAdapters endpoints. Previously, servers without NetworkAdapters
+    would generate warning-level log messages during firmware component
+    caching. Now these messages are logged at debug level since having no
+    NetworkAdapters is a valid hardware configuration.
