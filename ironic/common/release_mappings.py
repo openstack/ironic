@@ -989,6 +989,7 @@ RELEASE_MAPPING['2023.2'] = RELEASE_MAPPING['23.0']
 RELEASE_MAPPING['2024.1'] = RELEASE_MAPPING['24.1']
 RELEASE_MAPPING['2024.2'] = RELEASE_MAPPING['26.1']
 RELEASE_MAPPING['2025.1'] = RELEASE_MAPPING['29.0']
+RELEASE_MAPPING['2025.2'] = RELEASE_MAPPING['32.0']
 
 # List of available versions with named versions first; 'master' is excluded.
 RELEASE_VERSIONS = sorted(set(RELEASE_MAPPING) - {'master'}, reverse=True)
