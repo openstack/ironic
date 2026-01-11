@@ -933,9 +933,11 @@ disable_power_off:
   type: boolean
 disable_ramdisk:
   description: |
-    If set to ``true``, the ironic-python-agent ramdisk will not be booted for
-    cleaning. Only clean steps explicitly marked as not requiring ramdisk can
-    be executed in this mode. Only allowed for manual cleaning.
+    If set to ``true``, the ironic-python-agent ramdisk will not be booted.
+    Only steps explicitly marked as not requiring ramdisk can be executed in
+    this mode.
+    Allowed for manual cleaning (starting with API microversion 1.70) and for
+    manual servicing (starting with API microversion 1.108).
   in: body
   required: false
   type: boolean

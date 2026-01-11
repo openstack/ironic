@@ -2,6 +2,11 @@
 REST API Version History
 ========================
 
+1.108 (Gazpacho)
+------------------------
+Add support for ``disable_ramdisk`` parameter to provisioning endpoint
+``/v1/nodes/{node_ident}/states/provision`` for the 'service' verb.
+
 1.107 (Gazpacho)
 ------------------------
 

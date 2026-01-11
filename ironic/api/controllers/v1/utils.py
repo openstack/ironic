@@ -2223,15 +2223,30 @@ def check_allow_boot_mode(node_capabilities, disallowed_boot_modes):
                                                    op=_('provisioning'))
 
 
-def check_allow_clean_disable_ramdisk(target, disable_ramdisk):
+def check_allow_disable_ramdisk(target, disable_ramdisk):
     if disable_ramdisk is None:
         return
-    elif api.request.version.minor < versions.MINOR_70_CLEAN_DISABLE_RAMDISK:
-        raise exception.NotAcceptable(
-            _("disable_ramdisk is not acceptable in this API version"))
-    elif target != "clean":
-        raise exception.BadRequest(
-            _("disable_ramdisk is supported only with manual cleaning"))
+
+    minor = api.request.version.minor
+    if target == states.VERBS['clean']:
+        if minor < versions.MINOR_70_CLEAN_DISABLE_RAMDISK:
+            raise exception.NotAcceptable(
+                _("disable_ramdisk is not acceptable in this API version"))
+        return
+
+    if target == states.VERBS['service']:
+        if minor < versions.MINOR_108_SERVICE_DISABLE_RAMDISK:
+            raise exception.NotAcceptable(
+                _("disable_ramdisk is not acceptable in this API version"))
+        return
+
+    raise exception.BadRequest(
+        _("disable_ramdisk is supported only with manual cleaning "
+          "or servicing"))
+
+
+def check_allow_clean_disable_ramdisk(target, disable_ramdisk):
+    return check_allow_disable_ramdisk(target, disable_ramdisk)
 
 
 def allow_shards_endpoint():

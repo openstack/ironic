@@ -1,0 +1,7 @@
+---
+features:
+  - |
+    Adds support for using ``disable_ramdisk`` with manual servicing
+    (``target=service``) starting with Bare Metal API microversion ``1.108``.
+    This enables running service steps that are explicitly marked as not
+    requiring a ramdisk.
