@@ -6686,6 +6686,36 @@ ORHMKeXMO8fcK0By7CiMKwHSXCoEQgfQhWwpMdSsO8LgHCjh87DQc= """
                             expect_errors=True)
         self.assertEqual(http_client.NOT_ACCEPTABLE, ret.status_code)
 
+    @mock.patch.object(api_utils, 'check_runbook_policy_and_retrieve',
+                       autospec=True)
+    @mock.patch.object(rpcapi.ConductorAPI, 'do_node_clean', autospec=True)
+    @mock.patch.object(api_node, '_check_clean_steps', autospec=True)
+    def test_clean_with_runbook_disable_ramdisk(self, mock_check,
+                                                 mock_rpcapi, mock_policy):
+        objects.TraitList.create(self.context, self.node.id, ['CUSTOM_1'])
+        self.node.refresh()
+
+        self.node.provision_state = states.MANAGEABLE
+        self.node.save()
+
+        runbook = mock.Mock()
+        runbook.name = 'CUSTOM_1'
+        runbook.steps = [{"step": "erase_devices", "interface": "deploy",
+                          "args": {}}]
+        runbook.disable_ramdisk = True
+        mock_policy.return_value = runbook
+
+        ret = self.put_json('/nodes/%s/states/provision' % self.node.uuid,
+                            {'target': states.VERBS['clean'],
+                             'runbook': runbook.name},
+                            headers={api_base.Version.string: "1.106"})
+        self.assertEqual(http_client.ACCEPTED, ret.status_code)
+        self.assertEqual(b'', ret.body)
+        mock_check.assert_called_once_with(runbook.steps)
+        mock_rpcapi.assert_called_once_with(mock.ANY, mock.ANY,
+                                            self.node.uuid, runbook.steps,
+                                            True, topic='test-topic')
+
     def test_adopt_raises_error_before_1_17(self):
         """Test that a lower API client cannot use the adopt verb"""
         ret = self.put_json('/nodes/%s/states/provision' % self.node.uuid,
@@ -7365,12 +7395,12 @@ ORHMKeXMO8fcK0By7CiMKwHSXCoEQgfQhWwpMdSsO8LgHCjh87DQc= """
         runbook.name = 'CUSTOM_1'
         runbook.steps = [{"step": "upgrade_firmware", "interface": "deploy",
                           "args": {}}]
+        runbook.disable_ramdisk = None
         mock_policy.return_value = runbook
         ret = self.put_json('/nodes/%s/states/provision' % self.node.uuid,
                             {'target': states.VERBS['service'],
                              'runbook': runbook.name},
-                            headers={api_base.Version.string:
-                                     str(api_v1.max_version())})
+                            headers={api_base.Version.string: '1.106'})
         self.assertEqual(http_client.ACCEPTED, ret.status_code)
         self.assertEqual(b'', ret.body)
         mock_policy.assert_has_calls([mock.call('baremetal:runbook:use',
