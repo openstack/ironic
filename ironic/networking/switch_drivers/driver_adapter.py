@@ -39,13 +39,25 @@ CONF = cfg.CONF
 class NetworkingDriverAdapter:
     """Adapter for translating switch config to driver-specific format."""
 
-    def __init__(self):
-        """Initialize the driver adapter."""
-        self.driver_translators = {}
-        self._register_translators()
+    def __init__(self, driver_classes):
+        """Initialize the driver adapter.
 
-    def _register_translators(self):
-        """Register available driver translators."""
+        :param driver_classes: Dictionary of driver name -> driver class.
+            Classes must implement get_translator() classmethod.
+        """
+        self.driver_translators = {}
+        self._register_translators(driver_classes)
+
+    def _register_translators(self, driver_classes):
+        """Register available driver translators.
+
+        :param driver_classes: Dictionary of driver name -> driver class.
+            Works with both driver classes and instances since
+            get_translator() is a classmethod.
+        """
+        for name, driver_class in driver_classes.items():
+            self.register_translator(name, driver_class.get_translator())
+
         LOG.debug(
             "Registered translators for drivers: %s",
             list(self.driver_translators.keys()),

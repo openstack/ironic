@@ -20,15 +20,20 @@ import fixtures
 from oslo_config import cfg
 
 from ironic.common import exception
+from ironic.drivers.modules.switch.base import BaseTranslator
+from ironic.drivers.modules.switch.base import NoOpSwitchDriver
 from ironic.networking.switch_drivers import driver_adapter
-from ironic import tests as tests_root
+from ironic.tests import base
 
 
 CONF = cfg.CONF
 
 
-class NetworkingDriverAdapterTestCase(tests_root.base.TestCase):
+class NetworkingDriverAdapterTestCase(base.TestCase):
     """Test cases for NetworkingDriverAdapter class."""
+    switch_config_path = None
+    output_config_path = None
+    adapter = None
 
     def setUp(self):
         super(NetworkingDriverAdapterTestCase, self).setUp()
@@ -40,7 +45,34 @@ class NetworkingDriverAdapterTestCase(tests_root.base.TestCase):
         self.config(group='ironic_networking',
                     switch_config_file=self.switch_config_path)
         self.config(group='ironic_networking', driver_config_dir=temp_dir)
-        self.adapter = driver_adapter.NetworkingDriverAdapter()
+        fake_drivers = {'noop': NoOpSwitchDriver()}
+        self.adapter = driver_adapter.NetworkingDriverAdapter(fake_drivers)
+
+    def test___init__(self):
+        """Test NetworkingDriverAdapter initialization."""
+        test_drivers = {'noop': NoOpSwitchDriver()}
+        adapter = driver_adapter.NetworkingDriverAdapter(test_drivers)
+        # Translators are registered during initialization
+        self.assertIn('noop', adapter.driver_translators)
+        self.assertIsInstance(
+            adapter.driver_translators['noop'],
+            BaseTranslator
+        )
+
+    @mock.patch.object(driver_adapter.NetworkingDriverAdapter,
+                       'register_translator', autospec=True)
+    def test__register_translators(self, mock_register):
+        """Test _register_translators method."""
+        # __init__ calls _register_translators, which calls register_translator
+        test_drivers = {'noop': NoOpSwitchDriver()}
+        adapter = driver_adapter.NetworkingDriverAdapter(test_drivers)
+
+        # Should be called once during __init__
+        mock_register.assert_called_once_with(
+            adapter, 'noop', mock.ANY)
+        # Verify the translator instance is correct type
+        call_args = mock_register.call_args[0]
+        self.assertIsInstance(call_args[2], BaseTranslator)
 
     def test_register_translator(self):
         """Test register_translator method."""
@@ -563,12 +595,14 @@ class NetworkingDriverAdapterTestCase(tests_root.base.TestCase):
         mock_unlink.assert_called_once_with('/tmp/.tmp_driver_config_xyz')
 
 
-class NetworkingDriverAdapterReloadTestCase(tests_root.base.TestCase):
+class NetworkingDriverAdapterReloadTestCase(base.TestCase):
     """Tests for reload_configuration helper."""
+    adapter = None
 
     def setUp(self):
         super(NetworkingDriverAdapterReloadTestCase, self).setUp()
-        self.adapter = driver_adapter.NetworkingDriverAdapter()
+        test_drivers = {'noop': NoOpSwitchDriver()}
+        self.adapter = driver_adapter.NetworkingDriverAdapter(test_drivers)
 
     def test_reload_configuration_success(self):
         output_file = '/tmp/switches.conf'
