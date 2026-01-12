@@ -613,3 +613,257 @@ class HardwareTypeLoadTestCase(db_base.DbTestCase):
 
     def test_enabled_supported_interfaces_non_default(self):
         self._test_enabled_supported_interfaces(True)
+
+
+class TwoPhaseDriverInitializationTestCase(base.TestCase):
+    """Test cases for two-phase driver initialization."""
+
+    def setUp(self):
+        super(TwoPhaseDriverInitializationTestCase, self).setUp()
+        # Create a test factory class
+        self.test_factory_class = type(
+            'TestTwoPhaseFactory',
+            (driver_factory.BaseDriverFactory,),
+            {
+                '_entrypoint_name': 'test.two_phase',
+                '_enabled_driver_list_config_option': 'test_drivers',
+                '_invoke_on_load': False,
+                '_extension_manager': None,
+                '_enabled_driver_list': None,
+                '_drivers_initialized': False,
+            }
+        )
+
+    def tearDown(self):
+        # Reset class variables
+        self.test_factory_class._extension_manager = None
+        self.test_factory_class._enabled_driver_list = None
+        self.test_factory_class._drivers_initialized = False
+        super(TwoPhaseDriverInitializationTestCase, self).tearDown()
+
+    @mock.patch.object(named.NamedExtensionManager, '__init__',
+                       return_value=None, autospec=True)
+    @mock.patch.object(named.NamedExtensionManager, 'names',
+                       return_value=['test_driver'], autospec=True)
+    def test_init_with_invoke_on_load_false(self, mock_names, mock_init):
+        """Test that invoke_on_load=False is passed to stevedore."""
+        factory = self.test_factory_class()
+
+        # Verify that invoke_on_load was set to False
+        call_kwargs = mock_init.call_args[1]
+        self.assertFalse(call_kwargs['invoke_on_load'])
+        self.assertFalse(factory._drivers_initialized)
+
+    @mock.patch.object(named.NamedExtensionManager, '__init__',
+                       return_value=None, autospec=True)
+    @mock.patch.object(named.NamedExtensionManager, 'names',
+                       return_value=[], autospec=True)
+    def test_get_driver_classes_before_initialization(self, mock_names,
+                                                       mock_init):
+        """Test get_driver_classes returns plugin classes."""
+        # Create mock extensions
+        mock_ext1 = mock.Mock()
+        mock_ext1.name = 'driver1'
+        mock_ext1.plugin = mock.Mock()
+
+        mock_ext2 = mock.Mock()
+        mock_ext2.name = 'driver2'
+        mock_ext2.plugin = mock.Mock()
+
+        factory = self.test_factory_class()
+        factory._extension_manager = [mock_ext1, mock_ext2]
+
+        driver_classes = factory.get_driver_classes()
+
+        self.assertEqual(2, len(driver_classes))
+        self.assertEqual(mock_ext1.plugin, driver_classes['driver1'])
+        self.assertEqual(mock_ext2.plugin, driver_classes['driver2'])
+
+    @mock.patch.object(named.NamedExtensionManager, '__init__',
+                       return_value=None, autospec=True)
+    @mock.patch.object(named.NamedExtensionManager, 'names',
+                       return_value=[], autospec=True)
+    def test_get_driver_before_initialization_raises_error(self, mock_names,
+                                                            mock_init):
+        """Test that get_driver raises error when drivers not initialized."""
+        factory = self.test_factory_class()
+
+        # Mock the extension manager
+        mock_ext = mock.Mock()
+        mock_ext.name = 'test_driver'
+        mock_ext.obj = None
+        factory._extension_manager = {'test_driver': mock_ext}
+
+        # Should raise error since drivers not initialized
+        self.assertRaises(exception.DriverLoadError,
+                          factory.get_driver, 'test_driver')
+
+    @mock.patch.object(driver_factory, '_warn_if_unsupported', autospec=True)
+    @mock.patch('oslo_concurrency.lockutils.lock', autospec=True)
+    def test_initialize_drivers_success(self, mock_lock, mock_warn):
+        """Test successful driver initialization."""
+        # Create fresh test class for this test
+        test_class = type(
+            'TestFactory',
+            (driver_factory.BaseDriverFactory,),
+            {
+                '_entrypoint_name': 'test.init_success',
+                '_enabled_driver_list_config_option': 'test_drivers',
+                '_invoke_on_load': False,
+                '_extension_manager': None,
+                '_enabled_driver_list': ['test_driver'],
+                '_drivers_initialized': False,
+            }
+        )
+
+        # Create mock extension with plugin class
+        mock_driver_instance = mock.Mock()
+        mock_driver_class = mock.Mock(return_value=mock_driver_instance)
+
+        mock_ext = mock.Mock()
+        mock_ext.name = 'test_driver'
+        mock_ext.plugin = mock_driver_class
+        mock_ext.obj = None
+
+        # Create mock extension manager
+        mock_em = mock.Mock()
+        mock_em.__iter__ = mock.Mock(return_value=iter([mock_ext]))
+        mock_em.map = mock.Mock()
+
+        test_class._extension_manager = mock_em
+
+        # Initialize drivers
+        test_class.initialize_drivers()
+
+        # Verify driver was instantiated
+        mock_driver_class.assert_called_once()
+        self.assertEqual(mock_driver_instance, mock_ext.obj)
+        self.assertTrue(test_class._drivers_initialized)
+
+        # Verify warning check was called
+        mock_em.map.assert_called_once()
+
+    @mock.patch('oslo_concurrency.lockutils.lock', autospec=True)
+    def test_initialize_drivers_idempotent(self, mock_lock):
+        """Test that initialize_drivers can be called multiple times."""
+        # Create fresh test class
+        test_class = type(
+            'TestFactoryIdem',
+            (driver_factory.BaseDriverFactory,),
+            {
+                '_entrypoint_name': 'test.idempotent',
+                '_enabled_driver_list_config_option': 'test_drivers',
+                '_invoke_on_load': False,
+                '_extension_manager': None,
+                '_enabled_driver_list': ['test_driver'],
+                '_drivers_initialized': False,
+            }
+        )
+
+        mock_driver_instance = mock.Mock()
+        mock_driver_class = mock.Mock(return_value=mock_driver_instance)
+
+        mock_ext = mock.Mock()
+        mock_ext.name = 'test_driver'
+        mock_ext.plugin = mock_driver_class
+        mock_ext.obj = None
+
+        # Create mock extension manager
+        mock_em = mock.Mock()
+        mock_em.__iter__ = mock.Mock(return_value=iter([mock_ext]))
+        mock_em.map = mock.Mock()
+
+        test_class._extension_manager = mock_em
+
+        # Initialize drivers twice
+        test_class.initialize_drivers()
+        test_class.initialize_drivers()
+
+        # Verify driver was only instantiated once
+        mock_driver_class.assert_called_once()
+
+    @mock.patch('oslo_concurrency.lockutils.lock', autospec=True)
+    def test_initialize_drivers_failure(self, mock_lock):
+        """Test driver initialization failure handling."""
+        # Create fresh test class
+        test_class = type(
+            'TestFactoryFail',
+            (driver_factory.BaseDriverFactory,),
+            {
+                '_entrypoint_name': 'test.failure',
+                '_enabled_driver_list_config_option': 'test_drivers',
+                '_invoke_on_load': False,
+                '_extension_manager': None,
+                '_enabled_driver_list': ['test_driver'],
+                '_drivers_initialized': False,
+            }
+        )
+
+        # Create mock plugin that raises an error
+        mock_driver_class = mock.Mock(
+            side_effect=RuntimeError("Driver init failed")
+        )
+
+        mock_ext = mock.Mock()
+        mock_ext.name = 'test_driver'
+        mock_ext.plugin = mock_driver_class
+        mock_ext.obj = None
+
+        # Create mock extension manager
+        mock_em = mock.Mock()
+        mock_em.__iter__ = mock.Mock(return_value=iter([mock_ext]))
+
+        test_class._extension_manager = mock_em
+
+        # Should wrap exception in DriverLoadError
+        self.assertRaises(exception.DriverLoadError,
+                          test_class.initialize_drivers)
+
+    def test_initialize_drivers_without_extension_manager(self):
+        """Test initialize_drivers fails without extension manager."""
+        # Don't create a factory instance, just use the class
+        self.test_factory_class._extension_manager = None
+        self.test_factory_class._drivers_initialized = False
+
+        self.assertRaises(exception.DriverLoadError,
+                          self.test_factory_class.initialize_drivers)
+
+    @mock.patch.object(named.NamedExtensionManager, '__init__',
+                       return_value=None, autospec=True)
+    @mock.patch.object(named.NamedExtensionManager, 'names',
+                       return_value=[], autospec=True)
+    def test_get_driver_classes_after_initialization(self, mock_names,
+                                                      mock_init):
+        """Test get_driver_classes returns classes after initialization."""
+        # Create fresh test class for this test
+        test_class = type(
+            'TestFactoryAfterInit',
+            (driver_factory.BaseDriverFactory,),
+            {
+                '_entrypoint_name': 'test.after_init',
+                '_enabled_driver_list_config_option': 'test_drivers',
+                '_invoke_on_load': False,
+                '_extension_manager': None,
+                '_enabled_driver_list': [],
+                '_drivers_initialized': True,  # Already initialized
+            }
+        )
+
+        # Create mock driver class and instance
+        class MockDriverClass:
+            pass
+
+        mock_driver_instance = MockDriverClass()
+
+        mock_ext = mock.Mock()
+        mock_ext.name = 'test_driver'
+        mock_ext.obj = mock_driver_instance
+
+        # Don't create instance, just set class variable
+        test_class._extension_manager = [mock_ext]
+
+        factory = test_class()
+        driver_classes = factory.get_driver_classes()
+
+        self.assertEqual(1, len(driver_classes))
+        self.assertEqual(MockDriverClass, driver_classes['test_driver'])
