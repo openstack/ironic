@@ -83,3 +83,21 @@ SCCICLIENT_VIOM_CONF_SPEC = (
 REDFISH_SPEC = (
     'redfish',
 )
+
+# networking_generic_switch
+NETWORKING_GENERIC_SWITCH_SPEC = (
+    'devices',
+    'config',
+)
+NETWORKING_GENERIC_SWITCH_DEVICES_SPEC = (
+    'DEVICES',
+    'device_manager',
+    'get_devices',
+    'utils',
+)
+NETWORKING_GENERIC_SWITCH_DEVICES_UTILS_SPEC = (
+    'get_switch_device',
+)
+NETWORKING_GENERIC_SWITCH_CONFIG_SPEC = (
+    'get_devices',
+)

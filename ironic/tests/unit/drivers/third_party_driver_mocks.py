@@ -129,6 +129,39 @@ irmc_boot = importutils.import_module(
 irmc_boot.check_share_fs_mounted_orig = irmc_boot.check_share_fs_mounted
 
 
+# attempt to load the external 'networking_generic_switch' library, which is
+# required by the optional drivers.modules.switch.generic_switch module
+networking_generic_switch = importutils.try_import('networking_generic_switch')
+if not networking_generic_switch:
+    ngs = mock.MagicMock(spec_set=mock_specs.NETWORKING_GENERIC_SWITCH_SPEC)
+    ngs_devices = mock.MagicMock(
+        spec_set=mock_specs.NETWORKING_GENERIC_SWITCH_DEVICES_SPEC)
+    ngs_devices_utils = mock.MagicMock(
+        spec_set=mock_specs.NETWORKING_GENERIC_SWITCH_DEVICES_UTILS_SPEC)
+    ngs_config = mock.MagicMock(
+        spec_set=mock_specs.NETWORKING_GENERIC_SWITCH_CONFIG_SPEC)
+
+    # Set up the module structure
+    ngs.devices = ngs_devices
+    ngs.devices.utils = ngs_devices_utils
+    ngs.config = ngs_config
+
+    ngs.devices.DEVICES = {}
+
+    # Install in sys.modules
+    sys.modules['networking_generic_switch'] = ngs
+    sys.modules['networking_generic_switch.devices'] = ngs_devices
+    sys.modules['networking_generic_switch.devices.utils'] = ngs_devices_utils
+    sys.modules['networking_generic_switch.config'] = ngs_config
+
+
+# if anything has loaded the generic_switch driver yet, reload it now that the
+# external library has been mocked
+if 'ironic.drivers.modules.switch.generic_switch' in sys.modules:
+    importlib.reload(
+        sys.modules['ironic.drivers.modules.switch.generic_switch'])
+
+
 class MockKwargsException(Exception):
     def __init__(self, *args, **kwargs):
         super(MockKwargsException, self).__init__(*args)
