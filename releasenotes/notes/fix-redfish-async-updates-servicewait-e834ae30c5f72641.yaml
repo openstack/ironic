@@ -1,0 +1,9 @@
+---
+fixes:
+  - |
+    Fixes an issue with the redfish firmware updates attached to the
+    ``management`` interface where firmware updates performed as part of the
+    SERVICE steps workflow could end up stuck in ``service wait``.
+    This issue has been corrected and the nodes should now properly have their
+    state checked. For more information, please consult
+    `bug 2136895 <https://bugs.launchpad.net/ironic/+bug/2136895>`_.
