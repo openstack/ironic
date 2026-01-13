@@ -14,6 +14,7 @@ Redfish Inspect Interface
 """
 
 from oslo_log import log
+from oslo_utils import netutils
 from oslo_utils import units
 import sushy
 
@@ -141,12 +142,7 @@ class RedfishInspect(base.InspectInterface):
 
             inventory['disks'] = disks
 
-        if system.ethernet_interfaces and system.ethernet_interfaces.summary:
-            inventory['interfaces'] = []
-            for eth in system.ethernet_interfaces.get_members():
-                iface = {'mac_address': eth.mac_address,
-                         'name': eth.identity}
-                inventory['interfaces'].append(iface)
+        inventory['interfaces'] = self._get_interface_info(task, system)
 
         pcie_devices = self._get_pcie_devices(system.pcie_devices)
         if pcie_devices:
@@ -309,6 +305,33 @@ class RedfishInspect(base.InspectInterface):
                   If cannot be determined, returns None.
         """
         return None
+
+    def _get_interface_info(self, task, system):
+        """Extract ethernet interface info."""
+
+        ret = []
+        if not system.ethernet_interfaces:
+            return ret
+
+        for eth in system.ethernet_interfaces.get_members():
+            if not netutils.is_valid_mac(eth.mac_address):
+                LOG.warning(_("Ignoring NIC address '%(address)s' for "
+                              "interface %(inf)s on node %(node)s because it "
+                              "is not a valid MAC"),
+                            {'address': eth.mac_address,
+                             'inf': eth.identity,
+                             'node': task.node.uuid})
+                continue
+            intf = {
+                'mac_address': eth.mac_address,
+                'name': eth.identity
+            }
+            try:
+                intf['speed_mbps'] = int(eth.speed_mbps)
+            except Exception:
+                pass
+            ret.append(intf)
+        return ret
 
     def _get_processor_info(self, task, system):
         # NOTE(JayF): Checking truthiness here is better than checking for None

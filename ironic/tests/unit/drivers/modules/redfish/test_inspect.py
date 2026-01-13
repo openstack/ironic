@@ -108,6 +108,7 @@ class RedfishInspectTestCase(db_base.DbTestCase):
             spec=sushy.resources.system.ethernet_interface.EthernetInterface)
         eth_interface_mock1.identity = 'NIC.Integrated.1-1'
         eth_interface_mock1.mac_address = '00:11:22:33:44:55'
+        eth_interface_mock1.speed_mbps = 25000
         eth_interface_mock1.status.state = sushy.STATE_ENABLED
         eth_interface_mock1.status.health = sushy.HEALTH_OK
 
@@ -115,6 +116,7 @@ class RedfishInspectTestCase(db_base.DbTestCase):
             spec=sushy.resources.system.ethernet_interface.EthernetInterface)
         eth_interface_mock2.identity = 'NIC.Integrated.2-1'
         eth_interface_mock2.mac_address = '66:77:88:99:AA:BB'
+        eth_interface_mock2.speed_mbps = 25000
         eth_interface_mock2.status.state = sushy.STATE_DISABLED
         eth_interface_mock2.status.health = sushy.HEALTH_OK
 
@@ -235,9 +237,11 @@ class RedfishInspectTestCase(db_base.DbTestCase):
                          system_vendor['system_uuid'])
 
         expected_interfaces = [{'mac_address': '00:11:22:33:44:55',
-                                'name': 'NIC.Integrated.1-1'},
+                                'name': 'NIC.Integrated.1-1',
+                                'speed_mbps': 25000},
                                {'mac_address': '66:77:88:99:AA:BB',
-                                'name': 'NIC.Integrated.2-1'}]
+                                'name': 'NIC.Integrated.2-1',
+                                'speed_mbps': 25000}]
         self.assertEqual(expected_interfaces,
                          inventory['inventory']['interfaces'])
 
