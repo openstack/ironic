@@ -125,6 +125,9 @@ machine.add_transition(st.DEPLOYHOLD, st.DEPLOYWAIT, 'unhold')
 # A node in deploy hold may also be aborted
 machine.add_transition(st.DEPLOYHOLD, st.DEPLOYFAIL, 'abort')
 
+# A deployment waiting on callback may be aborted
+machine.add_transition(st.DEPLOYWAIT, st.DEPLOYFAIL, 'abort')
+
 # A deployment may complete
 machine.add_transition(st.DEPLOYING, st.ACTIVE, 'done')
 

@@ -353,6 +353,7 @@ class DeployStepDecoratorTestCase(base.TestCase):
         method_mock = mock.MagicMock()
         del method_mock._is_deploy_step
         del method_mock._deploy_step_priority
+        del method_mock._deploy_step_abortable
         del method_mock._deploy_step_argsinfo
         self.method = method_mock
 
@@ -371,6 +372,32 @@ class DeployStepDecoratorTestCase(base.TestCase):
         self.assertTrue(self.method._is_deploy_step)
         self.assertEqual(0, self.method._deploy_step_priority)
         self.assertEqual(argsinfo, self.method._deploy_step_argsinfo)
+        # Defaults to True
+        self.assertTrue(self.method._deploy_step_abortable)
+
+    def test_deploy_step_abortable_default(self):
+        d = driver_base.deploy_step(priority=10)
+        d(self.method)
+        self.assertTrue(self.method._is_deploy_step)
+        self.assertEqual(10, self.method._deploy_step_priority)
+        # Defaults to True
+        self.assertTrue(self.method._deploy_step_abortable)
+
+    def test_deploy_step_abortable_false(self):
+        d = driver_base.deploy_step(priority=10, abortable=False)
+        d(self.method)
+        self.assertTrue(self.method._is_deploy_step)
+        self.assertEqual(10, self.method._deploy_step_priority)
+        self.assertFalse(self.method._deploy_step_abortable)
+
+    def test_deploy_step_bad_abortable(self):
+        d = driver_base.deploy_step(priority=0, abortable='blue')
+        self.assertRaisesRegex(exception.InvalidParameterValue, 'abortable',
+                               d, self.method)
+        self.assertTrue(self.method._is_deploy_step)
+        self.assertEqual(0, self.method._deploy_step_priority)
+        self.assertFalse(hasattr(self.method, '_deploy_step_abortable'))
+        self.assertFalse(hasattr(self.method, '_deploy_step_argsinfo'))
 
     def test_deploy_step_bad_priority(self):
         d = driver_base.deploy_step(priority='hi')
@@ -398,6 +425,7 @@ class DeployAndCleanStepDecoratorTestCase(base.TestCase):
         method_mock = mock.MagicMock()
         del method_mock._is_deploy_step
         del method_mock._deploy_step_priority
+        del method_mock._deploy_step_abortable
         del method_mock._deploy_step_argsinfo
         del method_mock._is_clean_step
         del method_mock._clean_step_priority
@@ -411,9 +439,11 @@ class DeployAndCleanStepDecoratorTestCase(base.TestCase):
         dd(dc(self.method))
         self.assertTrue(self.method._is_deploy_step)
         self.assertEqual(10, self.method._deploy_step_priority)
+        self.assertTrue(self.method._deploy_step_abortable)  # defaults to True
         self.assertIsNone(self.method._deploy_step_argsinfo)
         self.assertTrue(self.method._is_clean_step)
         self.assertEqual(11, self.method._clean_step_priority)
+        # defaults to False
         self.assertFalse(self.method._clean_step_abortable)
         self.assertIsNone(self.method._clean_step_argsinfo)
 
@@ -427,9 +457,11 @@ class DeployAndCleanStepDecoratorTestCase(base.TestCase):
         dd(dc(self.method))
         self.assertTrue(self.method._is_deploy_step)
         self.assertEqual(0, self.method._deploy_step_priority)
+        self.assertTrue(self.method._deploy_step_abortable)  # defaults to True
         self.assertEqual(dargsinfo, self.method._deploy_step_argsinfo)
         self.assertTrue(self.method._is_clean_step)
         self.assertEqual(0, self.method._clean_step_priority)
+        # defaults to False
         self.assertFalse(self.method._clean_step_abortable)
         self.assertEqual(cargsinfo, self.method._clean_step_argsinfo)
 
@@ -444,9 +476,11 @@ class DeployAndCleanStepDecoratorTestCase(base.TestCase):
         dc(dd(self.method))
         self.assertTrue(self.method._is_deploy_step)
         self.assertEqual(0, self.method._deploy_step_priority)
+        self.assertTrue(self.method._deploy_step_abortable)  # defaults to True
         self.assertEqual(dargsinfo, self.method._deploy_step_argsinfo)
         self.assertTrue(self.method._is_clean_step)
         self.assertEqual(0, self.method._clean_step_priority)
+        # defaults to False
         self.assertFalse(self.method._clean_step_abortable)
         self.assertEqual(cargsinfo, self.method._clean_step_argsinfo)
 
@@ -570,6 +604,40 @@ class DeployStepTestCase(base.TestCase):
                        'args': args}
         obj3.execute_deploy_step(task_mock, deploy_step)
         method_args_mock.assert_called_once_with(task_mock, **args)
+
+    def test_deploy_steps_include_abortable(self):
+        # Verify that deploy steps include the abortable field
+        class BaseTestClass(driver_base.BaseInterface):
+            def get_properties(self):
+                return {}
+
+            def validate(self, task):
+                pass
+
+        class TestClass(BaseTestClass):
+            interface_type = 'test'
+
+            @driver_base.deploy_step(priority=10)
+            def deploy_abortable_default(self, task):
+                pass
+
+            @driver_base.deploy_step(priority=20, abortable=False)
+            def deploy_not_abortable(self, task):
+                pass
+
+        obj = TestClass()
+        task_mock = mock.MagicMock(spec_set=[])
+        steps = obj.get_deploy_steps(task_mock)
+
+        # Find the steps
+        abortable_step = [s for s in steps
+                          if s['step'] == 'deploy_abortable_default'][0]
+        non_abortable_step = [s for s in steps
+                              if s['step'] == 'deploy_not_abortable'][0]
+
+        # Verify the abortable field
+        self.assertTrue(abortable_step['abortable'])  # defaults to True
+        self.assertFalse(non_abortable_step['abortable'])
 
 
 class MyRAIDInterface(driver_base.RAIDInterface):

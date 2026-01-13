@@ -7363,6 +7363,25 @@ ORHMKeXMO8fcK0By7CiMKwHSXCoEQgfQhWwpMdSsO8LgHCjh87DQc= """
                             headers={api_base.Version.string: "1.41"})
         self.assertEqual(http_client.ACCEPTED, ret.status_code)
 
+    def test_deploy_abort_raises_before_1_110(self):
+        self.node.provision_state = states.DEPLOYWAIT
+        self.node.save()
+        ret = self.put_json('/nodes/%s/states/provision' % self.node.uuid,
+                            {'target': states.VERBS['abort']},
+                            headers={api_base.Version.string: "1.109"},
+                            expect_errors=True)
+        self.assertEqual(http_client.NOT_ACCEPTABLE, ret.status_code)
+
+    @mock.patch.object(rpcapi.ConductorAPI, 'do_provisioning_action',
+                       autospec=True)
+    def test_deploy_abort_accepted_after_1_110(self, mock_provision):
+        self.node.provision_state = states.DEPLOYWAIT
+        self.node.save()
+        ret = self.put_json('/nodes/%s/states/provision' % self.node.uuid,
+                            {'target': states.VERBS['abort']},
+                            headers={api_base.Version.string: "1.110"})
+        self.assertEqual(http_client.ACCEPTED, ret.status_code)
+
     @mock.patch.object(rpcapi.ConductorAPI, 'set_indicator_state',
                        autospec=True)
     def test_set_indicator_state(self, mock_sis):

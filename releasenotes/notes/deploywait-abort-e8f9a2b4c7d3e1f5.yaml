@@ -1,0 +1,28 @@
+---
+features:
+  - |
+    Adds support for aborting deployment while in the ``wait call-back``
+    (DEPLOYWAIT) provision state. This provides consistency with other wait
+    states (CLEANWAIT, INSPECTWAIT, RESCUEWAIT, SERVICEWAIT) that already
+    support the abort verb. Operators can now issue the abort command on a
+    node in DEPLOYWAIT state, which will transition it to DEPLOYFAIL.
+
+    Unlike aborting from DEPLOYHOLD which triggers a full teardown and
+    cleaning, aborting from DEPLOYWAIT performs a deployment cleanup and
+    leaves the node in DEPLOYFAIL state without triggering automated cleaning.
+    This allows operators to investigate the issue or retry deployment without
+    waiting for a full cleaning cycle.
+
+    This feature is available starting with API version 1.110. When a node
+    is in DEPLOYWAIT and has a non-abortable deploy step running, the abort
+    request will flag the step to be aborted after completion, similar to
+    the behavior for cleaning and servicing.
+  - |
+    The ``@deploy_step`` decorator now supports an ``abortable`` parameter,
+    similar to ``@clean_step`` and ``@service_step`` decorators. This allows
+    deploy steps to be marked as non-abortable for critical operations that
+    cannot be safely interrupted. The default value is ``True`` (abortable)
+    for backward compatibility. Steps that are both clean and deploy steps
+    with ``abortable=False`` in the clean step decorator have been updated
+    to also have ``abortable=False`` in their deploy step decorator for
+    consistency.

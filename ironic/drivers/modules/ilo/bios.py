@@ -156,7 +156,8 @@ class IloBIOS(base.BIOSInterface):
             raise exception.InstanceDeployFailure(reason=errmsg)
 
     @METRICS.timer('IloBIOS.apply_configuration')
-    @base.deploy_step(priority=0, argsinfo=_APPLY_CONFIGURATION_ARGSINFO)
+    @base.deploy_step(priority=0, abortable=False,
+                      argsinfo=_APPLY_CONFIGURATION_ARGSINFO)
     @base.clean_step(priority=0, abortable=False,
                      argsinfo=_APPLY_CONFIGURATION_ARGSINFO)
     @base.cache_bios_settings
@@ -181,7 +182,7 @@ class IloBIOS(base.BIOSInterface):
                 task, 'apply_configuration')
 
     @METRICS.timer('IloBIOS.factory_reset')
-    @base.deploy_step(priority=0)
+    @base.deploy_step(priority=0, abortable=False)
     @base.clean_step(priority=0, abortable=False)
     @base.cache_bios_settings
     def factory_reset(self, task):

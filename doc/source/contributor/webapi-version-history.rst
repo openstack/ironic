@@ -2,6 +2,16 @@
 REST API Version History
 ========================
 
+1.110 (Gazpacho)
+----------------------
+
+Add support for aborting deployment in the ``wait call-back`` (DEPLOYWAIT) state.
+This provides consistency with other wait states that already support the abort
+verb, allowing operators to issue ``abort`` on a node in DEPLOYWAIT state to
+transition it to DEPLOYFAIL. The node remains in DEPLOYFAIL state without
+triggering automated cleaning, allowing operators to investigate the issue or
+retry deployment.
+
 1.109 (Gazpacho)
 ----------------------
 
