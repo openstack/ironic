@@ -1,0 +1,7 @@
+---
+fixes:
+  - |
+    The port API endpoints were not returning the vendor and category fields
+    when they should have been. A number of places the API docs were incorrect
+    and missed adding information about the vendor and category fields but
+    other fields were omitted as well.
