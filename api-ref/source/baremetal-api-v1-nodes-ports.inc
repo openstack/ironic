@@ -35,6 +35,18 @@ Return a list of bare metal Ports associated with ``node_ident``.
 .. versionadded:: 1.53
   Added the ``is_smartnic`` response fields.
 
+.. versionadded:: 1.88
+  Added the ``name`` field.
+
+.. versionadded:: 1.97
+  Added the ``description`` field.
+
+.. versionadded:: 1.100
+  Added the ``vendor`` field.
+
+.. versionadded:: 1.101
+  Added the ``category`` field.
+
 Normal response code: 200
 
 Error codes: TBD
@@ -85,6 +97,18 @@ Return a detailed list of bare metal Ports associated with ``node_ident``.
 .. versionadded:: 1.53
   Added the ``is_smartnic`` response fields.
 
+.. versionadded:: 1.88
+  Added the ``name`` field.
+
+.. versionadded:: 1.97
+  Added the ``description`` field.
+
+.. versionadded:: 1.100
+  Added the ``vendor`` field.
+
+.. versionadded:: 1.101
+  Added the ``category`` field.
+
 Normal response code: 200
 
 Error codes: TBD
@@ -110,6 +134,7 @@ Response
     - uuid: uuid
     - address: port_address
     - node_uuid: node_uuid
+    - name: port_name
     - local_link_connection: local_link_connection
     - pxe_enabled: pxe_enabled
     - physical_network: physical_network
@@ -119,6 +144,9 @@ Response
     - updated_at: updated_at
     - links: links
     - is_smartnic: is_smartnic
+    - description: port_description
+    - vendor: port_vendor
+    - category: port_category
 
 **Example details of a Node's Ports:**
 
