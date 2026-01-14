@@ -29,10 +29,6 @@ from ironic.db import api as dbapi
 LOG = log.getLogger(__name__)
 
 CHECKED_DEPRECATED_POLICY_ARGS = False
-INBOUND_HEADER = 'X-Openstack-Request-Id'
-GLOBAL_REQ_ID = 'openstack.global_request_id'
-ID_FORMAT = (r'^req-[a-f0-9]{8}-[a-f0-9]{4}-'
-             r'[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$')
 
 # Call once, don't call on each request because it is
 # a ton of extra overhead.
@@ -106,11 +102,6 @@ class ContextHook(hooks.PecanHook):
         super(ContextHook, self).__init__()
 
     def before(self, state):
-        # set the global_request_id if we have an inbound request id
-        gr_id = state.request.headers.get(INBOUND_HEADER, "")
-        if re.match(ID_FORMAT, gr_id):
-            state.request.environ[GLOBAL_REQ_ID] = gr_id
-
         ctx = context.RequestContext.from_environ(
             state.request.environ)
         # Do not pass any token with context for noauth mode
@@ -125,10 +116,6 @@ class ContextHook(hooks.PecanHook):
         if state.request.context == {}:
             # An incorrect url path will not create RequestContext
             return
-        # NOTE(lintan): RequestContext will generate a request_id if no one
-        # passing outside, so it always contain a request_id.
-        request_id = state.request.context.request_id
-        state.response.headers['Openstack-Request-Id'] = request_id
 
 
 class RPCHook(hooks.PecanHook):

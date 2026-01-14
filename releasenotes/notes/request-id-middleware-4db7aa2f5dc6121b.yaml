@@ -1,0 +1,7 @@
+---
+features:
+  - |
+    Ironic API now returns the ``X-OpenStack-Request-Id`` header, which is
+    the common response header to return request id in multiple OpenStack
+    projects. The header mirrors the existing ``OpenStack-Request-Id`` header.
+    If ironic API supports microversion 1.107, ironic returns the new header.

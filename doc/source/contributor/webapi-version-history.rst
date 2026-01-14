@@ -2,6 +2,12 @@
 REST API Version History
 ========================
 
+1.107 (Gazpacho)
+------------------------
+
+Add the ``x-openstack-request-id`` header to all responses. This header mirrors
+the ``openstack-request-id`` header.
+
 1.106 (Gazpacho)
 ----------------------
 

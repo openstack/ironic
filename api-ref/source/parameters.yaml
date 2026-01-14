@@ -36,6 +36,12 @@ x-openstack-ironic-api-version:
   in: header
   required: true
   type: string
+x-openstack-request-id:
+  description: >
+    This mirrors the ``openstack-request-id`` header.
+  in: header
+  required: false
+  type: string
 
 # variables in path
 allocation_ident:
