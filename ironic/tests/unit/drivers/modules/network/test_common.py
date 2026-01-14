@@ -12,6 +12,7 @@
 
 import json
 import os
+import tempfile
 from unittest import mock
 from unittest import skip
 
@@ -1037,6 +1038,160 @@ class TestNeutronVifPortIDMixin(db_base.DbTestCase):
                                            'fake_vif_id')
         self.assertFalse(mock_upa.called)
         self.assertFalse(mock_save.called)
+
+    @mock.patch.object(common.VIFPortIDMixin, '_save_vif_to_port_like_obj',
+                       autospec=True)
+    @mock.patch.object(common, 'get_free_port_like_object', autospec=True)
+    @mock.patch.object(neutron_common, 'get_client', autospec=True)
+    @mock.patch.object(neutron_common, 'update_port_address', autospec=True)
+    @mock.patch.object(neutron_common, 'get_physnets_by_port_uuid',
+                       autospec=True)
+    def test_vif_attach_trait_based_networking_enabled(self, mock_gpbpi,
+                                                       mock_upa, mock_client,
+                                                       mock_gfp, mock_save):
+        # Trait will match TBN trait defined below.
+        self.node.set_instance_info('traits', ['CUSTOM_TRAIT_NAME'])
+        self.node.save()
+
+        # Vendor matches filter expression below.
+        self.port.vendor = 'fake_vendor'
+        self.port.save()
+
+        vif_info = {'id': 'fake_vif_id'}
+
+        contents = ("CUSTOM_TRAIT_NAME:\n"
+                    "  - action: attach_port\n"
+                    "    filter: port.vendor == 'fake_vendor'\n")
+        self.tmpdir = tempfile.TemporaryDirectory()
+
+        with tempfile.NamedTemporaryFile(mode='w', dir=self.tmpdir.name,
+                                         delete=False) as tmpfile:
+            tmpfile.write(contents)
+            tmpfile.close()
+
+            # Enable TBN through conductor configuration
+            self.config(enable_trait_based_networking=True, group='conductor')
+            self.config(trait_based_networking_config_file=tmpfile.name,
+                        group='conductor')
+
+            with task_manager.acquire(self.context, self.node.id) as task:
+                self.interface.vif_attach(task, vif_info)
+
+            self.assertFalse(mock_gpbpi.called)
+            self.assertFalse(mock_gfp.called)
+
+            self.assertTrue(mock_save.called)
+
+            # Make sure save was called with the expected parameters.
+            self.assertEqual(mock_save.call_args_list[0][0][0].id,
+                             self.port.id)
+            self.assertEqual(mock_save.call_args_list[0][0][1], vif_info['id'])
+
+    @mock.patch.object(common.VIFPortIDMixin, '_save_vif_to_port_like_obj',
+                       autospec=True)
+    @mock.patch.object(common, 'get_free_port_like_object', autospec=True)
+    @mock.patch.object(neutron_common, 'get_client', autospec=True)
+    @mock.patch.object(neutron_common, 'update_port_address', autospec=True)
+    @mock.patch.object(neutron_common, 'get_physnets_by_port_uuid',
+                       autospec=True)
+    def test_vif_attach_trait_based_networking_enabled_no_match_raises(
+            self, mock_gpbpi, mock_upa, mock_client, mock_gfp, mock_save):
+        # Trait will match TBN trait defined below.
+        self.node.set_instance_info('traits', ['CUSTOM_TRAIT_NAME'])
+        self.node.save()
+
+        # But port vendor does NOT match filter expression below.
+        self.port.vendor = 'bad_vendor'
+        self.port.save()
+
+        vif_info = {'id': 'fake_vif_id'}
+
+        contents = ("CUSTOM_TRAIT_NAME:\n"
+                    "  - action: attach_port\n"
+                    "    filter: port.vendor == 'fake_vendor'\n")
+        self.tmpdir = tempfile.TemporaryDirectory()
+
+        with tempfile.NamedTemporaryFile(mode='w', dir=self.tmpdir.name,
+                                         delete=False) as tmpfile:
+            tmpfile.write(contents)
+            tmpfile.close()
+
+            # Enable TBN through conductor configuration
+            self.config(enable_trait_based_networking=True, group='conductor')
+            self.config(trait_based_networking_config_file=tmpfile.name,
+                        group='conductor')
+
+            with task_manager.acquire(self.context, self.node.id) as task:
+                self.assertRaises(exception.NoFreePhysicalPorts,
+                                  self.interface.vif_attach,
+                                  task, vif_info)
+
+            self.assertFalse(mock_gpbpi.called)
+            self.assertFalse(mock_gfp.called)
+            self.assertFalse(mock_save.called)
+
+    @mock.patch.object(common.VIFPortIDMixin, '_save_vif_to_port_like_obj',
+                       autospec=True)
+    @mock.patch.object(common, 'get_free_port_like_object', autospec=True)
+    @mock.patch.object(neutron_common, 'get_client', autospec=True)
+    @mock.patch.object(neutron_common, 'update_port_address', autospec=True)
+    @mock.patch.object(neutron_common, 'get_physnets_by_port_uuid',
+                       autospec=True)
+    def test_vif_attach_trait_based_networking_enabled_multiple_port_matches(
+            self, mock_gpbpi, mock_upa, mock_client, mock_gfp, mock_save):
+        # Trait will match TBN trait defined below.
+        self.node.set_instance_info('traits', ['CUSTOM_TRAIT_NAME'])
+        self.node.save()
+
+        # Vendor matches filter expression below.
+        self.port.vendor = 'fake_vendor'
+        self.port.save()
+
+        second_port = obj_utils.create_test_port(
+                self.context, node_id=self.node.id,
+                uuid=uuidutils.generate_uuid(),
+                address='52:54:00:cf:2d:33',
+                vendor='fake_vendor')
+        second_port.save()
+
+        vif_info = {'id': 'fake_vif_id'}
+
+        contents = ("CUSTOM_TRAIT_NAME:\n"
+                    "  - action: attach_port\n"
+                    "    filter: port.vendor == 'fake_vendor'\n"
+                    "    min_count: 2")
+        self.tmpdir = tempfile.TemporaryDirectory()
+
+        with tempfile.NamedTemporaryFile(mode='w', dir=self.tmpdir.name,
+                                         delete=False) as tmpfile:
+            tmpfile.write(contents)
+            tmpfile.close()
+
+            # Enable TBN through conductor configuration
+            self.config(enable_trait_based_networking=True, group='conductor')
+            self.config(trait_based_networking_config_file=tmpfile.name,
+                        group='conductor')
+
+            with task_manager.acquire(self.context, self.node.id) as task:
+                self.interface.vif_attach(task, vif_info)
+
+            self.assertFalse(mock_gpbpi.called)
+            self.assertFalse(mock_gfp.called)
+
+            self.assertTrue(mock_save.called)
+
+            # Should have been called twice.
+            self.assertEqual(len(mock_save.call_args_list), 2)
+
+            # Make sure save was called with the expected parameters.
+            # Both ports should have been saved/attached.
+            self.assertEqual(mock_save.call_args_list[1][0][0].id,
+                             self.port.id)
+            self.assertEqual(mock_save.call_args_list[1][0][1], vif_info['id'])
+
+            self.assertEqual(mock_save.call_args_list[0][0][0].id,
+                             second_port.id)
+            self.assertEqual(mock_save.call_args_list[0][0][1], vif_info['id'])
 
     @mock.patch.object(common.VIFPortIDMixin, '_clear_vif_from_port_like_obj',
                        autospec=True)

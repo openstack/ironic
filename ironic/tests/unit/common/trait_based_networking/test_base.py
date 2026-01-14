@@ -313,7 +313,7 @@ class TraitBasedNetworkingBaseTestCase(base.TestCase):
                     "CUSTOM_TRAIT",
                     tbn.Actions.ATTACH_PORT,
                     tbn.FilterExpression.parse("port.vendor == 'cogwork'")),
-                "fake_node_uuid",
+                "fake_network_id",
                 "fake_port_uuid",
                 "fake_network_id"
             ),
@@ -344,3 +344,26 @@ class TraitBasedNetworkingBaseTestCase(base.TestCase):
                 self.assertEqual(prod[0], prod[1])
             else:
                 self.assertNotEqual(prod[0], prod[1])
+
+    def test_attach_class_hierarchy(self):
+        attach_port = tbn.AttachPort(
+                tbn.TraitAction(
+                    "CUSTOM_TRAIT",
+                    tbn.Actions.ATTACH_PORT,
+                    tbn.FilterExpression.parse("port.vendor == 'cogwork'")),
+                "fake_node_uuid",
+                "fake_port_uuid",
+                "fake_network_id")
+        self.assertEqual("fake_port_uuid", attach_port.portlike_uuid())
+
+        attach_portgroup = tbn.AttachPortgroup(
+                tbn.TraitAction(
+                    "CUSTOM_TRAIT",
+                    tbn.Actions.ATTACH_PORTGROUP,
+                    tbn.FilterExpression.parse("port.vendor == 'cogwork'")),
+                "fake_node_uuid",
+                "fake_portgroup_uuid",
+                "fake_network_id")
+
+        self.assertEqual("fake_portgroup_uuid",
+                         attach_portgroup.portlike_uuid())

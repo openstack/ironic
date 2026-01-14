@@ -26,6 +26,8 @@ from ironic.common import network
 from ironic.common import neutron
 from ironic.common.pxe_utils import DHCP_CLIENT_ID
 from ironic.common import states
+from ironic.common.trait_based_networking import base as tbn_base
+from ironic.common.trait_based_networking import plan
 from ironic import objects
 
 CONF = cfg.CONF
@@ -592,6 +594,71 @@ class NeutronVIFPortIDMixin(VIFPortIDMixin):
                                'reason': ', '.join(reason)})
                         raise exception.Conflict(msg)
 
+    def _vif_attach_tbn(self, task, vif_info):
+        """Attach a virtual network interface to a node using traits from TBN
+
+        Attach a virtual interface to a node while allowing Trait Based
+        Networking to plan the actions to take while considering traits
+        defined on the node.
+
+        :param task: A TaskManager instance.
+        :param vif_info: a dictionary of information about a VIF.
+                         It must have an 'id' key, whose value is a unique
+                         identifier for that VIF.
+        :raises: NetworkError, VifAlreadyAttached, NoFreePhysicalPorts
+        :raises: PortgroupPhysnetInconsistent if one of the node's portgroups
+                 has ports which are not all assigned the same physical
+                 network.
+
+        """
+        # TODO(clif): What about a default trait if none apply?
+        applicable_traits = plan.filter_traits_for_node(task.node,
+                                                        task.tbn_traits)
+
+        actions = plan.plan_vif_attach(applicable_traits, task, vif_info)
+
+        if len(actions) == 0 or isinstance(actions[0], tbn_base.NoMatch):
+            # TODO(Clif): Raise a more specific exception associated with
+            # TBN?
+            raise exception.NoFreePhysicalPorts(vif=vif_info['id'])
+
+        client = neutron.get_client(context=task.context)
+
+        for action in actions:
+            port_like_obj = action.get_portlike_object(task)
+            self._attach_port_to_vif(task, client, port_like_obj,
+                                     vif_info['id'])
+
+
+    def _attach_port_to_vif(self, task, client, port_like_obj, vif_id):
+        """Do the actual work of attaching a port to a vif
+
+        Common helper function used by vif_attach and _vif_attach_tbn
+        """
+        # Address is optional for portgroups
+        if port_like_obj.address:
+            try:
+                neutron.update_port_address(vif_id, port_like_obj.address,
+                                            context=task.context)
+            except exception.FailedToUpdateMacOnPort:
+                raise exception.NetworkError(_(
+                    "Unable to attach VIF %(vif)s because Ironic can not "
+                    "update Neutron port %(port)s MAC address to match "
+                    "physical MAC address %(mac)s") % {
+                        'vif': vif_id, 'port': vif_id,
+                        'mac': port_like_obj.address})
+
+        self._save_vif_to_port_like_obj(port_like_obj, vif_id)
+
+        # NOTE(vsaienko) allow to attach VIF to active instance.
+        if task.node.provision_state == states.ACTIVE:
+            plug_port_to_tenant_network(task, port_like_obj, client=client)
+        else:
+            # Sends *just* a host_id to trigger neutron to do the initial
+            # address work (if needed...)
+            update_port_host_id(task, vif_id, client=client)
+
+
     def vif_attach(self, task, vif_info):
         """Attach a virtual network interface to a node
 
@@ -615,36 +682,19 @@ class NeutronVIFPortIDMixin(VIFPortIDMixin):
                  has ports which are not all assigned the same physical
                  network.
         """
+
+        # Use TBN to pick the port <-> vif mapping if enabled.
+        if CONF.conductor.enable_trait_based_networking:
+            return self._vif_attach_tbn(task, vif_info)
+
         vif_id = vif_info['id']
         client = neutron.get_client(context=task.context)
 
         physnets = neutron.get_physnets_by_port_uuid(client, vif_id)
-
         port_like_obj = get_free_port_like_object(
             task, vif_id, physnets, vif_info)
 
-        # Address is optional for portgroups
-        if port_like_obj.address:
-            try:
-                neutron.update_port_address(vif_id, port_like_obj.address,
-                                            context=task.context)
-            except exception.FailedToUpdateMacOnPort:
-                raise exception.NetworkError(_(
-                    "Unable to attach VIF %(vif)s because Ironic can not "
-                    "update Neutron port %(port)s MAC address to match "
-                    "physical MAC address %(mac)s") % {
-                        'vif': vif_id, 'port': vif_id,
-                        'mac': port_like_obj.address})
-
-        self._save_vif_to_port_like_obj(port_like_obj, vif_id)
-
-        # NOTE(vsaienko) allow to attach VIF to active instance.
-        if task.node.provision_state == states.ACTIVE:
-            plug_port_to_tenant_network(task, port_like_obj, client=client)
-        else:
-            # Sends *just* a host_id to trigger neutron to do the initial
-            # address work (if needed...)
-            update_port_host_id(task, vif_id, client=client)
+        self._attach_port_to_vif(task, client, port_like_obj, vif_id)
 
     def vif_detach(self, task, vif_id):
         """Detach a virtual network interface from a node
