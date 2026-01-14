@@ -74,6 +74,16 @@ opts = [
                default=3600, min=0,
                help=_('Interval between cleaning up image caches, in seconds. '
                       'Set to 0 to disable periodic clean-up.')),
+    cfg.BoolOpt('clear_image_cache_on_deploy_failure',
+                default=False,
+                mutable=True,
+                help=_('Whether to clear cached instance images when '
+                       'deployment fails or aborted. When enabled, cached '
+                       'images are removed during deployment failure state '
+                       'transitions. When disabled (default), cached images '
+                       'are preserved for retry attempts and will be cleaned '
+                       'up eventually via periodic cache cleanup '
+                       'based on the defined TTL.')),
     cfg.IntOpt('deploy_callback_timeout',
                default=1800,
                min=0,

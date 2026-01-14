@@ -1,0 +1,6 @@
+---
+features:
+  - |
+    Adds a new configuration option ``[conductor]clear_image_cache_on_deploy_failure``
+    to control whether cached instance images are cleared during deployment failure
+    state transitions, default=True.

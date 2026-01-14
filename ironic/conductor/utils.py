@@ -40,6 +40,7 @@ from ironic.common import states
 from ironic.common import utils
 from ironic.conductor import notification_utils as notify_utils
 from ironic.conductor import task_manager
+from ironic.drivers.modules import deploy_utils
 from ironic.objects import fields
 from ironic.objects import node_history
 
@@ -739,6 +740,14 @@ def deploying_error_handler(task, logmsg, errmsg=None, traceback=False,
                          'aborting. More information may be found in the log '
                          'file.')
             cleanup_err = '%(err)s. %(add)s' % {'err': errmsg, 'add': addl}
+    else:
+        if CONF.conductor.clear_image_cache_on_deploy_failure:
+            try:
+                deploy_utils.destroy_images(node.uuid)
+            except Exception as e:
+                LOG.warning('Failed to clean up cached instance images '
+                            'for node %(node)s; reason: %(err)s',
+                            {'node': node.uuid, 'err': e})
 
     node.refresh()
     if node.provision_state in (
