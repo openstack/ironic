@@ -1,0 +1,10 @@
+---
+fixes:
+  - |
+    Fixes a bug where virtual media was ejected before the graceful shutdown
+    was issued during the inspection teardown phase. This caused filesystem
+    corruption errors on nodes (particularly visible on iDRAC consoles) when
+    the operating system lost access to its boot media during shutdown. The fix
+    ensures that a soft power off is performed before ejecting virtual media,
+    allowing the OS to shut down cleanly before the virtual media is ejected.
+
