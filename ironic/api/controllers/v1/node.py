@@ -1260,12 +1260,13 @@ class NodeStatesController(rest.RestController):
                 state=rpc_node.provision_state)
 
         api_utils.check_allow_configdrive(target, configdrive)
-        api_utils.check_allow_clean_disable_ramdisk(target, disable_ramdisk)
 
         if runbook:
             clean_steps, service_steps, disable_ramdisk = self._handle_runbook(
                 rpc_node, target, runbook, clean_steps, service_steps
             )
+
+        api_utils.check_allow_clean_disable_ramdisk(target, disable_ramdisk)
 
         if clean_steps and target != ir_states.VERBS['clean']:
             msg = (_('"clean_steps" is only valid when setting target '

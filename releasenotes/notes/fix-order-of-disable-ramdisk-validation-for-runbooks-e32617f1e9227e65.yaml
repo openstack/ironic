@@ -1,0 +1,6 @@
+---
+fixes:
+  - |
+    Fixes an issue where ``disable_ramdisk`` could bypass API validation when
+    supplied via a runbook because validation happened before runbook
+    resolution.
