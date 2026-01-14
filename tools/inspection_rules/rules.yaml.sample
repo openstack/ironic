@@ -1,0 +1,123 @@
+# Sample Inspection Rules
+# This file demonstrates various inspection rule patterns
+
+# Rule 1: Set BMC credentials for Dell servers
+- uuid: rule-dell-bmc-setup
+  description: "Configure iDRAC for Dell servers"
+  priority: 100
+  sensitive: true
+  phase: main
+  conditions:
+    - op: contains
+      args:
+        value: "{inventory[system_vendor][manufacturer]}"
+        regex: "(?i)dell"
+    - op: is-true
+      args:
+        value: "{node.auto_discovered}"
+  actions:
+    - op: set-attribute
+      args:
+        path: "/driver"
+        value: "idrac"
+    - op: set-attribute
+      args:
+        path: "/driver_info/redfish_address"
+        value: "https://{inventory[bmc_address]}"
+    - op: log
+      args:
+        msg: "Configured iDRAC driver for Dell server"
+        level: info
+
+# Rule 2: Add traits based on hardware capabilities
+- uuid: rule-add-hardware-traits
+  description: "Add traits for high-memory nodes"
+  priority: 90
+  phase: main
+  conditions:
+    - op: "!lt"
+      args:
+        - [{inventory.memory.physical_mb}, 65536]
+  actions:
+    - op: add-trait
+      args:
+        name: "CUSTOM_HIGH_MEMORY"
+    - op: set-capability
+      args:
+        name: "memory_class"
+        value: "high"
+
+# Rule 3: Configure RAID for servers with multiple disks
+#- uuid: rule-raid-setup
+#  description: "Add RAID capability trait for multi-disk systems"
+#  priority: 80
+ # phase: main
+ # conditions:
+ #   - op: gt
+ #     args:
+ #       - - {inventory.disks}
+ #         - 2
+ # actions:
+ #   - op: add-trait
+ #     args:
+ #       name: "CUSTOM_RAID_CAPABLE"
+ #   - op: log
+ #     args:
+ #       msg: "Found {inventory[disks]} disks - node is RAID capable"
+ #       level: info
+
+# Rule 4: Set network boot for specific interface vendors
+#- uuid: rule-network-boot-intel
+#  description: "Configure network boot for Intel NICs"
+#  priority: 70
+#  phase: main
+#  conditions:
+#    - op: contains
+#      args:
+#        value: "{inventory[interfaces]}"
+#        regex: "(?i)intel"
+#      loop: "{inventory[interfaces]}"
+#      multiple: any
+#  actions:
+#    - op: set-capability
+#      args:
+#        name: "boot_option"
+#        value: "netboot"
+#    - op: add-trait
+#      args:
+#        trait: "CUSTOM_INTEL_NIC"
+
+# Rule 5: Fail inspection for unsupported hardware
+- uuid: rule-reject-old-cpu
+  description: "Reject nodes with insufficient CPU cores"
+  priority: 50
+  phase: main
+  conditions:
+    - op: lt
+      args:
+        - "{inventory[cpu][count]}"
+        - 4
+  actions:
+    - op: fail
+      args:
+        msg: "Node has insufficient CPU cores (minimum 4 required)"
+
+# Rule 6: Set boot mode based on firmware
+- uuid: rule-boot-mode-uefi
+  description: "Set UEFI boot mode for modern systems"
+  priority: 60
+  phase: main
+  conditions:
+    - op: eq
+      args:
+        - "{inventory[boot][current_boot_mode]}"
+        - "uefi"
+  actions:
+    - op: set-capability
+      args:
+        name: "boot_mode"
+        value: "uefi"
+    - op: log
+      args:
+        msg: "Configured UEFI boot mode"
+        level: info
