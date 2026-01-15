@@ -39,9 +39,12 @@ def inspect_hardware(task):
     node = task.node
 
     def handle_failure(e, log_func=LOG.error):
-        utils.node_history_record(task.node, event=e,
-                                  event_type=states.INTROSPECTION,
-                                  error=True, user=task.context.user_id)
+        # Use the error handler which will clean up inspection resources
+        utils.inspecting_error_handler(
+            task,
+            logmsg="Failed to inspect node %(node)s: %(err)s" % {
+                'node': node.uuid, 'err': e},
+            errmsg=str(e))
         task.process_event('fail')
         log_func("Failed to inspect node %(node)s: %(err)s",
                  {'node': node.uuid, 'err': e})
@@ -152,9 +155,13 @@ def continue_inspection(task, inventory, plugin_data):
             LOG.exception('Error when processing inspection data for '
                           'node %(node)s', {'node': node.uuid})
             error = _('Failed to finish inspection: %s') % e
-            utils.node_history_record(task.node, event=error,
-                                      event_type=states.INTROSPECTION,
-                                      error=True)
+            # Use the error handler which will clean up inspection resources
+            utils.inspecting_error_handler(
+                task,
+                logmsg="Inspection processing failed for node %(node)s: "
+                       "%(error)s" % {'node': node.uuid, 'error': error},
+                errmsg=error,
+                traceback=False)
             if node.provision_state != states.ENROLL:
                 task.process_event('fail')
 

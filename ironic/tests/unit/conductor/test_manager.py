@@ -7349,7 +7349,9 @@ class ManagerCheckInspectWaitTimeoutsTestCase(mgr_utils.CommonMixIn,
                                             self.node.conductor_group)
         acquire_mock.assert_called_once_with(self.context, self.node.uuid,
                                              purpose=mock.ANY)
-        self.task.process_event.assert_called_with('fail', target_state=None)
+        self.task.process_event.assert_called_with(
+            'fail', callback=mock.ANY, call_args=mock.ANY,
+            err_handler=mock.ANY, target_state=None)
 
     def test__check_inspect_timeouts_acquire_node_disappears(self,
                                                              get_nodeinfo_mock,
@@ -7448,7 +7450,9 @@ class ManagerCheckInspectWaitTimeoutsTestCase(mgr_utils.CommonMixIn,
         # First node skipped
         self.assertFalse(task.process_event.called)
         # Second node spawned
-        self.task2.process_event.assert_called_with('fail', target_state=None)
+        self.task2.process_event.assert_called_with(
+            'fail', callback=mock.ANY, call_args=mock.ANY,
+            err_handler=mock.ANY, target_state=None)
 
     def test__check_inspect_timeouts_exiting_no_worker_avail(
             self, get_nodeinfo_mock, mapped_mock, acquire_mock):
@@ -7471,7 +7475,9 @@ class ManagerCheckInspectWaitTimeoutsTestCase(mgr_utils.CommonMixIn,
         acquire_mock.assert_called_once_with(self.context,
                                              self.node.uuid,
                                              purpose=mock.ANY)
-        self.task.process_event.assert_called_with('fail', target_state=None)
+        self.task.process_event.assert_called_with(
+            'fail', callback=mock.ANY, call_args=mock.ANY,
+            err_handler=mock.ANY, target_state=None)
 
     def test__check_inspect_timeouts_exit_with_other_exception(
             self, get_nodeinfo_mock, mapped_mock, acquire_mock):
@@ -7496,7 +7502,9 @@ class ManagerCheckInspectWaitTimeoutsTestCase(mgr_utils.CommonMixIn,
         acquire_mock.assert_called_once_with(self.context,
                                              self.node.uuid,
                                              purpose=mock.ANY)
-        self.task.process_event.assert_called_with('fail', target_state=None)
+        self.task.process_event.assert_called_with(
+            'fail', callback=mock.ANY, call_args=mock.ANY,
+            err_handler=mock.ANY, target_state=None)
 
     def test__check_inspect_timeouts_worker_limit(self, get_nodeinfo_mock,
                                                   mapped_mock, acquire_mock):
@@ -7521,7 +7529,10 @@ class ManagerCheckInspectWaitTimeoutsTestCase(mgr_utils.CommonMixIn,
         self.assertEqual([mock.call(self.context, self.node.uuid,
                                     purpose=mock.ANY)] * 2,
                          acquire_mock.call_args_list)
-        process_event_call = mock.call('fail', target_state=None)
+        process_event_call = mock.call('fail', callback=mock.ANY,
+                                        call_args=mock.ANY,
+                                        err_handler=mock.ANY,
+                                        target_state=None)
         self.assertEqual([process_event_call] * 2,
                          self.task.process_event.call_args_list)
 
