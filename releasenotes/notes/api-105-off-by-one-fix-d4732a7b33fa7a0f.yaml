@@ -1,0 +1,4 @@
+fixes:
+  - |
+    This fixes a minor off-by-one bug where, instead of removing OVN VTEP support
+    from API microversion 1.105, we removed it from any microversion *after* 1.105.
