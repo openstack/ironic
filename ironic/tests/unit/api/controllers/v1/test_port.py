@@ -2662,6 +2662,18 @@ class TestPost(test_api_base.BaseApiTest):
         self.assertEqual(http_client.BAD_REQUEST, response.status_int)
         self.assertFalse(mock_create.called)
 
+    def test_create_port_with_vendor_category(self, mock_create):
+        pdict = post_get_test_port(node_uuid=self.node.uuid,
+                                   vendor='foo',
+                                   category='cat')
+        response = self.post_json('/ports', pdict,
+                                  headers=self.headers, expect_errors=True)
+        self.assertEqual(http_client.CREATED, response.status_int)
+        mock_create.assert_called_once_with(mock.ANY, mock.ANY, mock.ANY,
+                                            'test-topic')
+        self.assertEqual('foo', response.json['vendor'])
+        self.assertEqual('cat', response.json['category'])
+
 
 @mock.patch.object(rpcapi.ConductorAPI, 'destroy_port', autospec=True)
 class TestDelete(test_api_base.BaseApiTest):
