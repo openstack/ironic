@@ -3332,7 +3332,10 @@ class ConductorManager(base_manager.BaseConductorManager):
         sort_key = 'inspection_started_at'
         last_error = _("timeout reached while inspecting the node")
         self._fail_if_in_state(context, filters, states.INSPECTWAIT,
-                               sort_key, last_error=last_error)
+                               sort_key,
+                               callback_method=utils.cleanup_inspectwait_timeout,
+                               err_handler=utils.provisioning_error_handler,
+                               last_error=last_error)
 
     @METRICS.timer('ConductorManager.set_target_raid_config')
     @messaging.expected_exceptions(exception.NodeLocked,
