@@ -320,6 +320,12 @@ Show details for the given Port.
 .. versionadded:: 1.97
   Added the ``description`` field.
 
+.. versionadded:: 1.100
+  Added the ``vendor`` field.
+
+.. versionadded:: 1.101
+  Added the ``category`` field.
+
 Normal response code: 200
 
 Request
@@ -350,6 +356,8 @@ Response
     - links: links
     - is_smartnic: is_smartnic
     - description: port_description
+    - vendor: port_vendor
+    - category: port_category
 
 **Example Port details:**
 
@@ -386,6 +394,12 @@ Update a Port.
 
 .. versionadded:: 1.97
   Added the ``description`` field.
+
+.. versionadded:: 1.100
+  Added the ``vendor`` field.
+
+.. versionadded:: 1.101
+  Added the ``category`` field.
 
 
 Normal response code: 200
@@ -425,6 +439,8 @@ Response
     - links: links
     - is_smartnic: is_smartnic
     - description: port_description
+    - vendor: port_vendor
+    - category: port_category
 
 **Example Port update response:**
 
