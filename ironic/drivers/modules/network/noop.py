@@ -76,7 +76,7 @@ class NoopNetwork(base.NetworkInterface):
         :param p_obj: Ironic port or portgroup object.
         :returns: VIF ID associated with p_obj or None.
         """
-        pass
+        return None
 
     def add_provisioning_network(self, task):
         """Add the provisioning network to a node.

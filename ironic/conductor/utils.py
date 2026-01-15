@@ -1471,36 +1471,6 @@ def hash_password(password=''):
     return secretutils.crypt_password(password, make_salt())
 
 
-def get_attached_vif(port):
-    """Get any attached vif ID for the port
-
-    :param port: The port object upon which to check for a vif
-                 record.
-    :returns: Returns a tuple of the vif if found and the use of
-              the vif in the form of a string, 'tenant', 'cleaning'
-              'provisioning', 'rescuing'.
-    :raises: InvalidState exception upon finding a port with a
-             transient state vif on the port.
-    """
-
-    tenant_vif = port.internal_info.get('tenant_vif_port_id')
-    if tenant_vif:
-        return (tenant_vif, 'tenant')
-    clean_vif = port.internal_info.get('cleaning_vif_port_id')
-    if clean_vif:
-        return (clean_vif, 'cleaning')
-    prov_vif = port.internal_info.get('provisioning_vif_port_id')
-    if prov_vif:
-        return (prov_vif, 'provisioning')
-    rescue_vif = port.internal_info.get('rescuing_vif_port_id')
-    if rescue_vif:
-        return (rescue_vif, 'rescuing')
-    inspection_vif = port.internal_info.get('inspection_vif_port_id')
-    if inspection_vif:
-        return (inspection_vif, 'inspecting')
-    return (None, None)
-
-
 def store_agent_certificate(node, agent_verify_ca):
     """Store certificate received from the agent and return its path."""
     existing_verify_ca = node.driver_internal_info.get(

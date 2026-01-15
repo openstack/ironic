@@ -1,0 +1,5 @@
+---
+fixes:
+  - |
+    Ensure that we properly check all possible VIFs that a node might be
+    utilizing for its network access.
