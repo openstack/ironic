@@ -620,6 +620,40 @@ class DeployInterface(BaseInterface):
         """
         pass
 
+    def switch_interface(self, task):
+        """Optionally switch the interface to use for deployment.
+
+        This method is called at the beginning of deployment before validation
+        to accommodate interfaces which auto-detect another interface to use
+        for deployment.
+
+        :param task: A TaskManager instance containing the node to act on.
+        :raises: InvalidParameterValue if the interface is not enabled.
+        """
+        pass
+
+    def restore_interface(self, task):
+        """Restore the original deploy interface for the node.
+
+        This restores the deploy interface to the original interface
+        in case it was changed by switch_interface.
+
+        :param task: a TaskManager instance containing the node to act on.
+        """
+        pass
+
+    def supports_deploy(self, task):
+        """Check if deploy is supported for the given node by this interface.
+
+        By default interfaces will claim to support deploy. Interfaces
+        which can infer actual support using (for example) node instance_info
+        should override this method.
+
+        :param task: A TaskManager instance containing the node to act on.
+        :returns: boolean, whether deploy is supported.
+        """
+        return True
+
 
 class BootInterface(BaseInterface):
     """Interface for boot-related actions."""

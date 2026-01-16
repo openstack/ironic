@@ -775,6 +775,25 @@ class AgentBaseMixin(object):
             task.driver.network.remove_provisioning_network(task)
         return states.DELETED
 
+    def restore_interface(self, task):
+        """Restore the original deploy interface for the node.
+
+        This restores the deploy interface to the original interface
+        in case it was changed by switch_interface.
+
+        :param task: a TaskManager instance containing the node to act on.
+        """
+        original_deploy_interface = task.node.driver_internal_info.get(
+            'original_deploy_interface')
+        if original_deploy_interface:
+            LOG.info('Restoring deploy interface from "%s" to "%s" '
+                     'for node %s',
+                     task.node.deploy_interface, original_deploy_interface,
+                     task.node.uuid)
+            task.node.deploy_interface = original_deploy_interface
+            task.node.del_driver_internal_info('original_deploy_interface')
+            task.node.save()
+
     @METRICS.timer('AgentBaseMixin.clean_up')
     def clean_up(self, task):
         """Clean up the deployment environment for the task's node.
