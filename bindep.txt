@@ -54,12 +54,12 @@ libffi-dev [platform:dpkg test]
 libffi-devel [platform:rpm test]
 # these are needed by infra for python-* jobs
 mariadb [platform:rpm]
-mariadb-server [platform:rpm platform:debian-bookworm]
+mariadb-server [platform:rpm platform:debian-bookworm platform:debian-trixie]
 # mariadb-devel [platform:rpm]
 dev-db/mariadb [platform:gentoo]
-mysql-client [platform:dpkg !platform:debian-bookworm]
-mysql-server [platform:dpkg !platform:debian-bookworm]
-mariadb-client [platform:debian-bookworm]
+mysql-client [platform:dpkg !platform:debian-bookworm !platform:debian-trixie]
+mysql-server [platform:dpkg !platform:debian-bookworm !platform:debian-trixie]
+mariadb-client [platform:debian-bookworm platform:debian-trixie]
 
 # libmysqlclient-dev [platform:dpkg]
 # gettext and graphviz are needed by doc builds only. For transition,
