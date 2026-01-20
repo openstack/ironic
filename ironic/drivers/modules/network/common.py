@@ -618,25 +618,7 @@ class NeutronVIFPortIDMixin(VIFPortIDMixin):
         vif_id = vif_info['id']
         client = neutron.get_client(context=task.context)
 
-        # Determine whether any of the node's ports have a physical network. If
-        # not, we don't need to check the VIF's network's physical networks as
-        # they will not affect the VIF to port mapping.
-        physnets = set()
-        if any(port.physical_network is not None for port in task.ports):
-            physnets = neutron.get_physnets_by_port_uuid(client, vif_id)
-
-            if len(physnets) > 1:
-                # NOTE(mgoddard): Neutron cannot currently handle hosts which
-                # are mapped to multiple segments in the same routed network.
-                node_physnets = network.get_physnets_for_node(task)
-                if len(node_physnets.intersection(physnets)) > 1:
-                    reason = _("Node has ports which map to multiple segments "
-                               "of the routed network to which the VIF is "
-                               "attached. Currently neutron only supports "
-                               "hosts which map to one segment of a routed "
-                               "network")
-                    raise exception.VifInvalidForAttach(
-                        node=task.node.uuid, vif=vif_id, reason=reason)
+        physnets = neutron.get_physnets_by_port_uuid(client, vif_id)
 
         port_like_obj = get_free_port_like_object(
             task, vif_id, physnets, vif_info)
