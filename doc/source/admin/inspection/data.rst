@@ -1,8 +1,9 @@
 Inspection data
 ===============
 
-The in-band inspection processes collects a lot of information about the node.
-This data consists of two parts:
+The inspection process collects a lot of information about the node.
+This applies to both the ``agent`` (in-band) and ``redfish`` (out-of-band)
+inspection interfaces. The collected data consists of two parts:
 
 * *Inventory* depends on the inspection interface used. See
   :ref:`inventory`.

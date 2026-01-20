@@ -2,18 +2,27 @@ Inspection hooks
 ================
 
 *Inspection hooks* are a type of the Bare Metal service plug-ins responsible
-for processing data from in-band inspection. By configuring these hooks, an
-operator can fully customize the inspection processing phase. How the data is
-collected can be configured with `inspection collectors
+for processing data from inspection. These hooks work with both the ``agent``
+(in-band) and ``redfish`` (out-of-band) inspection interfaces. By configuring
+these hooks, an operator can fully customize the inspection processing phase.
+
+For agent inspection, how the data is collected can be configured with
+`inspection collectors
 <https://docs.openstack.org/ironic-python-agent/latest/admin/how_it_works.html#inspection-data>`_.
 
 Configuring hooks
 -----------------
 
-Two configuration options are responsible for inspection hooks:
+Inspection hooks are configured separately for each inspection interface type.
+
+Agent inspection hooks
+~~~~~~~~~~~~~~~~~~~~~~
+
+For the ``agent`` inspection interface, two configuration options are
+responsible for inspection hooks:
 :oslo.config:option:`inspector.default_hooks` defines which hooks run by
 default, while :oslo.config:option:`inspector.hooks` defines which hooks to run
-in your deployment.  Only the second option should be modified by operators,
+in your deployment. Only the second option should be modified by operators,
 while the first one is to provide the defaults without hardcoding them:
 
 .. code-block:: ini
@@ -27,6 +36,24 @@ To make a hook run after the default ones, append it to the list, e.g.
 
    [inspector]
    hooks = $default_hooks,extra-hardware
+
+Redfish inspection hooks
+~~~~~~~~~~~~~~~~~~~~~~~~
+
+For the ``redfish`` inspection interface, the configuration is in the
+``[redfish]`` section:
+
+.. code-block:: ini
+
+   [redfish]
+   inspection_hooks = $default_inspection_hooks
+
+To add additional hooks:
+
+.. code-block:: ini
+
+   [redfish]
+   inspection_hooks = $default_inspection_hooks,extra-hardware
 
 Default hooks
 -------------
