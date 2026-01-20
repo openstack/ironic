@@ -1,0 +1,10 @@
+---
+fixes:
+  - |
+    Each firmware component might have different reboot requirements depending
+    on the hardware, this change adds two new configuration options to help
+    operators configure the reboot behavior for firmware updates.
+    ``[redfish]firmware_update_reboot_delay``: reboot delay for firmware
+    updates of components.
+    ``[redfish]firmware_update_bmc_version_check_interval``: delay in seconds
+    after the firmware update fails before the node is rebooted.

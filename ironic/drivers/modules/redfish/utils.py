@@ -94,9 +94,33 @@ BMC = 'bmc'
 NIC_COMPONENT_PREFIX = "nic:"
 "Prefix for NIC Firmware Components"
 
+NIC = "nic"
+"NIC Firmware Component type"
 
 FIRMWARE_COMPONENTS = [BIOS, BMC]
 """Firmware Components available to update"""
+
+
+def get_component_type(component):
+    """Determine the type of firmware component.
+
+    Note: This helper exists primarily to handle NIC components which use
+    a prefix pattern (e.g., 'nic:BCM57414', 'nic:adapter1') rather than
+    exact string matches. This centralizes the component type detection
+    logic that is used in multiple places (update initiation, task
+    monitoring, completion handling) and provides a single source of truth
+    for component type classification.
+
+    :param component: The component name from settings
+    :returns: One of 'bios', 'bmc', 'nic', or None
+    """
+    if component == BIOS:
+        return BIOS
+    elif component == BMC:
+        return BMC
+    elif component.startswith(NIC_COMPONENT_PREFIX):
+        return NIC
+    return None
 
 
 def parse_driver_info(node):
