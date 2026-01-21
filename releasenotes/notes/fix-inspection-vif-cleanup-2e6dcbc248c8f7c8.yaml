@@ -1,0 +1,14 @@
+---
+fixes:
+  - |
+    Fixes an issue where baremetal nodes that experienced inspection errors,
+    either through timeout or hard failure, were not having their inspection
+    VIFs (Virtual Interfaces) removed from the node's ports. This resulted in
+    network resource leaks that persisted after the node transitioned to the
+    ``inspect fail`` state.
+
+    The inspection error handling now properly cleans up inspection networks
+    by calling ``remove_inspection_network()`` on all error paths, matching
+    the behavior of cleaning, servicing, and deployment error handlers. This
+    ensures that inspection VIFs are always removed from ports when inspection
+    fails, preventing network resource leaks.

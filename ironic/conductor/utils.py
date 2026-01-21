@@ -891,6 +891,94 @@ def cleanup_rescuewait_timeout(task):
     rescuing_error_handler(task, msg, set_fail_state=False)
 
 
+def inspecting_error_handler(task, logmsg, errmsg=None, traceback=False,
+                              tear_down_inspection=True):
+    """Handle inspection failures and clean up resources.
+
+    :param task: a TaskManager instance.
+    :param logmsg: Message to be logged.
+    :param errmsg: Message for the user. Optional, if not provided
+        `logmsg` is used.
+    :param traceback: Whether to log a traceback. Defaults to False.
+    :param tear_down_inspection: Whether to clean up the inspection
+        network and boot configuration. Default to True.
+    """
+    errmsg = errmsg or logmsg
+    node = task.node
+    LOG.error(logmsg, exc_info=traceback)
+    node_history_record(node, event=errmsg, event_type=states.INTROSPECTION,
+                        error=True)
+
+    if tear_down_inspection:
+        # Try to call abort() for full cleanup (boot config, etc)
+        try:
+            task.driver.inspect.abort(task)
+        except exception.UnsupportedDriverExtension:
+            LOG.debug('Inspect interface %(intf)s does not support abort '
+                      'for node %(node)s, will clean up manually',
+                      {'intf': node.inspect_interface, 'node': node.uuid})
+            # If abort is not supported, manually clean up boot config
+            try:
+                task.driver.boot.clean_up_ramdisk(task)
+            except Exception as e:
+                msg2 = ('Failed to clean up ramdisk boot for node '
+                        '%(uuid)s, reason: %(err)s'
+                        % {'err': e, 'uuid': node.uuid})
+                LOG.exception(msg2)
+                errmsg = _('%(orig_err)s. Also %(msg2)s') % {
+                    'orig_err': errmsg, 'msg2': msg2}
+        except Exception as e:
+            msg2 = ('Failed to abort inspection on node %(uuid)s, '
+                    'reason: %(err)s' % {'err': e, 'uuid': node.uuid})
+            LOG.exception(msg2)
+            errmsg = _('%(orig_err)s. Also %(msg2)s') % {
+                'orig_err': errmsg, 'msg2': msg2}
+
+        # EXPLICITLY ensure inspection network is removed (VIF cleanup)
+        # This is critical and must happen even if abort() fails or is
+        # unsupported
+        power_state_to_restore = None
+        try:
+            power_state_to_restore = power_on_node_if_needed(task)
+            task.driver.network.remove_inspection_network(task)
+        except Exception as e:
+            msg2 = ('Failed to remove inspection network for node '
+                    '%(uuid)s, reason: %(err)s'
+                    % {'err': e, 'uuid': node.uuid})
+            LOG.exception(msg2)
+            errmsg = _('%(orig_err)s. Also %(msg2)s') % {
+                'orig_err': errmsg, 'msg2': msg2}
+        finally:
+            # Always restore power state even if network cleanup fails
+            try:
+                restore_power_state_if_needed(task, power_state_to_restore)
+            except Exception:
+                LOG.exception('Failed to restore power state for node %s',
+                              node.uuid)
+
+    # Clear inspection-related internal info
+    wipe_token_and_url(task)
+    node.save()
+
+
+@task_manager.require_exclusive_lock
+def cleanup_inspectwait_timeout(task):
+    """Cleanup an inspection task after timeout.
+
+    :param task: a TaskManager instance.
+    """
+    last_error = (_("Timeout reached while inspecting the node. Please "
+                    "check if the ramdisk responsible for the inspection "
+                    "is running on the node."))
+    logmsg = ("Inspection for node %(node)s failed. %(error)s"
+              % {'node': task.node.uuid, 'error': last_error})
+    # NOTE(TheJulia): this is called from the periodic task for
+    # inspectwait timeouts, via the task manager's process_event().
+    # The node has already been moved to INSPECTFAIL, so we just need
+    # to clean up resources.
+    inspecting_error_handler(task, logmsg, errmsg=last_error)
+
+
 def _spawn_error_handler(e, node, operation):
     """Handle error while trying to spawn a process.
 

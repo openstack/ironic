@@ -1928,6 +1928,90 @@ class ErrorHandlersTestCase(db_base.DbTestCase):
         self.assertEqual('service failure', self.node.fault)
 
 
+
+class InspectingErrorHandlerTestCase(db_base.DbTestCase):
+    def setUp(self):
+        super(InspectingErrorHandlerTestCase, self).setUp()
+        self.node = obj_utils.create_test_node(
+            self.context,
+            driver='fake-hardware',
+            driver_internal_info={'agent_url': 'url',
+                                  'agent_secret_token': 'token'})
+
+    @mock.patch.object(conductor_utils, 'power_on_node_if_needed',
+                       autospec=True)
+    @mock.patch.object(conductor_utils, 'restore_power_state_if_needed',
+                       autospec=True)
+    @mock.patch.object(conductor_utils, 'LOG', autospec=True)
+    def test_inspecting_error_handler(self, log_mock, mock_restore,
+                                       mock_power_on):
+        mock_power_on.return_value = None
+        msg = 'foo'
+        with task_manager.acquire(self.context, self.node.uuid) as task:
+            conductor_utils.inspecting_error_handler(task, msg)
+        log_mock.error.assert_called_once_with(msg, exc_info=False)
+        mock_power_on.assert_called_once()
+        mock_restore.assert_called_once()
+        self.node.refresh()
+        self.assertIn(msg, self.node.last_error)
+        self.assertNotIn('agent_url', self.node.driver_internal_info)
+        self.assertNotIn('agent_secret_token', self.node.driver_internal_info)
+
+    @mock.patch.object(conductor_utils, 'power_on_node_if_needed',
+                       autospec=True)
+    @mock.patch.object(conductor_utils, 'restore_power_state_if_needed',
+                       autospec=True)
+    def test_inspecting_error_handler_no_teardown(self, mock_restore,
+                                                   mock_power_on):
+        with task_manager.acquire(self.context, self.node.uuid) as task:
+            conductor_utils.inspecting_error_handler(task, 'foo',
+                                                     tear_down_inspection=False)
+        self.assertFalse(mock_power_on.called)
+        self.assertFalse(mock_restore.called)
+        self.node.refresh()
+        # Token should still be cleared even without teardown
+        self.assertNotIn('agent_url', self.node.driver_internal_info)
+
+    @mock.patch.object(conductor_utils, 'power_on_node_if_needed',
+                       autospec=True)
+    @mock.patch.object(conductor_utils, 'restore_power_state_if_needed',
+                       autospec=True)
+    @mock.patch.object(conductor_utils, 'LOG', autospec=True)
+    def test_inspecting_error_handler_network_error(self, log_mock,
+                                                     mock_restore,
+                                                     mock_power_on):
+        mock_power_on.return_value = None
+        msg = 'foo'
+        with task_manager.acquire(self.context, self.node.uuid) as task:
+            # Simulate network cleanup failure
+            task.driver.network.remove_inspection_network = mock.Mock(
+                side_effect=Exception('network error'))
+            conductor_utils.inspecting_error_handler(task, msg)
+        log_mock.error.assert_called_once_with(msg, exc_info=False)
+        self.assertTrue(log_mock.exception.called)
+        # Should still attempt power restore even if network cleanup fails
+        mock_power_on.assert_called_once()
+        mock_restore.assert_called_once()
+        self.node.refresh()
+        self.assertIn(msg, self.node.last_error)
+
+    @mock.patch.object(conductor_utils, 'inspecting_error_handler',
+                       autospec=True)
+    def test_cleanup_inspectwait_timeout(self, mock_error_handler):
+        with task_manager.acquire(self.context, self.node.uuid) as task:
+            conductor_utils.cleanup_inspectwait_timeout(task)
+
+        mock_error_handler.assert_called_once_with(
+            mock.ANY,
+            logmsg="Inspection for node %s "
+                   "failed. Timeout reached while inspecting the node. "
+                   "Please check if the ramdisk responsible for the "
+                   "inspection is running on the node." % self.node.uuid,
+            errmsg="Timeout reached while inspecting the node. Please check "
+                   "if the ramdisk responsible for the inspection is running "
+                   "on the node.")
+
+
 class ValidatePortPhysnetTestCase(db_base.DbTestCase):
 
     def setUp(self):
