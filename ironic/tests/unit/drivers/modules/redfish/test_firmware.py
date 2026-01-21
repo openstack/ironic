@@ -877,6 +877,40 @@ class RedfishFirmwareTestCase(db_base.DbTestCase):
 
         interface._continue_updates.assert_not_called()
 
+    @mock.patch.object(redfish_fw, 'LOG', autospec=True)
+    @mock.patch.object(redfish_utils, 'get_update_service', autospec=True)
+    @mock.patch.object(redfish_utils, 'get_task_monitor', autospec=True)
+    def test__check_update_task_state(self, tm_mock, get_us_mock, log_mock):
+        """Test task with is_processing=False but still in active state.
+
+        Some BMCs (particularly HPE iLO) may return is_processing=False
+        while the task is still in RUNNING, STARTING, or PENDING state.
+        The update should continue polling and not be treated as complete.
+        """
+        self._generate_new_driver_internal_info(['bmc'])
+
+        # Test each of the three active states
+        for task_state in [sushy.TASK_STATE_RUNNING,
+                          sushy.TASK_STATE_STARTING,
+                          sushy.TASK_STATE_PENDING]:
+            log_mock.reset_mock()
+
+            tm_mock.return_value.is_processing = False
+            mock_task = tm_mock.return_value.get_task.return_value
+            mock_task.task_state = task_state
+            mock_task.task_status = sushy.HEALTH_OK
+
+            _, interface = self._test__check_node_redfish_firmware_update()
+
+            # Verify the new debug log message
+            debug_calls = [
+                mock.call('Firmware update task for node %(node)s is in '
+                          '%(state)s state. Continuing to poll.',
+                          {'node': self.node.uuid, 'state': task_state})]
+
+            log_mock.debug.assert_has_calls(debug_calls)
+            interface._continue_updates.assert_not_called()
+
     @mock.patch.object(manager_utils, 'cleaning_error_handler', autospec=True)
     @mock.patch.object(redfish_utils, 'get_update_service', autospec=True)
     @mock.patch.object(redfish_utils, 'get_task_monitor', autospec=True)

@@ -1274,6 +1274,18 @@ class RedfishFirmware(base.FirmwareInterface):
             # so get it
             sushy_task = task_monitor.get_task()
 
+            # NOTE(iurygregory): Some BMCs (particularly HPE iLO) may return
+            # is_processing=False while the task is still in RUNNING, STARTING,
+            # or PENDING state. Only treat it as completion if the task state
+            # indicates it's actually finished.
+            if sushy_task.task_state in [sushy.TASK_STATE_RUNNING,
+                                         sushy.TASK_STATE_STARTING,
+                                         sushy.TASK_STATE_PENDING]:
+                LOG.debug('Firmware update task for node %(node)s is in '
+                          '%(state)s state. Continuing to poll.',
+                          {'node': node.uuid, 'state': sushy_task.task_state})
+                return
+
             # Only parse the messages if the BMC did not return parsed
             # messages
             messages = []
