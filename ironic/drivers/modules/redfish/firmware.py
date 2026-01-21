@@ -891,15 +891,34 @@ class RedfishFirmware(base.FirmwareInterface):
                 self._handle_nic_update_completion(
                     task, update_service, settings, current_update)
             elif component_type == redfish_utils.BIOS:
-                # BIOS: Reboot was already triggered when task started,
-                # just continue with next update
-                LOG.info('BIOS firmware update task completed for node '
-                         '%(node)s. System was already rebooted. '
-                         'Proceeding with continuation.',
-                         {'node': node.uuid})
-                # Clean up the reboot trigger flag
-                current_update.pop('bios_reboot_triggered', None)
-                self._continue_updates(task, update_service, settings)
+                # BIOS: Check if reboot was actually triggered
+                # Some BMCs (e.g., HPE iLO) complete the BIOS firmware task
+                # very quickly (staging the firmware) before Ironic can poll
+                # and trigger the reboot. In this case, we need to trigger
+                # the reboot now to actually apply the firmware.
+                if not current_update.get('bios_reboot_triggered'):
+                    LOG.info('BIOS firmware update task completed for node '
+                             '%(node)s but reboot was not triggered yet. '
+                             'Triggering reboot now to apply staged firmware.',
+                             {'node': node.uuid})
+                    current_update['bios_reboot_triggered'] = True
+                    node.set_driver_internal_info('redfish_fw_updates',
+                                                  settings)
+                    node.save()
+                    power_timeout = current_update.get('power_timeout', 0)
+                    manager_utils.node_power_action(task, states.REBOOT,
+                                                    power_timeout)
+                    return
+                else:
+                    # Reboot was already triggered when task started,
+                    # just continue with next update
+                    LOG.info('BIOS firmware update task completed for node '
+                             '%(node)s. System was already rebooted. '
+                             'Proceeding with continuation.',
+                             {'node': node.uuid})
+                    # Clean up the reboot trigger flag
+                    current_update.pop('bios_reboot_triggered', None)
+                    self._continue_updates(task, update_service, settings)
             else:
                 # Default: continue as before
                 self._continue_updates(task, update_service, settings)

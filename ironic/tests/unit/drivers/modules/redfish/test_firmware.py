@@ -2182,3 +2182,129 @@ class RedfishFirmwareTestCase(db_base.DbTestCase):
 
             # Verify reboot was NOT triggered again
             mock_power_action.assert_not_called()
+
+    @mock.patch.object(redfish_fw, 'LOG', autospec=True)
+    @mock.patch.object(redfish_fw.RedfishFirmware, '_continue_updates',
+                       autospec=True)
+    @mock.patch.object(manager_utils, 'node_power_action', autospec=True)
+    @mock.patch.object(redfish_utils, 'get_update_service', autospec=True)
+    @mock.patch.object(redfish_utils, 'get_task_monitor', autospec=True)
+    def test_bios_reboot_on_completion_without_prior_reboot(
+            self, mock_get_task_monitor, mock_get_update_service,
+            mock_power_action, mock_continue_updates, mock_log):
+        """Test BIOS task completion triggers reboot when not triggered before.
+
+        This test verifies the alternate path where a BIOS firmware update
+        task completes very quickly (e.g., HPE iLO staging firmware) before
+        Ironic can trigger a reboot during the STARTING state. In this case,
+        when the task reaches COMPLETED state and bios_reboot_triggered is
+        not set, we should:
+        1. Trigger a reboot to apply the staged firmware
+        2. NOT call _continue_updates (return early)
+        3. Set the bios_reboot_triggered flag
+        """
+        settings = [{'component': 'bios', 'url': 'http://bios/v1.0.1',
+                     'task_monitor': '/tasks/1'}]
+
+        with task_manager.acquire(self.context, self.node.uuid,
+                                  shared=False) as task:
+            # Set up node with BIOS update in progress
+            # Note: bios_reboot_triggered is NOT set
+            task.node.set_driver_internal_info('redfish_fw_updates', settings)
+            task.node.clean_step = {'step': 'update', 'interface': 'firmware'}
+
+            # Mock task monitor showing task is completed
+            mock_task_monitor = mock.Mock()
+            mock_task_monitor.is_processing = False
+            mock_task = mock.Mock()
+            mock_task.task_state = sushy.TASK_STATE_COMPLETED
+            mock_task.task_status = sushy.HEALTH_OK
+            mock_task.messages = []
+            mock_task_monitor.get_task.return_value = mock_task
+            mock_get_task_monitor.return_value = mock_task_monitor
+
+            # Call the check method
+            firmware_interface = redfish_fw.RedfishFirmware()
+            firmware_interface._check_node_redfish_firmware_update(task)
+
+            # Verify reboot WAS triggered
+            mock_power_action.assert_called_once_with(task, states.REBOOT, 0)
+
+            # Verify _continue_updates was NOT called (early return)
+            mock_continue_updates.assert_not_called()
+
+            # Verify the flag was set to prevent repeated reboots
+            updated_settings = task.node.driver_internal_info[
+                'redfish_fw_updates']
+            self.assertTrue(updated_settings[0].get('bios_reboot_triggered'))
+
+            # Verify LOG.info was called with the correct message
+            mock_log.info.assert_any_call(
+                'BIOS firmware update task completed for node '
+                '%(node)s but reboot was not triggered yet. '
+                'Triggering reboot now to apply staged firmware.',
+                {'node': task.node.uuid})
+
+    @mock.patch.object(redfish_fw, 'LOG', autospec=True)
+    @mock.patch.object(redfish_fw.RedfishFirmware, '_continue_updates',
+                       autospec=True)
+    @mock.patch.object(manager_utils, 'node_power_action', autospec=True)
+    @mock.patch.object(redfish_utils, 'get_update_service', autospec=True)
+    @mock.patch.object(redfish_utils, 'get_task_monitor', autospec=True)
+    def test_bios_continue_after_completion_with_prior_reboot(
+            self, mock_get_task_monitor, mock_get_update_service,
+            mock_power_action, mock_continue_updates, mock_log):
+        """Test BIOS task completion continues when reboot already triggered.
+
+        This test verifies the else path where a BIOS firmware update task
+        completes and the reboot was already triggered (during STARTING state).
+        In this case, when the task reaches COMPLETED state and
+        bios_reboot_triggered is already set, we should:
+        1. NOT trigger another reboot
+        2. Call _continue_updates to proceed with next firmware
+        3. Clean up the bios_reboot_triggered flag
+        """
+        settings = [{'component': 'bios', 'url': 'http://bios/v1.0.1',
+                     'task_monitor': '/tasks/1',
+                     'bios_reboot_triggered': True}]  # Flag already set
+
+        with task_manager.acquire(self.context, self.node.uuid,
+                                  shared=False) as task:
+            # Set up node with BIOS update in progress
+            # Note: bios_reboot_triggered IS set (reboot already happened)
+            task.node.set_driver_internal_info('redfish_fw_updates', settings)
+            task.node.clean_step = {'step': 'update', 'interface': 'firmware'}
+
+            # Mock task monitor showing task is completed
+            mock_task_monitor = mock.Mock()
+            mock_task_monitor.is_processing = False
+            mock_task = mock.Mock()
+            mock_task.task_state = sushy.TASK_STATE_COMPLETED
+            mock_task.task_status = sushy.HEALTH_OK
+            mock_task.messages = []
+            mock_task_monitor.get_task.return_value = mock_task
+            mock_get_task_monitor.return_value = mock_task_monitor
+
+            # Call the check method
+            firmware_interface = redfish_fw.RedfishFirmware()
+            firmware_interface._check_node_redfish_firmware_update(task)
+
+            # Verify reboot was NOT triggered (already happened)
+            mock_power_action.assert_not_called()
+
+            # Verify _continue_updates WAS called
+            mock_continue_updates.assert_called_once_with(
+                firmware_interface, task, mock_get_update_service.return_value,
+                settings)
+
+            # Verify the flag was cleaned up (popped from settings)
+            updated_settings = task.node.driver_internal_info[
+                'redfish_fw_updates']
+            self.assertIsNone(updated_settings[0].get('bios_reboot_triggered'))
+
+            # Verify LOG.info was called with the correct message
+            mock_log.info.assert_any_call(
+                'BIOS firmware update task completed for node '
+                '%(node)s. System was already rebooted. '
+                'Proceeding with continuation.',
+                {'node': task.node.uuid})

@@ -1,0 +1,9 @@
+---
+fixes:
+  - |
+    Fixes an issue with BIOS firmware updates on certain BMCs where the
+    firmware task completes very quickly after staging the firmware,
+    before Ironic can trigger a reboot. Previously, this would result in the
+    staged BIOS firmware not being applied because no reboot was triggered.
+    Now, Ironic detects this condition and triggers the reboot when the task
+    completes, ensuring the staged firmware is properly applied.
