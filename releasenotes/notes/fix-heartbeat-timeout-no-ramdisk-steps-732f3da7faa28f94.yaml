@@ -1,0 +1,17 @@
+---
+fixes:
+  - |
+    Fixes an issue where service and clean steps with ``requires_ramdisk=False``
+    (such as Redfish firmware updates) would incorrectly fail due to heartbeat
+    timeout. These steps operate independently of the ramdisk agent and should
+    not be subject to heartbeat timeouts. Previously, such steps would fail
+    after ``service_callback_timeout`` or ``clean_callback_timeout`` (default
+    30 minutes) with a misleading error about the ramdisk not running.
+    The fix updates ``provision_updated_at`` during firmware update polling,
+    preventing the heartbeat timeout mechanism from triggering while the
+    out-of-band operation is still in progress. For more information, see
+    `bug 2136276 <https://bugs.launchpad.net/ironic/+bug/2136276>`_.
+features:
+  - |
+    Adds ``[redfish]firmware_update_overall_timeout`` (default 2 hours) to
+    limit total firmware update duration as a safety net for stuck updates.
