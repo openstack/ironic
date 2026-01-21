@@ -684,7 +684,11 @@ class RedfishFirmware(base.FirmwareInterface):
 
             except (exception.RedfishError,
                     exception.RedfishConnectionError,
-                    sushy.exceptions.BadRequestError) as e:
+                    sushy.exceptions.SushyError) as e:
+                LOG.debug('BMC resource validation failed for node %(node)s: '
+                          '%(error)s. This may indicate the BMC is still '
+                          'restarting or recovering from firmware update.',
+                          {'node': node.uuid, 'error': e})
                 # Resource not available yet, reset counter
                 if consecutive_successes > 0:
                     LOG.debug('Resource validation interrupted for node '
