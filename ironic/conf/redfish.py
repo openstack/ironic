@@ -213,6 +213,21 @@ opts = [
                       '$default_inspection_hooks. Hooks can be added before '
                       'or after the defaults like this: '
                       '"prehook,$default_hooks,posthook".')),
+    cfg.IntOpt('post_boot_retry_attempts',
+               min=1,
+               default=6,
+               help=_('Maximum number of retry attempts when BMC rejects '
+                      'boot device changes during POST (Power-On Self-Test). '
+                      'Some BMCs (e.g. HPE iLO) reject boot device '
+                      'modifications while the system is in POST after a '
+                      'firmware update or reboot.')),
+    cfg.IntOpt('post_boot_retry_delay',
+               min=1,
+               default=5,
+               help=_('Minimum delay in seconds between retry attempts '
+                      'for POST-related boot device errors. Exponential '
+                      'backoff is applied, starting from this value up to '
+                      '6x this value.')),
 ]
 
 

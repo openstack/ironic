@@ -1,0 +1,8 @@
+---
+fixes:
+  - |
+    Adds retry logic for Redfish boot device changes when BMC rejects
+    modifications during POST (Power-On Self-Test). This addresses issues
+    with HPE iLO BMCs returning ``UnableToModifyDuringSystemPOST`` errors
+    after firmware updates or reboots. See bug
+    `2136275 <https://bugs.launchpad.net/ironic/+bug/2136275>`_.
