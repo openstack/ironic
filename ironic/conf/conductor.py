@@ -699,6 +699,28 @@ opts = [
             "Log steps at the start/end of cleaning/servicing/deployment "
             "to the conductor service log (WARNING for aborted/failure, "
             "INFO otherwise.")),
+
+    # Trait Based Networking related configuration.
+    cfg.BoolOpt(
+        'enable_trait_based_networking',
+        default=False,
+        help=(
+            'Enables Trait Based Networking (TBN) feature if True. When '
+            'enabled, will apply traits defined in the TBN configuration file '
+            'to networking actions when building instances with relevant '
+            'traits defined. When False the prior behavior of mapping ports '
+            'by physical_network is maintained.'
+        )),
+    cfg.StrOpt(
+        'trait_based_networking_config_file',
+        default='/etc/ironic/trait_based_networking.yaml',
+        help=(
+            'The location of the configuration file for trait based '
+            'configuration. Ironic will load this configuration file if TBN '
+            'is enabled and apply the traits defined when building and '
+            'attaching networks to node instances. Ironic will also reload '
+            'this file if it detects the file has changed.'
+        )),
 ]
 
 
