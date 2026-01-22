@@ -400,6 +400,59 @@ class TraitBasedNetworkingPlanningTestCase(base.TestCase):
                 "fake_net_id"
             )],
         ),
+        annotate("trait order matters",
+            [
+                tbn_base.NetworkTrait(
+                    "CUSTOM_TRAIT_ORDER_SECOND",
+                    [
+                        tbn_base.TraitAction(
+                            "CUSTOM_TRAIT_ORDER_SECOND",
+                            tbn_base.Actions.ATTACH_PORT,
+                            tbn_base.FilterExpression.parse(
+                                "port.physical_network == 'hypernet'"),
+                        )
+                    ],
+                    order=2,
+                ),
+                tbn_base.NetworkTrait(
+                    "CUSTOM_TRAIT_ORDER_FIRST",
+                    [
+                        tbn_base.TraitAction(
+                            "CUSTOM_TRAIT_ORDER_FIRST",
+                            tbn_base.Actions.ATTACH_PORT,
+                            tbn_base.FilterExpression.parse(
+                                "port.physical_network == 'hypernet'"),
+                        )
+                    ],
+                    order=1,
+                ),
+            ],
+            utils.FauxTask(
+                utils.FauxNode(
+                    instance_info={
+                        'traits':['CUSTOM_TRAIT_ORDER_SECOND',
+                                  'CUSTOM_TRAIT_ORDER_FIRST']}),
+                [utils.FauxPortLikeObject(
+                    uuid="fake_port_uuid",
+                    physical_network="hypernet")],
+                []
+            ),
+            {
+                'id': 'fake_net_id',
+            },
+            [
+                tbn_base.AttachPort(tbn_base.TraitAction(
+                     "CUSTOM_TRAIT_ORDER_FIRST",
+                     tbn_base.Actions.ATTACH_PORT,
+                     tbn_base.FilterExpression.parse(
+                         "port.physical_network == 'hypernet'"),
+                     ),
+                    "fake_node_uuid",
+                    "fake_port_uuid",
+                    "fake_net_id"
+                )
+            ],
+        ),
     )
     @unpack
     def test_plan_vif_attach(self,
