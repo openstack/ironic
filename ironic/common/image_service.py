@@ -28,6 +28,7 @@ from oslo_utils import strutils
 from oslo_utils import uuidutils
 import requests
 
+from ironic.common import checksum_utils
 from ironic.common import exception
 from ironic.common.glance_service.image_service import GlanceImageService
 from ironic.common.i18n import _
@@ -57,11 +58,16 @@ class BaseImageService(object, metaclass=abc.ABCMeta):
         """
 
     @abc.abstractmethod
-    def download(self, image_href, image_file):
+    def download(self, image_href, image_file, checksum=None,
+                 checksum_algo=None):
         """Downloads image to specified location.
 
         :param image_href: Image reference.
         :param image_file: File object to write data to.
+        :param checksum: Expected checksum value for validation during
+                         transfer.
+        :param checksum_algo: Algorithm for checksum (e.g., 'md5',
+                              'sha256').
         :raises: exception.ImageRefValidationFailed.
         :raises: exception.ImageDownloadFailed.
         """
@@ -90,6 +96,14 @@ class BaseImageService(object, metaclass=abc.ABCMeta):
 
 class HttpImageService(BaseImageService):
     """Provides retrieval of disk images using HTTP."""
+
+    def __init__(self):
+        self._transfer_verified_checksum = None
+
+    @property
+    def transfer_verified_checksum(self):
+        """The transferred artifact checksum."""
+        return self._transfer_verified_checksum
 
     @staticmethod
     def gen_auth_from_conf_user_pass(image_href):
@@ -197,20 +211,27 @@ class HttpImageService(BaseImageService):
                                                      reason=str(e))
         return response
 
-    def download(self, image_href, image_file):
+    def download(self, image_href, image_file, checksum=None,
+                 checksum_algo=None):
         """Downloads image to specified location.
 
         :param image_href: Image reference.
         :param image_file: File object to write data to.
+        :param checksum: Expected checksum value for validation during
+                         transfer.
+        :param checksum_algo: Algorithm for checksum (e.g., 'md5',
+                              'sha256').
         :raises: exception.ImageRefValidationFailed if GET request returned
             response code not equal to 200.
         :raises: exception.ImageDownloadFailed if:
             * IOError happened during file write;
             * GET request failed.
+        :raises: exception.ImageChecksumError if checksum validation fails.
         """
+        # Reset transfer checksum for new download
+        self._transfer_verified_checksum = None
 
         try:
-
             verify = strutils.bool_from_string(CONF.webserver_verify_ca,
                                                strict=True)
         except ValueError:
@@ -227,8 +248,45 @@ class HttpImageService(BaseImageService):
                     reason=_("Got HTTP code %s instead of 200 in response "
                              "to GET request.") % response.status_code)
 
-            with response.raw as input_img:
-                shutil.copyfileobj(input_img, image_file, IMAGE_CHUNK_SIZE)
+            # If checksum validation is requested, use TransferHelper
+            # to calculate checksum during download
+            if checksum and checksum_algo:
+                try:
+                    download_helper = checksum_utils.TransferHelper(
+                        response, checksum_algo, checksum,
+                        chunk_size=IMAGE_CHUNK_SIZE)
+                    for chunk in download_helper:
+                        image_file.write(chunk)
+
+                    # Verify checksum matches
+                    if download_helper.checksum_matches:
+                        # Store verified checksum in algo:value format
+                        self._transfer_verified_checksum = (
+                            f"{checksum_algo}:{checksum}")
+                        LOG.debug("Verified checksum during download of image "
+                                  "%(image)s: %(algo)s:%(checksum)s",
+                                  {'image': image_href, 'algo': checksum_algo,
+                                   'checksum': checksum})
+                    else:
+                        raise exception.ImageChecksumError()
+                except (exception.ImageChecksumAlgorithmFailure, ValueError):
+                    # Fall back to download without checksumming
+                    LOG.warning("Checksum algorithm %(algo)s not available, "
+                                "downloading without incremental checksum for "
+                                "image %(image)s",
+                                {'algo': checksum_algo, 'image': image_href})
+                    # NOTE(JayF): Must use iter_content with explicit chunk
+                    # size. See IMAGE_CHUNK_SIZE definition for details.
+                    for chunk in response.iter_content(
+                            chunk_size=IMAGE_CHUNK_SIZE):
+                        image_file.write(chunk)
+            else:
+                # No checksum requested, just stream and write.
+                # NOTE(JayF): Must use iter_content with explicit chunk
+                # size. See IMAGE_CHUNK_SIZE definition for details.
+                for chunk in response.iter_content(
+                        chunk_size=IMAGE_CHUNK_SIZE):
+                    image_file.write(chunk)
 
         except (OSError, requests.ConnectionError, requests.RequestException,
                 IOError) as e:
@@ -424,11 +482,18 @@ class OciImageService(BaseImageService):
 
         return self.show(image_href)
 
-    def download(self, image_href, image_file):
+    def download(self, image_href, image_file, checksum=None,
+                 checksum_algo=None):
         """Downloads image to specified location.
 
         :param image_href: Image reference.
         :param image_file: File object to write data to.
+        :param checksum: Expected checksum value for validation during
+                         transfer. (Currently unused, OCI validates via
+                         manifest digest.)
+        :param checksum_algo: Algorithm for checksum (e.g., 'md5',
+                              'sha256'). (Currently unused, OCI validates
+                              via manifest digest.)
         :raises: exception.ImageRefValidationFailed.
         :raises: exception.ImageDownloadFailed.
         :raises: exception.OciImageNotSpecific.
@@ -855,11 +920,17 @@ class FileImageService(BaseImageService):
 
         return image_path
 
-    def download(self, image_href, image_file):
+    def download(self, image_href, image_file, checksum=None,
+                 checksum_algo=None):
         """Downloads image to specified location.
 
         :param image_href: Image reference.
         :param image_file: File object to write data to.
+        :param checksum: Expected checksum value for validation during
+                         transfer. (Currently unused, for API compatibility.)
+        :param checksum_algo: Algorithm for checksum (e.g., 'md5',
+                              'sha256'). (Currently unused, for API
+                              compatibility.)
         :raises: exception.ImageRefValidationFailed if source image file
             doesn't exist.
         :raises: exception.ImageDownloadFailed if exceptions were raised while
