@@ -52,7 +52,30 @@ class DracRedfishInspect(redfish_inspect.RedfishInspect):
 
         ethernet_interfaces_mac = list(self._get_mac_address(task).values())
         inspect_utils.create_ports_if_not_exist(task, ethernet_interfaces_mac)
-        return super(DracRedfishInspect, self).inspect_hardware(task)
+
+        # Get the SKU before calling parent - Dell uses SKU for service tag
+        # which is the actual system serial number, while serial_number
+        # contains the motherboard serial.
+        system = redfish_utils.get_system(task.node)
+        sku = system.sku
+
+        result = super(DracRedfishInspect, self).inspect_hardware(task)
+
+        # Update serial_number to use SKU (Dell service tag) if available
+        if sku:
+            inspection_data = inspect_utils.get_inspection_data(
+                task.node, task.context)
+            inventory = inspection_data.get('inventory', {})
+            system_vendor = inventory.get('system_vendor', {})
+            if system_vendor:
+                system_vendor['serial_number'] = str(sku)
+                inspect_utils.store_inspection_data(task.node,
+                                                    inventory,
+                                                    inspection_data.get(
+                                                        'plugin_data', {}),
+                                                    task.context)
+
+        return result
 
     def _get_mac_address(self, task):
         """Get a list of MAC addresses
