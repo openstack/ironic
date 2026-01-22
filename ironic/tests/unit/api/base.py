@@ -1,4 +1,3 @@
-# -*- encoding: utf-8 -*-
 #
 # Copyright 2013 Hewlett-Packard Development Company, L.P.
 # All Rights Reserved.
