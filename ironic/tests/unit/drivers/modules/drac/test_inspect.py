@@ -80,6 +80,25 @@ class DracRedfishInspectionTestCase(test_utils.BaseDracTest):
         ]
         return system_mock
 
+    def _setup_lldp_system_mock(self, mock_get_system):
+        """System mock for LLDP tests."""
+        system_mock = self.init_system_mock(mock_get_system.return_value)
+        system_mock.identity = 'System.Embedded.1'
+        return system_mock
+
+    def _setup_dell_connection_mock(self, system_mock, url='https://bmc.example.com/redfish/v1'):
+        """Helper to setup Dell connection mock for LLDP tests."""
+        mock_conn = mock.MagicMock()
+        mock_conn._url = url
+        system_mock._conn = mock_conn
+        return mock_conn
+
+    def _create_switch_connections_response(self, members):
+        """Create a Mock response for Dell switch connections."""
+        mock_response = mock.MagicMock()
+        mock_response.json.return_value = {'Members': members}
+        return mock_response
+
     def test_get_properties(self):
         expected = redfish_utils.COMMON_PROPERTIES
         driver = drac_inspect.DracRedfishInspect()
@@ -158,3 +177,172 @@ class DracRedfishInspectionTestCase(test_utils.BaseDracTest):
                                   shared=True) as task:
             return_value = task.driver.inspect._get_mac_address(task)
             self.assertEqual(expected_value, return_value)
+    @mock.patch.object(redfish_utils, 'get_system', autospec=True)
+    def test_collect_lldp_data_successful_dell_oem(self, mock_get_system):
+        """Test successful LLDP data collection from Dell OEM endpoints."""
+        system_mock = self._setup_lldp_system_mock(mock_get_system)
+        mock_conn = self._setup_dell_connection_mock(system_mock)
+
+        # Mock the HTTP response with switch connections
+        members = [
+            {
+                'FQDD': 'NIC.Integrated.1-1-1',
+                'SwitchConnectionID': 'aa:bb:cc:dd:ee:ff',
+                'SwitchPortConnectionID': 'Ethernet1/0/1'
+            },
+            {
+                'FQDD': 'NIC.Integrated.1-1-2',
+                'SwitchConnectionID': 'aa:bb:cc:dd:ee:gg',
+                'SwitchPortConnectionID': 'Ethernet1/8'
+            }
+        ]
+        mock_response = self._create_switch_connections_response(members)
+        mock_conn.get.return_value = mock_response
+
+        expected_lldp = {
+            'NIC.Integrated.1-1-1': {
+                'switch_chassis_id': 'aa:bb:cc:dd:ee:ff',
+                'switch_port_id': 'Ethernet1/0/1'
+            },
+            'NIC.Integrated.1-1-2': {
+                'switch_chassis_id': 'aa:bb:cc:dd:ee:gg',
+                'switch_port_id': 'Ethernet1/8'
+            }
+        }
+
+        with task_manager.acquire(self.context, self.node.uuid,
+                                  shared=True) as task:
+            result = task.driver.inspect._collect_lldp_data(task, system_mock)
+            self.assertEqual(expected_lldp, result)
+
+    @mock.patch.object(redfish_inspect.RedfishInspect, '_collect_lldp_data',
+                       autospec=True)
+    @mock.patch.object(drac_inspect.DracRedfishInspect,
+                       '_get_dell_switch_connections', autospec=True)
+    @mock.patch.object(redfish_utils, 'get_system', autospec=True)
+    def test_collect_lldp_data_fallback_to_standard(self, mock_get_system,
+                                                   mock_get_connections,
+                                                   mock_super_collect):
+        """Test fallback to standard Redfish LLDP when Dell OEM fails."""
+        system_mock = self._setup_lldp_system_mock(mock_get_system)
+
+        # Mock _get_dell_switch_connections to raise an exception
+        mock_get_connections.side_effect = Exception("Dell OEM failed")
+
+        # Mock fallback response
+        mock_super_collect.return_value = {
+            'NIC.Integrated.1-1-1': {
+                'switch_chassis_id': 'fallback_chassis',
+                'switch_port_id': 'fallback_port'
+            }
+        }
+
+        with task_manager.acquire(self.context, self.node.uuid,
+                                  shared=True) as task:
+            result = task.driver.inspect._collect_lldp_data(task, system_mock)
+            # Should return the fallback data
+            mock_super_collect.assert_called_once_with(
+                task.driver.inspect, task, system_mock)
+            self.assertEqual(mock_super_collect.return_value, result)
+
+    @mock.patch.object(redfish_utils, 'get_system', autospec=True)
+    def test_collect_lldp_data_filters_no_link(self, mock_get_system):
+        """Test that 'No Link' connections are filtered out."""
+        system_mock = self._setup_lldp_system_mock(mock_get_system)
+        mock_conn = self._setup_dell_connection_mock(system_mock)
+
+        # Mock the HTTP response with mixed valid/invalid connections
+        members = [
+            {
+                'FQDD': 'NIC.Integrated.1-1-1',
+                'SwitchConnectionID': 'aa:bb:cc:dd:ee:ff',
+                'SwitchPortConnectionID': 'Ethernet1/8'
+            },
+            {
+                'FQDD': 'NIC.Integrated.1-1-2',
+                'SwitchConnectionID': 'No Link',
+                'SwitchPortConnectionID': 'No Link'
+            },
+            {
+                'FQDD': None,
+                'SwitchConnectionID': 'aa:bb:cc:dd:ee:gg',
+                'SwitchPortConnectionID': 'Ethernet1/8'
+            }
+        ]
+        mock_response = self._create_switch_connections_response(members)
+        mock_conn.get.return_value = mock_response
+
+        expected_lldp = {
+            'NIC.Integrated.1-1-1': {
+                'switch_chassis_id': 'aa:bb:cc:dd:ee:ff',
+                'switch_port_id': 'Ethernet1/8'
+            }
+        }
+
+        with task_manager.acquire(self.context, self.node.uuid,
+                                  shared=True) as task:
+            result = task.driver.inspect._collect_lldp_data(task, system_mock)
+            self.assertEqual(expected_lldp, result)
+
+    @mock.patch.object(redfish_utils, 'get_system', autospec=True)
+    def test_get_dell_switch_connections_success(self, mock_get_system):
+        """Test successful retrieval of Dell switch connections."""
+        system_mock = self._setup_lldp_system_mock(mock_get_system)
+        mock_conn = self._setup_dell_connection_mock(system_mock)
+
+        expected_members = [
+            {'FQDD': 'NIC.Integrated.1-1-1',
+             'SwitchConnectionID': 'aa:bb:cc:dd:ee:ff'},
+            {'FQDD': 'NIC.Integrated.1-1-2',
+             'SwitchConnectionID': 'aa:bb:cc:dd:ee:gg'}
+        ]
+        mock_response = self._create_switch_connections_response(
+            expected_members)
+        mock_conn.get.return_value = mock_response
+
+        with task_manager.acquire(self.context, self.node.uuid,
+                                  shared=True) as task:
+            result = task.driver.inspect._get_dell_switch_connections(task)
+            self.assertEqual(expected_members, result)
+
+    @mock.patch.object(redfish_utils, 'get_system', autospec=True)
+    def test_get_dell_switch_connections_attr_error(self, mock_get_system):
+        """Test AttributeError when accessing private attributes."""
+        system_mock = self._setup_lldp_system_mock(mock_get_system)
+
+        # Mock missing _conn attribute
+        delattr(system_mock, '_conn')
+
+        with task_manager.acquire(self.context, self.node.uuid,
+                                  shared=True) as task:
+            result = task.driver.inspect._get_dell_switch_connections(task)
+            self.assertEqual([], result)
+
+    @mock.patch.object(redfish_utils, 'get_system', autospec=True)
+    def test_get_dell_switch_connections_conn_error(self, mock_get_system):
+        """Test handling of connection errors during HTTP request."""
+        system_mock = self._setup_lldp_system_mock(mock_get_system)
+        mock_conn = self._setup_dell_connection_mock(system_mock)
+
+        # Mock connection failure
+        mock_conn.get.side_effect = Exception("HTTP connection failed")
+
+        with task_manager.acquire(self.context, self.node.uuid,
+                                  shared=True) as task:
+            result = task.driver.inspect._get_dell_switch_connections(task)
+            self.assertEqual([], result)
+
+    @mock.patch.object(redfish_utils, 'get_system', autospec=True)
+    def test_get_dell_switch_connections_empty_response(self, mock_get_system):
+        """Test handling of empty response from Dell OEM endpoint."""
+        system_mock = self._setup_lldp_system_mock(mock_get_system)
+        mock_conn = self._setup_dell_connection_mock(system_mock)
+
+        # Mock empty response
+        mock_response = self._create_switch_connections_response([])
+        mock_conn.get.return_value = mock_response
+
+        with task_manager.acquire(self.context, self.node.uuid,
+                                  shared=True) as task:
+            result = task.driver.inspect._get_dell_switch_connections(task)
+            self.assertEqual([], result)

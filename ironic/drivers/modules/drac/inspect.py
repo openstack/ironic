@@ -14,12 +14,12 @@
 """
 DRAC inspection interface
 """
-
 from ironic.common import boot_modes
 from ironic.drivers.modules.drac import utils as drac_utils
 from ironic.drivers.modules import inspect_utils
 from ironic.drivers.modules.redfish import inspect as redfish_inspect
 from ironic.drivers.modules.redfish import utils as redfish_utils
+from oslo_log import log
 
 
 _PXE_DEV_ENABLED_INTERFACES = [('PxeDev1EnDis', 'PxeDev1Interface'),
@@ -27,7 +27,7 @@ _PXE_DEV_ENABLED_INTERFACES = [('PxeDev1EnDis', 'PxeDev1Interface'),
                                ('PxeDev3EnDis', 'PxeDev3Interface'),
                                ('PxeDev4EnDis', 'PxeDev4Interface')]
 _BIOS_ENABLED_VALUE = 'Enabled'
-
+LOG = log.getLogger(__name__)
 
 class DracRedfishInspect(redfish_inspect.RedfishInspect):
     """iDRAC Redfish interface for inspection-related actions."""
@@ -107,3 +107,82 @@ class DracRedfishInspect(redfish_inspect.RedfishInspect):
             pxe_port_macs = [mac for mac in pxe_port_macs_list]
 
         return pxe_port_macs
+
+    def _collect_lldp_data(self, task, system):
+        """Collect LLDP data using Dell OEM SwitchConnection endpoints.
+
+        Dell iDRAC provides LLDP neighbor information through OEM
+        DellSwitchConnection endpoints. We return parsed LLDP data directly.
+
+        :param task: A TaskManager instance
+        :param system: Sushy system object
+        :returns: Dict mapping interface names to parsed LLDP data
+        """
+        parsed_lldp = {}
+
+        try:
+            # Get Dell switch connection data
+            switch_data = self._get_dell_switch_connections(task)
+
+            # Convert directly to parsed LLDP format
+            for connection in switch_data:
+                # FQDD is Fully Qualified Device Descriptor (Dell term)
+                # Example: NIC.Integrated.1-1-1
+                fqdd = connection.get('FQDD')
+                switch_mac = connection.get('SwitchConnectionID')
+                switch_port = connection.get('SwitchPortConnectionID')
+
+                # Skip unconnected interfaces
+                if (not fqdd or not switch_mac or not switch_port
+                    or switch_mac == 'No Link' or switch_port == 'No Link'):
+                    continue
+
+                parsed_lldp[fqdd] = {
+                    'switch_chassis_id': switch_mac,
+                    'switch_port_id': switch_port
+                }
+
+            LOG.debug("Generated parsed LLDP data for %d interfaces",
+                      len(parsed_lldp))
+
+        except Exception as e:
+            LOG.debug("Dell OEM LLDP collection failed, falling back to "
+                      "standard: %s", e)
+            # Fallback to standard Redfish LLDP collection
+            return super(DracRedfishInspect, self)._collect_lldp_data(
+                task, system)
+
+        return parsed_lldp
+
+    def _get_dell_switch_connections(self, task):
+        """Fetch Dell switch connection data via OEM.
+
+        :param task: A TaskManager instance
+        :returns: List of switch connection dictionaries
+        """
+        system = redfish_utils.get_system(task.node)
+
+        # Access Sushy's private connection object
+        try:
+            conn = system._conn
+            base_url = conn._url
+        except AttributeError as e:
+            LOG.debug("Failed to access Sushy connection object: %s", e)
+            return []
+
+        # Dell OEM endpoint for switch connections
+        # This URL structure is specific to Dell iDRAC Redfish implementation
+        switch_url = (f"{base_url}/redfish/v1/Systems/{system.identity}"
+                      "/NetworkPorts/Oem/Dell/DellSwitchConnections")
+
+        LOG.debug("Fetching Dell switch connections from: %s", switch_url)
+
+        try:
+            response = conn.get(switch_url)
+            data = response.json()
+            members = data.get('Members', [])
+            LOG.debug("Retrieved %d Dell switch connections", len(members))
+            return members
+        except Exception as e:
+            LOG.debug("Failed to get Dell switch connections: %s", e)
+            return []
