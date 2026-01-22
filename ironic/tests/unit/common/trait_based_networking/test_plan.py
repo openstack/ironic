@@ -21,7 +21,6 @@ from ddt import ddt
 from ddt import unpack
 
 
-
 def annotate(name, *args):
     class AnnotatedList(list):
         pass
@@ -297,6 +296,57 @@ class TraitBasedNetworkingPlanningTestCase(base.TestCase):
                     "fake_node_uuid",
                     "fake_port_uuid",
                     "fake_net_id")
+            ],
+        ),
+        annotate(("Only one port attach generated for two actions matching"
+                  "the same port"),
+            tbn_base.NetworkTrait(
+                "CUSTOM_TRAIT",
+                [
+                    tbn_base.TraitAction(
+                        "CUSTOM_TRAIT",
+                        tbn_base.Actions.ATTACH_PORT,
+                        tbn_base.FilterExpression.parse(
+                            "port.physical_network == 'hypernet'"),
+                    ),
+                    tbn_base.TraitAction(
+                        "CUSTOM_TRAIT",
+                        tbn_base.Actions.ATTACH_PORT,
+                        tbn_base.FilterExpression.parse(
+                            "port.vendor == 'clover'"),
+                    )
+                ]
+            ),
+            "fake_node_uuid",
+            [
+                utils.FauxPortLikeObject(
+                    uuid="fake_port_uuid",
+                    vendor="clover",
+                    physical_network="hypernet",
+                )
+            ],
+            [],
+            [tbn_base.Network("fake_net_id", "fake_net_name", [])],
+            [
+                tbn_base.AttachPort(
+                    tbn_base.TraitAction(
+                        "CUSTOM_TRAIT",
+                        tbn_base.Actions.ATTACH_PORT,
+                        tbn_base.FilterExpression.parse(
+                            "port.physical_network == 'hypernet'"),
+                    ),
+                    "fake_node_uuid",
+                    "fake_port_uuid",
+                    "fake_net_id"),
+                tbn_base.NoMatch(
+                    tbn_base.TraitAction(
+                        "CUSTOM_TRAIT",
+                        tbn_base.Actions.ATTACH_PORT,
+                        tbn_base.FilterExpression.parse(
+                            "port.vendor == 'clover'"),
+                    ),
+                    "fake_node_uuid",
+                    "No (port, network) pairs matched rule.")
             ],
         ),
     )

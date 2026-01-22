@@ -1055,6 +1055,7 @@ class TestNeutronVifPortIDMixin(db_base.DbTestCase):
 
         # Vendor matches filter expression below.
         self.port.vendor = 'fake_vendor'
+        self.port.internal_info = {}
         self.port.save()
 
         vif_info = {'id': 'fake_vif_id'}
@@ -1102,6 +1103,7 @@ class TestNeutronVifPortIDMixin(db_base.DbTestCase):
 
         # But port vendor does NOT match filter expression below.
         self.port.vendor = 'bad_vendor'
+        self.port.internal_info = {}
         self.port.save()
 
         vif_info = {'id': 'fake_vif_id'}
@@ -1145,13 +1147,15 @@ class TestNeutronVifPortIDMixin(db_base.DbTestCase):
 
         # Vendor matches filter expression below.
         self.port.vendor = 'fake_vendor'
+        self.port.internal_info = {}
         self.port.save()
 
         second_port = obj_utils.create_test_port(
                 self.context, node_id=self.node.id,
                 uuid=uuidutils.generate_uuid(),
                 address='52:54:00:cf:2d:33',
-                vendor='fake_vendor')
+                vendor='fake_vendor',
+                internal_info={})
         second_port.save()
 
         vif_info = {'id': 'fake_vif_id'}
