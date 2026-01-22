@@ -736,6 +736,7 @@ class SNMPDeviceDriverTestCase(db_base.DbTestCase):
     def setUp(self):
         super(SNMPDeviceDriverTestCase, self).setUp()
         self.config(enabled_power_interfaces=['fake', 'snmp'])
+        self.config(power_timeout=2, group='snmp')
         snmp._memoized = {}
         self.node = obj_utils.get_test_node(
             self.context,
