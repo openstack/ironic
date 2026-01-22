@@ -1,0 +1,5 @@
+features:
+  - |
+    When using iDRAC Redfish, we now check the Dell-specific OEM locations for
+    LLDP first, then fall back to the standards location if that data is
+    unavailable.
