@@ -145,6 +145,7 @@ BASE_VERSION = 1
 # v1.105: Remove broken ovn vtep metadata support
 # v1.106: Add shard filtering support for portgroups
 # v1.107: Add X-OpenStack-Request-Id header.
+# v1.108: Add disable_ramdisk support for servicing
 
 MINOR_0_JUNO = 0
 MINOR_1_INITIAL_VERSION = 1
@@ -254,6 +255,7 @@ MINOR_104_NODE_INSTANCE_NAME = 104
 MINOR_105_REMOVE_OVN_VTEP = 105
 MINOR_106_PORTGROUP_SHARD = 106
 MINOR_107_X_OPENSTACK_REQUEST_ID = 107
+MINOR_108_SERVICE_DISABLE_RAMDISK = 108
 
 # When adding another version, update:
 # - MINOR_MAX_VERSION
@@ -263,7 +265,7 @@ MINOR_107_X_OPENSTACK_REQUEST_ID = 107
 # - Add a comment describing the change above the list of consts
 
 
-MINOR_MAX_VERSION = MINOR_107_X_OPENSTACK_REQUEST_ID
+MINOR_MAX_VERSION = MINOR_108_SERVICE_DISABLE_RAMDISK
 
 # String representations of the minor and maximum versions
 _MIN_VERSION_STRING = '{}.{}'.format(BASE_VERSION, MINOR_1_INITIAL_VERSION)
