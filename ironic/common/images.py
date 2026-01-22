@@ -361,7 +361,7 @@ def create_esp_image_for_uefi(
 
 
 def fetch_into(context, image_href, image_file,
-               image_auth_data=None):
+               image_auth_data=None, checksum=None, checksum_algo=None):
     """Fetches image file contents into a file.
 
     :param context: A context object.
@@ -371,6 +371,8 @@ def fetch_into(context, image_href, image_file,
     :param image_auth_data: Optional dictionary for credentials to be conveyed
                             from the original task to the image download
                             process, if required.
+    :param checksum: Expected checksum value for validation during transfer.
+    :param checksum_algo: Algorithm for checksum (e.g., 'md5', 'sha256').
     :returns: If a value is returned, that value was validated as the checksum.
               Otherwise None indicating the process had been completed.
     """
@@ -395,9 +397,13 @@ def fetch_into(context, image_href, image_file,
 
     if isinstance(image_file, str):
         with open(image_file, "wb") as image_file_obj:
-            image_service.download(image_href, image_file_obj)
+            image_service.download(image_href, image_file_obj,
+                                   checksum=checksum,
+                                   checksum_algo=checksum_algo)
     else:
-        image_service.download(image_href, image_file)
+        image_service.download(image_href, image_file,
+                               checksum=checksum,
+                               checksum_algo=checksum_algo)
 
     LOG.debug("Image %(image_href)s downloaded in %(time).2f seconds.",
               {'image_href': image_href, 'time': time.time() - start})
@@ -446,7 +452,9 @@ def fetch(context, image_href, path, force_raw=False,
           image_auth_data=None):
     with fileutils.remove_path_on_error(path):
         transfer_checksum = fetch_into(context, image_href, path,
-                                       image_auth_data)
+                                       image_auth_data,
+                                       checksum=checksum,
+                                       checksum_algo=checksum_algo)
         if (not transfer_checksum
                 and not CONF.conductor.disable_file_checksum
                 and checksum):
