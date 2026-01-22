@@ -36,6 +36,16 @@ LOG = log.getLogger(__name__)
 
 METRICS = metrics_utils.get_metrics_logger(__name__)
 
+# Temporary field names stored in node.driver_internal_info
+BMC_FW_VERSION_BEFORE_UPDATE = 'bmc_fw_version_before_update'
+FIRMWARE_REBOOT_REQUESTED = 'firmware_reboot_requested'
+
+# Temporary field names stored in fw_upd/current_update settings dict
+NIC_NEEDS_POST_COMPLETION_REBOOT = 'nic_needs_post_completion_reboot'
+NIC_STARTING_TIMESTAMP = 'nic_starting_timestamp'
+NIC_REBOOT_TRIGGERED = 'nic_reboot_triggered'
+BIOS_REBOOT_TRIGGERED = 'bios_reboot_triggered'
+
 
 class RedfishFirmware(base.FirmwareInterface):
 
@@ -246,6 +256,18 @@ class RedfishFirmware(base.FirmwareInterface):
         # the monitoring and eventual completion/reboot
         return async_steps.get_return_state(node)
 
+    def _clean_temp_fields(self, node):
+        """Clean up temporary fields used during firmware update monitoring.
+
+        This ensures no stale data interferes with new firmware updates.
+
+        :param node: the Ironic node object
+        """
+        # BMC-related temp fields
+        node.del_driver_internal_info(BMC_FW_VERSION_BEFORE_UPDATE)
+        # General firmware temp fields
+        node.del_driver_internal_info(FIRMWARE_REBOOT_REQUESTED)
+
     def _setup_bmc_update_monitoring(self, node, fw_upd):
         """Set up monitoring for BMC firmware update.
 
@@ -256,13 +278,16 @@ class RedfishFirmware(base.FirmwareInterface):
         :param node: the Ironic node object
         :param fw_upd: firmware update settings dict
         """
+        # Clean any stale temp fields from previous updates
+        self._clean_temp_fields(node)
+
         # Record current BMC version before update
         try:
             system = redfish_utils.get_system(node)
             manager = redfish_utils.get_manager(node, system)
             current_bmc_version = manager.firmware_version
             node.set_driver_internal_info(
-                'bmc_fw_version_before_update', current_bmc_version)
+                BMC_FW_VERSION_BEFORE_UPDATE, current_bmc_version)
             LOG.debug('BMC version before update for node %(node)s: '
                       '%(version)s',
                       {'node': node.uuid, 'version': current_bmc_version})
@@ -270,10 +295,6 @@ class RedfishFirmware(base.FirmwareInterface):
             LOG.warning('Could not read BMC version before update for '
                         'node %(node)s: %(error)s',
                         {'node': node.uuid, 'error': e})
-
-        node.set_driver_internal_info(
-            'bmc_fw_check_start_time',
-            str(timeutils.utcnow().isoformat()))
 
         LOG.info('BMC firmware update for node %(node)s. '
                  'Monitoring BMC version instead of immediate reboot.',
@@ -284,9 +305,11 @@ class RedfishFirmware(base.FirmwareInterface):
         if wait_interval is None:
             wait_interval = CONF.redfish.firmware_update_reboot_delay
         fw_upd['wait'] = wait_interval
-        # Set wait_start_time so polling can detect when task monitor
-        # becomes unresponsive and transition to version checking
-        fw_upd['wait_start_time'] = str(timeutils.utcnow().isoformat())
+        # Set wait_start_time for polling interval and bmc_check_start_time
+        # for total timeout tracking (wait_start_time gets updated each poll)
+        start_time = str(timeutils.utcnow().isoformat())
+        fw_upd['wait_start_time'] = start_time
+        fw_upd['bmc_check_start_time'] = start_time
         # Mark this as a BMC update so we can handle timeouts properly
         fw_upd['component_type'] = redfish_utils.BMC
 
@@ -306,6 +329,9 @@ class RedfishFirmware(base.FirmwareInterface):
 
         :param node: the Ironic node object
         """
+        # Clean any stale temp fields from previous updates
+        self._clean_temp_fields(node)
+
         LOG.info('NIC firmware update for node %(node)s. Will monitor '
                  'task state to determine if reboot is needed.',
                  {'node': node.uuid})
@@ -326,6 +352,9 @@ class RedfishFirmware(base.FirmwareInterface):
 
         :param node: the Ironic node object
         """
+        # Clean any stale temp fields from previous updates
+        self._clean_temp_fields(node)
+
         LOG.info('BIOS firmware update for node %(node)s. Will reboot '
                  'when update task starts.',
                  {'node': node.uuid})
@@ -346,6 +375,9 @@ class RedfishFirmware(base.FirmwareInterface):
         :param node: the Ironic node object
         :param fw_upd: firmware update settings dict
         """
+        # Clean any stale temp fields from previous updates
+        self._clean_temp_fields(node)
+
         component = fw_upd.get('component', '')
         LOG.warning(
             'Unknown component type %(component)s for node %(node)s. '
@@ -411,7 +443,7 @@ class RedfishFirmware(base.FirmwareInterface):
         # Note: BMC may be unresponsive after firmware update - expected
         current_version = self._get_current_bmc_version(node)
         version_before = node.driver_internal_info.get(
-            'bmc_fw_version_before_update')
+            BMC_FW_VERSION_BEFORE_UPDATE)
 
         # If we can read the version and it changed, update is complete
         if (current_version is not None
@@ -423,15 +455,13 @@ class RedfishFirmware(base.FirmwareInterface):
                 'reboot.',
                 {'node': node.uuid, 'old': version_before,
                  'new': current_version})
-            node.del_driver_internal_info('bmc_fw_check_start_time')
-            node.del_driver_internal_info('bmc_fw_version_before_update')
+            node.del_driver_internal_info(BMC_FW_VERSION_BEFORE_UPDATE)
             node.save()
             self._continue_updates(task, update_service, settings)
             return
 
         # Check if we've been checking for too long
-        check_start_time = node.driver_internal_info.get(
-            'bmc_fw_check_start_time')
+        check_start_time = current_update.get('bmc_check_start_time')
 
         if check_start_time:
             check_start = timeutils.parse_isotime(check_start_time)
@@ -459,7 +489,7 @@ class RedfishFirmware(base.FirmwareInterface):
                         {'node': node.uuid, 'elapsed': elapsed_time.seconds})
                     # Mark that reboot is needed
                     node.set_driver_internal_info(
-                        'firmware_reboot_requested', True)
+                        FIRMWARE_REBOOT_REQUESTED, True)
                     # Enable reboot flag now that we're ready to reboot
                     deploy_utils.set_async_step_flags(
                         node,
@@ -467,8 +497,7 @@ class RedfishFirmware(base.FirmwareInterface):
                         polling=True
                     )
 
-                node.del_driver_internal_info('bmc_fw_check_start_time')
-                node.del_driver_internal_info('bmc_fw_version_before_update')
+                node.del_driver_internal_info(BMC_FW_VERSION_BEFORE_UPDATE)
                 node.save()
                 self._continue_updates(task, update_service, settings)
                 return
@@ -504,7 +533,7 @@ class RedfishFirmware(base.FirmwareInterface):
 
         # Check if reboot is needed (task went to Running state)
         needs_reboot = current_update.get(
-            'nic_needs_post_completion_reboot', False)
+            NIC_NEEDS_POST_COMPLETION_REBOOT, False)
 
         if needs_reboot:
             LOG.info(
@@ -514,20 +543,20 @@ class RedfishFirmware(base.FirmwareInterface):
 
             # Mark that reboot is needed
             node.set_driver_internal_info(
-                'firmware_reboot_requested', True)
+                FIRMWARE_REBOOT_REQUESTED, True)
 
             # Clean up flags
-            current_update.pop('nic_needs_post_completion_reboot', None)
-            current_update.pop('nic_starting_timestamp', None)
-            current_update.pop('nic_reboot_triggered', None)
+            current_update.pop(NIC_NEEDS_POST_COMPLETION_REBOOT, None)
+            current_update.pop(NIC_STARTING_TIMESTAMP, None)
+            current_update.pop(NIC_REBOOT_TRIGGERED, None)
         else:
             LOG.info(
                 'NIC firmware update task completed for node '
                 '%(node)s. Reboot already occurred during update '
                 'start.', {'node': node.uuid})
             # Clean up all NIC-related flags
-            current_update.pop('nic_starting_timestamp', None)
-            current_update.pop('nic_reboot_triggered', None)
+            current_update.pop(NIC_STARTING_TIMESTAMP, None)
+            current_update.pop(NIC_REBOOT_TRIGGERED, None)
 
         self._continue_updates(task, update_service, settings)
 
@@ -749,7 +778,7 @@ class RedfishFirmware(base.FirmwareInterface):
         if len(settings) == 1:
             # Last firmware update - check if reboot is needed
             reboot_requested = node.driver_internal_info.get(
-                'firmware_reboot_requested', False)
+                FIRMWARE_REBOOT_REQUESTED, False)
 
             self._clear_updates(node)
 
@@ -825,7 +854,8 @@ class RedfishFirmware(base.FirmwareInterface):
         node.del_driver_internal_info('redfish_fw_updates')
         node.del_driver_internal_info('redfish_fw_update_start_time')
         node.del_driver_internal_info('firmware_cleanup')
-        node.del_driver_internal_info('firmware_reboot_requested')
+        # Clean all temporary fields used during firmware update monitoring
+        self._clean_temp_fields(node)
         node.save()
 
     @METRICS.timer('RedfishFirmware._query_update_failed')
@@ -880,11 +910,11 @@ class RedfishFirmware(base.FirmwareInterface):
         if (sushy_task.task_state == sushy.TASK_STATE_COMPLETED
                 and sushy_task.task_status in
                 [sushy.HEALTH_OK, sushy.HEALTH_WARNING]):
-            LOG.info('Firmware update task completed for node %(node)s, '
-                     'firmware %(firmware_image)s: %(messages)s.',
-                     {'node': node.uuid,
-                      'firmware_image': current_update['url'],
-                      'messages': ", ".join(messages)})
+            LOG.debug('Redfish task completed for node %(node)s, '
+                      'firmware %(firmware_image)s: %(messages)s.',
+                      {'node': node.uuid,
+                       'firmware_image': current_update['url'],
+                       'messages': ", ".join(messages)})
 
             # Component-specific post-update handling
             component = current_update.get('component', '')
@@ -904,12 +934,12 @@ class RedfishFirmware(base.FirmwareInterface):
                 # very quickly (staging the firmware) before Ironic can poll
                 # and trigger the reboot. In this case, we need to trigger
                 # the reboot now to actually apply the firmware.
-                if not current_update.get('bios_reboot_triggered'):
+                if not current_update.get(BIOS_REBOOT_TRIGGERED):
                     LOG.info('BIOS firmware update task completed for node '
                              '%(node)s but reboot was not triggered yet. '
                              'Triggering reboot now to apply staged firmware.',
                              {'node': node.uuid})
-                    current_update['bios_reboot_triggered'] = True
+                    current_update[BIOS_REBOOT_TRIGGERED] = True
                     node.set_driver_internal_info('redfish_fw_updates',
                                                   settings)
                     node.save()
@@ -925,7 +955,7 @@ class RedfishFirmware(base.FirmwareInterface):
                              'Proceeding with continuation.',
                              {'node': node.uuid})
                     # Clean up the reboot trigger flag
-                    current_update.pop('bios_reboot_triggered', None)
+                    current_update.pop(BIOS_REBOOT_TRIGGERED, None)
                     self._continue_updates(task, update_service, settings)
             else:
                 # Default: continue as before
@@ -987,10 +1017,10 @@ class RedfishFirmware(base.FirmwareInterface):
                           'Will wait for completion then reboot.',
                           {'node': node.uuid})
                 # Clear flags since we're past the starting phase
-                current_update.pop('nic_starting_timestamp', None)
-                current_update.pop('nic_reboot_triggered', None)
+                current_update.pop(NIC_STARTING_TIMESTAMP, None)
+                current_update.pop(NIC_REBOOT_TRIGGERED, None)
                 # Mark that reboot will be needed after completion
-                current_update['nic_needs_post_completion_reboot'] = True
+                current_update[NIC_NEEDS_POST_COMPLETION_REBOOT] = True
                 node.set_driver_internal_info('redfish_fw_updates', settings)
                 node.save()
                 return False  # Continue polling until completion
@@ -998,17 +1028,17 @@ class RedfishFirmware(base.FirmwareInterface):
             # If task is in STARTING, check if we need to wait or reboot
             if task_state == sushy.TASK_STATE_STARTING:
                 # Check if we already triggered a reboot
-                if current_update.get('nic_reboot_triggered'):
+                if current_update.get(NIC_REBOOT_TRIGGERED):
                     LOG.debug('NIC firmware update for node %(node)s: '
                               'reboot already triggered, waiting for task '
                               'to progress.', {'node': node.uuid})
                     return False  # Continue polling
 
-                starting_time = current_update.get('nic_starting_timestamp')
+                starting_time = current_update.get(NIC_STARTING_TIMESTAMP)
 
                 if not starting_time:
                     # First time seeing STARTING - record timestamp
-                    current_update['nic_starting_timestamp'] = str(
+                    current_update[NIC_STARTING_TIMESTAMP] = str(
                         timeutils.utcnow().isoformat())
                     node.set_driver_internal_info(
                         'redfish_fw_updates', settings)
@@ -1042,9 +1072,9 @@ class RedfishFirmware(base.FirmwareInterface):
                          {'node': node.uuid, 'wait': nic_starting_wait})
 
                 # Mark that we triggered a reboot to prevent repeat reboots
-                current_update['nic_reboot_triggered'] = True
+                current_update[NIC_REBOOT_TRIGGERED] = True
                 # Clean up timestamp
-                current_update.pop('nic_starting_timestamp', None)
+                current_update.pop(NIC_STARTING_TIMESTAMP, None)
                 node.set_driver_internal_info('redfish_fw_updates', settings)
                 node.save()
 
@@ -1080,7 +1110,7 @@ class RedfishFirmware(base.FirmwareInterface):
         """
         node = task.node
 
-        if current_update.get('bios_reboot_triggered'):
+        if current_update.get(BIOS_REBOOT_TRIGGERED):
             # Already triggered, just keep polling
             return False
 
@@ -1108,7 +1138,7 @@ class RedfishFirmware(base.FirmwareInterface):
                           'state': sushy_task.task_state})
 
                 # Mark reboot as triggered to avoid repeated reboots
-                current_update['bios_reboot_triggered'] = True
+                current_update[BIOS_REBOOT_TRIGGERED] = True
                 node.set_driver_internal_info(
                     'redfish_fw_updates', settings)
                 node.save()
@@ -1201,7 +1231,7 @@ class RedfishFirmware(base.FirmwareInterface):
                 # For default/unknown components, reboot may be needed
                 if component_type is None:
                     node.set_driver_internal_info(
-                        'firmware_reboot_requested', True)
+                        FIRMWARE_REBOOT_REQUESTED, True)
                     node.save()
             # Continue with updates
             self._continue_updates(task, update_service, settings)
