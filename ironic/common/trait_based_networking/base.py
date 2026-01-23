@@ -449,7 +449,10 @@ class Port(PrimordialPort):
             id=0,
             uuid="UNIVERSAL",
             address="UNIVERSAL",
-            category=UNIVERSAL_PORT_CATEGORY
+            category=UNIVERSAL_PORT_CATEGORY,
+            physical_network=None,
+            vendor=None,
+            available_for_dynamic_portgroup=True
         )
 
     def is_port(self):
@@ -504,7 +507,7 @@ class Network:
     @classmethod
     def universal_network(cls):
         return cls(
-            id=0,
+            id="0",
             name=UNIVERSAL_NETWORK_NAME,
             tags=frozenset()
         )
