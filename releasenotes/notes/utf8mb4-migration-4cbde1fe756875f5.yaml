@@ -1,0 +1,45 @@
+---
+upgrade:
+  - |
+    Ironic now requires ``UTF8MB4`` (4-byte UTF-8) character encoding for
+    MySQL/MariaDB databases. This is a **breaking change** that requires
+    **MySQL 8.0+** or **MariaDB 10.3+**.
+
+    The database migration will automatically convert all existing tables
+    from ``UTF8MB3`` (3-byte UTF-8) to ``UTF8MB4``. During this conversion,
+    each table is locked while the ``ALTER TABLE`` operation rewrites the
+    table data. The duration of these locks depends on the amount of data
+    in each table. Smaller deployments with fewer nodes will experience
+    brief locks, while larger deployments with many nodes, ports, and
+    historical data may experience longer lock times per table.
+
+    Operators should plan for downtime during the database migration and
+    consider performing test upgrades on a copy of production data to
+    estimate the migration duration for their environment.
+
+    Benefits of UTF8MB4:
+
+    * Full Unicode support including supplementary characters (emojis, etc.)
+    * Compliance with modern MySQL/MariaDB defaults
+    * Removal of dependency on deprecated UTF8MB3 character set
+
+    For new installations, create the database with:
+
+    .. code-block:: sql
+
+       CREATE DATABASE ironic CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+
+    For existing installations, the migration is handled automatically by
+    running ``ironic-dbsync upgrade``.
+deprecations:
+  - |
+    Support for MySQL versions prior to 8.0 and MariaDB versions prior to
+    10.3 has been removed. These older versions do not support the required
+    ``UTF8MB4`` character encoding with DYNAMIC row format by default.
+features:
+  - |
+    Ironic now uses ``UTF8MB4`` character encoding for all database tables
+    when using MySQL/MariaDB. This enables full Unicode support including
+    emojis and other supplementary characters that were previously not
+    supported with the legacy ``UTF8MB3`` (3-byte UTF-8) encoding.
+
