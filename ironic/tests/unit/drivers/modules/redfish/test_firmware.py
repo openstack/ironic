@@ -1106,14 +1106,14 @@ class RedfishFirmwareTestCase(db_base.DbTestCase):
 
         task, interface = self._test__check_node_redfish_firmware_update()
         task.upgrade_lock.assert_called_once_with()
-        info_calls = [
-            mock.call('Firmware update task completed for node %(node)s, '
+        debug_calls = [
+            mock.call('Redfish task completed for node %(node)s, '
                       'firmware %(firmware_image)s: %(messages)s.',
                       {'node': self.node.uuid,
                        'firmware_image': 'https://bmc/v1.0.1',
                        'messages': 'Firmware update done'})]
 
-        log_mock.info.assert_has_calls(info_calls)
+        log_mock.debug.assert_has_calls(debug_calls)
         # NOTE(iurygregory): _validate_resources_stability is now called
         # in _continue_updates before power operations, not in
         # _handle_task_completion
@@ -1802,7 +1802,9 @@ class RedfishFirmwareTestCase(db_base.DbTestCase):
             )
             # Verify BMC version check tracking is set up
             info = task.node.driver_internal_info
-            self.assertIn('bmc_fw_check_start_time', info)
+            fw_updates = info.get('redfish_fw_updates', [])
+            self.assertEqual(1, len(fw_updates))
+            self.assertIn('bmc_check_start_time', fw_updates[0])
             self.assertIn('bmc_fw_version_before_update', info)
             self.assertEqual(states.SERVICEWAIT, result)
 
@@ -1847,7 +1849,9 @@ class RedfishFirmwareTestCase(db_base.DbTestCase):
             )
             # Verify BMC version check tracking is set up
             info = task.node.driver_internal_info
-            self.assertIn('bmc_fw_check_start_time', info)
+            fw_updates = info.get('redfish_fw_updates', [])
+            self.assertEqual(1, len(fw_updates))
+            self.assertIn('bmc_check_start_time', fw_updates[0])
             self.assertIn('bmc_fw_version_before_update', info)
             self.assertEqual(states.SERVICEWAIT, result)
 
@@ -2014,7 +2018,9 @@ class RedfishFirmwareTestCase(db_base.DbTestCase):
 
             # Verify BMC version check tracking is set up
             info = task.node.driver_internal_info
-            self.assertIn('bmc_fw_check_start_time', info)
+            fw_updates = info.get('redfish_fw_updates', [])
+            self.assertEqual(1, len(fw_updates))
+            self.assertIn('bmc_check_start_time', fw_updates[0])
             self.assertIn('bmc_fw_version_before_update', info)
 
     @mock.patch.object(deploy_utils, 'set_async_step_flags', autospec=True)
@@ -2094,15 +2100,14 @@ class RedfishFirmwareTestCase(db_base.DbTestCase):
         mock_parse_isotime.return_value = start_time
         mock_utcnow.return_value = current_time
         settings = [{'component': 'bmc', 'url': 'http://bmc/v1.0.0',
-                     'wait': 300, 'task_monitor': '/tasks/1'}]
+                     'wait': 300, 'task_monitor': '/tasks/1',
+                     'bmc_check_start_time': '2025-01-01T00:00:00.000000'}]
 
         with task_manager.acquire(self.context, self.node.uuid,
                                   shared=False) as task:
             # Set up node with BMC version checking in progress
             task.node.set_driver_internal_info(
                 'redfish_fw_updates', settings)
-            task.node.set_driver_internal_info(
-                'bmc_fw_check_start_time', '2025-01-01T00:00:00.000000')
 
             # Mock BMC is unresponsive
             mock_get_bmc_version.return_value = None
