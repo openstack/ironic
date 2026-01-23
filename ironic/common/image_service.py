@@ -515,9 +515,28 @@ class OciImageService(BaseImageService):
         """
         self._validate_url_is_specific(image_href)
         manifest = self._client.get_manifest(image_href)
-        layers = manifest.get('layers', [{}])
-        size = layers[0].get('size', 0)
-        digest = layers[0].get('digest')
+        if self.is_oci_artifact_image(manifest):
+            image_type = 'artifact'
+            layers = manifest.get('layers', [{}])
+            size = layers[0].get('size', 0)
+            digest = layers[0].get('digest')
+        else:
+            # Assume this conventional container image is a bootc image
+            image_type = 'bootc'
+            config = manifest.get('config', {})
+            # Infer the size from the sum of the layers
+            size = config.get('size', 0)
+            for layer in manifest.get('layers', [{}]):
+                size += layer.get('size', 0)
+
+            # The most meaningful digest is in a digest based URL
+            href = urlparse.urlparse(image_href)
+            if href.path and '@' in href.path:
+                digest = str(href.path).split('@')[1]
+            else:
+                # Use the config digest as a unique-enough fallback
+                digest = config.get('digest')
+
         checksum = None
         if digest and ':' in digest:
             # This should always be the case, but just being
@@ -529,7 +548,8 @@ class OciImageService(BaseImageService):
         # generate a blob url path to enable download.
         return {'size': size,
                 'checksum': checksum,
-                'digest': digest}
+                'digest': digest,
+                'image_type': image_type}
 
     @property
     def is_auth_set_needed(self):
@@ -644,6 +664,23 @@ class OciImageService(BaseImageService):
 
         return sorted(new_manifests, key=itemgetter('_priority'))
 
+    def is_oci_artifact_image(self, manifest):
+        """Detect if the container image has an OCI Artifact
+
+        :param image_href: The manifest to detect from
+        :returns: True if the manifest config is empty or the manifest
+                  artifactType is set to an actual value
+        """
+
+        # Check if artifactType is set (OCI 1.1+ artifact format)
+        if manifest.get('artifactType'):
+            return True
+
+        # Check if config has empty mediaType (ORAS artifact format)
+        config = manifest.get('config', {})
+        config_media_type = config.get('mediaType')
+        return config_media_type == 'application/vnd.oci.empty.v1+json'
+
     def identify_specific_image(self, image_href, image_download_source=None,
                                 cpu_arch=None):
         """Identify a specific OCI Registry Artifact.
@@ -722,14 +759,30 @@ class OciImageService(BaseImageService):
         if requested_image.path and '@' in requested_image.path:
             LOG.debug('We have been given a specific URL, as such we are '
                       'skipping specific artifact detection.')
+
             # We have a specific URL, we don't need to do anything else.
             # FIXME(TheJulia): We need to improve this. Essentially we
             # need to go get the image url
             manifest = self.show(image_href)
-            # Identify the blob URL from the defining manifest for IPA.
-            image_url = self._client.get_blob_url(image_href,
-                                                  manifest['digest'])
             cached_auth = self._client.get_cached_auth()
+
+            # Detect if this is a manifest for an artifact or a bootc image
+            if manifest.get('image_type', 'artifact') == 'artifact':
+                # Identify the blob URL from the defining manifest for IPA.
+                image_url = self._client.get_blob_url(image_href,
+                                                      manifest['digest'])
+                # NOTE(TheJulia) With the OCI data model, there is *no*
+                # way for us to know what the disk image format is.
+                # We can't look up, we're pointed at a manifest URL
+                # with limited information.
+                disktype = 'unknown'
+            else:
+                # The bootc image is the container image
+                image_url = image_href
+                # NOTE(stevebaker) The disktype is used to
+                # designate whether the image URL is a bootc image
+                # stored in a container registry
+                disktype = 'bootc'
             return {
                 # Return an OCI url in case Ironic is doing the download
                 'oci_image_manifest_url': image_href,
@@ -737,11 +790,7 @@ class OciImageService(BaseImageService):
                 # angry!
                 'image_checksum': manifest['checksum'],
                 'image_url': image_url,
-                # NOTE(TheJulia) With the OCI data model, there is *no*
-                # way for us to know what the disk image format is.
-                # We can't look up, we're pointed at a manifest URL
-                # with limited information.
-                'image_disk_format': 'unknown',
+                'image_disk_format': disktype,
                 'image_request_authorization_secret': cached_auth,
             }
 
@@ -776,20 +825,18 @@ class OciImageService(BaseImageService):
         # Iterate through the entries of manifests and evaluate them
         # one by one to identify a likely item.
         for manifest in sorted_manifests:
-            if not manifest['_disktype']:
-                # If we got here, it means that the disk type is not set, and
-                # we need to detect it down the road.
-                LOG.warning('Image %s does not have a suitable disk type set '
-                            'on any of its manifests, will use the first '
-                            'manifest without a disk type', image_href)
+            disktype = manifest['_disktype']
+            if not disktype and not self.is_oci_artifact_image(manifest):
+                disktype = 'bootc'
 
-            identified_manifest_digest = manifest.get('digest')
+            identified_manifest_digest = (
+                manifest.get('digest') or manifest.get('dockerContentDigest'))
             layers = manifest.get('layers')
             if not layers:
                 blob_manifest = self._client.get_manifest(
                     image_href, identified_manifest_digest)
                 layers = blob_manifest.get('layers', [])
-            if len(layers) != 1:
+            if len(layers) != 1 and disktype != 'bootc':
                 # This is a *multilayer* artifact, meaning a container
                 # construction, not a blob artifact in the OCI
                 # container registry. Odds are we're at the end of
@@ -801,33 +848,51 @@ class OciImageService(BaseImageService):
                          identified_manifest_digest, image_href)
                 continue
 
-            # NOTE(TheJulia): The resulting layer contents, has a
-            # mandatory mediaType value, which may be something like
-            # application/zstd or application/octet-stream and the
-            # an optional org.opencontainers.image.title annotation
-            # which would contain the filename the file was stored
-            # with in alignment with OARS annotations. Furthermore,
-            # there is an optional artifactType value with OCI
-            # distribution spec 1.1 (mid-2024) which could have
-            # been stored when the artifact was uploaded,
-            # but is optional. In any event, this is only available
-            # on the manifest contents, not further up unless we have
-            # the newer referrers API available. As of late 2024,
-            # quay.io did not offer the referrers API.
-            chosen_layer = layers[0]
-            blob_digest = chosen_layer.get('digest')
+            if disktype == 'bootc':
+                LOG.info('Image %s does not have a suitable disk type set '
+                         'on any of its manifests. Will use the first '
+                         'manifest without a disk type, which is assumed '
+                         'to be a bootc image', image_href)
+                image_url = image_href
+                image_checksum = identified_manifest_digest.split(':')[1]
+                config = manifest.get('config', {})
+                # Infer the size from the sum of the layers
+                image_size = config.get('size', 0)
+                for layer in layers:
+                    image_size += layer.get('size', 0)
+                # Bootc images don't have filename or specific media type
+                chosen_original_filename = None
+                media_type = None
+                manifest_digest = (manifest.get('digest')
+                                   or manifest.get('dockerContentDigest'))
+            else:
+                # NOTE(TheJulia): The resulting layer contents, has a
+                # mandatory mediaType value, which may be something like
+                # application/zstd or application/octet-stream and the
+                # an optional org.opencontainers.image.title annotation
+                # which would contain the filename the file was stored
+                # with in alignment with OARS annotations. Furthermore,
+                # there is an optional artifactType value with OCI
+                # distribution spec 1.1 (mid-2024) which could have
+                # been stored when the artifact was uploaded,
+                # but is optional. In any event, this is only available
+                # on the manifest contents, not further up unless we have
+                # the newer referrers API available. As of late 2024,
+                # quay.io did not offer the referrers API.
+                chosen_layer = layers[0]
+                blob_digest = chosen_layer.get('digest')
+                image_checksum = blob_digest.split(':')[1]
 
-            # Use the client helper to assemble a blob url, so we
-            # have consistency with what we expect and what we parse.
-            image_url = self._client.get_blob_url(image_href, blob_digest)
-            image_size = chosen_layer.get('size')
-            chosen_original_filename = chosen_layer.get(
-                'annotations', {}).get(
-                    'org.opencontainers.image.title')
-            manifest_digest = (manifest.get('digest')
-                               or manifest.get('dockerContentDigest'))
-            media_type = chosen_layer.get('mediaType')
-            disktype = manifest['_disktype']
+                # Use the client helper to assemble a blob url, so we
+                # have consistency with what we expect and what we parse.
+                image_url = self._client.get_blob_url(image_href, blob_digest)
+                image_size = chosen_layer.get('size')
+                chosen_original_filename = chosen_layer.get(
+                    'annotations', {}).get(
+                        'org.opencontainers.image.title')
+                manifest_digest = (manifest.get('digest')
+                                   or manifest.get('dockerContentDigest'))
+                media_type = chosen_layer.get('mediaType')
             break
 
         if image_url:
@@ -839,9 +904,9 @@ class OciImageService(BaseImageService):
             # as well for any marker of the item being compressed.
             # Also, shorthanded for +string format catching which is
             # also a valid storage format.
-            if media_type.endswith('zstd'):
+            if media_type and media_type.endswith('zstd'):
                 compression_type = 'zstd'
-            elif media_type.endswith('gzip'):
+            elif media_type and media_type.endswith('gzip'):
                 compression_type = 'gzip'
             else:
                 compression_type = None
@@ -860,7 +925,7 @@ class OciImageService(BaseImageService):
                 'image_url': image_url,
                 'image_size': image_size,
                 'image_filename': chosen_original_filename,
-                'image_checksum': blob_digest.split(':')[1],
+                'image_checksum': image_checksum,
                 'image_container_manifest_digest': manifest_digest,
                 'image_media_type': media_type,
                 'image_compression_type': compression_type,
