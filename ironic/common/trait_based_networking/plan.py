@@ -122,6 +122,10 @@ def plan_attach_portlike(
     return actions
 
 
+def all_no_match(actions: list[base.RenderedAction]) -> bool:
+    return all(isinstance(action, base.NoMatch) for action in actions)
+
+
 def plan_vif_attach(traits: list[base.NetworkTrait],
                     task: TaskManager,
                     vif_info: dict) -> list[base.RenderedAction]:
@@ -136,9 +140,8 @@ def plan_vif_attach(traits: list[base.NetworkTrait],
             task.ports,
             task.portgroups,
             [net])
-        if len(actions) > 1:
-            return actions
-        elif len(actions) == 1 and isinstance(actions[0], base.NoMatch):
+        # If no actions matched, try the next trait.
+        if all_no_match(actions):
             continue
         else:
             return actions
