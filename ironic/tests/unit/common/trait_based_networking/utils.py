@@ -13,6 +13,12 @@
 from dataclasses import dataclass
 from dataclasses import field
 
+from ironic.common.trait_based_networking.plan import TENANT_VIF_KEY
+
+def default_internal_info(tenant_vif=None):
+    return {
+        TENANT_VIF_KEY: tenant_vif,
+    }
 
 @dataclass
 class FauxPortLikeObject(object):
@@ -22,6 +28,7 @@ class FauxPortLikeObject(object):
     category: str = "cat"
     physical_network: str = "test_physnet"
     vendor: str = "fake_vendor"
+    internal_info: dict = field(default_factory=default_internal_info)
 
 
 @dataclass
