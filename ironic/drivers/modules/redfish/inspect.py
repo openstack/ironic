@@ -149,8 +149,8 @@ class RedfishInspect(base.InspectInterface):
                 inventory['interfaces'].append(iface)
 
         system_vendor = {}
-        if system.name:
-            system_vendor['product_name'] = str(system.name)
+        if system.model:
+            system_vendor['product_name'] = str(system.model)
 
         if system.serial_number:
             system_vendor['serial_number'] = str(system.serial_number)

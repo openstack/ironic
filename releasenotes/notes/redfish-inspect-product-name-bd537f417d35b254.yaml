@@ -1,0 +1,6 @@
+---
+fixes:
+  - |
+    When using the redfish inspection driver, the system product name in the
+    data was always the value 'System' due to the wrong field being read.
+    See `bug 2136233 <https://bugs.launchpad.net/ironic/+bug/2136233>`_
