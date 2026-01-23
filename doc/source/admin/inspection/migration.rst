@@ -2,7 +2,7 @@ Migrating from ironic-inspector
 ===============================
 
 This document outlines the process of migrating from a separate
-ironic-inspector_ service to the built-in :doc:`in-band inspection <index>`.
+ironic-inspector_ service to the built-in :doc:`/admin/inspection`.
 
 .. note::
    This is a live document that is updated as more ironic-inspector features
@@ -142,7 +142,7 @@ Migration process
 -----------------
 
 1. Make sure you're running at ironic 2024.1 or newer.
-2. Enable the new inspection implementation as described in :doc:`index`.
+2. Enable the new inspection implementation as described in :doc:`/admin/inspection`.
 3. Carefully research options in the :oslo.config:group:`inventory` and
    :oslo.config:group:`inspector` sections. Update options to match similar
    ones in the ironic-inspector configuration.

@@ -1,9 +1,9 @@
 Managed and unmanaged inspection
 ================================
 
-In-band inspection can be *managed* or *unmanaged*. This document explains the
-difference between these two concepts and applies both to the built-in in-band
-inspection and to :doc:`/admin/inspection/inspector`.
+Agent inspection can be *managed* or *unmanaged*. This document explains the
+difference between these two concepts and applies both to the built-in agent
+inspection and to :doc:`/admin/inspection`.
 
 Managed inspection
 ~~~~~~~~~~~~~~~~~~
@@ -47,7 +47,7 @@ instead:
 Unmanaged inspection
 ~~~~~~~~~~~~~~~~~~~~
 
-Under *unmanaged* inspection we understand in-band inspection where the boot
+Under *unmanaged* inspection we understand agent inspection where the boot
 configuration (iPXE scripts, DHCP options,  etc) is not provided
 by the Bare Metal service. In this case, the node is simply set to boot from
 network and powered on. The operator is responsible for the correct network
