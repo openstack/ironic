@@ -4454,6 +4454,8 @@ def do_sync_power_state(task, count):
     utils.node_cache_vendor(task)
     # Also make sure to cache the current boot_mode and secure_boot states
     utils.node_cache_boot_mode(task)
+    # Cache health status from BMC if supported
+    utils.node_cache_health(task)
 
     if ((node.power_state and node.power_state == power_state)
             or (node.power_state is None and power_state is None)):

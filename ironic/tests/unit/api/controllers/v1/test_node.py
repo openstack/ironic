@@ -39,6 +39,7 @@ from ironic.common import boot_modes
 from ironic.common import components
 from ironic.common import driver_factory
 from ironic.common import exception
+from ironic.common import health_states
 from ironic.common import indicator_states
 from ironic.common import policy
 from ironic.common import states
@@ -192,6 +193,25 @@ class TestListNodes(test_api_base.BaseApiTest):
         data = self.get_json(
             '/nodes?fields=uuid,instance_name',
             headers={api_base.Version.string: '1.99'},
+            expect_errors=True)
+        self.assertEqual(http_client.NOT_ACCEPTABLE, data.status_int)
+
+    def test_health_field_with_api_version(self):
+        health = health_states.HealthState.OK.value
+        obj_utils.create_test_node(self.context,
+                                   chassis_id=self.chassis.id,
+                                   health=health)
+        # Test with API version 1.109 - health should be visible
+        data = self.get_json(
+            '/nodes?fields=uuid,health',
+            headers={api_base.Version.string: '1.109'})
+        self.assertIn('health', data['nodes'][0])
+        self.assertEqual(health, data['nodes'][0]['health'])
+
+        # Test with older API version - health should not be visible
+        data = self.get_json(
+            '/nodes?fields=uuid,health',
+            headers={api_base.Version.string: '1.106'},
             expect_errors=True)
         self.assertEqual(http_client.NOT_ACCEPTABLE, data.status_int)
 

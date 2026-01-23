@@ -40,6 +40,7 @@ from ironic.common import components
 from ironic.common import driver_factory
 from ironic.common import exception
 from ironic.common import faults
+from ironic.common import health_states
 from ironic.common import images
 from ironic.common import indicator_states
 from ironic.common import metrics as ironic_metrics
@@ -5558,6 +5559,8 @@ class ManagerDoSyncPowerStateTestCase(db_base.DbTestCase):
             exception.UnsupportedDriverExtension
         self.driver.management.get_secure_boot_state.side_effect = \
             exception.UnsupportedDriverExtension
+        self.driver.management.get_node_health.side_effect = \
+            exception.UnsupportedDriverExtension
         self.power = self.driver.power
         self.node = obj_utils.create_test_node(
             self.context, driver='fake-hardware', maintenance=False,
@@ -5988,6 +5991,24 @@ class ManagerDoSyncPowerStateTestCase(db_base.DbTestCase):
         self._do_sync_power_state(states.POWER_ON, states.POWER_OFF)
 
         self.assertEqual("BMC timeout", self.node.last_error)
+
+    def test_health_monitoring_enabled_by_default(self, node_power_action):
+        # Health monitoring should run by default
+        # Mock get_node_health to verify it gets called
+        self.driver.management.get_node_health.return_value = \
+            health_states.HealthState.OK
+        self._do_sync_power_state(states.POWER_ON, states.POWER_ON)
+        self.driver.management.get_node_health.assert_called_once_with(
+            self.task)
+
+    def test_health_monitoring_disabled_by_config(self, node_power_action):
+        # Health monitoring should not run when disabled
+        self.config(group='conductor', enable_health_monitoring=False)
+        # Mock get_node_health - it should not be called
+        self.driver.management.get_node_health.return_value = \
+            health_states.HealthState.OK
+        self._do_sync_power_state(states.POWER_ON, states.POWER_ON)
+        self.driver.management.get_node_health.assert_not_called()
 
 
 @mock.patch.object(waiters, 'wait_for_all',

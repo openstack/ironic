@@ -105,8 +105,8 @@ opts = [
     cfg.IntOpt('sync_power_state_workers',
                default=8, min=1,
                help=_('The maximum number of worker threads that can be '
-                      'started simultaneously to sync nodes power states from '
-                      'the periodic task.')),
+                      'started simultaneously to sync nodes power states '
+                      'from the periodic task.')),
     cfg.IntOpt('periodic_max_workers',
                default=8,
                help=_('Maximum number of worker threads that can be started '
@@ -721,6 +721,20 @@ opts = [
             'attaching networks to node instances. Ironic will also reload '
             'this file if it detects the file has changed.'
         )),
+    cfg.BoolOpt('enable_health_monitoring',
+                default=True,
+                mutable=True,
+                help=_('Enable automatic hardware health monitoring for '
+                       'nodes. When enabled, the conductor will periodically '
+                       'query the management interface of nodes during power '
+                       'state synchronization to retrieve hardware health '
+                       'status from the BMC. Health information is stored in '
+                       'the node.health field and changes are recorded in '
+                       'node history. Drivers that do not support health '
+                       'monitoring are automatically skipped. Note: this '
+                       'adds one additional BMC query per node during each '
+                       'power sync cycle, which may impact performance in '
+                       'large deployments.')),
 ]
 
 

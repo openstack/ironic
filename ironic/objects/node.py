@@ -85,7 +85,8 @@ class Node(base.IronicObject, object_base.VersionedObjectDictCompat):
     # Version 1.41: Add disable_power_off field
     # Version 1.42: Moves multiple methods to be remotable methods.
     # Version 1.43: Add instance_name field
-    VERSION = '1.43'
+    # Version 1.44: Add health field
+    VERSION = '1.44'
 
     dbapi = db_api.get_instance()
 
@@ -187,6 +188,7 @@ class Node(base.IronicObject, object_base.VersionedObjectDictCompat):
         'parent_node': object_fields.StringField(nullable=True),
         'disable_power_off': objects.fields.BooleanField(nullable=True),
         'instance_name': object_fields.StringField(nullable=True),
+        'health': object_fields.StringField(nullable=True),
     }
 
     def as_dict(self, secure=False, mask_configdrive=True):
@@ -655,7 +657,8 @@ class Node(base.IronicObject, object_base.VersionedObjectDictCompat):
                   ('owner', 30), ('allocation_id', 31), ('description', 32),
                   ('retired_reason', 33), ('lessee', 34), ('boot_mode', 36),
                   ('secure_boot', 36), ('shard', 37),
-                  ('firmware_interface', 39), ('instance_name', 43)]
+                  ('firmware_interface', 39), ('instance_name', 43),
+                  ('health', 44)]
 
         for name, minor in fields:
             self._adjust_field_to_version(name, None, target_version,
