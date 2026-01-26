@@ -1,21 +1,27 @@
 CUSTOM_TRAIT_NAME:
-  - action: bond_ports
-    filter: port.vendor == 'vendor_string'
-    min_count: 2
+  order: 1
+  actions:
+    - action: bond_ports
+      filter: port.vendor == 'vendor_string'
+      min_count: 2
 CUSTOM_DIRECT_ATTACH_A_PURPLE_TO_STORAGE:
-  - action: attach_port
-    filter: port.vendor == 'purple' && network.name == 'storage'
+  actions:
+    - action: attach_port
+      filter: port.vendor == 'purple' && network.name == 'storage'
 CUSTOM_BOND_PURPLE_BY_2:
-  - action: group_and_attach_ports
-    filter: port.vendor == 'purple'
-    max_count: 2
+  actions:
+    - action: group_and_attach_ports
+      filter: port.vendor == 'purple'
+      max_count: 2
 CUSTOM_BOND_GREEN_STORAGE_TO_STORAGE_BY_2:
-  - action: group_and_attach_ports
-    filter: port.vendor == 'green' && port.category == 'storage' && ( network.name =~ 'storage' || network.tags =~ 'storage' )
-    max_count: 2
-    min_count: 2
+  actions:
+    - action: group_and_attach_ports
+      filter: port.vendor == 'green' && port.category == 'storage' && ( network.name =~ 'storage' || network.tags =~ 'storage' )
+      max_count: 2
+      min_count: 2
 CUSTOM_USE_PHYSNET_A_OR_B:
-  - action: attach_port
-    filter: port.physical_network == 'fabric_a' && network.tags == 'a'
-  - action: attach_port
-    filter: port.physical_network == 'fabric_b' && network.tags == 'b'
+  actions:
+    - action: attach_port
+      filter: port.physical_network == 'fabric_a' && network.tags == 'a'
+    - action: attach_port
+      filter: port.physical_network == 'fabric_b' && network.tags == 'b'

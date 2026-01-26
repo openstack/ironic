@@ -20,6 +20,7 @@ import yaml
 class ConfigFile(object):
     def __init__(self, filename):
         self._filename = filename
+        self._traits = []
         # TODO(clif): Do this here, or defer to clients of class calling these?
         self.read()
 
@@ -31,65 +32,75 @@ class ConfigFile(object):
         """Check that contents conform to TBN expectations."""
         reasons = []
         valid = True
-        for key, value_list in self._contents.items():
-            if not isinstance(value_list, list):
+        for trait_name, trait_members in self._contents.items():
+            if 'actions' not in trait_members:
+                valid = False
                 reasons.append(
-                    _(f"'{key}' trait does not consist of a list of actions"))
+                    _(f"'{trait_name}' trait does not include an 'actions' "
+                       "key "))
+                continue
+            if not isinstance(trait_members['actions'], list):
+                reasons.append(
+                    _(f"'{trait_name}.actions' does not consist of a list of "
+                       "actions"))
                 valid = False
                 continue
-            for v in value_list:
+            for trait_action in trait_members['actions']:
                 # Check necessary keys are present.
                 for n in base.TraitAction.NECESSARY_KEYS:
-                    if n not in v:
+                    if n not in trait_action.keys():
                         reasons.append(
-                            _(f"'{key}' trait is missing '{n}' key"))
+                            _(f"'{trait_name}' trait is missing '{n}' key"))
                         valid = False
 
                 # Check for errant keys.
-                for sub_key in v.keys():
+                for sub_key in trait_action.keys():
                     if sub_key not in base.TraitAction.ALL_KEYS:
                         reasons.append(
-                            _(f"'{key}' trait action has unrecognized key "
-                              f"'{sub_key}'"))
+                            _(f"'{trait_name}' trait action has unrecognized "
+                              f"key '{sub_key}'"))
                         valid = False
 
                 # Make sure action is valid
-                if 'action' in v:
-                    action = v['action']
+                if 'action' in trait_action.keys():
+                    action = trait_action['action']
                     try:
                         base.Actions(action)
                     except Exception:
                         valid = False
                         reasons.append(
-                            _(f"'{key}' trait action has unrecognized action "
-                              f"'{action}'"))
+                            _(f"'{trait_name}' trait action has unrecognized "
+                              f"action '{action}'"))
 
                 # Does the filter parse?
-                if 'filter' in v:
+                if 'filter' in trait_action.keys():
                     try:
-                        base.FilterExpression.parse(v['filter'])
+                        base.FilterExpression.parse(trait_action['filter'])
                     except Exception:
                         valid = False
                         # TODO(clif): Surface exception text in reason below?
                         reasons.append(
-                            _(f"'{key}' trait action has malformed "
-                              f"filter expression: '{v['filter']}'"))
+                            _(f"'{trait_name}' trait action has malformed "
+                              "filter expression: "
+                              f"'{trait_action['filter']}'"))
 
         return valid, reasons
 
     def parse(self):
         """Render contents of configuration file as TBN objects"""
         self._traits = []
-        for trait_name, actions in self._contents.items():
+        for trait_name, trait_members in self._contents.items():
             parsed_actions = []
-            for action in actions:
+            for action in trait_members['actions']:
                 parsed_actions.append(base.TraitAction(
                     trait_name,
                     base.Actions(action['action']),
                     base.FilterExpression.parse(action['filter']),
                     min_count=action.get('min_count', None),
                     max_count=action.get('max_count', None)))
-            self._traits.append(base.NetworkTrait(trait_name, parsed_actions))
+            order = trait_members.get('order', 1)
+            self._traits.append(base.NetworkTrait(trait_name, parsed_actions,
+                                                  order))
 
     def traits(self):
         return self._traits

@@ -22,9 +22,10 @@ class TraitBasedNetworkingConfigLoaderTestCase(base.TestCase):
     def test_config_loader(self):
         self.tmpdir = tempfile.TemporaryDirectory()
         contents = ("CUSTOM_TRAIT_NAME:\n"
-                    "  - action: bond_ports\n"
-                    "    filter: port.vendor == 'vendor_string'\n"
-                    "    min_count: 2\n")
+                    "  actions:\n"
+                    "    - action: bond_ports\n"
+                    "      filter: port.vendor == 'vendor_string'\n"
+                    "      min_count: 2\n")
         with tempfile.NamedTemporaryFile(
                 mode='w',
                 dir=self.tmpdir.name,
@@ -42,9 +43,10 @@ class TraitBasedNetworkingConfigLoaderTestCase(base.TestCase):
     def test_config_loader_refresh(self):
         self.tmpdir = tempfile.TemporaryDirectory()
         contents = ("CUSTOM_TRAIT_NAME:\n"
-                    "  - action: bond_ports\n"
-                    "    filter: port.vendor == 'vendor_string'\n"
-                    "    min_count: 2\n")
+                    "  actions:\n"
+                    "    - action: bond_ports\n"
+                    "      filter: port.vendor == 'vendor_string'\n"
+                    "      min_count: 2\n")
         with tempfile.NamedTemporaryFile(
                 mode='w',
                 dir=self.tmpdir.name,
@@ -72,9 +74,10 @@ class TraitBasedNetworkingConfigLoaderTestCase(base.TestCase):
 
             with open(tmpfile.name, mode='w') as newfile:
                 contents = ("CUSTOM_TRAIT_NAME_CHANGED:\n"
-                    "  - action: bond_ports\n"
-                    "    filter: port.vendor == 'vendor_string'\n"
-                    "    min_count: 2\n")
+                    "  actions:\n"
+                    "    - action: bond_ports\n"
+                    "      filter: port.vendor == 'vendor_string'\n"
+                    "      min_count: 2\n")
                 newfile.write(contents)
                 newfile.close()
 

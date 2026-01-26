@@ -50,32 +50,38 @@ class TraitBasedNetworkingConfigFileTestCase(base.TestCase):
             SubTestCase(
                 "Valid - single trait",
                 ("CUSTOM_TRAIT_NAME:\n"
-                 "  - action: bond_ports\n"
-                 "    filter: port.vendor == 'vendor_string'\n"
-                 "    min_count: 2\n"),
+                 "  order: 1\n"
+                 "  actions:\n"
+                 "    - action: bond_ports\n"
+                 "      filter: port.vendor == 'vendor_string'\n"
+                 "      min_count: 2\n"),
                 True,
                 [],
             ),
             SubTestCase(
                 "Valid - Several traits",
                 ("CUSTOM_TRAIT_NAME:\n"
-                 "  - action: bond_ports\n"
-                 "    filter: port.vendor == 'vendor_string'\n"
-                 "    min_count: 2\n"
+                 "  actions:\n"
+                 "    - action: bond_ports\n"
+                 "      filter: port.vendor == 'vendor_string'\n"
+                 "      min_count: 2\n"
                  "CUSTOM_TRAIT_2:\n"
-                 "  - action: attach_port\n"
-                 "    filter: port.vendor != 'vendor_string'\n"
-                 "    max_count: 2\n"
+                 "  actions:\n"
+                 "    - action: attach_port\n"
+                 "      filter: port.vendor != 'vendor_string'\n"
+                 "      max_count: 2\n"
                  "CUSTOM_TRAIT_3:\n"
-                 "  - action: attach_port\n"
-                 "    filter: port.vendor != 'vendor_string'\n"
-                 "    max_count: 2\n"),
+                 "  actions:\n"
+                 "    - action: attach_port\n"
+                 "      filter: port.vendor != 'vendor_string'\n"
+                 "      max_count: 2\n"),
                 True,
                 [],
             ),
             SubTestCase(
                 "Invalid - Missing trait has required entry missing",
                 ("trait_name:\n"
+                 "  actions:\n"
                  "  - action: bond_ports\n"),
                 False,
                 ["'trait_name' trait is missing 'filter' key"],
@@ -83,10 +89,11 @@ class TraitBasedNetworkingConfigFileTestCase(base.TestCase):
             SubTestCase(
                 "Invalid - Unrecognized trait entry",
                 ("CUSTOM_TRAIT_NAME:\n"
-                 "  - action: bond_ports\n"
-                 "    filter: port.vendor == 'vendor_string'\n"
-                 "    min_count: 2\n"
-                 "    wrong: hi\n"),
+                 "  actions:\n"
+                 "    - action: bond_ports\n"
+                 "      filter: port.vendor == 'vendor_string'\n"
+                 "      min_count: 2\n"
+                 "      wrong: hi\n"),
                 False,
                 [("'CUSTOM_TRAIT_NAME' trait action has unrecognized key "
                  "'wrong'")],
@@ -94,29 +101,33 @@ class TraitBasedNetworkingConfigFileTestCase(base.TestCase):
             SubTestCase(
                 "Invalid - Unrecognized action",
                 ("CUSTOM_TRAIT_NAME:\n"
-                 "  - action: invalid\n"
-                 "    filter: port.vendor == 'vendor_string'\n"
-                 "    min_count: 2\n"),
+                 "  actions:\n"
+                 "    - action: invalid\n"
+                 "      filter: port.vendor == 'vendor_string'\n"
+                 "      min_count: 2\n"),
                 False,
                 ["'CUSTOM_TRAIT_NAME' trait action has unrecognized action "
                  "'invalid'"],
             ),
             SubTestCase(
-                "Invalid - trait does not consist of a list of actions",
+                ("Invalid - trait actions does not consist of a list of "
+                 "actions"),
                 ("CUSTOM_TRAIT_NAME:\n"
-                 "  action: bond_ports\n"
-                 "  filter: port.vendor == 'vendor_string'\n"
-                 "  min_count: 2\n"),
+                 "  actions:\n"
+                 "    action: bond_ports\n"
+                 "    filter: port.vendor == 'vendor_string'\n"
+                 "    min_count: 2\n"),
                 False,
-                [("'CUSTOM_TRAIT_NAME' trait does not consist of a list "
+                [("'CUSTOM_TRAIT_NAME.actions' does not consist of a list "
                   "of actions")],
             ),
             SubTestCase(
                 "Invalid - trait action has malformed filter expression",
                 ("CUSTOM_TRAIT_NAME:\n"
-                 "  - action: bond_ports\n"
-                 "    filter: port.vendor &= 'vendor_string'\n"
-                 "    min_count: 2\n"),
+                 "  actions:\n"
+                 "    - action: bond_ports\n"
+                 "      filter: port.vendor &= 'vendor_string'\n"
+                 "      min_count: 2\n"),
                 False,
                 [("'CUSTOM_TRAIT_NAME' trait action has malformed filter "
                   "expression: 'port.vendor &= 'vendor_string''")],
@@ -124,9 +135,10 @@ class TraitBasedNetworkingConfigFileTestCase(base.TestCase):
             SubTestCase(
                 "Invalid - several things wrong",
                 ("CUSTOM_TRAIT_NAME:\n"
-                 "  - filter: port.vendor &= 'vendor_string'\n"
-                 "    min_count: 2\n"
-                 "    wrong: oops\n"),
+                 "  actions:\n"
+                 "    - filter: port.vendor &= 'vendor_string'\n"
+                 "      min_count: 2\n"
+                 "      wrong: oops\n"),
                 False,
                 [("'CUSTOM_TRAIT_NAME' trait action has malformed filter "
                   "expression: 'port.vendor &= 'vendor_string''"),
@@ -152,9 +164,10 @@ class TraitBasedNetworkingConfigFileTestCase(base.TestCase):
     def test_parse(self):
         contents = (
             "CUSTOM_TRAIT_NAME:\n"
-            "  - action: bond_ports\n"
-            "    filter: port.vendor == 'vendor_string'\n"
-            "    min_count: 2\n")
+            "  actions:\n"
+            "    - action: bond_ports\n"
+            "      filter: port.vendor == 'vendor_string'\n"
+            "      min_count: 2\n")
 
         with tempfile.NamedTemporaryFile(
                 mode='w',
