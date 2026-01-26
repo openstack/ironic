@@ -1,0 +1,5 @@
+---
+features:
+  - |
+    Populates the conductor group field of the node during auto-enrollment
+    with the default_conductor_group config setting.

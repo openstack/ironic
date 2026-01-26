@@ -351,7 +351,7 @@ class ContinueInspectionController(rest.RestController):
         context = api.request.context
         new_node = objects.Node(
             context,
-            conductor_group='',  # TODO(dtantsur): default_conductor_group
+            conductor_group=CONF.default_conductor_group,
             driver=CONF.auto_discovery.driver,
             provision_state=states.ENROLL,
             resource_class=CONF.default_resource_class,

@@ -743,7 +743,7 @@ class TestContinueInspectionAutoDiscovery(test_api_base.BaseApiTest):
     def test_override_defaults(self, mock_lookup, mock_continue, mock_create,
                                mock_get_topic):
         CONF.set_override('default_resource_class', 'xlarge-1')
-        # TODO(dtantsur): default_conductor_group
+        CONF.set_override('default_conductor_group', 'group_000')
         mock_create.return_value = self.node
         response = self.post_json('/continue_inspection', self.data)
         self.assertEqual(http_client.ACCEPTED, response.status_int)
@@ -756,4 +756,4 @@ class TestContinueInspectionAutoDiscovery(test_api_base.BaseApiTest):
         new_node = mock_create.call_args.args[2]  # create(self, context, node)
         self.assertEqual('fake-hardware', new_node.driver)
         self.assertEqual('xlarge-1', new_node.resource_class)
-        self.assertEqual('', new_node.conductor_group)
+        self.assertEqual('group_000', new_node.conductor_group)
