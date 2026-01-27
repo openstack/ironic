@@ -166,6 +166,8 @@ def convert_with_links(rpc_port, fields=None, sanitize=True):
             'node_uuid',
             'name',
             'description',
+            'vendor',
+            'category',
         )
     )
     if rpc_port.portgroup_id:
