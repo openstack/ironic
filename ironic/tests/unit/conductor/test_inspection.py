@@ -119,6 +119,47 @@ class TestInspectHardware(db_base.DbTestCase):
                          node.last_error)
         self.assertTrue(mock_inspect.called)
 
+    @mock.patch('ironic.conductor.utils.inspecting_error_handler',
+                autospec=True)
+    def test_inspect_hardware_error_calls_error_handler(
+            self, mock_error_handler, mock_inspect):
+        mock_inspect.side_effect = exception.HardwareInspectionFailure('test')
+        state = states.MANAGEABLE
+        node = obj_utils.create_test_node(self.context, driver='fake-hardware',
+                                          provision_state=states.INSPECTING,
+                                          target_provision_state=state)
+        task = task_manager.TaskManager(self.context, node.uuid)
+
+        self.assertRaisesRegex(exception.HardwareInspectionFailure, '^test$',
+                               inspection.inspect_hardware, task)
+        # Verify error handler was called to clean up VIFs
+        mock_error_handler.assert_called_once()
+        call_args = mock_error_handler.call_args
+        self.assertEqual(task, call_args[0][0])
+        self.assertIn('test', call_args[1]['logmsg'])
+        self.assertEqual('test', call_args[1]['errmsg'])
+
+    @mock.patch('ironic.conductor.utils.inspecting_error_handler',
+                autospec=True)
+    def test_inspect_hardware_unexpected_error_calls_error_handler(
+            self, mock_error_handler, mock_inspect):
+        mock_inspect.side_effect = RuntimeError('x')
+        state = states.MANAGEABLE
+        node = obj_utils.create_test_node(self.context, driver='fake-hardware',
+                                          provision_state=states.INSPECTING,
+                                          target_provision_state=state)
+        task = task_manager.TaskManager(self.context, node.uuid)
+
+        self.assertRaisesRegex(exception.HardwareInspectionFailure,
+                               'Unexpected exception of type RuntimeError: x',
+                               inspection.inspect_hardware, task)
+        # Verify error handler was called to clean up VIFs
+        mock_error_handler.assert_called_once()
+        call_args = mock_error_handler.call_args
+        self.assertEqual(task, call_args[0][0])
+        self.assertIn('RuntimeError', call_args[1]['logmsg'])
+        self.assertIn('x', call_args[1]['errmsg'])
+
 
 @mock.patch('ironic.drivers.modules.fake.FakeInspect.continue_inspection',
             autospec=True)
@@ -173,3 +214,25 @@ class TestContinueInspection(db_base.DbTestCase):
         self.node.refresh()
         self.assertEqual(states.INSPECTFAIL, self.node.provision_state)
         self.assertIn("boom", self.node.last_error)
+
+    @mock.patch('ironic.conductor.utils.inspecting_error_handler',
+                autospec=True)
+    @mock.patch.object(inspect_utils, 'store_inspection_data', autospec=True)
+    def test_failure_calls_error_handler(self, mock_store, mock_error_handler,
+                                         mock_continue):
+        mock_continue.side_effect = RuntimeError("unexpected")
+        with task_manager.acquire(self.context, self.node.id) as task:
+            # Should re-raise the exception after calling error handler
+            self.assertRaises(RuntimeError,
+                              inspection.continue_inspection,
+                              task, self.inventory, self.plugin_data)
+            mock_continue.assert_called_once_with(task.driver.inspect,
+                                                  task, self.inventory,
+                                                  self.plugin_data)
+            mock_store.assert_not_called()
+            # Verify error handler was called to clean up VIFs
+            mock_error_handler.assert_called_once()
+            call_args = mock_error_handler.call_args
+            self.assertEqual(task, call_args[0][0])
+            self.assertIn('unexpected', call_args[1]['logmsg'])
+            self.assertIn('unexpected', call_args[1]['errmsg'])
