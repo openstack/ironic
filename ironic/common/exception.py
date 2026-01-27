@@ -1158,3 +1158,13 @@ class TBNAttributeRetrievalException(TraitBasedNetworkingException):
     """Specified attribute could not be found."""
     _msg_fmt = _("Could not retrieve attribute %(attr_name)s from "
                  "passed object")
+
+class TBNNoTraitsApplicableToNode(TraitBasedNetworkingException):
+    """If no traits apply to a node, then nothing can be done."""
+    _msg_fmt = _("No Trait Based Networking traits were found which could "
+                 "apply to the node %(node)s.")
+
+class TBNNoPortMatchesFound(TraitBasedNetworkingException):
+    """No matching ports were found when planning the network for this node"""
+    _msg_fnt = _("No matching ports where found when planning the networking "
+                 "for node %(node)s and network %(vif_id)s")
