@@ -4,7 +4,7 @@ Bare Metal Service Features
 .. toctree::
   :maxdepth: 1
 
-   Hardware Inspection <inspection>
+   Hardware Inspection <inspection/index>
    Deployment <node-deployment>
    Cleaning <cleaning>
    Adoption <adoption>
