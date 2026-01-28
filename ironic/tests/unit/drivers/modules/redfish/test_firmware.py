@@ -1500,7 +1500,7 @@ class RedfishFirmwareTestCase(db_base.DbTestCase):
                     'timeout')
 
                 # Mock time progression to exceed timeout
-                time_mock.side_effect = [0, 350]  # Exceeds 300 second timeout
+                time_mock.side_effect = [0, 500]
 
                 # Should raise RedfishError due to timeout
                 self.assertRaises(exception.RedfishError,
@@ -1584,7 +1584,7 @@ class RedfishFirmwareTestCase(db_base.DbTestCase):
                     'manager error')
 
                 # Mock time progression to exceed timeout
-                time_mock.side_effect = [0, 350]
+                time_mock.side_effect = [0, 500]
 
                 # Should raise RedfishError due to timeout
                 self.assertRaises(exception.RedfishError,
@@ -1612,7 +1612,7 @@ class RedfishFirmwareTestCase(db_base.DbTestCase):
                     'chassis error')
 
                 # Mock time progression to exceed timeout
-                time_mock.side_effect = [0, 350]
+                time_mock.side_effect = [0, 500]
 
                 # Should raise RedfishError due to timeout
                 self.assertRaises(exception.RedfishError,
@@ -1745,9 +1745,9 @@ class RedfishFirmwareTestCase(db_base.DbTestCase):
                     'http://test', mock_response, mock_response)
 
                 # Mock time progression: start at 0, try once at 10, timeout
-                # at 350, this allows at least one loop iteration to trigger
+                # at 500, this allows at least one loop iteration to trigger
                 # the exception
-                time_mock.side_effect = [0, 10, 350]
+                time_mock.side_effect = [0, 10, 500]
 
                 # Should raise RedfishError due to timeout
                 self.assertRaises(exception.RedfishError,

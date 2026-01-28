@@ -92,7 +92,7 @@ opts = [
                       'failed firmware update tasks')),
     cfg.IntOpt('firmware_update_wait_unresponsive_bmc',
                min=0,
-               default=300,
+               default=0,
                help=_('Number of seconds to wait before proceeding with the '
                       'reboot to finish the BMC firmware update step')),
     cfg.IntOpt('firmware_update_required_successes',
@@ -110,7 +110,7 @@ opts = [
                       'with no delay.')),
     cfg.IntOpt('firmware_update_resource_validation_timeout',
                min=0,
-               default=300,
+               default=480,
                help=_('Timeout (in seconds) to wait for BMC resources '
                       '(System, Manager, NetworkAdapters) to become stable '
                       'and consistently available after firmware update. '
