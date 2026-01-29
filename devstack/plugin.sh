@@ -35,19 +35,31 @@ if is_service_enabled ir-api ir-cond ir-novnc; then
                 create_ironic_accounts
             fi
 
-            if [[ "$IRONIC_BAREMETAL_BASIC_OPS" == "True" && "$IRONIC_IS_HARDWARE" == "False" ]]; then
-                echo_summary "Precreating bridge: $IRONIC_VM_NETWORK_BRIDGE"
-                if [[ "$Q_BUILD_OVS_FROM_GIT" != "True" ]]; then
+            if [[ "$Q_BUILD_OVS_FROM_GIT" != "True" ]]; then
+                if [[ "$Q_AGENT" == "ovn" ]] || [[ "$IRONIC_BAREMETAL_BASIC_OPS" == "True" && "$IRONIC_IS_HARDWARE" == "False" ]]; then
                     # NOTE(TheJulia): We are likely doing this to ensure
                     # OVS is running.
                     echo_summary "Installing OVS to pre-create bridge"
                     install_package openvswitch-switch
                 fi
-                if [[ "$Q_AGENT" == "ovn" ]]; then
-                    echo_summary "Setting up OVN..."
-                    init_ovn
-                    start_ovn
-                fi
+            fi
+
+            # NOTE(hjensas): When Neutron is configured with OVN and Ironic is
+            # the virt driver, Neutron's devstack plugin will skip starting OVN
+            # services (assuming Ironic will handle it). Therefore, when using
+            # OVN, Ironic must always initialize and start OVN services here,
+            # regardless of whether we're setting up virtual machines or using
+            # real hardware, to ensure OVN is available for network provisioning.
+            if [[ "$Q_AGENT" == "ovn" ]]; then
+                echo_summary "Setting up OVN..."
+                init_ovn
+                start_ovn
+            fi
+
+            # When using virtual machines (IRONIC_IS_HARDWARE == False), we need
+            # to pre-create the bridge for VM networking.
+            if [[ "$IRONIC_BAREMETAL_BASIC_OPS" == "True" && "$IRONIC_IS_HARDWARE" == "False" ]]; then
+                echo_summary "Precreating bridge: $IRONIC_VM_NETWORK_BRIDGE"
                 sudo ovs-vsctl -- --may-exist add-br $IRONIC_VM_NETWORK_BRIDGE
             fi
 
