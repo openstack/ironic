@@ -521,35 +521,6 @@
         s-object: True
         s-proxy: True
 
-# NOTE(rpittau): converted job but not running for now as there
-# could be an issue with the lookup in ironic-python-agent
-# NOTE(JayF): ironic-tempest-ipa-wholedisk-bios-agent_ipmitool-tinyipa
-# is based on this job, and is used by Nova, Glance, and Neutron as a
-# basis for their CI jobs.
-- job:
-    name: ironic-tempest-ipa-wholedisk-bios-agent_ipmitool
-    description: Base for
-      ironic-tempest-ipa-wholedisk-bios-agent_ipmitool-tinyipa, which is used
-      by Nova, Glance, and Neutron as a basis for their CI jobs. Not used in
-      any Ironic project.
-    parent: ironic-base
-    vars:
-      devstack_localrc:
-        IRONIC_DEFAULT_RESCUE_INTERFACE: agent
-        IRONIC_ENABLED_RESCUE_INTERFACES: "fake,agent,no-rescue"
-        IRONIC_TEMPEST_WHOLE_DISK_IMAGE: True
-        IRONIC_VM_EPHEMERAL_DISK: 0
-        IRONIC_VM_SPECS_RAM: 3096
-        SWIFT_ENABLE_TEMPURLS: True
-        SWIFT_TEMPURL_KEY: secretkey
-        IRONIC_BOOT_MODE: bios
-      devstack_services:
-        atop: True
-        s-account: True
-        s-container: True
-        s-object: True
-        s-proxy: True
-
 # TODO(JayF): Tempest CI for SNMP is on its last legs; we are holding back
 # all openstack projects from updating pyasn1* packages due to our use of
 # pysnmp-lextudio instead of modern pysnmp. This job should be reworked to
@@ -1228,12 +1199,6 @@
         s-container: True
         s-object: True
         s-proxy: True
-
-# FIXME(TheJulia): We need to fix this name.....
-- job:
-    name: ironic-tempest-ipa-wholedisk-bios-agent_ipmitool-tinyipa
-    description: Alias for ironic-tempest-wholedisk-bios-ipmi-direct-tinyipa
-    parent: ironic-tempest-bios-ipmi-direct
 
 - job:
     name: ironic-tempest-uefi-redfish-vmedia-4k
