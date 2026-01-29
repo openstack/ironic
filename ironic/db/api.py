@@ -1552,12 +1552,15 @@ class Connection(object, metaclass=abc.ABCMeta):
         """
 
     @abc.abstractmethod
-    def count_nodes_in_provision_state(self, state):
+    def count_nodes_in_provision_state(self, state, conductor_group=None):
         """Count the number of nodes in given provision state.
 
         :param state: A provision_state value to match for the
                       count operation. This can be a single provision
                       state value or a list of values.
+        :param conductor_group: Optional conductor group to filter by.
+                                If provided, only nodes in this conductor
+                                group will be counted.
         """
 
     @abc.abstractmethod
