@@ -1,0 +1,7 @@
+---
+features:
+  - |
+    Update the ``redfish`` inspection interface to not include network interfaces
+    with invalid MACs. This brings the behavior inline with the ``agent``
+    inspection interface. Add the port speed if possible in the same format
+    as the ``agent`` interface to the ``redfish`` interface as well.
