@@ -1,0 +1,6 @@
+---
+fixes:
+  - |
+    Fixes a regression introduced in the firmware upgrade fixes that caused
+    the intermediate status not to get persisted on the node, causing a
+    reboot loop.
