@@ -485,7 +485,7 @@ def _parse_driver_info(node):
     }
 
 
-def _get_ipmitool_args(driver_info, pw_file=None):
+def _get_ipmitool_args(driver_info, pw_file=None, use_pwd_env=False):
     ipmi_version = ('lanplus'
                     if driver_info['protocol_version'] == '2.0'
                     else 'lan')
@@ -512,6 +512,8 @@ def _get_ipmitool_args(driver_info, pw_file=None):
     if pw_file:
         args.append('-f')
         args.append(pw_file)
+    elif use_pwd_env:
+        args.append('-E')
 
     if CONF.ipmi.debug:
         args.append('-v')
@@ -1595,14 +1597,17 @@ class IPMIConsole(base.ConsoleInterface):
                 "Check the 'ipmi_protocol_version' parameter in "
                 "node's driver_info"))
 
-    def _get_ipmi_cmd(self, driver_info, pw_file):
+    def _get_ipmi_cmd(self, driver_info, pw_file=None, use_pwd_env=False):
         """Get ipmi command for ipmitool usage.
 
         :param driver_info: driver info with the ipmitool parameters
         :param pw_file: password file to be used in ipmitool command
+        :param use_pwd_env: when True, add -E so ipmitool reads password
+            from IPMI_PASSWORD environment variable
         :returns: returns a command string for ipmitool
         """
-        return ' '.join(_get_ipmitool_args(driver_info, pw_file=pw_file))
+        return ' '.join(_get_ipmitool_args(driver_info, pw_file=pw_file,
+                                           use_pwd_env=use_pwd_env))
 
     def _start_console(self, driver_info, start_method):
         """Start a remote console for the node.
@@ -1616,17 +1621,36 @@ class IPMIConsole(base.ConsoleInterface):
                  created
         :raises: ConsoleSubprocessFailed when invoking the subprocess failed
         """
-        try:
-            cmd = self._get_ipmi_cmd(driver_info, pw_file=None)
+        flag, path_or_env = _persist_ipmi_password(driver_info)
+        if flag == '-f':
+            pw_file = path_or_env
+            cmd = self._get_ipmi_cmd(driver_info, pw_file=pw_file)
             cmd += ' sol activate'
-            start_method(driver_info['uuid'], driver_info['port'], cmd)
-        except (exception.ConsoleError,
-                exception.ConsoleSubprocessFailed) as e:
-            LOG.exception('IPMI Error while attempting "%(cmd)s" '
-                          'for node %(node)s. Error: %(error)s',
-                          {'node': driver_info['uuid'],
-                           'cmd': cmd, 'error': e})
-            raise
+            try:
+                start_method(driver_info['uuid'], driver_info['port'], cmd)
+            except (exception.ConsoleError,
+                    exception.ConsoleSubprocessFailed) as e:
+                utils.unlink_without_raise(pw_file)
+                LOG.exception('IPMI Error while attempting "%(cmd)s" '
+                              'for node %(node)s. Error: %(error)s',
+                              {'node': driver_info['uuid'],
+                               'cmd': cmd, 'error': e})
+                raise
+        else:
+            # flag == '-E', use password from environment
+            cmd = self._get_ipmi_cmd(driver_info, pw_file=None,
+                                     use_pwd_env=True)
+            cmd += ' sol activate'
+            try:
+                start_method(driver_info['uuid'], driver_info['port'], cmd,
+                             env_variables=path_or_env)
+            except (exception.ConsoleError,
+                    exception.ConsoleSubprocessFailed) as e:
+                LOG.exception('IPMI Error while attempting "%(cmd)s" '
+                              'for node %(node)s. Error: %(error)s',
+                              {'node': driver_info['uuid'],
+                               'cmd': cmd, 'error': e})
+                raise
 
 
 class IPMIShellinaboxConsole(IPMIConsole):
@@ -1640,15 +1664,17 @@ class IPMIShellinaboxConsole(IPMIConsole):
 
     supported = False
 
-    def _get_ipmi_cmd(self, driver_info, pw_file):
+    def _get_ipmi_cmd(self, driver_info, pw_file=None, use_pwd_env=False):
         """Get ipmi command for ipmitool usage.
 
         :param driver_info: driver info with the ipmitool parameters
         :param pw_file: password file to be used in ipmitool command
+        :param use_pwd_env: when True, add -E so ipmitool reads password
+            from IPMI_PASSWORD environment variable
         :returns: returns a command string for ipmitool
         """
         command = super(IPMIShellinaboxConsole, self)._get_ipmi_cmd(
-            driver_info, pw_file)
+            driver_info, pw_file, use_pwd_env=use_pwd_env)
         return ("/:%(uid)s:%(gid)s:HOME:%(basic_command)s"
                 % {'uid': os.getuid(),
                    'gid': os.getgid(),

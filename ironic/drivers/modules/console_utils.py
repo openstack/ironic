@@ -269,12 +269,15 @@ class _PopenNonblockingPipe(object):
         return self._finished
 
 
-def start_shellinabox_console(node_uuid, port, console_cmd):
+def start_shellinabox_console(node_uuid, port, console_cmd,
+                              env_variables=None):
     """Open the serial console for a node.
 
     :param node_uuid: the uuid for the node.
     :param port: the terminal port for the node.
     :param console_cmd: the shell command that gets the console.
+    :param env_variables: optional dict of environment variables to pass to
+        the subprocess (e.g. IPMI_PASSWORD for ipmitool -E).
     :raises: ConsoleError if the directory for the PID file cannot be created
         or an old process cannot be stopped.
     :raises: ConsoleSubprocessFailed when invoking the subprocess failed.
@@ -309,9 +312,10 @@ def start_shellinabox_console(node_uuid, port, console_cmd):
         LOG.debug('Running subprocess: %s', ' '.join(args))
         # use pipe here to catch the error in case shellinaboxd
         # failed to start.
-        obj = subprocess.Popen(args,
-                               stdout=subprocess.PIPE,
-                               stderr=subprocess.PIPE)
+        popen_kwargs = {'stdout': subprocess.PIPE, 'stderr': subprocess.PIPE}
+        if env_variables is not None:
+            popen_kwargs['env'] = dict(os.environ, **env_variables)
+        obj = subprocess.Popen(args, **popen_kwargs)
     except (OSError, ValueError) as e:
         error = _("%(exec_error)s\n"
                   "Command: %(command)s") % {'exec_error': str(e),
@@ -390,13 +394,15 @@ def get_socat_console_url(port):
                                         'port': port}
 
 
-def start_socat_console(node_uuid, port, console_cmd):
+def start_socat_console(node_uuid, port, console_cmd, env_variables=None):
     """Open the serial console for a node.
 
     :param node_uuid: the uuid of the node
     :param port: the terminal port for the node
     :param console_cmd: the shell command that will be executed by socat to
         establish console to the node
+    :param env_variables: optional dict of environment variables to pass to
+        the subprocess (e.g. IPMI_PASSWORD for ipmitool -E).
     :raises ConsoleError: if the directory for the PID file or the PID file
         cannot be created
     :raises ConsoleSubprocessFailed: when invoking the subprocess failed
@@ -438,7 +444,10 @@ def start_socat_console(node_uuid, port, console_cmd):
         # Use pipe here to catch the error in case socat
         # fails to start. Note that socat uses stdout as transferring
         # data, so we only capture stderr for checking if it fails.
-        obj = subprocess.Popen(args, stderr=subprocess.PIPE)
+        popen_kwargs = {'stderr': subprocess.PIPE}
+        if env_variables is not None:
+            popen_kwargs['env'] = dict(os.environ, **env_variables)
+        obj = subprocess.Popen(args, **popen_kwargs)
     except (OSError, ValueError) as e:
         error = _("%(exec_error)s\n"
                   "Command: %(command)s") % {'exec_error': str(e),
