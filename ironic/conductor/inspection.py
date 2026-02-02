@@ -124,6 +124,17 @@ def continue_inspection(task, inventory, plugin_data):
               {'node': node.uuid, 'data': inventory})
     plugin_data = plugin_data or {}
 
+    # If the last heartbeat is not recorded, the node is deemed not
+    # "fast-trackable", which will cause the ISO to be ejected when
+    # tearing down inspection. This is already a problem, but then a race
+    # is possible when a heartbeat comes right after ejection, and the
+    # subsequent operation will consider the agent alive and the node
+    # fast-trackable. In this case, Ironic will try to interact with an
+    # agent that has the ISO disconnected from underneath it, potentially
+    # causing I/O errors in the operating system.
+    node.timestamp_driver_internal_info('agent_last_heartbeat')
+    node.save()
+
     try:
         result = task.driver.inspect.continue_inspection(
             task, inventory, plugin_data)
