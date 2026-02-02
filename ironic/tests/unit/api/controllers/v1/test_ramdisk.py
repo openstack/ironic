@@ -306,6 +306,32 @@ class TestLookup(test_api_base.BaseApiTest):
         self.assertEqual(self.node.uuid, data['node']['uuid'])
         self._check_config(data, skip_bmc_detect=False)
 
+    def test_service_state_lookup(self):
+        """Test lookup in servicing states."""
+        self._set_secret_mock(self.node, 'qwerty')
+        for provision_state in states.SERVICING_STATES:
+            self.node.provision_state = provision_state
+            self.node.save()
+            lookup_params = (
+                '/lookup?addresses=%s&node_uuid=%s' %
+                (','.join(self.addresses), self.node.uuid)
+            )
+            headers = {
+                api_base.Version.string: str(api_v1.max_version())
+            }
+            if provision_state == states.SERVICEWAIT:
+                response = self.get_json(
+                    lookup_params,
+                    headers=headers
+                )
+                self.assertEqual(self.node.uuid, response['node']['uuid'])
+            else:
+                response = self.get_json(
+                    lookup_params,
+                    headers=headers,
+                    expect_errors=True
+                )
+                self.assertEqual(http_client.NOT_FOUND, response.status_int)
 
 @mock.patch.object(rpcapi.ConductorAPI, 'get_topic_for',
                    lambda *n: 'test-topic')
