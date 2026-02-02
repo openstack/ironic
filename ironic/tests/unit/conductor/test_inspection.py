@@ -185,6 +185,9 @@ class TestContinueInspection(db_base.DbTestCase):
             self.assertNotIn("logs", self.plugin_data)
         self.node.refresh()
         self.assertEqual(states.MANAGEABLE, self.node.provision_state)
+        # Verify agent_last_heartbeat was updated
+        self.assertIn('agent_last_heartbeat',
+                      self.node.driver_internal_info)
 
     @mock.patch.object(inspect_utils, 'store_inspection_data', autospec=True)
     def test_ok_asynchronous(self, mock_store, mock_continue):
@@ -197,6 +200,9 @@ class TestContinueInspection(db_base.DbTestCase):
                                                   self.plugin_data)
             mock_store.assert_not_called()
             self.assertEqual(states.INSPECTWAIT, task.node.provision_state)
+            # Verify agent_last_heartbeat was updated
+            self.assertIn('agent_last_heartbeat',
+                          task.node.driver_internal_info)
 
     @mock.patch.object(inspect_utils, 'store_inspection_data', autospec=True)
     def test_failure(self, mock_store, mock_continue):
