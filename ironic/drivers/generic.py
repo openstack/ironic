@@ -24,6 +24,7 @@ from ironic.drivers.modules import fake
 from ironic.drivers.modules import inspector
 from ironic.drivers.modules import ipxe
 from ironic.drivers.modules.network import flat as flat_net
+from ironic.drivers.modules.network import ironic_networking
 from ironic.drivers.modules.network import neutron
 from ironic.drivers.modules.network import noop as noop_net
 from ironic.drivers.modules import noop
@@ -64,7 +65,7 @@ class GenericHardware(hardware_type.AbstractHardwareType):
     def supported_network_interfaces(self):
         """List of supported network interfaces."""
         return [flat_net.FlatNetwork, neutron.NeutronNetwork,
-                noop_net.NoopNetwork]
+                ironic_networking.IronicNetworking, noop_net.NoopNetwork]
 
     @property
     def supported_raid_interfaces(self):

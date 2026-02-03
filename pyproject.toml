@@ -118,6 +118,7 @@ redfish = "ironic.drivers.modules.redfish.management:RedfishManagement"
 flat = "ironic.drivers.modules.network.flat:FlatNetwork"
 neutron = "ironic.drivers.modules.network.neutron:NeutronNetwork"
 noop = "ironic.drivers.modules.network.noop:NoopNetwork"
+ironic-networking = "ironic.drivers.modules.network.ironic_networking:IronicNetworking"
 
 [project.entry-points."ironic.hardware.interfaces.power"]
 agent = "ironic.drivers.modules.agent_power:AgentPower"
