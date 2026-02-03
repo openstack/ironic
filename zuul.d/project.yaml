@@ -35,7 +35,7 @@
             voting: false
         - ironic-tempest-ipa-wholedisk-direct-multinode-shard:
             voting: false
-        - ironic-tempest-bios-ipmi-direct
+        - ironic-tempest-bios-ipmi-autodetect
         - ironic-tempest-bfv
         - ironic-tempest-ipa-partition-uefi-pxe-grub2
         - ironic-tempest-uefi-redfish-vmedia-4k
@@ -91,7 +91,7 @@
         # NOTE(TheJulia): Disabled multinode on 20210311 due to Limestone
         # seeming to be
         # - ironic-tempest-ipa-wholedisk-direct-multinode
-        - ironic-tempest-bios-ipmi-direct
+        - ironic-tempest-bios-ipmi-autodetect
         - ironic-tempest-bfv
         - ironic-tempest-ipa-partition-uefi-pxe-grub2
         - ironic-tempest-uefi-redfish-vmedia-4k
