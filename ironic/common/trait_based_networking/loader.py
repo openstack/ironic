@@ -27,7 +27,10 @@ _CACHED_CONFIG_LOADER = None
 
 
 def tbn_config_file_traits():
-    """Get TBN traits from the configured YAML file."""
+    """Get TBN traits from the configured YAML file.
+
+    Thread-safe way to retrieve the configured and parsed TBN traits.
+    """
     global _CACHED_CONFIG_LOADER
     with _LOADER_LOCK:
         if _CACHED_CONFIG_LOADER is None:
@@ -44,6 +47,11 @@ def is_config_valid():
 
 
 class ConfigLoader(object):
+    """Extends ConfigFile and provides automatic config file change detection
+
+    Not intended for consumption outside of this module. Use the module level
+    tbn_config_file_traits() function to retrieve configured and parsed traits.
+    """
     def __init__(self):
         self._last_mtime = None
         self._config_file = None

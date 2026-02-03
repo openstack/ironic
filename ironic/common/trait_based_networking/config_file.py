@@ -18,6 +18,18 @@ import yaml
 
 
 class ConfigFile(object):
+    """Provides functionality to read TBN configuration files
+
+    Basic flow for use goes like:
+
+        cf = ConfigFile("some_tbn_config.yaml") # File is read().
+        valid, reasons = cf.validate()
+        if not valid:
+            # Do something with reasons, like raise an exception and log.
+            return reasons
+        cf.parse()  # If the file is valid, this *should* parse the config
+        traits = cf.traits() # Get the parsed traits as a list.
+    """
     def __init__(self, filename):
         self._filename = filename
         self._traits = []
@@ -25,11 +37,17 @@ class ConfigFile(object):
         self.read()
 
     def read(self):
+        """Read the YAML YBN configuration file"""
         with open(self._filename, 'r') as file:
             self._contents = yaml.safe_load(file)
 
     def validate(self):
-        """Check that contents conform to TBN expectations."""
+        """Check that contents conform to TBN expectations.
+
+        :returns: (valid, reasons): valid is a boolean representing if the
+        contents passed validation or not, and reasons is a list of strings
+        describing why the contents failed validation if they are not valid.
+        """
         reasons = []
         valid = True
         for trait_name, trait_members in self._contents.items():
@@ -87,7 +105,10 @@ class ConfigFile(object):
         return valid, reasons
 
     def parse(self):
-        """Render contents of configuration file as TBN objects"""
+        """Render contents of configuration file as TBN objects
+
+        The result of this method can later be retrieved by calling traits()
+        """
         self._traits = []
         for trait_name, trait_members in self._contents.items():
             parsed_actions = []
@@ -103,4 +124,5 @@ class ConfigFile(object):
                                                   order))
 
     def traits(self):
+        """Return the parsed traits from the configuration file."""
         return self._traits

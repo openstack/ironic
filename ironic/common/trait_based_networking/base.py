@@ -18,6 +18,11 @@ import ironic.common.trait_based_networking.grammar.parser as tbn_parser
 
 
 class Operator(enum.Enum):
+    """A FilterExpression Operator
+
+    Represents a boolean operator (AND, OR) between two expressions in a
+    filter expression.
+    """
     AND = "&&"
     OR = "||"
 
@@ -35,6 +40,11 @@ class Operator(enum.Enum):
 
 
 class Comparator(enum.Enum):
+    """A FilterExpression Comparator
+
+    Comparators test mathematical-esque relations between a variable and a
+    string.
+    """
     EQUALITY = "=="
     INEQUALITY = "!="
     GT_OR_EQ = ">="
@@ -72,6 +82,7 @@ class Comparator(enum.Enum):
 
 
 class Actions(enum.Enum):
+    """Represents actions recognized by Trait Based Networking"""
     ATTACH_PORT = "attach_port"
     ATTACH_PORTGROUP = "attach_portgroup"
     BOND_PORTS = "bond_ports"
@@ -79,6 +90,11 @@ class Actions(enum.Enum):
 
 
 class Variables(enum.Enum):
+    """Represents a variable (or function) used by FilterExpressions
+
+    Values of variables are drawn from network-related objects like ports,
+    portgroups, or networks (aka vifs).
+    """
     NETWORK_NAME = "network.name"
     NETWORK_TAGS = "network.tags"
 
@@ -99,7 +115,8 @@ class Variables(enum.Enum):
         return self.value
 
 
-def retrieve_attribute(attribute_name, tbn_obj):
+def _retrieve_attribute(attribute_name, tbn_obj):
+    """Helper method to get an attribute from a TBN related object"""
     attribute = getattr(tbn_obj, attribute_name, None)
 
     if attribute is None:
@@ -109,13 +126,17 @@ def retrieve_attribute(attribute_name, tbn_obj):
 
 
 class FunctionExpression(object):
+    """A callable function from within a FilterExpression
+
+    Used to query objects to determine if they pass a FilterExpression or not.
+    """
     def __init__(self, variable):
         self._variable = variable
 
     def eval(self, port, network):
         tbn_obj = port if self._variable.object_name() == "port" else network
         attr_name = self._variable.attribute_name()
-        attr_func = retrieve_attribute(attr_name, tbn_obj)
+        attr_func = _retrieve_attribute(attr_name, tbn_obj)
         return attr_func()
 
     def __str__(self):
@@ -123,6 +144,15 @@ class FunctionExpression(object):
 
 
 class SingleExpression(object):
+    """A single expression from within a FilterExpression
+
+    A single expression consists of a variable name, a comparator, and a
+    string literal. For example:
+        port.vendor == "purple"
+    In this example, When eval()ed against a port whose vendor is "purple"
+    this expression will return True. Otherwise the expression will return
+    False.
+    """
     def __init__(self, variable, comparator, literal):
         self._variable = variable
         self._comparator = comparator
@@ -131,7 +161,7 @@ class SingleExpression(object):
     def eval(self, port, network):
         tbn_obj = port if self._variable.object_name() == "port" else network
         attr_name = self._variable.attribute_name()
-        attribute = retrieve_attribute(attr_name, tbn_obj)
+        attribute = _retrieve_attribute(attr_name, tbn_obj)
         return self._comparator.eval(attribute, self._literal)
 
     def __str__(self):
@@ -139,6 +169,11 @@ class SingleExpression(object):
 
 
 class CompoundExpression(object):
+    """A compound expression found within a FilterExpression
+
+    A compound expression consists of a left-hand expression and a right-hand
+    expression joined by a boolean operator.
+    """
     def __init__(self, left_expression, operator, right_expression):
         self._left_expression = left_expression
         self._operator = operator
@@ -159,6 +194,10 @@ class CompoundExpression(object):
 
 
 class ParenExpression(object):
+    """Represents an parentheses expression found in a FilterExpression
+
+    Aids in logically grouping and evaluating expressions before others.
+    """
     def __init__(self, expression):
         self._expression = expression
 
@@ -170,6 +209,19 @@ class ParenExpression(object):
 
 
 class FilterExpression(object):
+    """Encompasses filters found in TraitActions
+
+    Used to filter (port, network) pairs to apply actions which pass the
+    filter.
+
+    Use FilterExpression.parse to transform a string containing a
+    grammatically correct expression into a fully parsed FilterExpression
+    object.
+
+    See FILTER_EXPRESSION_GRAMMAR in
+    ironic.common.trait_based_networking.grammar.parser for full understanding
+    of how these expressions are parsed.
+    """
     def __init__(self, expression):
         self._expression = expression
 
@@ -189,6 +241,11 @@ class FilterExpression(object):
 
 
 class TraitAction(object):
+    """An action defined by a NetworkTrait
+
+    Each action contains a filter (FilterExpression) that determines which
+    (port, network) pairs the action can apply to.
+    """
     NECESSARY_KEYS = [
         'action',
         'filter',
@@ -201,6 +258,16 @@ class TraitAction(object):
 
     def __init__(self, trait_name, action, filter_expression,
                  min_count=None, max_count=None):
+        """Init the TraitAction
+
+        :param trait_name: Name of the trait this action belongs to.
+        :param action: An Actions object
+        :param filter_expression: A FilterExpression object
+        :param min_count: An optional minimum number of matches this action
+            must meet before it can be applied.
+        :param max_count: An optional maximum number of matches this action
+            can apply to.
+        """
         self.trait_name = trait_name
         self.action = action
         self.filter_expression = filter_expression
@@ -220,7 +287,20 @@ class TraitAction(object):
 
 
 class NetworkTrait(object):
+    """Represents an entire Trait for Trait Based Networking
+
+    Each trait can have many actions. Traits can be ordered explicitly if so
+    desired.
+    """
     def __init__(self, name, actions, order=1):
+        """Init a NetworkTrait
+
+        :param name: The named of the trait
+        :param actions: A list of TraitActions which belong to this trait
+        :param order: An optional integer used to determine the explicit
+        ordering of application of traits. Used to sort and apply traits in
+        ascending order.
+        """
         self.name = name
         self.actions = actions
         self.order = order
@@ -243,6 +323,7 @@ class NetworkTrait(object):
 
 
 class PrimordialPort(object):
+    """A set of common attributes belonging to both Ports and Portgroups"""
     def __init__(self, ironic_port_like_obj):
         # NOTE(clif): Both ironic port and portgroups should support the
         # attributes below.
@@ -255,6 +336,7 @@ class PrimordialPort(object):
 
 
 class Port(PrimordialPort):
+    """A Port used internally to query and match to TraitActions"""
     @classmethod
     def from_ironic_port(cls, ironic_port):
         return Port(ironic_port)
@@ -267,6 +349,7 @@ class Port(PrimordialPort):
 
 
 class Portgroup(PrimordialPort):
+    """A Portgroup used internally to query and match to TraitActions"""
     @classmethod
     def from_ironic_portgroup(cls, ironic_portgroup):
         return Portgroup(ironic_portgroup)
@@ -279,6 +362,10 @@ class Portgroup(PrimordialPort):
 
 
 class Network(object):
+    """A Network (aka vif)
+
+    Used to match against TraitAction FilterExpressions
+    """
     def __init__(self, network_id, name, tags):
         self.id = network_id
         self.name = name
@@ -286,12 +373,14 @@ class Network(object):
 
     @classmethod
     def from_vif_info(cls, vif_info):
+        """Helper method to create Networks from vif_info dictionaries"""
         return Network(vif_info['id'], # vif_info is guaranteed to have 'id'.
                        vif_info.get('name'),
                        vif_info.get('tags'))
 
 
 class RenderedAction(object):
+    """A base class for Actions which are ready to apply"""
     def __init__(self, trait_action, node_uuid):
         self._trait_action = trait_action
         self._node_uuid = node_uuid
@@ -302,6 +391,7 @@ class RenderedAction(object):
 
 
 class AttachAction(RenderedAction):
+    """Base class for actions which will attach objects to networks"""
     def __init__(self, trait_action, node_uuid):
         super().__init__(trait_action, node_uuid)
 
@@ -313,6 +403,10 @@ class AttachAction(RenderedAction):
 
 
 class AttachPort(AttachAction):
+    """Attach a port to a network
+
+    Contains all the necessary information to attach a port to a network (vif)
+    """
     def __init__(self, trait_action, node_uuid, port_uuid, network_id):
         super().__init__(trait_action, node_uuid)
         self._port_uuid = port_uuid
@@ -340,6 +434,11 @@ class AttachPort(AttachAction):
 
 
 class AttachPortgroup(AttachAction):
+    """Attach a portgroup to a network
+
+    Contains all the necessary information to attach a portgroup to a network
+    (vif)
+    """
     def __init__(self, trait_action, node_uuid, portgroup_uuid, network_id):
         super().__init__(trait_action, node_uuid)
         self._portgroup_uuid = portgroup_uuid
@@ -367,6 +466,7 @@ class AttachPortgroup(AttachAction):
 
 
 class NoMatch(RenderedAction):
+    """Returned by network planning when a trait action finds no matches"""
     def __init__(self, trait_action, node_uuid, reason):
         super().__init__(trait_action, node_uuid)
         self._reason = reason
@@ -383,6 +483,7 @@ class NoMatch(RenderedAction):
 
 
 class NotImplementedAction(RenderedAction):
+    """Returned by network planning if an action has not been implemented"""
     def __init__(self, action):
         self._action = action
 
