@@ -75,12 +75,38 @@ class TestUpgradeChecks(db_base.DbTestCase):
         check_result = self.cmd._check_allocations_table()
         self.assertEqual(Code.WARNING,
                          check_result.code)
-        expected_msg = ('The Allocations table is is not using UTF8 '
-                        'encoding. This is corrected in later versions '
-                        'of Ironic, where the table character set schema '
-                        'is automatically migrated. Continued use of a '
-                        'non-UTF8 character set may produce unexpected '
-                        'results.')
+        expected_msg = ('The Allocations table is not using UTF8MB4 '
+                        'encoding. Ironic requires UTF8MB4 (4-byte UTF-8) '
+                        'character encoding for full Unicode support. '
+                        'Please run "ironic-dbsync upgrade" to migrate to '
+                        'UTF8MB4. This requires MySQL 8.0+ or MariaDB 10.3+.')
+        self.assertEqual(expected_msg, check_result.details)
+
+    @mock.patch.object(sqlalchemy.enginefacade.reader,
+                       'get_engine', autospec=True)
+    def test__check_allocations_table_utf8mb3(self, mock_reader):
+        """Test that legacy utf8 (utf8mb3) triggers a warning."""
+        mock_engine = mock.Mock()
+        mock_res = mock.Mock()
+        mock_engine.url = sa_url.make_url(
+            'mysql+pymysql://ironic:pass@192.0.2.10/ironic')
+        mock_res.all.return_value = (
+            '... ENGINE=InnoDB DEFAULT CHARSET=utf8',
+        )
+        mock_conn = self._create_mock_context_manager(True)
+        mock_trans = self._create_mock_context_manager(False)
+        mock_engine.connect.return_value = mock_conn
+        mock_conn.execute.return_value = mock_res
+        mock_conn.begin.return_value = mock_trans
+        mock_reader.return_value = mock_engine
+        check_result = self.cmd._check_allocations_table()
+        self.assertEqual(Code.WARNING,
+                         check_result.code)
+        expected_msg = ('The Allocations table is not using UTF8MB4 '
+                        'encoding. Ironic requires UTF8MB4 (4-byte UTF-8) '
+                        'character encoding for full Unicode support. '
+                        'Please run "ironic-dbsync upgrade" to migrate to '
+                        'UTF8MB4. This requires MySQL 8.0+ or MariaDB 10.3+.')
         self.assertEqual(expected_msg, check_result.details)
 
     @mock.patch.object(sqlalchemy.enginefacade.reader,
@@ -91,7 +117,7 @@ class TestUpgradeChecks(db_base.DbTestCase):
         mock_engine.url = sa_url.make_url(
             'mysql+pymysql://ironic:pass@192.0.2.10/ironic')
         mock_res.all.return_value = (
-            '... ENGINE=MyIASM DEFAULT CHARSET=utf8',
+            '... ENGINE=MyIASM DEFAULT CHARSET=utf8mb4',
         )
         mock_conn = self._create_mock_context_manager(True)
         mock_trans = self._create_mock_context_manager(False)
@@ -131,12 +157,12 @@ class TestUpgradeChecks(db_base.DbTestCase):
         check_result = self.cmd._check_allocations_table()
         self.assertEqual(Code.WARNING,
                          check_result.code)
-        expected_msg = ('The Allocations table is is not using UTF8 '
-                        'encoding. This is corrected in later versions '
-                        'of Ironic, where the table character set schema '
-                        'is automatically migrated. Continued use of a '
-                        'non-UTF8 character set may produce unexpected '
-                        'results. Additionally: '
+        expected_msg = ('The Allocations table is not using UTF8MB4 '
+                        'encoding. Ironic requires UTF8MB4 (4-byte UTF-8) '
+                        'character encoding for full Unicode support. '
+                        'Please run "ironic-dbsync upgrade" to migrate to '
+                        'UTF8MB4. This requires MySQL 8.0+ or MariaDB 10.3+. '
+                        'Additionally: '
                         'The engine used by MySQL for the allocations '
                         'table is not the intended engine for the Ironic '
                         'database tables to use. This may have been a '

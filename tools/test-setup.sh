@@ -33,5 +33,5 @@ sudo -H mysql -u root -p$DB_ROOT_PW -h localhost -e "
 mysql -u $DB_USER -p$DB_PW -h 127.0.0.1 -e "
     SET default_storage_engine=MYISAM;
     DROP DATABASE IF EXISTS openstack_citest;
-    CREATE DATABASE openstack_citest CHARACTER SET utf8;"
+    CREATE DATABASE openstack_citest CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;"
 

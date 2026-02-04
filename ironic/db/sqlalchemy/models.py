@@ -46,7 +46,7 @@ def table_args():
     engine_name = urlparse.urlparse(CONF.database.connection).scheme
     if engine_name == 'mysql':
         return {'mysql_engine': CONF.database.mysql_engine,
-                'mysql_charset': "utf8"}
+                'mysql_charset': "utf8mb4"}
     return None
 
 

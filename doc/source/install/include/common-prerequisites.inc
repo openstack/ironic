@@ -22,19 +22,17 @@ In MySQL, create an ``ironic`` database that is accessible by the
 .. code-block:: console
 
    # mysql -u root -p
-   mysql> CREATE DATABASE ironic CHARACTER SET utf8mb3;
+   mysql> CREATE DATABASE ironic CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
    mysql> GRANT ALL PRIVILEGES ON ironic.* TO 'ironic'@'localhost' \
           IDENTIFIED BY 'IRONIC_DBPASSWORD';
    mysql> GRANT ALL PRIVILEGES ON ironic.* TO 'ironic'@'%' \
           IDENTIFIED BY 'IRONIC_DBPASSWORD';
 
 .. note::
-   When creating the database to house Ironic, specifically on MySQL/MariaDB,
-   the character set *cannot* be 4 byte Unicode characters. This is due to
-   an internal structural constraint. UTF8, in these database platforms,
-   has traditionally meant ``utf8mb3``, short for "UTF-8, 3 byte encoding",
-   however the platforms are expected to move to ``utf8mb4`` which is
-   incompatible with Ironic.
+   Ironic requires ``utf8mb4`` character encoding (4-byte UTF-8) for full
+   Unicode support. This requires **MySQL 8.0+** or **MariaDB 10.3+**, which
+   use the DYNAMIC row format by default and support the required index key
+   lengths. Older MySQL/MariaDB versions are not supported.
 
 Running on SQLite
 ^^^^^^^^^^^^^^^^^

@@ -107,12 +107,14 @@ class Checks(upgradecheck.UpgradeCommands):
             res = conn.execute(
                 sqlalchemy.text("show create table allocations"))
         results = str(res.all()).lower()
-        if 'utf8' not in results:
-            msg = ('The Allocations table is is not using UTF8 encoding. '
-                   'This is corrected in later versions of Ironic, where '
-                   'the table character set schema is automatically '
-                   'migrated. Continued use of a non-UTF8 character '
-                   'set may produce unexpected results.')
+        # Check for utf8mb4 (4-byte UTF-8) which is the required encoding.
+        # Note: 'utf8mb4' will not match 'utf8mb3' or legacy 'utf8' aliases.
+        if 'utf8mb4' not in results:
+            msg = ('The Allocations table is not using UTF8MB4 encoding. '
+                   'Ironic requires UTF8MB4 (4-byte UTF-8) character '
+                   'encoding for full Unicode support. Please run '
+                   '"ironic-dbsync upgrade" to migrate to UTF8MB4. '
+                   'This requires MySQL 8.0+ or MariaDB 10.3+.')
 
         if 'innodb' not in results:
             warning = ('The engine used by MySQL for the allocations '
@@ -231,7 +233,7 @@ class Checks(upgradecheck.UpgradeCommands):
     _upgrade_checks = (
         (_('Object versions'), _check_obj_versions),
         (_('Database Index Status'), _check_db_indexes),
-        (_('Allocations Name Field Length Check'),
+        (_('MySQL UTF8MB4 Encoding Check'),
          _check_allocations_table),
         # Victoria -> Wallaby migration
         (_('Policy File JSON to YAML Migration'),
