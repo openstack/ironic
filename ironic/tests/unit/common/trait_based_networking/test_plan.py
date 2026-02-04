@@ -315,3 +315,49 @@ class TraitBasedNetworkingPlanningTestCase(base.TestCase):
             node_portgroups,
             node_networks)
         self.assertEqual(expected_actions, result_actions)
+
+    @data(
+        annotate("match a port",
+            [tbn_base.NetworkTrait(
+                "CUSTOM_TRAIT",
+                [
+                    tbn_base.TraitAction(
+                        "CUSTOM_TRAIT",
+                        tbn_base.Actions.ATTACH_PORT,
+                        tbn_base.FilterExpression.parse(
+                            "port.physical_network == 'hypernet'"),
+                    )
+                ]
+            )],
+            utils.FauxTask(
+                utils.FauxNode(instance_info={'traits':['CUSTOM_TRAIT']}),
+                [utils.FauxPortLikeObject(uuid="fake_port_uuid",
+                                          physical_network="hypernet")],
+                []
+            ),
+            {
+                'id': 'fake_net_id',
+            },
+            [tbn_base.AttachPort(
+                tbn_base.TraitAction(
+                    "CUSTOM_TRAIT",
+                    tbn_base.Actions.ATTACH_PORT,
+                    tbn_base.FilterExpression.parse(
+                        "port.physical_network == 'hypernet'"),
+                ),
+                "fake_node_uuid",
+                "fake_port_uuid",
+                "fake_net_id"
+            )],
+        ),
+    )
+    @unpack
+    def test_plan_vif_attach(self,
+        traits: list[tbn_base.NetworkTrait],
+        task: utils.FauxTask,
+        vif_info: dict,
+        expected_actions: list[tbn_base.RenderedAction]):
+        result_actions = tbn_plan.plan_vif_attach(traits, task, vif_info)
+        self.assertEqual(expected_actions, result_actions)
+
+    # TODO(clif): Test filter_traits_for_node

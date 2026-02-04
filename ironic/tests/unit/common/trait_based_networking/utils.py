@@ -10,32 +10,41 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
+from dataclasses import dataclass
+from dataclasses import field
 
+
+@dataclass
 class FauxPortLikeObject(object):
-    def __init__(
-        self,
-        port_id="fake_id",
-        uuid="fake_uuid",
-        address="test",
-        category="cat",
-        physical_network="test_physnet",
-        vendor="fake_vendor",
-    ):
-        self.id = port_id
-        self.uuid = uuid
-        self.address = address
-        self.category = category
-        self.physical_network = physical_network
-        self.vendor = vendor
+    id: str = "fake_id"
+    uuid: str = "fake_uuid"
+    address: str = "test"
+    category: str = "cat"
+    physical_network: str = "test_physnet"
+    vendor: str = "fake_vendor"
 
 
+@dataclass
 class FauxNetwork(object):
-    def __init__(
-        self,
-        network_id="fake_net_id",
-        name="test_network",
-        tags=['test_tag'],
-    ):
-        self.id = network_id
-        self.name = name
-        self.tags = tags
+    network_id: str = "fake_net_id"
+    name: str = "test_network"
+    tags: list[str] = field(default_factory=list)
+
+def default_faux_instance_info(traits=None):
+    return {
+        'traits': traits
+    }
+
+
+@dataclass
+class FauxNode(object):
+    uuid: str = "fake_node_uuid"
+    instance_info: dict = field(
+            default_factory=default_faux_instance_info)
+
+
+@dataclass
+class FauxTask(object):
+    node: FauxNode
+    ports: list[FauxPortLikeObject] = field(default_factory=list)
+    portgroups: list[FauxPortLikeObject] = field(default_factory=list)

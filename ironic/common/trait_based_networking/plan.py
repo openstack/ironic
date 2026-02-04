@@ -13,6 +13,8 @@
 
 from ironic.common.i18n import _
 from ironic.common.trait_based_networking import base
+from ironic.conductor.task_manager import TaskManager
+from ironic.objects.node import Node
 
 from collections.abc import Callable
 import itertools
@@ -97,3 +99,50 @@ def plan_attach_portlike(
                                f"{trait_action.min_count}."))]
 
     return actions
+
+
+def plan_vif_attach(traits: list[base.NetworkTrait],
+                    task: TaskManager,
+                    vif_info: dict) -> list[base.RenderedAction]:
+    # TODO(clif): Take cues from get_free_port_like_object where appropriate.
+    net = base.Network.from_vif_info(vif_info)
+
+    # TODO(clif): Enforce some type of ordering in traits?
+    for trait in traits:
+        actions = plan_network(
+            trait,
+            task.node.uuid,
+            task.ports,
+            task.portgroups,
+            [net])
+        if len(actions) > 1:
+            return actions
+        elif len(actions) == 1 and isinstance(actions[0], base.NoMatch):
+            continue
+        else:
+            return actions
+
+    # TODO(clif): Maybe this should raise, because vif_attach raises when
+    # it can't find a free port or portgroup to attach.
+    return [base.NoMatch(base.TraitAction(
+                            'plan_vif_attach',
+                            base.Actions.ATTACH_PORT,
+                            base.FilterExpression.parse(
+                                "port.category == 'plan_vif_attach'")),
+                        task.node.uuid,
+                        _("Could not find an applicable port or portgroup to "
+                          f"attach to network '{net.id}' in any applicable "
+                          "trait."))]
+
+
+def filter_traits_for_node(node: Node,
+                           traits: list[base.NetworkTrait]
+                           ) -> list[base.NetworkTrait]:
+    instance_traits = node.instance_info.get('traits')
+    if instance_traits is None:
+        # TODO(clif): Or return TBN default traits if none apply?
+        # Or always return some default traits along with filtered ones?
+        return []
+
+    instance_traits_set = set(instance_traits)
+    return [trait for trait in traits if trait.name in instance_traits_set]

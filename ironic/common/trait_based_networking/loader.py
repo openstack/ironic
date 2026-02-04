@@ -33,7 +33,7 @@ def tbn_config_file_traits():
         if _CACHED_CONFIG_LOADER is None:
             _CACHED_CONFIG_LOADER = ConfigLoader()
         _CACHED_CONFIG_LOADER.refresh()
-        return _CACHED_CONFIG_LOADER.traits()
+        return _CACHED_CONFIG_LOADER.traits
 
 
 def is_config_valid():

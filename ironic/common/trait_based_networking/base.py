@@ -277,12 +277,17 @@ class Portgroup(PrimordialPort):
         return True
 
 
-# TODO(Clif): Draw from VIFs
 class Network(object):
     def __init__(self, network_id, name, tags):
         self.id = network_id
         self.name = name
         self.tags = tags
+
+    @classmethod
+    def from_vif_info(cls, vif_info):
+        return Network(vif_info['id'], # vif_info is guaranteed to have 'id'.
+                       vif_info.get('name'),
+                       vif_info.get('tags'))
 
 
 class RenderedAction(object):
@@ -295,11 +300,31 @@ class RenderedAction(object):
                 and self._node_uuid == other._node_uuid)
 
 
-class AttachPort(RenderedAction):
+class AttachAction(RenderedAction):
+    def __init__(self, trait_action, node_uuid):
+        super().__init__(trait_action, node_uuid)
+
+    def portlike_uuid(self):
+        return self._get_portlike_uuid()
+
+    def get_portlike_object(self, task):
+        return self._get_portlike_object(task)
+
+
+class AttachPort(AttachAction):
     def __init__(self, trait_action, node_uuid, port_uuid, network_id):
         super().__init__(trait_action, node_uuid)
         self._port_uuid = port_uuid
         self._network_id = network_id
+
+    def _get_portlike_object(self, task):
+        for port in task.ports:
+            if port.uuid == self._port_uuid:
+                return port
+        return None
+
+    def _get_portlike_uuid(self):
+        return self._port_uuid
 
     def __str__(self):
         return _(f"Attach port '{self._port_uuid}' on node "
@@ -313,11 +338,20 @@ class AttachPort(RenderedAction):
                 and super().__eq__(other))
 
 
-class AttachPortgroup(RenderedAction):
+class AttachPortgroup(AttachAction):
     def __init__(self, trait_action, node_uuid, portgroup_uuid, network_id):
         super().__init__(trait_action, node_uuid)
         self._portgroup_uuid = portgroup_uuid
         self._network_id = network_id
+
+    def _get_portlike_object(self, task):
+        for portgroup in task.portgroups:
+            if portgroup.uuid == self._portgroup_uuid:
+                return portgroup
+        return None
+
+    def _get_portlike_uuid(self):
+        return self._portgroup_uuid
 
     def __str__(self):
         return _(f"Attach portgroup '{self._portgroup_uuid}' on node "
