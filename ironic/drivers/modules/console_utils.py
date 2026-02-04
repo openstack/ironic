@@ -151,22 +151,6 @@ def make_persistent_password_file(path, password):
         raise exception.PasswordFileFailedToCreate(error=e)
 
 
-def _get_port_range():
-    config_range = CONF.console.port_range
-    ranges = []
-
-    for range_str in config_range:
-        start, stop = map(int, range_str.split(':'))
-        if start >= stop:
-            msg = _("[console]port_range should be in the "
-                    "format <start>:<stop> or comma-separated ranges, "
-                    "and start < stop for each range")
-            raise exception.InvalidParameterValue(msg)
-        ranges.append((start, stop))
-
-    return ranges
-
-
 def _verify_port(port, host=None):
     """Check whether specified port is in use."""
     ip_version = None
@@ -199,10 +183,8 @@ def acquire_port(host=None):
     of 'CONF.console.port_range'.
     """
 
-    ranges = _get_port_range()
-
-    for start, stop in ranges:
-        for port in range(start, stop):
+    for port_range in CONF.console.port_range:
+        for port in port_range:
             if port in ALLOCATED_PORTS:
                 continue
             try:

@@ -19,6 +19,32 @@ from oslo_config import types
 
 from ironic.common.i18n import _
 
+
+class PortRange(types.String):
+    def __init__(self):
+        super().__init__(type_name='port_range')
+
+    def __call__(self, value):
+        if len(value.split(':')) != 2:
+            raise ValueError("Value should be in <start>:<end> format")
+
+        try:
+            start, end = map(int, value.split(':'))
+        except ValueError:
+            raise ValueError("Port numbers should be integers")
+
+        if start > end:
+            raise ValueError("Start should not be greater than end.")
+
+        if start < types.Port.PORT_MIN:
+            raise ValueError("Port range should be in [0, 65535]")
+
+        if end > types.Port.PORT_MAX:
+            raise ValueError("Port range should be in [0, 65535]")
+
+        return range(start, end)
+
+
 opts = [
     cfg.StrOpt('terminal',
                default='shellinaboxd',
@@ -55,7 +81,7 @@ opts = [
               help=_('IP address of Socat service running on the host of '
                      'ironic conductor. Used only by Socat console.')),
     cfg.ListOpt('port_range',
-                item_type=types.String(regex=r'^\d+:\d+$'),
+                item_type=PortRange(),
                 sample_default=['10000:20000'],
                 help=_('A range of ports available to be used for the console '
                        'proxy service running on the host of ironic '
