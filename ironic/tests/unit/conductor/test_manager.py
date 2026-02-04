@@ -61,6 +61,7 @@ from ironic.drivers import base as drivers_base
 from ironic.drivers.modules import fake
 from ironic.drivers.modules import image_utils
 from ironic.drivers.modules import inspect_utils
+from ironic.drivers.modules.network import common as n_common
 from ironic.drivers.modules.network import flat as n_flat
 from ironic.drivers.modules import redfish
 from ironic import objects
@@ -2485,7 +2486,7 @@ class DoNodeTearDownTestCase(mgr_utils.ServiceSetUpMixin, db_base.DbTestCase):
             lessee='fooproject')
         port = obj_utils.create_test_port(
             self.context, node_id=node.id,
-            internal_info={'tenant_vif_port_id': 'foo'})
+            internal_info={n_common.NetType.TENANT.vif_key: 'foo'})
         if with_allocation:
             alloc = obj_utils.create_test_allocation(self.context)
             # Establish cross-linking between the node and the allocation
@@ -2640,7 +2641,7 @@ class DoNodeTearDownTestCase(mgr_utils.ServiceSetUpMixin, db_base.DbTestCase):
                                   'instance': {'ephemeral_gb': 10}})
         port = obj_utils.create_test_port(
             self.context, node_id=node.id,
-            internal_info={'tenant_vif_port_id': 'foo'})
+            internal_info={n_common.NetType.TENANT.vif_key: 'foo'})
 
         mock_remove.side_effect = exception.IronicException('Oops')
         task = task_manager.TaskManager(self.context, node.uuid)
@@ -7587,7 +7588,7 @@ class DestroyPortTestCase(mgr_utils.ServiceSetUpMixin, db_base.DbTestCase):
         port = obj_utils.create_test_port(
             self.context,
             node_id=node.id,
-            internal_info={'tenant_vif_port_id': 'foo'})
+            internal_info={n_common.NetType.TENANT.vif_key: 'foo'})
         exc = self.assertRaises(messaging.rpc.ExpectedException,
                                 self.service.destroy_port,
                                 self.context, port)
@@ -7602,7 +7603,7 @@ class DestroyPortTestCase(mgr_utils.ServiceSetUpMixin, db_base.DbTestCase):
         port = obj_utils.create_test_port(
             self.context,
             node_id=node.id,
-            internal_info={'tenant_vif_port_id': 'fake-id'})
+            internal_info={n_common.NetType.TENANT.vif_key: 'fake-id'})
         self.service.destroy_port(self.context, port)
         self.assertRaises(exception.PortNotFound, port.refresh)
 
@@ -7639,7 +7640,7 @@ class DestroyPortTestCase(mgr_utils.ServiceSetUpMixin, db_base.DbTestCase):
         port = obj_utils.create_test_port(
             self.context,
             node_id=node.id,
-            internal_info={'tenant_vif_port_id': 'foo'})
+            internal_info={n_common.NetType.TENANT.vif_key: 'foo'})
         exc = self.assertRaises(messaging.rpc.ExpectedException,
                                 self.service.destroy_port,
                                 self.context, port)

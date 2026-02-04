@@ -35,6 +35,7 @@ from ironic.conductor import utils as manager_utils
 from ironic.drivers.modules import deploy_utils as utils
 from ironic.drivers.modules import fake
 from ironic.drivers.modules import image_cache
+from ironic.drivers.modules.network import common as n_common
 from ironic.drivers.modules import pxe
 from ironic.drivers.modules.storage import cinder
 from ironic.drivers import utils as driver_utils
@@ -724,7 +725,7 @@ class GetSingleNicTestCase(db_base.DbTestCase):
         obj_utils.create_test_port(
             self.context, node_id=self.node.id, address='aa:bb:cc:dd:ee:ff',
             uuid=uuidutils.generate_uuid(),
-            internal_info={'tenant_vif_port_id': 'test-vif-A'})
+            internal_info={n_common.NetType.TENANT.vif_key: 'test-vif-A'})
         with task_manager.acquire(self.context, self.node.uuid,
                                   shared=False) as task:
             address = utils.get_single_nic_with_vif_port_id(task)
@@ -734,7 +735,7 @@ class GetSingleNicTestCase(db_base.DbTestCase):
         obj_utils.create_test_port(
             self.context, node_id=self.node.id, address='aa:bb:cc:dd:ee:ff',
             uuid=uuidutils.generate_uuid(),
-            internal_info={'cleaning_vif_port_id': 'test-vif-A'})
+            internal_info={n_common.NetType.CLEANING.vif_key: 'test-vif-A'})
         with task_manager.acquire(self.context, self.node.uuid,
                                   shared=False) as task:
             address = utils.get_single_nic_with_vif_port_id(task)
@@ -744,7 +745,41 @@ class GetSingleNicTestCase(db_base.DbTestCase):
         obj_utils.create_test_port(
             self.context, node_id=self.node.id, address='aa:bb:cc:dd:ee:ff',
             uuid=uuidutils.generate_uuid(),
-            internal_info={'provisioning_vif_port_id': 'test-vif-A'})
+            internal_info={
+                n_common.NetType.PROVISIONING.vif_key: 'test-vif-A'})
+        with task_manager.acquire(self.context, self.node.uuid,
+                                  shared=False) as task:
+            address = utils.get_single_nic_with_vif_port_id(task)
+            self.assertEqual('aa:bb:cc:dd:ee:ff', address)
+
+    def test_get_single_nic_with_rescuing_vif_port_id(self):
+        obj_utils.create_test_port(
+            self.context, node_id=self.node.id, address='aa:bb:cc:dd:ee:ff',
+            uuid=uuidutils.generate_uuid(),
+            internal_info={
+                n_common.NetType.RESCUING.vif_key: 'test-vif-A'})
+        with task_manager.acquire(self.context, self.node.uuid,
+                                  shared=False) as task:
+            address = utils.get_single_nic_with_vif_port_id(task)
+            self.assertEqual('aa:bb:cc:dd:ee:ff', address)
+
+    def test_get_single_nic_with_inspecting_vif_port_id(self):
+        obj_utils.create_test_port(
+            self.context, node_id=self.node.id, address='aa:bb:cc:dd:ee:ff',
+            uuid=uuidutils.generate_uuid(),
+            internal_info={
+                n_common.NetType.INSPECTION.vif_key: 'test-vif-A'})
+        with task_manager.acquire(self.context, self.node.uuid,
+                                  shared=False) as task:
+            address = utils.get_single_nic_with_vif_port_id(task)
+            self.assertEqual('aa:bb:cc:dd:ee:ff', address)
+
+    def test_get_single_nic_with_servicing_vif_port_id(self):
+        obj_utils.create_test_port(
+            self.context, node_id=self.node.id, address='aa:bb:cc:dd:ee:ff',
+            uuid=uuidutils.generate_uuid(),
+            internal_info={
+                n_common.NetType.SERVICING.vif_key: 'test-vif-A'})
         with task_manager.acquire(self.context, self.node.uuid,
                                   shared=False) as task:
             address = utils.get_single_nic_with_vif_port_id(task)
@@ -1132,7 +1167,9 @@ class AgentMethodsTestCase(db_base.DbTestCase):
         self.node.provision_state = states.SERVICING
         self.node.save()
 
-        self.ports[0].internal_info = {'tenant_vif_port_id': 'fake-vif-id'}
+        self.ports[0].internal_info = {
+            n_common.NetType.TENANT.vif_key: 'fake-vif-id'
+        }
         self.ports[0].save()
         with task_manager.acquire(
                 self.context, self.node.uuid, shared=False) as task:
@@ -1181,7 +1218,9 @@ class AgentMethodsTestCase(db_base.DbTestCase):
         self.node.disable_power_off = True
         self.node.save()
 
-        self.ports[0].internal_info = {'tenant_vif_port_id': 'fake-vif-id'}
+        self.ports[0].internal_info = {
+            n_common.NetType.TENANT.vif_key: 'fake-vif-id'
+        }
         self.ports[0].save()
         with task_manager.acquire(
                 self.context, self.node.uuid, shared=False) as task:

@@ -14,6 +14,7 @@
 #    under the License.
 
 import collections
+from enum import Enum
 
 from openstack.connection import exceptions as openstack_exc
 from oslo_config import cfg
@@ -31,7 +32,23 @@ from ironic import objects
 CONF = cfg.CONF
 LOG = log.getLogger(__name__)
 
-TENANT_VIF_KEY = 'tenant_vif_port_id'
+
+class NetType(Enum):
+    CLEANING = "cleaning"
+    PROVISIONING = "provisioning"
+    RESCUING = "rescuing"
+    INSPECTION = "inspection"
+    SERVICING = "servicing"
+    # tenant should always be last to preserve the order of using
+    # the other vifs first
+    TENANT = "tenant"
+
+    def __str__(self):
+        return self.value
+
+    @property
+    def vif_key(self):
+        return f"{self!s}_vif_port_id"
 
 
 def _vif_attached(port_like_obj, vif_id):
@@ -46,7 +63,7 @@ def _vif_attached(port_like_obj, vif_id):
         False otherwise.
     :raises: VifAlreadyAttached, if vif_id is attached to port_like_obj.
     """
-    attached_vif_id = port_like_obj.internal_info.get(TENANT_VIF_KEY)
+    attached_vif_id = port_like_obj.internal_info.get(NetType.TENANT.vif_key)
     if attached_vif_id == vif_id:
         raise exception.VifAlreadyAttached(
             object_type=port_like_obj.__class__.__name__,
@@ -232,7 +249,7 @@ def plug_port_to_tenant_network(task, port_like_obj, client=None):
     local_group_info = None
     client_id_opt = None
 
-    vif_id = port_like_obj.internal_info.get(TENANT_VIF_KEY)
+    vif_id = port_like_obj.internal_info.get(NetType.TENANT.vif_key)
 
     if not vif_id:
         obj_name = port_like_obj.__class__.__name__.lower()
@@ -406,7 +423,7 @@ class VIFPortIDMixin(object):
         :param vif_id: VIF ID to save.
         """
         int_info = port_like_obj.internal_info
-        int_info[TENANT_VIF_KEY] = vif_id
+        int_info[NetType.TENANT.vif_key] = vif_id
         port_like_obj.internal_info = int_info
         port_like_obj.save()
 
@@ -418,7 +435,7 @@ class VIFPortIDMixin(object):
         """
         int_info = port_like_obj.internal_info
         extra = port_like_obj.extra
-        int_info.pop(TENANT_VIF_KEY, None)
+        int_info.pop(NetType.TENANT.vif_key, None)
         extra.pop('vif_port_id', None)
         port_like_obj.extra = extra
         port_like_obj.internal_info = int_info
@@ -445,7 +462,7 @@ class VIFPortIDMixin(object):
         :param port_like_obj: A port or portgroup to check.
         :returns: The ID of the attached VIF, or None.
         """
-        return port_like_obj.internal_info.get(TENANT_VIF_KEY)
+        return port_like_obj.internal_info.get(NetType.TENANT.vif_key)
 
     def vif_list(self, task):
         """List attached VIF IDs for a node
@@ -474,12 +491,10 @@ class VIFPortIDMixin(object):
         :param p_obj: Ironic port or portgroup object.
         :returns: VIF ID associated with p_obj or None.
         """
-
-        return (p_obj.internal_info.get('cleaning_vif_port_id')
-                or p_obj.internal_info.get('provisioning_vif_port_id')
-                or p_obj.internal_info.get('rescuing_vif_port_id')
-                or p_obj.internal_info.get('inspection_vif_port_id')
-                or self._get_vif_id_by_port_like_obj(p_obj) or None)
+        for net_type in NetType.__members__.values():
+            if net_type.vif_key in p_obj.internal_info:
+                return p_obj.internal_info.get(net_type.vif_key)
+        return None
 
 
 class NeutronVIFPortIDMixin(VIFPortIDMixin):

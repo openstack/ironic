@@ -2309,14 +2309,13 @@ class ConductorManager(base_manager.BaseConductorManager):
                   {'port': port.uuid})
         with task_manager.acquire(context, port.node_id,
                                   purpose='port deletion') as task:
-            vif, vif_use = utils.get_attached_vif(port)
+            vif = task.driver.network.get_current_vif(task, port)
             if vif and not task.node.maintenance:
                 msg = _("Cannot delete the port %(port)s as it is bound "
-                        "to VIF %(vif)s for %(use)s use.")
+                        "to VIF %(vif)s for use.")
                 raise exception.InvalidState(
                     msg % {'port': port.uuid,
-                           'vif': vif,
-                           'use': vif_use})
+                           'vif': vif})
             port.destroy()
             LOG.info('Successfully deleted port %(port)s. '
                      'The node associated with the port was %(node)s',

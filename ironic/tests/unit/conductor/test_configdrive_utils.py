@@ -26,6 +26,7 @@ from ironic.common import exception
 from ironic.common import neutron
 from ironic.conductor import configdrive_utils as cd_utils
 from ironic.conductor import task_manager
+from ironic.drivers.modules.network import common
 from ironic.tests.unit.db import base as db_base
 from ironic.tests.unit.objects import utils as obj_utils
 
@@ -143,7 +144,7 @@ class MetadataUtilsTestCase(db_base.DbTestCase):
         port = obj_utils.create_test_port(
             self.context, node_id=self.node.id,
             uuid='86ffb399-6dd4-4e6c-8eb0-069d608bc5ca',
-            internal_info={'tenant_vif_port_id': 'meep'})
+            internal_info={common.NetType.TENANT.vif_key: 'meep'})
 
         gnpd = {
             'links': [
@@ -186,12 +187,12 @@ class MetadataUtilsTestCase(db_base.DbTestCase):
         port1 = obj_utils.create_test_port(
             self.context, node_id=self.node.id,
             uuid='86ffb399-6dd4-4e6c-8eb0-069d608bc5ca',
-            internal_info={'tenant_vif_port_id': 'meep'})
+            internal_info={common.NetType.TENANT.vif_key: 'meep'})
 
         port2 = obj_utils.create_test_port(
             self.context, node_id=self.node.id,
             uuid='373960ab-131f-4a37-8329-8cda768ba722',
-            internal_info={'tenant_vif_port_id': 'beep'},
+            internal_info={common.NetType.TENANT.vif_key: 'beep'},
             address="51:54:00:cf:2d:32")
 
         gnpd1 = {
@@ -282,7 +283,7 @@ class MetadataUtilsTestCase(db_base.DbTestCase):
             self.context, node_id=self.node.id,
             uuid='f52c664d-ca02-4c27-94f9-327dcb67d208',
             address='01:02:03:04:05:06',
-            internal_info={'tenant_vif_port_id': 'meep'})
+            internal_info={common.NetType.TENANT.vif_key: 'meep'})
 
         port1 = obj_utils.create_test_port(
             self.context, node_id=self.node.id,
@@ -367,7 +368,7 @@ class MetadataUtilsTestCase(db_base.DbTestCase):
             self.context, node_id=self.node.id,
             uuid='f52c664d-ca02-4c27-94f9-327dcb67d208',
             address='01:02:03:04:05:06',
-            internal_info={'tenant_vif_port_id': 'meep'})
+            internal_info={common.NetType.TENANT.vif_key: 'meep'})
         port1 = obj_utils.create_test_port(
             self.context, node_id=self.node.id,
             uuid='86ffb399-6dd4-4e6c-8eb0-069d608bc5ca',
@@ -377,7 +378,7 @@ class MetadataUtilsTestCase(db_base.DbTestCase):
             name='second', id=2,
             uuid='c1ef2f0b-36f8-45f6-9b0c-c68bd27beee1',
             address='00:02:03:04:05:07',
-            internal_info={'tenant_vif_port_id': 'flop'})
+            internal_info={common.NetType.TENANT.vif_key: 'flop'})
         port2 = obj_utils.create_test_port(
             self.context, node_id=self.node.id,
             uuid='373960ab-131f-4a37-8329-8cda768ba722',

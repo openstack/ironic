@@ -59,30 +59,28 @@ class NeutronNetwork(common.NeutronVIFPortIDMixin,
                   "neutron network interface (disallowed in the "
                   "configuration)"))
 
-    def _add_network(self, task, network, security_groups, process):
+    def _add_network(self, task, network, security_groups, net_type):
         # If we have left over ports from a previous process, remove them
         neutron.rollback_ports(task, network)
-        LOG.info('Adding %s network to node %s', process, task.node.uuid)
+        LOG.info('Adding %s network to node %s', net_type, task.node.uuid)
         vifs = neutron.add_ports_to_network(task, network,
                                             security_groups=security_groups)
-        field = '%s_vif_port_id' % process
         for port in task.ports:
             if port.uuid in vifs:
                 internal_info = port.internal_info
-                internal_info[field] = vifs[port.uuid]
+                internal_info[net_type.vif_key] = vifs[port.uuid]
                 port.internal_info = internal_info
                 port.save()
         return vifs
 
-    def _remove_network(self, task, network, process):
+    def _remove_network(self, task, network, net_type):
         LOG.info('Removing ports from %s network for node %s',
-                 process, task.node.uuid)
+                 net_type, task.node.uuid)
         neutron.remove_ports_from_network(task, network)
-        field = '%s_vif_port_id' % process
         for port in task.ports:
-            if field in port.internal_info:
+            if net_type.vif_key in port.internal_info:
                 internal_info = port.internal_info
-                del internal_info[field]
+                del internal_info[net_type.vif_key]
                 port.internal_info = internal_info
                 port.save()
 
@@ -95,7 +93,7 @@ class NeutronNetwork(common.NeutronVIFPortIDMixin,
         self._add_network(
             task, self.get_provisioning_network_uuid(task),
             CONF.neutron.provisioning_network_security_groups,
-            'provisioning')
+            common.NetType.PROVISIONING)
 
     def remove_provisioning_network(self, task):
         """Remove the provisioning network from a node.
@@ -104,7 +102,8 @@ class NeutronNetwork(common.NeutronVIFPortIDMixin,
         :raises: NetworkError
         """
         return self._remove_network(
-            task, self.get_provisioning_network_uuid(task), 'provisioning')
+            task, self.get_provisioning_network_uuid(task),
+            common.NetType.PROVISIONING)
 
     def add_cleaning_network(self, task):
         """Create neutron ports for each port on task.node to boot the ramdisk.
@@ -116,7 +115,7 @@ class NeutronNetwork(common.NeutronVIFPortIDMixin,
         return self._add_network(
             task, self.get_cleaning_network_uuid(task),
             CONF.neutron.cleaning_network_security_groups,
-            'cleaning')
+            common.NetType.CLEANING)
 
     def remove_cleaning_network(self, task):
         """Deletes the neutron port created for booting the ramdisk.
@@ -125,7 +124,8 @@ class NeutronNetwork(common.NeutronVIFPortIDMixin,
         :raises: NetworkError
         """
         return self._remove_network(
-            task, self.get_cleaning_network_uuid(task), 'cleaning')
+            task, self.get_cleaning_network_uuid(task),
+            common.NetType.CLEANING)
 
     def validate_rescue(self, task):
         """Validates the network interface for rescue operation.
@@ -146,7 +146,7 @@ class NeutronNetwork(common.NeutronVIFPortIDMixin,
         return self._add_network(
             task, self.get_rescuing_network_uuid(task),
             CONF.neutron.rescuing_network_security_groups,
-            'rescuing')
+            common.NetType.RESCUING)
 
     def remove_rescuing_network(self, task):
         """Deletes neutron port created for booting the rescue ramdisk.
@@ -155,7 +155,8 @@ class NeutronNetwork(common.NeutronVIFPortIDMixin,
         :raises: NetworkError
         """
         return self._remove_network(
-            task, self.get_rescuing_network_uuid(task), 'rescuing')
+            task, self.get_rescuing_network_uuid(task),
+            common.NetType.RESCUING)
 
     def configure_tenant_networks(self, task):
         """Configure tenant networks for a node.
@@ -211,9 +212,8 @@ class NeutronNetwork(common.NeutronVIFPortIDMixin,
         ports = [p for p in task.ports if not p.portgroup_id]
         portgroups = task.portgroups
         for port_like_obj in ports + portgroups:
-            vif_port_id = (
-                port_like_obj.internal_info.get(common.TENANT_VIF_KEY)
-            )
+            vif_port_id = NeutronNetwork._get_vif_id_by_port_like_obj(
+                port_like_obj)
             if not vif_port_id:
                 continue
 
@@ -252,7 +252,7 @@ class NeutronNetwork(common.NeutronVIFPortIDMixin,
         return self._add_network(
             task, self.get_inspection_network_uuid(task),
             CONF.neutron.inspection_network_security_groups,
-            'inspection')
+            common.NetType.INSPECTION)
 
     def remove_inspection_network(self, task):
         """Removes the inspection network from a node.
@@ -263,7 +263,8 @@ class NeutronNetwork(common.NeutronVIFPortIDMixin,
         :raises: MissingParameterValue, if some parameters are missing.
         """
         return self._remove_network(
-            task, self.get_inspection_network_uuid(task), 'inspection')
+            task, self.get_inspection_network_uuid(task),
+            common.NetType.INSPECTION)
 
     def validate_servicing(self, task):
         """Validates the network interface for servicing operation.
@@ -284,7 +285,7 @@ class NeutronNetwork(common.NeutronVIFPortIDMixin,
         return self._add_network(
             task, self.get_servicing_network_uuid(task),
             CONF.neutron.servicing_network_security_groups,
-            'servicing')
+            common.NetType.SERVICING)
 
     def remove_servicing_network(self, task):
         """Deletes neutron port created for booting the servicing ramdisk.
@@ -293,4 +294,5 @@ class NeutronNetwork(common.NeutronVIFPortIDMixin,
         :raises: NetworkError
         """
         return self._remove_network(
-            task, self.get_servicing_network_uuid(task), 'servicing')
+            task, self.get_servicing_network_uuid(task),
+            common.NetType.SERVICING)
