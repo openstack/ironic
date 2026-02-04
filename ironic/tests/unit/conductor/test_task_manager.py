@@ -55,10 +55,15 @@ class TaskManagerTestCase(db_base.DbTestCase):
         self.node = obj_utils.create_test_node(self.context)
         self.future_mock = mock.Mock(spec=['cancel', 'add_done_callback'])
 
-    def test_excl_lock(self, get_voltgt_mock, get_volconn_mock,
+    @mock.patch(
+        'ironic.conductor.task_manager.tbn_config_file_traits',
+        autospec=True)
+    def test_excl_lock(self, get_tbn_traits_mock,
+                       get_voltgt_mock, get_volconn_mock,
                        get_portgroups_mock, get_ports_mock,
                        build_driver_mock, reserve_mock, release_mock,
                        node_get_mock):
+        get_tbn_traits_mock.return_value = ['test']
         reserve_mock.return_value = self.node
         with task_manager.TaskManager(self.context, 'fake-node-id') as task:
             self.assertEqual(self.context, task.context)
@@ -70,6 +75,7 @@ class TaskManagerTestCase(db_base.DbTestCase):
             self.assertEqual(get_voltgt_mock.return_value, task.volume_targets)
             self.assertEqual(build_driver_mock.return_value, task.driver)
             self.assertFalse(task.shared)
+            self.assertEqual(get_tbn_traits_mock.return_value, task.tbn_traits)
             build_driver_mock.assert_called_once_with(task)
 
         node_get_mock.assert_called_once_with(self.context, 'fake-node-id')
