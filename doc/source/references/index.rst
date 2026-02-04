@@ -21,3 +21,12 @@ CLI References
 - `Ironic CLI <https://docs.openstack.org/python-ironicclient/latest/cli/>`_
 - :doc:`ironic-dbsync </cli/ironic-dbsync>`
 - `ironic-status <https://docs.openstack.org/ironic/latest/cli/ironic-status.html>`_
+
+Trait Based Networking Reference
+--------------------------------
+
+.. toctree::
+   :maxdepth: 1
+
+   TBN Configuration File <trait-based-networking/tbn-config-file>
+   Filter Expression Reference <trait-based-networking/filter-expression-reference>

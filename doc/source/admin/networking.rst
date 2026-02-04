@@ -126,6 +126,8 @@ the :oslo.config:option:`enabled_network_interfaces` setting.
 VIF Attachment flow
 -------------------
 
+FIXME(clif): Probably need add a note and link to TBN related documentation here.
+
 When creating a virtual interface (VIF), the action occurs against the
 Neutron Networking Service, such as by using the ``openstack port create``
 command, and then the port ID is submitted to Ironic to facilitate a VIF

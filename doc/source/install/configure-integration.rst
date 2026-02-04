@@ -9,6 +9,7 @@ Integration with other OpenStack services
    configure-compute
    configure-networking
    configure-ipv6-networking
+   configure-trait-based-networking
    configure-glance-swift
    enabling-https
    configure-cleaning
