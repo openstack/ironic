@@ -1303,7 +1303,11 @@ def fast_track_able(task):
             and task.node.last_error is None
             # NOTE(dtantsur): Fast track makes zero sense for servicing and
             # may prevent normal clean-up from happening.
-            and task.node.provision_state not in states.SERVICING_STATES)
+            and task.node.provision_state not in states.SERVICING_STATES
+            # NOTE: Firmware updates require proper cleanup (e.g., virtual
+            # media ejection) and should not use fast-track.
+            and not task.node.driver_internal_info.get('redfish_fw_updates')
+            and not task.node.driver_internal_info.get('firmware_updates'))
 
 
 def value_within_timeout(value, timeout):
