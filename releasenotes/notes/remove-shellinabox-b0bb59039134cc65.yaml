@@ -1,0 +1,7 @@
+---
+upgrade:
+  - |
+    Removes all functionality related to shellinabox. This includes
+    ipmitool-shellinabox console interface, and node web console support since
+    it relied on shellinabox. Note that shellinabox has not been maintained
+    in years and is considered abandoned.

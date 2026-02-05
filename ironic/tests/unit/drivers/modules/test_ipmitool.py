@@ -180,7 +180,7 @@ class IPMIToolCheckInitTestCase(base.TestCase):
     def test_console_init_calls(self, mock_check_dir, mock_support):
         mock_support.return_value = True
         ipmi.TMP_DIR_CHECKED = None
-        ipmi.IPMIShellinaboxConsole()
+        ipmi.IPMISocatConsole()
         mock_support.assert_called_with(mock.ANY)
         mock_check_dir.assert_called_once_with()
 
@@ -191,7 +191,7 @@ class IPMIToolCheckInitTestCase(base.TestCase):
                                                 mock_support):
         mock_support.return_value = True
         ipmi.TMP_DIR_CHECKED = True
-        ipmi.IPMIShellinaboxConsole()
+        ipmi.IPMISocatConsole()
         mock_support.assert_called_with(mock.ANY)
         self.assertFalse(mock_check_dir.called)
 
@@ -486,7 +486,6 @@ class Base(db_base.DbTestCase):
                     enabled_vendor_interfaces=['fake', 'ipmitool',
                                                'no-vendor'],
                     enabled_console_interfaces=['fake', 'ipmitool-socat',
-                                                'ipmitool-shellinabox',
                                                 'no-console'])
         self.config(debug=True, group="ipmi")
         self.node = obj_utils.create_test_node(
@@ -4022,303 +4021,20 @@ class IPMIToolDriverTestCase(Base):
             self.assertIsNone(info.get('allocated_ipmi_terminal_port'))
 
 
-class IPMIToolShellinaboxTestCase(db_base.DbTestCase):
-    console_interface = 'ipmitool-shellinabox'
-    console_class = ipmi.IPMIShellinaboxConsole
+class IPMIToolSocatDriverTestCase(db_base.DbTestCase):
+    console_interface = 'ipmitool-socat'
+    console_class = ipmi.IPMISocatConsole
 
     def setUp(self):
-        super(IPMIToolShellinaboxTestCase, self).setUp()
+        super(IPMIToolSocatDriverTestCase, self).setUp()
         self.config(enabled_console_interfaces=[self.console_interface,
                                                 'no-console'])
         self.node = obj_utils.create_test_node(
-            self.context,
-            console_interface=self.console_interface,
-            driver_info=INFO_DICT)
+                self.context,
+                console_interface=self.console_interface,
+                driver_info=INFO_DICT)
         self.info = ipmi._parse_driver_info(self.node)
         self.console = self.console_class()
-
-    def test_console_validate(self):
-        with task_manager.acquire(
-                self.context, self.node.uuid, shared=True) as task:
-            task.node.driver_info['ipmi_terminal_port'] = 123
-            task.driver.console.validate(task)
-
-    def test_console_validate_missing_port(self):
-        with task_manager.acquire(
-                self.context, self.node.uuid, shared=True) as task:
-            task.node.driver_info.pop('ipmi_terminal_port', None)
-            self.assertRaises(exception.MissingParameterValue,
-                              task.driver.console.validate, task)
-
-    def test_console_validate_missing_port_auto_allocate(self):
-        self.config(port_range='10000:20000', group='console')
-        with task_manager.acquire(
-                self.context, self.node.uuid, shared=True) as task:
-            task.node.driver_info.pop('ipmi_terminal_port', None)
-            task.driver.console.validate(task)
-
-    def test_console_validate_invalid_port(self):
-        with task_manager.acquire(
-                self.context, self.node.uuid, shared=True) as task:
-            task.node.driver_info['ipmi_terminal_port'] = ''
-            self.assertRaises(exception.InvalidParameterValue,
-                              task.driver.console.validate, task)
-
-    def test_console_validate_wrong_ipmi_protocol_version(self):
-        with task_manager.acquire(
-                self.context, self.node.uuid, shared=True) as task:
-            task.node.driver_info['ipmi_terminal_port'] = 123
-            task.node.driver_info['ipmi_protocol_version'] = '1.5'
-            self.assertRaises(exception.InvalidParameterValue,
-                              task.driver.console.validate, task)
-
-    def test__get_ipmi_cmd(self):
-        with task_manager.acquire(self.context,
-                                  self.node.uuid) as task:
-            driver_info = ipmi._parse_driver_info(task.node)
-            ipmi_cmd = self.console._get_ipmi_cmd(driver_info, 'pw_file')
-            expected_ipmi_cmd = ("/:%(uid)s:%(gid)s:HOME:ipmitool "
-                                 "-I lanplus -H %(address)s -L ADMINISTRATOR "
-                                 "-U %(user)s -f pw_file" %
-                                 {'uid': os.getuid(), 'gid': os.getgid(),
-                                  'address': driver_info['address'],
-                                  'user': driver_info['username']})
-        self.assertEqual(expected_ipmi_cmd, ipmi_cmd)
-
-    def test__get_ipmi_cmd_without_user(self):
-        with task_manager.acquire(self.context,
-                                  self.node.uuid) as task:
-            driver_info = ipmi._parse_driver_info(task.node)
-            driver_info['username'] = None
-            ipmi_cmd = self.console._get_ipmi_cmd(driver_info, 'pw_file')
-            expected_ipmi_cmd = ("/:%(uid)s:%(gid)s:HOME:ipmitool "
-                                 "-I lanplus -H %(address)s -L ADMINISTRATOR "
-                                 "-f pw_file" %
-                                 {'uid': os.getuid(), 'gid': os.getgid(),
-                                  'address': driver_info['address']})
-        self.assertEqual(expected_ipmi_cmd, ipmi_cmd)
-
-    @mock.patch.object(ipmi, '_allocate_port', autospec=True)
-    @mock.patch.object(ipmi.IPMIConsole, '_start_console', autospec=True)
-    @mock.patch.object(ipmi.IPMIShellinaboxConsole, "_exec_stop_console",
-                       autospec=True)
-    def test_start_console(self, mock_exec_stop, mock_start, mock_alloc):
-        mock_start.return_value = None
-        mock_alloc.return_value = 10000
-
-        with task_manager.acquire(self.context,
-                                  self.node.uuid) as task:
-            self.console.start_console(task)
-            driver_info = ipmi._parse_driver_info(task.node)
-            driver_info.update(port=10000)
-        mock_exec_stop.assert_called_once_with(self.console, driver_info)
-        mock_start.assert_called_once_with(
-            self.console, driver_info,
-            console_utils.start_shellinabox_console)
-
-    @mock.patch.object(ipmi, '_allocate_port', autospec=True)
-    @mock.patch.object(ipmi, '_parse_driver_info', autospec=True)
-    @mock.patch.object(ipmi.IPMIShellinaboxConsole, "_exec_stop_console",
-                       autospec=True)
-    @mock.patch.object(ipmi.IPMIConsole, '_start_console', autospec=True)
-    def test_start_console_with_port(self, mock_start, mock_exec_stop,
-                                     mock_info, mock_alloc):
-        mock_start.return_value = None
-        mock_info.return_value = {'port': 10000}
-
-        with task_manager.acquire(self.context,
-                                  self.node.uuid) as task:
-            self.console.start_console(task)
-            driver_info = ipmi._parse_driver_info(task.node)
-        mock_start.assert_called_once_with(
-            self.console, {'port': 10000},
-            console_utils.start_shellinabox_console)
-        mock_exec_stop.assert_called_once_with(self.console, driver_info)
-        mock_alloc.assert_not_called()
-
-    @mock.patch.object(ipmi, '_allocate_port', autospec=True)
-    @mock.patch.object(ipmi, '_parse_driver_info', autospec=True)
-    @mock.patch.object(ipmi.IPMIShellinaboxConsole, "_exec_stop_console",
-                       autospec=True)
-    @mock.patch.object(ipmi.IPMIConsole, '_start_console', autospec=True)
-    def test_start_console_alloc_port(self, mock_start, mock_exec_stop,
-                                      mock_info, mock_alloc):
-        mock_start.return_value = None
-        mock_info.return_value = {'port': None}
-        mock_alloc.return_value = 1234
-        # Ensure allocated port is not reused
-        dii = self.node.driver_internal_info
-        dii['allocated_ipmi_terminal_port'] = 4321
-        self.node.driver_internal_info = dii
-        self.node.save()
-
-        with task_manager.acquire(self.context,
-                                  self.node.uuid) as task:
-            self.console.start_console(task)
-            driver_info = ipmi._parse_driver_info(task.node)
-        mock_start.assert_called_once_with(
-            self.console, {'port': 1234},
-            console_utils.start_shellinabox_console)
-        mock_exec_stop.assert_called_once_with(self.console, driver_info)
-        mock_alloc.assert_called_once_with(mock.ANY)
-
-    @mock.patch.object(ipmi, '_exec_ipmitool', autospec=True)
-    def test__exec_stop_console(self, mock_exec):
-        with task_manager.acquire(self.context,
-                                  self.node.uuid) as task:
-            driver_info = ipmi._parse_driver_info(task.node)
-            self.console._exec_stop_console(driver_info)
-
-        mock_exec.assert_called_once_with(
-            driver_info, 'sol deactivate', check_exit_code=[0, 1])
-
-    @mock.patch.object(ipmi, '_persist_ipmi_password', autospec=True)
-    @mock.patch.object(ipmi.IPMIConsole, '_get_ipmi_cmd', autospec=True)
-    @mock.patch.object(console_utils, 'start_shellinabox_console',
-                       autospec=True)
-    def test__start_console(self, mock_start, mock_ipmi_cmd, mock_persist):
-        mock_start.return_value = None
-        mock_persist.return_value = ('-f', '/tmp/console.pw')
-
-        with task_manager.acquire(self.context,
-                                  self.node.uuid) as task:
-            driver_info = ipmi._parse_driver_info(task.node)
-            self.console._start_console(
-                driver_info, console_utils.start_shellinabox_console)
-
-        mock_persist.assert_called_once_with(driver_info)
-        mock_start.assert_called_once_with(self.info['uuid'],
-                                           self.info['port'],
-                                           mock.ANY)
-        mock_ipmi_cmd.assert_called_once_with(
-            self.console, driver_info, pw_file='/tmp/console.pw',
-             use_pwd_env=False)
-
-    @mock.patch.object(ipmi, '_persist_ipmi_password', autospec=True)
-    @mock.patch.object(console_utils, 'start_shellinabox_console',
-                       autospec=True)
-    def test__start_console_fail(self, mock_start, mock_persist):
-        mock_start.side_effect = exception.ConsoleSubprocessFailed(
-            error='error')
-        mock_persist.return_value = ('-f', '/tmp/console.pw')
-
-        with task_manager.acquire(self.context,
-                                  self.node.uuid) as task:
-            driver_info = ipmi._parse_driver_info(task.node)
-            self.assertRaises(exception.ConsoleSubprocessFailed,
-                              self.console._start_console,
-                              driver_info,
-                              console_utils.start_shellinabox_console)
-
-    @mock.patch.object(ipmi, '_persist_ipmi_password', autospec=True)
-    @mock.patch.object(console_utils, 'start_shellinabox_console',
-                       autospec=True)
-    def test__start_console_fail_nodir(self, mock_start, mock_persist):
-        mock_start.side_effect = exception.ConsoleError()
-        mock_persist.return_value = ('-f', '/tmp/console.pw')
-
-        with task_manager.acquire(self.context,
-                                  self.node.uuid) as task:
-            driver_info = ipmi._parse_driver_info(task.node)
-            self.assertRaises(exception.ConsoleError,
-                              self.console._start_console,
-                              driver_info,
-                              console_utils.start_shellinabox_console)
-        mock_start.assert_called_once_with(self.node.uuid, mock.ANY, mock.ANY)
-
-    @mock.patch.object(ipmi, '_persist_ipmi_password', autospec=True)
-    @mock.patch.object(console_utils, 'start_shellinabox_console',
-                       autospec=True)
-    def test__start_console_empty_password(self, mock_start, mock_persist):
-        mock_persist.return_value = ('-f', '/tmp/console.pw')
-        driver_info = self.node.driver_info
-        del driver_info['ipmi_password']
-        self.node.driver_info = driver_info
-        self.node.save()
-
-        with task_manager.acquire(self.context, self.node.uuid) as task:
-            driver_info = ipmi._parse_driver_info(task.node)
-            self.console._start_console(
-                driver_info,
-                console_utils.start_shellinabox_console)
-
-        mock_start.assert_called_once_with(self.info['uuid'],
-                                           self.info['port'],
-                                           mock.ANY)
-
-    @mock.patch.object(ipmi, '_persist_ipmi_password', autospec=True)
-    @mock.patch.object(ipmi.IPMIConsole, '_get_ipmi_cmd', autospec=True)
-    @mock.patch.object(console_utils, 'start_shellinabox_console',
-                       autospec=True)
-    def test__start_console_store_cred_in_env(self, mock_start, mock_ipmi_cmd,
-                                               mock_persist):
-        """Test _start_console with store_cred_in_env=True uses env."""
-        mock_start.return_value = None
-        mock_persist.return_value = ('-E', {'IPMI_PASSWORD': 'secret'})
-
-        self.config(store_cred_in_env=True, group='ipmi')
-        with task_manager.acquire(self.context,
-                                  self.node.uuid) as task:
-            driver_info = ipmi._parse_driver_info(task.node)
-            self.console._start_console(
-                driver_info, console_utils.start_shellinabox_console)
-
-        mock_persist.assert_called_once_with(driver_info)
-        mock_ipmi_cmd.assert_called_once_with(
-            self.console, driver_info, pw_file=None,
-            use_pwd_env=True)
-        mock_start.assert_called_once_with(
-            self.info['uuid'], self.info['port'], mock.ANY,
-            env_variables={'IPMI_PASSWORD': 'secret'})
-
-    @mock.patch.object(ipmi, '_release_allocated_port', autospec=True)
-    @mock.patch.object(console_utils, 'stop_shellinabox_console',
-                       autospec=True)
-    def test_stop_console(self, mock_stop, mock_release):
-        mock_stop.return_value = None
-
-        with task_manager.acquire(self.context,
-                                  self.node.uuid) as task:
-            self.console.stop_console(task)
-
-        mock_stop.assert_called_once_with(self.info['uuid'])
-        mock_release.assert_called_once_with(mock.ANY)
-
-    @mock.patch.object(console_utils, 'stop_shellinabox_console',
-                       autospec=True)
-    def test_stop_console_fail(self, mock_stop):
-        mock_stop.side_effect = exception.ConsoleError()
-
-        with task_manager.acquire(self.context,
-                                  self.node.uuid) as task:
-            self.assertRaises(exception.ConsoleError,
-                              self.console.stop_console,
-                              task)
-
-        mock_stop.assert_called_once_with(self.node.uuid)
-
-    @mock.patch.object(console_utils, 'get_shellinabox_console_url',
-                       autospec=True)
-    @mock.patch.object(ipmi.IPMIShellinaboxConsole, "_exec_stop_console",
-                       autospec=True)
-    def test_get_console(self, mock_exec_stop, mock_get):
-        url = 'http://localhost:4201'
-        mock_get.return_value = url
-        expected = {'type': 'shellinabox', 'url': url}
-
-        with task_manager.acquire(self.context,
-                                  self.node.uuid) as task:
-            console_info = self.console.get_console(task)
-            driver_info = ipmi._parse_driver_info(task.node)
-
-        mock_exec_stop.assert_called_once_with(self.console, driver_info)
-        self.assertEqual(expected, console_info)
-        mock_get.assert_called_once_with(self.info['port'])
-
-
-class IPMIToolSocatDriverTestCase(IPMIToolShellinaboxTestCase):
-    console_interface = 'ipmitool-shellinabox'
-    console_class = ipmi.IPMISocatConsole
 
     def test__get_ipmi_cmd(self):
         with task_manager.acquire(self.context,

@@ -67,18 +67,18 @@ class IPMIHardwareTestCase(db_base.DbTestCase):
         with task_manager.acquire(self.context, node.id) as task:
             self._validate_interfaces(task)
 
-    def test_override_with_shellinabox(self):
-        self.config(enabled_console_interfaces=['ipmitool-shellinabox',
+    def test_override_with_socat(self):
+        self.config(enabled_console_interfaces=['fake',
                                                 'ipmitool-socat'])
         node = obj_utils.create_test_node(
             self.context, driver='ipmi',
             raid_interface='agent',
-            console_interface='ipmitool-shellinabox',
+            console_interface='ipmitool-socat',
             vendor_interface='no-vendor')
         with task_manager.acquire(self.context, node.id) as task:
             self._validate_interfaces(
                 task,
-                console=ipmitool.IPMIShellinaboxConsole,
+                console=ipmitool.IPMISocatConsole,
                 raid=agent.AgentRAID,
                 vendor=noop.NoVendor)
 

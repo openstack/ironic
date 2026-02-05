@@ -12,5 +12,3 @@ Advanced features
 .. include:: include/disk-label.inc
 
 .. include:: include/notifications.inc
-
-.. include:: include/console.inc

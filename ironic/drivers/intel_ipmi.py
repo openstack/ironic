@@ -18,7 +18,7 @@ class IntelIPMIHardware(ipmi.IPMIHardware):
     """Intel IPMI hardware type.
 
     Uses ``ipmitool`` to implement power and management.
-    Provides serial console implementations via ``shellinabox`` or ``socat``.
+    Provides serial console implementations via ``socat``.
     Supports Intel SST-PP feature.
     """
     @property

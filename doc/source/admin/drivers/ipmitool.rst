@@ -48,7 +48,7 @@ Please see :doc:`/install/configure-ipmi` for the required dependencies.
 
     [DEFAULT]
     enabled_hardware_types = ipmi
-    enabled_console_interfaces = ipmitool-socat,ipmitool-shellinabox,no-console
+    enabled_console_interfaces = ipmitool-socat,no-console
     enabled_management_interfaces = ipmitool,noop
     enabled_power_interfaces = ipmitool
     enabled_vendor_interfaces = ipmitool,no-vendor

@@ -61,7 +61,7 @@ hardware interfaces:
        future. Instead, use ``irmc-pxe``.
 
 * console
-    Supports ``ipmitool-socat``, ``ipmitool-shellinabox``, and ``no-console``.
+    Supports ``ipmitool-socat``, and ``no-console``.
     The default is ``ipmitool-socat``.
 
 * inspect
@@ -93,7 +93,7 @@ interfaces enabled for ``irmc`` hardware type.
    enabled_hardware_types = irmc
    enabled_bios_interfaces = irmc
    enabled_boot_interfaces = irmc-virtual-media,irmc-pxe
-   enabled_console_interfaces = ipmitool-socat,ipmitool-shellinabox,no-console
+   enabled_console_interfaces = ipmitool-socat,no-console
    enabled_deploy_interfaces = direct
    enabled_inspect_interfaces = irmc,agent,no-inspect
    enabled_management_interfaces = irmc
