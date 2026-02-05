@@ -148,7 +148,7 @@ class SwiftAPI(object):
         """
         try:
             headers, obj = self.connection.get_object(
-                object, container=container)
+                container=container, obj=object)
         except openstack_exc.OpenStackCloudException as e:
             operation = _("get object")
             raise exception.SwiftOperationError(operation=operation, error=e)
