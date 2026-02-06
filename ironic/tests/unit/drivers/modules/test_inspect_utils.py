@@ -269,8 +269,8 @@ class IntrospectionDataStorageFunctionsTestCase(db_base.DbTestCase):
         CONF.set_override('swift_data_container', container, group='inventory')
         swift_obj_mock = swift_api_mock.return_value
         swift_obj_mock.get_object.side_effect = [
-            self.fake_inventory_data,
-            self.fake_plugin_data
+            json.dumps(self.fake_inventory_data),
+            json.dumps(self.fake_plugin_data)
         ]
         ret = utils._get_inspection_data_from_swift(self.node.uuid)
         req_ret = {"inventory": self.fake_inventory_data,

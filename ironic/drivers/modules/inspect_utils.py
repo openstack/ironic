@@ -234,7 +234,8 @@ def _get_inspection_data_from_swift(node_uuid):
         raise exception.SwiftObjectNotFoundError(obj=plug_obj,
                                                  container=container,
                                                  operation='get')
-    return {"inventory": inventory_data, "plugin_data": plugin_data}
+    return {"inventory": json.loads(inventory_data),
+            "plugin_data": json.loads(plugin_data)}
 
 
 LOOKUP_CACHE_FIELD = 'lookup_bmc_addresses'

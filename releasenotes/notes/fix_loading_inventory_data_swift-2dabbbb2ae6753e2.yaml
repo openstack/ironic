@@ -1,0 +1,4 @@
+fixes:
+  - |
+    The inventory data is now returned from swift in the correct format.
+    Previously, most double quotes were escaped.
