@@ -20,6 +20,17 @@ from collections.abc import Callable
 import itertools
 
 
+def filter_out_attached_portlikes(portlikes: list[base.PrimordialPort],
+                                 actions: list[base.AttachAction]):
+    matched_uuids = set([action.portlike_uuid() for action in actions])
+    return [portlike for portlike in portlikes
+            if portlike.uuid not in matched_uuids]
+
+
+def is_no_match_list(actions: list[base.RenderedAction]) -> bool:
+    return len(actions) == 1 and isinstance(actions[0], base.NoMatch)
+
+
 def plan_network(
         network_trait: base.NetworkTrait,
         node_uuid: str,
@@ -37,25 +48,35 @@ def plan_network(
                       for portgroup in node_portgroups]
 
     for trait_action in network_trait.actions:
+        new_actions = []
         match trait_action.action:
             case base.Actions.ATTACH_PORT:
-                rendered_actions.extend(
-                    plan_attach_portlike(
-                        trait_action, node_uuid, portlikes,
-                        node_networks, 'port',
-                        lambda action_args:
-                            base.AttachPort(*action_args)))
+                new_actions = plan_attach_portlike(
+                    trait_action, node_uuid, portlikes,
+                    node_networks, 'port',
+                    lambda action_args:
+                        base.AttachPort(*action_args))
+
+                if not is_no_match_list(new_actions):
+                    portlikes = filter_out_attached_portlikes(portlikes,
+                                                              new_actions)
             case base.Actions.ATTACH_PORTGROUP:
-                rendered_actions.extend(
-                    plan_attach_portlike(
-                        trait_action, node_uuid, portgrouplikes,
-                        node_networks, 'portgroup',
-                        lambda action_args:
-                            base.AttachPortgroup(*action_args)))
+                new_actions = plan_attach_portlike(
+                    trait_action, node_uuid, portgrouplikes,
+                    node_networks, 'portgroup',
+                    lambda action_args:
+                        base.AttachPortgroup(*action_args))
+
+                if not is_no_match_list(new_actions):
+                    portgrouplikes = filter_out_attached_portlikes(
+                            portgrouplikes,
+                            new_actions)
+
             # TODO(clif): Support bond_ports and group_and_attach_ports
             case _:
-                rendered_actions.append(
-                    base.NotImplementedAction(trait_action.action))
+                new_actions = [base.NotImplementedAction(trait_action.action)]
+
+        rendered_actions.extend(new_actions)
 
     return rendered_actions
 
