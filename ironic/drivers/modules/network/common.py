@@ -632,13 +632,19 @@ class NeutronVIFPortIDMixin(VIFPortIDMixin):
 
         actions = plan.plan_vif_attach(applicable_traits, task, vif_info)
 
-        if len(actions) == 0 or isinstance(actions[0], tbn_base.NoMatch):
+        if len(actions) == 0 or plan.all_no_match(actions):
             # TODO(Clif): Raise a more specific exception associated with
             # TBN?
             raise exception.NoFreePhysicalPorts(vif=vif_info['id'])
 
+        # Filter out any no matches, there will be some attach actions
+        # left over.
+        actions = [action for action in actions if
+                   not isinstance(action, tbn_base.NoMatch)]
+
         client = neutron.get_client(context=task.context)
 
+        # TODO(Clif): This logic must change when we support more TBN actions.
         for action in actions:
             port_like_obj = action.get_portlike_object(task)
             self._attach_port_to_vif(task, client, port_like_obj,
