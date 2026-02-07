@@ -220,9 +220,10 @@ class TraitAction(object):
 
 
 class NetworkTrait(object):
-    def __init__(self, name, actions):
+    def __init__(self, name, actions, order=1):
         self.name = name
         self.actions = actions
+        self.order = order
 
     def __eq__(self, other):
         if self.name != other.name:
@@ -238,7 +239,7 @@ class NetworkTrait(object):
             if not match_found:
                 return False
 
-        return True
+        return self.order == other.order
 
 
 class PrimordialPort(object):

@@ -1089,8 +1089,9 @@ class TestNeutronVifPortIDMixin(db_base.DbTestCase):
         vif_info = {'id': 'fake_vif_id'}
 
         contents = ("CUSTOM_TRAIT_NAME:\n"
-                    "  - action: attach_port\n"
-                    "    filter: port.vendor == 'fake_vendor'\n")
+                    "  actions:\n"
+                    "    - action: attach_port\n"
+                    "      filter: port.vendor == 'fake_vendor'\n")
         self.tmpdir = tempfile.TemporaryDirectory()
 
         with tempfile.NamedTemporaryFile(mode='w', dir=self.tmpdir.name,
@@ -1137,8 +1138,9 @@ class TestNeutronVifPortIDMixin(db_base.DbTestCase):
         vif_info = {'id': 'fake_vif_id'}
 
         contents = ("CUSTOM_TRAIT_NAME:\n"
-                    "  - action: attach_port\n"
-                    "    filter: port.vendor == 'fake_vendor'\n")
+                    "  actions:\n"
+                    "    - action: attach_port\n"
+                    "      filter: port.vendor == 'fake_vendor'\n")
         self.tmpdir = tempfile.TemporaryDirectory()
 
         with tempfile.NamedTemporaryFile(mode='w', dir=self.tmpdir.name,
@@ -1189,9 +1191,10 @@ class TestNeutronVifPortIDMixin(db_base.DbTestCase):
         vif_info = {'id': 'fake_vif_id'}
 
         contents = ("CUSTOM_TRAIT_NAME:\n"
-                    "  - action: attach_port\n"
-                    "    filter: port.vendor == 'fake_vendor'\n"
-                    "    min_count: 2")
+                    "  actions:\n"
+                    "    - action: attach_port\n"
+                    "      filter: port.vendor == 'fake_vendor'\n"
+                    "      min_count: 2")
         self.tmpdir = tempfile.TemporaryDirectory()
 
         with tempfile.NamedTemporaryFile(mode='w', dir=self.tmpdir.name,
@@ -1249,10 +1252,11 @@ class TestNeutronVifPortIDMixin(db_base.DbTestCase):
         # the other will generate a NoMatch action.
         # Make sure things don't blow up.
         contents = ("CUSTOM_TRAIT_NAME:\n"
-                    "  - action: attach_port\n"
-                    "    filter: port.vendor == 'other_vendor'\n"
-                    "  - action: attach_port\n"
-                    "    filter: port.vendor == 'fake_vendor'\n")
+                    "  actions:\n"
+                    "    - action: attach_port\n"
+                    "      filter: port.vendor == 'other_vendor'\n"
+                    "    - action: attach_port\n"
+                    "      filter: port.vendor == 'fake_vendor'\n")
         self.tmpdir = tempfile.TemporaryDirectory()
 
         with tempfile.NamedTemporaryFile(mode='w', dir=self.tmpdir.name,
