@@ -126,14 +126,17 @@ def all_no_match(actions: list[base.RenderedAction]) -> bool:
     return all(isinstance(action, base.NoMatch) for action in actions)
 
 
+def order_traits(traits: list[base.NetworkTrait]) -> list[base.NetworkTrait]:
+    return sorted(traits, key=lambda t: t.order)
+
+
 def plan_vif_attach(traits: list[base.NetworkTrait],
                     task: TaskManager,
                     vif_info: dict) -> list[base.RenderedAction]:
     # TODO(clif): Take cues from get_free_port_like_object where appropriate.
     net = base.Network.from_vif_info(vif_info)
 
-    # TODO(clif): Enforce some type of ordering in traits?
-    for trait in traits:
+    for trait in order_traits(traits):
         actions = plan_network(
             trait,
             task.node.uuid,
