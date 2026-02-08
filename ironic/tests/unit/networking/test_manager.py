@@ -18,6 +18,8 @@ from oslo_config import cfg
 import oslo_messaging as messaging
 
 from ironic.common import exception
+from ironic.drivers.modules.switch.base import SwitchDriverException
+from ironic.drivers.modules.switch.base import SwitchMethodNotImplemented
 from ironic.networking import manager
 from ironic.networking import switch_config
 from ironic.tests import base as test_base
@@ -64,7 +66,7 @@ class TestNetworkingManager(test_base.TestCase):
 
         # Verify VLAN validation was called
         mock_validate_vlan.assert_called_once_with(
-            [100], mock_driver, "switch-01", "port configuration"
+            [100], mock_driver, "switch-01", "update_port"
         )
 
         # Verify driver was called
@@ -120,7 +122,7 @@ class TestNetworkingManager(test_base.TestCase):
 
         # Verify VLAN validation was called with all VLANs
         mock_validate_vlan.assert_called_once_with(
-            [100, 101, 102], mock_driver, "switch-01", "port configuration"
+            [100, 101, 102], mock_driver, "switch-01", "update_port"
         )
 
         # Verify driver was called
@@ -168,7 +170,7 @@ class TestNetworkingManager(test_base.TestCase):
 
         # Verify VLAN validation was called
         mock_validate_vlan.assert_called_once_with(
-            [200], mock_driver, "switch-01", "port configuration"
+            [200], mock_driver, "switch-01", "update_port"
         )
 
         # Verify driver was not called due to validation failure
@@ -178,7 +180,7 @@ class TestNetworkingManager(test_base.TestCase):
         manager.NetworkingManager, "_get_switch_driver", autospec=True
     )
     def test_update_lag_not_implemented(self, mock_get_driver):
-        """Test LAG update raises Invalid exception."""
+        """Test LAG update raises SwitchMethodNotImplemented exception."""
 
         exc = self.assertRaises(
             messaging.rpc.ExpectedException,
@@ -193,13 +195,13 @@ class TestNetworkingManager(test_base.TestCase):
             allowed_vlans=[101, 102],
         )
         # Compare true exception hidden by @messaging.expected_exceptions
-        self.assertEqual(exception.Invalid, exc.exc_info[0])
+        self.assertEqual(SwitchMethodNotImplemented, exc.exc_info[0])
 
     @mock.patch.object(
         manager.NetworkingManager, "_get_switch_driver", autospec=True
     )
     def test_update_lag_vlan_validation_failure(self, mock_get_driver):
-        """Test LAG update raises Invalid exception."""
+        """Test LAG update raises SwitchMethodNotImplemented exception."""
         exc = self.assertRaises(
             messaging.rpc.ExpectedException,
             self.manager.update_lag,
@@ -213,13 +215,13 @@ class TestNetworkingManager(test_base.TestCase):
             allowed_vlans=[201, 202],
         )
         # Compare true exception hidden by @messaging.expected_exceptions
-        self.assertEqual(exception.Invalid, exc.exc_info[0])
+        self.assertEqual(SwitchMethodNotImplemented, exc.exc_info[0])
 
     @mock.patch.object(
         manager.NetworkingManager, "_get_switch_driver", autospec=True
     )
     def test_vlan_validation_decorator_multi_switch(self, mock_get_driver):
-        """Test LAG update raises Invalid exception."""
+        """Test LAG update raises SwitchMethodNotImplemented exception."""
         exc = self.assertRaises(
             messaging.rpc.ExpectedException,
             self.manager.update_lag,
@@ -233,10 +235,10 @@ class TestNetworkingManager(test_base.TestCase):
             allowed_vlans=[101, 102],
         )
         # Compare true exception hidden by @messaging.expected_exceptions
-        self.assertEqual(exception.Invalid, exc.exc_info[0])
+        self.assertEqual(SwitchMethodNotImplemented, exc.exc_info[0])
 
     def test_delete_lag_with_validation_success(self):
-        """Test LAG deletion raises Invalid exception."""
+        """Test LAG deletion raises SwitchMethodNotImplemented exception."""
         exc = self.assertRaises(
             messaging.rpc.ExpectedException,
             self.manager.delete_lag,
@@ -245,7 +247,7 @@ class TestNetworkingManager(test_base.TestCase):
             "lag-01",
         )
         # Compare true exception hidden by @messaging.expected_exceptions
-        self.assertEqual(exception.Invalid, exc.exc_info[0])
+        self.assertEqual(SwitchMethodNotImplemented, exc.exc_info[0])
 
     @mock.patch.object(
         manager.NetworkingManager, "_get_switch_driver", autospec=True
@@ -274,7 +276,7 @@ class TestNetworkingManager(test_base.TestCase):
 
         # Verify VLAN validation was called with only default VLAN
         mock_validate_vlan.assert_called_once_with(
-            [100], mock_driver, "switch-01", "port configuration"
+            [100], mock_driver, "switch-01", "update_port"
         )
 
         # Verify driver was called
@@ -293,7 +295,7 @@ class TestNetworkingManager(test_base.TestCase):
         manager.NetworkingManager, "_get_switch_driver", autospec=True
     )
     def test_update_lag_no_allowed_vlans(self, mock_get_driver):
-        """Test LAG update raises Invalid exception."""
+        """Test LAG update raises SwitchMethodNotImplemented exception."""
         exc = self.assertRaises(
             messaging.rpc.ExpectedException,
             self.manager.update_lag,
@@ -307,7 +309,7 @@ class TestNetworkingManager(test_base.TestCase):
             allowed_vlans=None,
         )
         # Compare true exception hidden by @messaging.expected_exceptions
-        self.assertEqual(exception.Invalid, exc.exc_info[0])
+        self.assertEqual(SwitchMethodNotImplemented, exc.exc_info[0])
 
     @mock.patch.object(
         manager.NetworkingManager, "_get_switch_driver", autospec=True
@@ -341,7 +343,7 @@ class TestNetworkingManager(test_base.TestCase):
 
         # Verify VLAN validation was called
         mock_validate_vlan.assert_called_once_with(
-            [100], mock_driver, "switch-01", "port configuration"
+            [100], mock_driver, "switch-01", "update_port"
         )
 
         # Verify driver was called but failed
@@ -362,7 +364,7 @@ class TestNetworkingManager(test_base.TestCase):
     def test_update_lag_driver_failure_after_validation(
         self, mock_get_driver
     ):
-        """Test LAG update raises Invalid exception."""
+        """Test LAG update raises SwitchMethodNotImplemented exception."""
         exc = self.assertRaises(
             messaging.rpc.ExpectedException,
             self.manager.update_lag,
@@ -376,7 +378,7 @@ class TestNetworkingManager(test_base.TestCase):
             allowed_vlans=[101, 102],
         )
         # Compare true exception hidden by @messaging.expected_exceptions
-        self.assertEqual(exception.Invalid, exc.exc_info[0])
+        self.assertEqual(SwitchMethodNotImplemented, exc.exc_info[0])
 
     def test_get_switch_driver_success(self):
         """Test successful switch driver selection."""
@@ -790,7 +792,7 @@ class TestNetworkingManagerEdgeCases(test_base.TestCase):
             100,
             "invalid_mode",
         )
-        self.assertEqual(exception.Invalid, exc.exc_info[0])
+        self.assertEqual(SwitchMethodNotImplemented, exc.exc_info[0])
 
     @mock.patch.object(
         switch_config, "validate_vlan_configuration", autospec=True
@@ -813,7 +815,7 @@ class TestNetworkingManagerEdgeCases(test_base.TestCase):
             100,
             "lacp",
         )
-        self.assertEqual(exception.Invalid, exc.exc_info[0])
+        self.assertEqual(SwitchMethodNotImplemented, exc.exc_info[0])
 
     @mock.patch.object(manager.METRICS, "timer", autospec=True)
     def test_delete_lag_invalid_switch_ids_type(self, mock_timer):
@@ -827,7 +829,7 @@ class TestNetworkingManagerEdgeCases(test_base.TestCase):
             "invalid",
             "pc-01",
         )
-        self.assertEqual(exception.Invalid, exc.exc_info[0])
+        self.assertEqual(SwitchMethodNotImplemented, exc.exc_info[0])
 
 
 class TestNetworkingManagerResetPort(test_base.TestCase):
@@ -1110,9 +1112,29 @@ class TestNetworkingManagerGetSwitches(test_base.TestCase):
             name="missing_driver"
         )
 
-        result = self.manager.get_switches(self.context)
+        exc = self.assertRaises(
+            messaging.rpc.ExpectedException,
+            self.manager.get_switches,
+            self.context,
+        )
+        self.assertEqual(exception.NetworkError, exc.exc_info[0])
 
-        self.assertEqual({}, result)
+    def test_get_switches_driver_access_error(self):
+        """Test get_switches when accessing driver raises DriverLoadError."""
+        # Create a mock factory
+        mock_factory = mock.Mock()
+        self.manager._switch_driver_factory = mock_factory
+
+        mock_factory.names = ["broken_driver"]
+        mock_factory.get_driver.side_effect = exception.DriverLoadError(
+            driver="broken_driver", reason="Driver init error")
+
+        exc = self.assertRaises(
+            messaging.rpc.ExpectedException,
+            self.manager.get_switches,
+            self.context,
+        )
+        self.assertEqual(exception.NetworkError, exc.exc_info[0])
 
     def test_get_switches_driver_get_switch_ids_exception(self):
         """Test get_switches when driver.get_switch_ids raises exception."""
@@ -1121,14 +1143,18 @@ class TestNetworkingManagerGetSwitches(test_base.TestCase):
         self.manager._switch_driver_factory = mock_factory
 
         mock_driver = mock.Mock()
-        mock_driver.get_switch_ids.side_effect = RuntimeError("Driver error")
+        mock_driver.get_switch_ids.side_effect = (
+            SwitchDriverException("Driver error"))
 
         mock_factory.names = ["driver1"]
         mock_factory.get_driver.return_value = mock_driver
 
-        result = self.manager.get_switches(self.context)
-
-        self.assertEqual({}, result)
+        exc = self.assertRaises(
+            messaging.rpc.ExpectedException,
+            self.manager.get_switches,
+            self.context,
+        )
+        self.assertEqual(exception.NetworkError, exc.exc_info[0])
 
     def test_get_switches_driver_get_switch_info_exception(self):
         """Test get_switches when driver.get_switch_info raises exception."""
@@ -1138,14 +1164,18 @@ class TestNetworkingManagerGetSwitches(test_base.TestCase):
 
         mock_driver = mock.Mock()
         mock_driver.get_switch_ids.return_value = ["switch-01"]
-        mock_driver.get_switch_info.side_effect = RuntimeError("Driver error")
+        mock_driver.get_switch_info.side_effect = (
+            SwitchDriverException("Driver error"))
 
         mock_factory.names = ["driver1"]
         mock_factory.get_driver.return_value = mock_driver
 
-        result = self.manager.get_switches(self.context)
-
-        self.assertEqual({}, result)
+        exc = self.assertRaises(
+            messaging.rpc.ExpectedException,
+            self.manager.get_switches,
+            self.context,
+        )
+        self.assertEqual(exception.NetworkError, exc.exc_info[0])
 
     def test_get_switches_driver_get_switch_info_returns_none(self):
         """Test get_switches when driver.get_switch_info returns None."""
@@ -1164,8 +1194,8 @@ class TestNetworkingManagerGetSwitches(test_base.TestCase):
 
         self.assertEqual({}, result)
 
-    def test_get_switches_mixed_driver_results(self):
-        """Test get_switches with mixed success and failure from drivers."""
+    def test_get_switches_second_driver_fails(self):
+        """Test get_switches when second driver fails after first succeeds."""
         # Create a mock factory
         mock_factory = mock.Mock()
         self.manager._switch_driver_factory = mock_factory
@@ -1179,7 +1209,8 @@ class TestNetworkingManagerGetSwitches(test_base.TestCase):
         }
 
         mock_driver2 = mock.Mock()
-        mock_driver2.get_switch_ids.side_effect = RuntimeError("Driver error")
+        mock_driver2.get_switch_ids.side_effect = (
+            SwitchDriverException("Driver error"))
 
         def mock_get_driver(name):
             if name == "driver1":
@@ -1191,13 +1222,15 @@ class TestNetworkingManagerGetSwitches(test_base.TestCase):
         mock_factory.names = ["driver1", "driver2"]
         mock_factory.get_driver = mock_get_driver
 
-        result = self.manager.get_switches(self.context)
+        # Should raise NetworkError when second driver fails
+        exc = self.assertRaises(
+            messaging.rpc.ExpectedException,
+            self.manager.get_switches,
+            self.context,
+        )
+        self.assertEqual(exception.NetworkError, exc.exc_info[0])
 
-        # Should only return results from the working driver
-        expected = {
-            "switch-01": {"switch_id": "switch-01", "model": "Test Switch 1"}
-        }
-        self.assertEqual(expected, result)
+        # Verify first driver completed successfully before second failed
         mock_driver1.get_switch_ids.assert_called_once()
         mock_driver1.get_switch_info.assert_called_once()
         mock_driver2.get_switch_ids.assert_called_once()
