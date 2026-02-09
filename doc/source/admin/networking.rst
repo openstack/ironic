@@ -83,7 +83,7 @@ Network interfaces
 ------------------
 
 Network interface is one of the driver interfaces that manages network
-switching for nodes. There are 3 network interfaces available in
+switching for nodes. There are 4 network interfaces available in
 the Ironic service:
 
 - ``noop`` interface is used for standalone deployments, and does not perform
@@ -107,6 +107,18 @@ the Ironic service:
   highly recommended as use of the ``dhcpv6-stateful`` configuration model
   for IPv6 with Neutron also automatically creates multiple address records
   for stateful address resolution.
+
+- ``ironic-networking`` interface provides network switching for standalone
+  Ironic deployments without requiring the Networking service (Neutron). This
+  interface communicates directly with the ironic-networking service to
+  configure switch ports based on switchport configuration stored in each
+  port's ``extra`` field. Nodes move between provisioning, cleaning, rescuing,
+  inspection, and tenant networks during their life cycle. This interface is
+  suitable for environments where Ironic manages the network fabric directly.
+  This driver has different configuration requirements and doesn't follow
+  the VIF attachment flow or other related workflows described in this
+  document.  Instead, see :doc:`/install/standalone/networking` for more
+  details.
 
 To use these interfaces, they need to be enabled in *ironic.conf* utilizing
 the :oslo.config:option:`enabled_network_interfaces` setting.
@@ -292,11 +304,18 @@ multiple network fabrics into the overall operation with Neutron.
 Local link connection
 ---------------------
 
-Use of the ``neutron`` network-interfaces_ requires the Ironic port
-``local_link_connection`` information to be populated for each Ironic port
-on a node in Ironic. This information is provided to the Neutron networking
-service's ML2 driver when a Virtual Interface (VIF) is attached. The ML2
-driver uses the information to plug the specified port to the tenant network.
+Use of the ``neutron`` or ``ironic-networking`` network-interfaces_ requires
+the Ironic port ``local_link_connection`` information to be populated for each
+Ironic port on a node in Ironic.
+
+In the context of the ``neutron`` network interface, this information is
+provided to the networking service's ML2 driver when a Virtual Interface (VIF)
+is attached. The ML2 driver uses the information to plug the specified port to
+the tenant network.
+
+In the context of the ``ironic-networking`` network interface, this information
+is used by the Ironic Networking service to identify the switch port to be
+configured.
 
 This information is typically populated through the introspection process
 by using LLDP data being broadcast from the switches, but may need to be

@@ -1,0 +1,13 @@
+---
+features:
+  - |
+    Adds a new standalone networking service that enables Ironic to manage
+    physical network switch configurations for bare metal nodes without
+    requiring Neutron. This service can run independently of the main Ironic
+    conductor, providing network switch management capabilities.
+
+    This feature is particularly useful for deployments where Neutron is not
+    available or where network switch management needs to be isolated from the
+    main conductor service for scalability or security reasons. The
+    ironic-networking interface is marked as experimental to allow for
+    feedback and iteration before becoming a stable interface.

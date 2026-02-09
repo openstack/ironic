@@ -47,6 +47,13 @@ ironic-novncproxy
   A python service which proxies graphical consoles from hosts using the
   NoVNC web browser interface.
 
+ironic-networking
+  A python service which interacts with network switches to configure switch
+  ports when managing nodes.  Nodes must be configured to use the
+  ``ironic-networking`` network interface and must have appropriate attributes
+  set on the Ironic port.
+  See :doc:`standalone-networking </install/standalone/networking>`
+
 Additionally, the Bare Metal service has certain external dependencies, which
 are very similar to other OpenStack services:
 
