@@ -1,0 +1,6 @@
+---
+upgrade:
+  - |
+    Removes the ilo console interface. ilo console functionality relied on
+    shellinabox which has also been removed. Therefore the ilo driver has
+    removed ilo console support.

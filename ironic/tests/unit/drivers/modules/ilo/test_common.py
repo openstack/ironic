@@ -62,7 +62,7 @@ class BaseIloTest(db_base.DbTestCase):
                     enabled_power_interfaces=['ilo', 'fake'],
                     enabled_management_interfaces=['ilo', 'fake'],
                     enabled_inspect_interfaces=['ilo', 'fake', 'no-inspect'],
-                    enabled_console_interfaces=['ilo', 'fake', 'no-console'],
+                    enabled_console_interfaces=['fake', 'no-console'],
                     enabled_vendor_interfaces=['ilo', 'fake', 'no-vendor'])
         self.info = INFO_DICT.copy()
         self.node = obj_utils.create_test_node(

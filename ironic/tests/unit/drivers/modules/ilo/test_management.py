@@ -1647,7 +1647,7 @@ class Ilo5ManagementTestCase(db_base.DbTestCase):
         }
         self.config(enabled_hardware_types=['ilo5'],
                     enabled_boot_interfaces=['ilo-virtual-media'],
-                    enabled_console_interfaces=['ilo'],
+                    enabled_console_interfaces=[],
                     enabled_deploy_interfaces=['direct'],
                     enabled_inspect_interfaces=['ilo'],
                     enabled_management_interfaces=['ilo5'],

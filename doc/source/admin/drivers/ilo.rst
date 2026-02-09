@@ -127,22 +127,15 @@ The ``ilo`` hardware type supports following hardware interfaces:
         enabled_boot_interfaces = ilo-virtual-media,ilo-pxe,ilo-ipxe
 
 * console
-    Supports ``ilo`` and ``no-console``. The default is ``ilo``.
-    They can be enabled by using the :oslo.config:option:`DEFAULT.enabled_console_interfaces`
+    Only Supports ``no-console``. It can be enabled by using the
+    :oslo.config:option:`DEFAULT.enabled_console_interfaces`
     option in ``ironic.conf`` as given below:
 
     .. code-block:: ini
 
         [DEFAULT]
         enabled_hardware_types = ilo
-        enabled_console_interfaces = ilo,no-console
-
-    .. note::
-       To use ``ilo`` console interface you need to enable iLO feature
-       'IPMI/DCMI over LAN Access' on
-       `iLO4 <https://support.hpe.com/hpsc/doc/public/display?docId=c03334051>`_
-       and `iLO5 <https://support.hpe.com/hpsc/doc/public/display?docId=a00018324en_us>`_
-       management engine.
+        enabled_console_interfaces = no-console
 
 * inspect
     Supports ``ilo`` and ``agent``. The default is ``ilo``. They
@@ -315,9 +308,6 @@ Node configuration
   - ``client_timeout``: (optional) Timeout for iLO operations. Default timeout
     is 60 seconds.
   - ``ca_file``: (optional) CA certificate file to validate iLO.
-  - ``console_port``: (optional) Node's UDP port for console access. Any unused
-    port on the ironic conductor node may be used. This is required only when
-    ``ilo-console`` interface is used.
 
 * The following properties are also required in node object's
   ``driver_info`` if ``ilo-virtual-media`` boot interface is used:
@@ -543,7 +533,7 @@ Enable driver
     enabled_bios_interfaces = ilo
     enabled_boot_interfaces = ilo-virtual-media,ilo-pxe,ilo-ipxe
     enabled_power_interfaces = ilo
-    enabled_console_interfaces = ilo
+    enabled_console_interfaces = no-console
     enabled_raid_interfaces = agent
     enabled_management_interfaces = ilo
     enabled_inspect_interfaces = ilo

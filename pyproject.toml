@@ -73,7 +73,6 @@ http-ipxe = "ironic.drivers.modules.ipxe:iPXEHttpBoot"
 [project.entry-points."ironic.hardware.interfaces.console"]
 fake = "ironic.drivers.modules.fake:FakeConsole"
 fake-graphical = "ironic.drivers.modules.fake:FakeGraphicalConsole"
-ilo = "ironic.drivers.modules.ilo.console:IloConsoleInterface"
 ipmitool-socat = "ironic.drivers.modules.ipmitool:IPMISocatConsole"
 no-console = "ironic.drivers.modules.noop:NoConsole"
 redfish-graphical = "ironic.drivers.modules.redfish.graphical_console:RedfishGraphicalConsole"

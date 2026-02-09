@@ -6761,10 +6761,10 @@ class ManagerTestProperties(mgr_utils.ServiceSetUpMixin, db_base.DbTestCase):
                     enabled_management_interfaces=['ilo'],
                     enabled_boot_interfaces=['ilo-virtual-media'],
                     enabled_inspect_interfaces=['ilo'],
-                    enabled_console_interfaces=['ilo'])
+                    enabled_console_interfaces=[])
         expected = ['ilo_address', 'ilo_username',
                     'ilo_password', 'client_port', 'client_timeout',
-                    'deploy_iso', 'console_port', 'ilo_change_password',
+                    'deploy_iso', 'ilo_change_password',
                     'ca_file', 'snmp_auth_user', 'snmp_auth_prot_password',
                     'snmp_auth_priv_password', 'snmp_auth_protocol',
                     'snmp_auth_priv_protocol', 'ilo_verify_ca']
