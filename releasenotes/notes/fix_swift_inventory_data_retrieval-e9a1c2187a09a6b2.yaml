@@ -1,0 +1,4 @@
+---
+fixes:
+  - |
+    The swift get_object function now does not throw an HTTP 500 error.

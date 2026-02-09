@@ -141,6 +141,30 @@ class SwiftTestCase(base.TestCase):
         self.assertEqual('http://example.com/v1/AUTH_tenant_id/temp-url-path',
                          temp_url_returned)
 
+    def test_get_object(self, connection_mock, session_mock):
+        swiftapi = swift.SwiftAPI()
+        connection = connection_mock.return_value
+        # Mock the return value as a tuple (headers, object_data)
+        connection.get_object.return_value = ({'header': 'value'},
+                                              b'object_data')
+
+        result = swiftapi.get_object('object', 'container')
+
+        connection.get_object.assert_called_once_with(container='container',
+                                                      obj='object')
+        self.assertEqual(b'object_data', result)
+
+    def test_get_object_exc(self, connection_mock, session_mock):
+        swiftapi = swift.SwiftAPI()
+        exc = self.swift_exception
+        connection = connection_mock.return_value
+        connection.get_object.side_effect = exc
+
+        self.assertRaises(exception.SwiftOperationError,
+                          swiftapi.get_object, 'object', 'container')
+        connection.get_object.assert_called_once_with(container='container',
+                                                      obj='object')
+
     def test_delete_object(self, connection_mock, session_mock):
         swiftapi = swift.SwiftAPI()
         connection = connection_mock.return_value
