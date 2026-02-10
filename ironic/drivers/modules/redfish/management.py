@@ -230,7 +230,7 @@ def _set_boot_device(task, system, device, persistent=False,
             system.set_system_boot_options(
                 device,
                 mode=desired_mode,
-                enabled=enabled,
+                enabled=desired_enabled,
                 http_boot_uri=http_boot_url
             )
         else:
