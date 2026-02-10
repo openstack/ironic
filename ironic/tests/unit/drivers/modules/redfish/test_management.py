@@ -2190,7 +2190,7 @@ class SensorDataTestCase(db_base.DbTestCase):
 
         self.assertEqual(expected, sensors)
 
-    def test__get_sensors_data_drive_simple_storage(self):
+    def test__get_sensor_drive_simple_storage(self):
         attributes = {
             'name': '32ADF365C6C1B7BD',
             'manufacturer': 'IBM',
@@ -2202,8 +2202,46 @@ class SensorDataTestCase(db_base.DbTestCase):
             }
         }
 
-        mock_system = mock.MagicMock(spec=sushy.resources.system.system.System)
-        mock_system.identity = 'ZZZ-YYY-XXX'
+        system_identity = 'ZZZ-YYY-XXX'
+        mock_device = mock.MagicMock(**attributes)
+        mock_device.name = attributes['name']
+        mock_device.status = mock.MagicMock(**attributes['status'])
+        mock_simple_storage = mock.MagicMock(
+            spec=sushy.resources.system.simple_storage.SimpleStorage)
+        mock_simple_storage.devices = [mock_device]
+        mock_simple_storage.identity = 'XXX-YYY-ZZZ'
+
+        with task_manager.acquire(self.context, self.node.uuid,
+                                  shared=True) as task:
+            # Test individual device processing for SimpleStorage
+            unique_name, sensor = task.driver.management._get_sensor_drive(
+                mock_device, mock_simple_storage.identity, system_identity)
+
+        expected_name = '32ADF365C6C1B7BD:XXX-YYY-ZZZ@ZZZ-YYY-XXX'
+        expected_sensor = {
+            'capacity_bytes': 3750000000,
+            'health': 'OK',
+            'name': '32ADF365C6C1B7BD',
+            'model': 'IBM 350A',
+            'state': 'enabled'
+        }
+
+        self.assertEqual(expected_name, unique_name)
+        self.assertEqual(expected_sensor, sensor)
+
+    def test__get_sensor_drive_storage(self):
+        attributes = {
+            'name': '32ADF365C6C1B7BD',
+            'manufacturer': 'IBM',
+            'model': 'IBM 350A',
+            'capacity_bytes': 3750000000,
+            'status': {
+                'health': 'OK',
+                'state': 'enabled'
+            }
+        }
+
+        system_identity = 'ZZZ-YYY-XXX'
         mock_drive = mock.MagicMock(**attributes)
         mock_drive.name = attributes['name']
         mock_drive.status = mock.MagicMock(**attributes['status'])
@@ -2211,91 +2249,255 @@ class SensorDataTestCase(db_base.DbTestCase):
             spec=sushy.resources.system.storage.storage.Storage)
         mock_storage.drives = [mock_drive]
         mock_storage.identity = 'XXX-YYY-ZZZ'
-        mock_system.storage.get_members.return_value = [mock_storage]
-        mock_system.simple_storage = {}
 
         with task_manager.acquire(self.context, self.node.uuid,
                                   shared=True) as task:
-            sensors = task.driver.management._get_sensors_drive(mock_system)
+            # Test individual drive processing
+            unique_name, sensor = task.driver.management._get_sensor_drive(
+                mock_drive, mock_storage.identity, system_identity)
 
-        expected = {
-            '32ADF365C6C1B7BD:XXX-YYY-ZZZ@ZZZ-YYY-XXX': {
-                'capacity_bytes': 3750000000,
-                'health': 'OK',
-                'name': '32ADF365C6C1B7BD',
-                'model': 'IBM 350A',
-                'state': 'enabled'
-            }
-        }
-
-        self.assertEqual(expected, sensors)
-
-    def test__get_sensors_data_drive_storage(self):
-        attributes = {
-            'name': '32ADF365C6C1B7BD',
-            'manufacturer': 'IBM',
-            'model': 'IBM 350A',
+        expected_name = '32ADF365C6C1B7BD:XXX-YYY-ZZZ@ZZZ-YYY-XXX'
+        expected_sensor = {
             'capacity_bytes': 3750000000,
-            'status': {
-                'health': 'OK',
-                'state': 'enabled'
-            }
+            'health': 'OK',
+            'name': '32ADF365C6C1B7BD',
+            'model': 'IBM 350A',
+            'state': 'enabled'
         }
 
-        mock_system = mock.MagicMock(spec=sushy.resources.system.system.System)
-        mock_system.identity = 'ZZZ-YYY-XXX'
-        mock_drive = mock.MagicMock(**attributes)
-        mock_drive.name = attributes['name']
-        mock_drive.status = mock.MagicMock(**attributes['status'])
-        mock_simple_storage = mock.MagicMock(
-            spec=sushy.resources.system.simple_storage.SimpleStorage)
-        mock_simple_storage.devices = [mock_drive]
-        mock_simple_storage.identity = 'XXX-YYY-ZZZ'
-        mock_system.simple_storage.get_members.return_value = [
-            mock_simple_storage]
-        mock_system.storage = {}
-
-        with task_manager.acquire(self.context, self.node.uuid,
-                                  shared=True) as task:
-            sensors = task.driver.management._get_sensors_drive(mock_system)
-
-        expected = {
-            '32ADF365C6C1B7BD:XXX-YYY-ZZZ@ZZZ-YYY-XXX': {
-                'capacity_bytes': 3750000000,
-                'health': 'OK',
-                'name': '32ADF365C6C1B7BD',
-                'model': 'IBM 350A',
-                'state': 'enabled'
-            }
-        }
-
-        self.assertEqual(expected, sensors)
+        self.assertEqual(expected_name, unique_name)
+        self.assertEqual(expected_sensor, sensor)
 
     @mock.patch.object(redfish_utils, 'get_system', autospec=True)
-    def test_get_sensors_data(self, mock_system):
-        mock_chassis = mock.MagicMock()
-        mock_system.return_value.chassis = [mock_chassis]
-        mock_system.return_value.manufacturer = 'Test Manufacturer'
-        mock_system.return_value.model = 'Test Model'
-        mock_system.return_value.uuid = 'test-uuid-ffff'
+    def test__get_sensors_data(self, mock_get_system):
+        # Mock the system object
+        mock_system = mock.Mock()
+        mock_system.manufacturer = 'Test Manufacturer'
+        mock_system.model = 'Test Model'
+        mock_system.uuid = 'test-uuid-ffff'
+        mock_system.get_chassis_links.return_value = \
+            ['/redfish/v1/Chassis/1']
+        mock_system.get_storage_link.return_value = \
+            '/redfish/v1/Systems/1/Storage'
+        # Mock SimpleStorage not available, should fall back to Storage
+        mock_system.simple_storage = None
+        mock_system.get_simple_storage_link.side_effect = \
+            sushy.exceptions.MissingAttributeError
+        mock_get_system.return_value = mock_system
 
-        with task_manager.acquire(self.context, self.node.uuid,
-                                  shared=True) as task:
-            sensors = task.driver.management.get_sensors_data(task)
+        with mock.patch.object(redfish_mgmt.RedfishManagement,
+                               '_process_chassis_sensors',
+                               autospec=True) as mock_chassis, \
+             mock.patch.object(redfish_mgmt.RedfishManagement,
+                               '_process_simple_storage_sensors',
+                               autospec=True) as mock_simple_storage, \
+             mock.patch.object(redfish_mgmt.RedfishManagement,
+                               '_process_storage_sensors',
+                               autospec=True) as mock_drives:
 
-        expected = {
-            'Fan': {},
-            'Temperature': {},
-            'Power': {},
-            'Drive': {},
-            'Extra': {
-                'Manufacturer': 'Test Manufacturer',
-                'Model': 'Test Model',
-                'UUID': 'test-uuid-ffff'
+            # Make SimpleStorage raise MissingAttributeError to
+            # fall back to Storage
+            mock_simple_storage.side_effect = \
+                sushy.exceptions.MissingAttributeError
+
+            mock_chassis.return_value = {
+                'Fan': {
+                    '0@System.Embedded.1': {
+                        'identity': '0', 'max_reading_range': None,
+                        'min_reading_range': None, 'reading': 8640,
+                        'reading_units': 'RPM', 'serial_number': None,
+                        'physical_context': 'SystemBoard', 'state': 'Enabled',
+                        'health': 'OK'
+                    },
+                    '1@System.Embedded.1': {
+                        'identity': '1', 'max_reading_range': None,
+                        'min_reading_range': None, 'reading': 7440,
+                        'reading_units': 'RPM', 'serial_number': None,
+                        'physical_context': 'SystemBoard', 'state': 'Enabled',
+                        'health': 'OK'
+                    }
+                },
+                'Temperature': {
+                    '0@System.Embedded.1': {
+                        'identity': '0', 'max_reading_range_temp': None,
+                        'min_reading_range_temp': None, 'reading_celsius': 39,
+                        'physical_context': 'CPU', 'sensor_number': 1,
+                        'state': 'Enabled', 'health': 'OK'
+                    },
+                    '1@System.Embedded.1': {
+                        'identity': '1', 'max_reading_range_temp': None,
+                        'min_reading_range_temp': None, 'reading_celsius': 38,
+                        'physical_context': 'CPU', 'sensor_number': 2,
+                        'state': 'Enabled', 'health': 'OK'
+                    }
+                },
+                'Power': {
+                    '0:Power@System.Embedded.1': {
+                        'power_capacity_watts': 1400,
+                        'line_input_voltage': 204,
+                        'last_power_output_watts': 394,
+                        'serial_number': 'CNLOD0016Q2E47',
+                        'state': 'Enabled', 'health': 'OK'
+                    }
+                }
             }
-        }
+            mock_drives.return_value = {
+                'Drive': {
+                    'Solid_State_Disk_0_1_0_RAID_SL_3_1_System_Embedded_1': {
+                        'name': 'Solid State Disk 0:1:0',
+                        'model': 'MTFDDAK480TDT',
+                        'capacity_bytes': 479559942144, 'state': 'Enabled',
+                        'health': 'OK'
+                    },
+                    'Solid_State_Disk_0_1_1_RAID_SL_3_1_System_Embedded_1': {
+                        'name': 'Solid State Disk 0:1:1',
+                        'model': 'MTFDDAK480TDT',
+                        'capacity_bytes': 479559942144, 'state': 'Enabled',
+                        'health': 'OK'
+                    }
+                }
+            }
 
-        self.assertEqual(expected, sensors)
+            with task_manager.acquire(self.context, self.node.uuid,
+                                      shared=True) as task:
+                result = task.driver.management.get_sensors_data(task)
+
+            # Verify all methods called
+            self.assertTrue(mock_chassis.called)
+            self.assertTrue(mock_simple_storage.called)
+            self.assertTrue(mock_drives.called)
+            # Verify the call arguments (with autospec=True, self is first arg)
+            chassis_args = mock_chassis.call_args[0]
+            self.assertEqual(len(chassis_args), 3)  # self, node, system
+            # Verify second arg is a node object and third arg is system
+            self.assertIsNotNone(chassis_args[1])  # node should exist
+            self.assertEqual(chassis_args[1].uuid, self.node.uuid)  # same node
+            self.assertEqual(chassis_args[2], mock_system)  # system object
+            # SimpleStorage should be called first (even though it fails)
+            simple_storage_args = mock_simple_storage.call_args[0]
+            self.assertEqual(len(simple_storage_args), 3)  # self, node, system
+            self.assertEqual(simple_storage_args[1].uuid, self.node.uuid)
+            self.assertEqual(simple_storage_args[2], mock_system)
+            # Storage should be called as fallback
+            drives_args = mock_drives.call_args[0]
+            self.assertEqual(len(drives_args), 3)  # self, node, system
+            self.assertIsNotNone(drives_args[1])  # node should exist
+            self.assertEqual(drives_args[1].uuid, self.node.uuid)  # same node
+            self.assertEqual(drives_args[2], mock_system)  # system object
+
+            # Verify result structure and sample data
+            self.assertIn('Fan', result)
+            self.assertIn('Temperature', result)
+            self.assertIn('Power', result)
+            self.assertIn('Drive', result)
+            self.assertIn('Extra', result)
+
+            # Verify Extra metadata
+            self.assertEqual(
+                result['Extra']['Manufacturer'], 'Test Manufacturer')
+            self.assertEqual(result['Extra']['Model'], 'Test Model')
+            self.assertEqual(result['Extra']['UUID'], 'test-uuid-ffff')
+
+            # Verify fan data
+            self.assertEqual(len(result['Fan']), 2)
+            self.assertEqual(
+                result['Fan']['0@System.Embedded.1']['reading'], 8640)
+            self.assertEqual(
+                result['Fan']['1@System.Embedded.1']['reading'], 7440)
+
+            # Verify temperature data
+            self.assertEqual(len(result['Temperature']), 2)
+            self.assertEqual(
+                result['Temperature']['0@System.Embedded.1'][
+                    'reading_celsius'],
+                39)
+            self.assertEqual(
+                result['Temperature']['1@System.Embedded.1'][
+                    'reading_celsius'],
+                38)
+
+            # Verify power data
+            self.assertEqual(len(result['Power']), 1)
+            power_data = result['Power']['0:Power@System.Embedded.1']
+            self.assertEqual(power_data['power_capacity_watts'], 1400)
+            self.assertEqual(power_data['last_power_output_watts'], 394)
+
+            # Verify drive data
+            self.assertEqual(len(result['Drive']), 2)
+            drive1 = result['Drive'][
+                'Solid_State_Disk_0_1_0_RAID_SL_3_1_System_Embedded_1']
+            drive2 = result['Drive'][
+                'Solid_State_Disk_0_1_1_RAID_SL_3_1_System_Embedded_1']
+            self.assertEqual(drive1['capacity_bytes'], 479559942144)
+            self.assertEqual(drive2['model'], 'MTFDDAK480TDT')
+
+    @mock.patch.object(redfish_utils, 'get_system', autospec=True)
+    def test__get_sensors_data_simple_storage_priority(self, mock_get_system):
+        # Mock the system object with SimpleStorage available
+        mock_system = mock.Mock()
+        mock_system.get_chassis_links.return_value = \
+            ['/redfish/v1/Chassis/1']
+        mock_system.get_storage_link.return_value = \
+            '/redfish/v1/Systems/1/Storage'
+        # Mock SimpleStorage available with drives
+        mock_system.simple_storage = mock.Mock()
+        mock_get_system.return_value = mock_system
+
+        with mock.patch.object(redfish_mgmt.RedfishManagement,
+                               '_process_chassis_sensors',
+                               autospec=True) as mock_chassis, \
+             mock.patch.object(redfish_mgmt.RedfishManagement,
+                               '_process_simple_storage_sensors',
+                               autospec=True) as mock_simple_storage, \
+             mock.patch.object(redfish_mgmt.RedfishManagement,
+                               '_process_storage_sensors',
+                               autospec=True) as mock_drives:
+
+            mock_chassis.return_value = {
+                'Fan': {},
+                'Temperature': {},
+                'Power': {}
+            }
+            # SimpleStorage returns drives
+            mock_simple_storage.return_value = {
+                'Drive': {
+                    'SSD1_SimpleStorage1_System_Embedded_1': {
+                        'name': 'SSD1',
+                        'model': 'Samsung SSD',
+                        'capacity_bytes': 256000000000,
+                        'state': 'Enabled',
+                        'health': 'OK'
+                    }
+                }
+            }
+            # Storage method should not be called
+            mock_drives.return_value = {
+                'Drive': {}
+            }
+
+            with task_manager.acquire(self.context, self.node.uuid,
+                                      shared=True) as task:
+                result = task.driver.management.get_sensors_data(task)
+
+            # Verify chassis method called
+            self.assertTrue(mock_chassis.called)
+            # Verify SimpleStorage method called
+            self.assertTrue(mock_simple_storage.called)
+            # Verify Storage method NOT called (SimpleStorage provided drives)
+            self.assertFalse(mock_drives.called)
+
+            # Verify result structure and sample data
+            self.assertIn('Fan', result)
+            self.assertIn('Temperature', result)
+            self.assertIn('Power', result)
+            self.assertIn('Drive', result)
+
+            # Verify drive data from SimpleStorage
+            self.assertEqual(len(result['Drive']), 1)
+            drive = result['Drive']['SSD1_SimpleStorage1_System_Embedded_1']
+            self.assertEqual(drive['name'], 'SSD1')
+            self.assertEqual(drive['model'], 'Samsung SSD')
+            self.assertEqual(drive['capacity_bytes'], 256000000000)
 
     def test__sensor2dict_fan_data(self):
         mock_fan = mock.Mock()
@@ -2437,6 +2639,7 @@ class SensorDataTestCase(db_base.DbTestCase):
             mock_drive, 'name', 'model', 'capacity_bytes')
         sensor.update(redfish_mgmt.RedfishManagement._sensor2dict(
             mock_drive.status, 'state', 'health'))
+        # Use actual implementation format (colons and @ symbols)
         unique_name = '%s:%s@%s' % (
             mock_drive.name, mock_simple_storage.identity,
             mock_system.identity)
@@ -2532,3 +2735,138 @@ class SensorDataTestCase(db_base.DbTestCase):
             result = task.driver.management.get_node_health(task)
             # HEALTH_MAP.get() returns None for unknown values
             self.assertIsNone(result)
+
+    def test__sensor2dict_enum_handling(self):
+        """Test that enum values like Health.OK are converted to strings."""
+        # Create a mock object with enum attributes
+        mock_resource = mock.Mock()
+        mock_resource.name = 'Test Drive'
+        mock_resource.status = mock.Mock()
+
+        # Set enum values that have both 'value' and 'name' attributes
+        mock_resource.status.health = sushy_constants.Health.OK
+        mock_resource.status.state = sushy_constants.State.ENABLED
+
+        # Test the _sensor2dict method
+        result = redfish_mgmt.RedfishManagement._sensor2dict(
+            mock_resource, 'name')
+        result.update(redfish_mgmt.RedfishManagement._sensor2dict(
+            mock_resource.status, 'health', 'state'))
+
+        # Verify that enum values are converted to strings
+        expected = {
+            'name': 'Test Drive',
+            'health': 'OK',  # Should be string, not enum
+            'state': 'Enabled'  # Should be string, not enum
+        }
+
+        self.assertEqual(result, expected)
+
+        # Verify the values are actually strings, not enum objects
+        self.assertIsInstance(result['health'], str)
+        self.assertIsInstance(result['state'], str)
+        self.assertEqual(result['health'], 'OK')
+        self.assertEqual(result['state'], 'Enabled')
+
+    def test__get_sensor_drive(self):
+        """Test _get_sensor_drive method for individual drive processing."""
+        # Create a mock drive
+        mock_drive = mock.Mock()
+        mock_drive.name = 'TestDrive1'
+        mock_drive.model = 'Test Model XYZ'
+        mock_drive.capacity_bytes = 500000000
+        mock_drive.status = mock.Mock()
+        mock_drive.status.health = sushy_constants.Health.OK
+        mock_drive.status.state = sushy_constants.State.ENABLED
+
+        # Test the method
+        unique_name, sensor_data = (
+            redfish_mgmt.RedfishManagement._get_sensor_drive(
+                mock_drive, 'storage_id', 'system_id'))
+
+        # Verify the unique name format
+        expected_name = 'TestDrive1:storage_id@system_id'
+        self.assertEqual(unique_name, expected_name)
+
+        # Verify the sensor data
+        expected_sensor = {
+            'name': 'TestDrive1',
+            'model': 'Test Model XYZ',
+            'capacity_bytes': 500000000,
+            'health': 'OK',
+            'state': 'Enabled'
+        }
+        self.assertEqual(sensor_data, expected_sensor)
+
+    def test__get_sensor_drive_no_state(self):
+        """Test _get_sensor_drive when state is None (HPE workaround)."""
+        mock_drive = mock.Mock()
+        mock_drive.name = 'Samsung SSD'
+        mock_drive.model = 'VR000480KXLXF'
+        mock_drive.capacity_bytes = 480103981056
+        mock_drive.status = mock.Mock()
+        mock_drive.status.health = sushy_constants.Health.OK
+        mock_drive.status.state = None  # HPE drives may return None
+
+        unique_name, sensor_data = (
+            redfish_mgmt.RedfishManagement._get_sensor_drive(
+                mock_drive, 'DA011400', 'System1'))
+
+        self.assertEqual(unique_name, 'Samsung SSD:DA011400@System1')
+        # State should default to 'Enabled' when None but health is present
+        self.assertEqual(sensor_data['state'], 'Enabled')
+        self.assertEqual(sensor_data['health'], 'OK')
+
+    def test__process_chassis_sensors(self):
+        mock_chassis = mock.MagicMock()
+        mock_chassis.identity = '/redfish/v1/Chassis/1'
+
+        # Setup minimal thermal and power data
+        mock_chassis.thermal.fans = []
+        mock_chassis.thermal.temperatures = []
+        mock_chassis.power.power_supplies = []
+
+        mock_system = mock.MagicMock()
+        mock_system.chassis_expanded = [mock_chassis]
+
+        with task_manager.acquire(self.context, self.node.uuid,
+                                  shared=True) as task:
+            result = task.driver.management._process_chassis_sensors(
+                task.node, mock_system)
+
+        expected = {'Fan': {}, 'Temperature': {}, 'Power': {}}
+        self.assertEqual(result, expected)
+
+    def test__process_chassis_sensors_sushy_error(self):
+        # Test that when chassis_expanded raises SushyError, we handle
+        # it gracefully
+        mock_system = mock.MagicMock()
+        mock_system.chassis_expanded = []  # Empty chassis list
+
+        with task_manager.acquire(self.context, self.node.uuid,
+                                  shared=True) as task:
+            result = task.driver.management._process_chassis_sensors(
+                task.node, mock_system)
+
+        expected = {'Fan': {}, 'Temperature': {}, 'Power': {}}
+        self.assertEqual(result, expected)
+
+    @mock.patch.object(redfish_utils, 'parse_driver_info', autospec=True)
+    def test__process_storage_sensors(self, mock_parse_driver):
+        mock_parse_driver.return_value = {
+            'system_id': '/redfish/v1/Systems/1'
+        }
+
+        mock_storage_collection = mock.MagicMock()
+        mock_storage_collection.get_members.return_value = []
+
+        mock_system = mock.MagicMock()
+        mock_system.storage_expanded = mock_storage_collection
+
+        with task_manager.acquire(self.context, self.node.uuid,
+                                  shared=True) as task:
+            result = task.driver.management._process_storage_sensors(
+                task.node, mock_system)
+
+        expected = {'Drive': {}}
+        self.assertEqual(result, expected)

@@ -1,0 +1,6 @@
+---
+features:
+  - |
+    Reduces Redfish BMC API calls during sensor data collection by leveraging
+    the ``$expand`` query parameter, improving performance for deployments
+    with metrics collection enabled.
