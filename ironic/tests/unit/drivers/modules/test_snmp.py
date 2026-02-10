@@ -17,6 +17,7 @@
 """Test class for SNMP power driver module."""
 
 import time
+from types import SimpleNamespace
 from unittest import mock
 
 from oslo_config import cfg
@@ -35,6 +36,43 @@ from ironic.tests.unit.objects import utils as obj_utils
 
 CONF = cfg.CONF
 INFO_DICT = db_utils.get_test_snmp_info()
+
+
+class SNMPModuleImportTestCase(base.TestCase):
+    """Tests for SNMP module import and PySNMP 7.x (Bug #2139557).
+
+    Prove that when legacy pysnmp.hlapi attribute names are missing
+    (e.g. PySNMP 7.x), protocol dict building does not raise and
+    returns dicts with at least 'none'.
+    """
+
+    def test_build_snmp_protocol_dicts_missing_attributes(self):
+        """When hlapi has no usmHMAC* attributes (7.x), no AttributeError."""
+        # Simulate PySNMP 7.x: getattr(hlapi, attr, None) returns None
+        # for all legacy names, so only 'none' is added.
+        mock_hlapi = mock.Mock()
+        for _key, attr in snmp._AUTH_ATTRS + snmp._PRIV_ATTRS:
+            setattr(mock_hlapi, attr, None)
+        auth, priv = snmp._build_snmp_protocol_dicts(mock_hlapi)
+        self.assertIn('none', auth)
+        self.assertIn('none', priv)
+        self.assertIsNone(auth['none'])
+        self.assertIsNone(priv['none'])
+
+    def test_build_snmp_protocol_dicts_with_mock_values(self):
+        """When hlapi returns values for some attrs, they appear in dicts."""
+        # Use SimpleNamespace so unknown attrs return None (not a Mock).
+        sentinel_auth = object()
+        sentinel_priv = object()
+        mock_hlapi = SimpleNamespace(
+            usmNoAuthProtocol=sentinel_auth,
+            usmNoPrivProtocol=sentinel_priv,
+        )
+        auth, priv = snmp._build_snmp_protocol_dicts(mock_hlapi)
+        self.assertIn('none', auth)
+        self.assertIn('none', priv)
+        self.assertIs(sentinel_auth, auth['none'])
+        self.assertIs(sentinel_priv, priv['none'])
 
 
 class SNMPClientTestCase(base.TestCase):
@@ -126,7 +164,9 @@ class SNMPClientTestCase(base.TestCase):
     def test__get_context(self, mock_context):
         client = snmp.SNMPClient(self.address, self.port, snmp.SNMP_V1)
         client._get_context()
-        mock_context.assert_called_once_with(None, '')
+        mock_context.assert_called_once_with(
+            contextEngineId=client.context_engine_id,
+            contextName=client.context_name)
 
     @mock.patch.object(pysnmp, 'UdpTransportTarget', autospec=True)
     def test__get_transport(self, mock_transport):
