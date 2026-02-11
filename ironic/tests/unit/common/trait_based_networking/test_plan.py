@@ -253,7 +253,7 @@ class TraitBasedNetworkingPlanningTestCase(base.TestCase):
             'portgroup': lambda args: tbn_base.AttachPortgroup(*args)
         }
 
-        result_actions = tbn_plan.plan_attach_portlike(
+        result_actions = tbn_plan._plan_attach_portlike(
             trait_action,
             node_uuid,
             node_portlikes,

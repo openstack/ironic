@@ -28,6 +28,13 @@ DEFAULT_TRAIT = base.NetworkTrait(
 )
 
 def default_network_trait():
+    """Gets the default TBN trait
+
+    :returns: A single trait representing the default trait to apply if no
+    other traits apply to a node. Will get the default defined in the
+    configuration file if present. Otherwise returns a predefined default
+    which matches the first available port or portgroup.
+    """
     # Return the default trait defined in the configuration file, if present.
     traits_dict = {trait.name: trait
                    for trait in loader.tbn_config_file_traits()}
