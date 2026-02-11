@@ -15,6 +15,8 @@ from ironic.common.i18n import _
 from ironic.common.trait_based_networking import base
 from ironic.conductor.task_manager import TaskManager
 from ironic.objects.node import Node
+from ironic.objects.port import Port
+from ironic.objects.portgroup import Portgroup
 
 from collections.abc import Callable
 import itertools
@@ -129,6 +131,14 @@ def all_no_match(actions: list[base.RenderedAction]) -> bool:
 def order_traits(traits: list[base.NetworkTrait]) -> list[base.NetworkTrait]:
     return sorted(traits, key=lambda t: t.order)
 
+# TODO(clif): Lifted from ironic.drivers.network.common to break a circular
+# dependency. Maybe there's a common spot to lift this out to?
+TENANT_VIF_KEY = 'tenant_vif_port_id'
+
+def is_portlike_attached(portlike: Port | Portgroup) -> bool:
+    return (portlike.internal_info is not None
+            and portlike.internal_info.get(TENANT_VIF_KEY) is not None)
+
 
 def plan_vif_attach(traits: list[base.NetworkTrait],
                     task: TaskManager,
@@ -136,12 +146,19 @@ def plan_vif_attach(traits: list[base.NetworkTrait],
     # TODO(clif): Take cues from get_free_port_like_object where appropriate.
     net = base.Network.from_vif_info(vif_info)
 
+    # Filter out already attached ports and portgroups.
+    free_ports = [port for port in task.ports
+                  if not is_portlike_attached(port)]
+
+    free_portgroups = [pg for pg in task.portgroups
+                       if not is_portlike_attached(pg)]
+
     for trait in order_traits(traits):
         actions = plan_network(
             trait,
             task.node.uuid,
-            task.ports,
-            task.portgroups,
+            free_ports,
+            free_portgroups,
             [net])
         # If no actions matched, try the next trait.
         if all_no_match(actions):

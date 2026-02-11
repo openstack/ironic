@@ -453,6 +453,44 @@ class TraitBasedNetworkingPlanningTestCase(base.TestCase):
                 )
             ],
         ),
+        annotate("already attached port not considered",
+            [
+                tbn_base.NetworkTrait(
+                    "CUSTOM_TRAIT",
+                    [
+                        tbn_base.TraitAction(
+                            "CUSTOM_TRAIT",
+                            tbn_base.Actions.ATTACH_PORT,
+                            tbn_base.FilterExpression.parse(
+                                "port.physical_network == 'hypernet'"),
+                        )
+                    ]
+                ),
+            ],
+            utils.FauxTask(
+                utils.FauxNode(
+                    instance_info={'traits':['CUSTOM_TRAIT']}),
+                [utils.FauxPortLikeObject(
+                    uuid="fake_port_uuid",
+                    physical_network="hypernet",
+                    internal_info={utils.TENANT_VIF_KEY: 'some_vif_id'})],
+                []
+            ),
+            {
+                'id': 'fake_net_id',
+            },
+            [
+                tbn_base.NoMatch(tbn_base.TraitAction(
+                    'plan_vif_attach',
+                    tbn_base.Actions.ATTACH_PORT,
+                    tbn_base.FilterExpression.parse(
+                        "port.category == 'plan_vif_attach'")),
+                     'fake_node_uuid',
+                     ("Could not find an applicable port or portgroup to "
+                     "attach to network 'fake_net_id' in any applicable "
+                     "trait."))
+             ],
+        ),
     )
     @unpack
     def test_plan_vif_attach(self,
@@ -463,4 +501,23 @@ class TraitBasedNetworkingPlanningTestCase(base.TestCase):
         result_actions = tbn_plan.plan_vif_attach(traits, task, vif_info)
         self.assertEqual(expected_actions, result_actions)
 
-    # TODO(clif): Test filter_traits_for_node
+    @data(
+        annotate("port is attached",
+                 utils.FauxPortLikeObject(
+                     internal_info={tbn_plan.TENANT_VIF_KEY: 'vif_id'}),
+                 True),
+        annotate("port is not attached",
+                 utils.FauxPortLikeObject(
+                     internal_info={tbn_plan.TENANT_VIF_KEY: None}),
+                 False),
+        annotate("port is not attached, internal_info is None",
+                 utils.FauxPortLikeObject(internal_info=None),
+                 False),
+    )
+    @unpack
+    def test_is_portlike_attached(
+            self,
+            portlike: utils.FauxPortLikeObject,
+            expected_result: bool):
+        self.assertEqual(expected_result,
+                         tbn_plan.is_portlike_attached(portlike))

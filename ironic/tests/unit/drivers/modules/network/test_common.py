@@ -1126,12 +1126,12 @@ class TestNeutronVifPortIDMixin(db_base.DbTestCase):
                        autospec=True)
     def test_vif_attach_trait_based_networking_default_trait_applies(
             self, mock_gpbpi, mock_upa, mock_client, mock_gfp, mock_save):
-        # Trait will match TBN trait defined below.
+        # No trait will match TBN trait defined below.
         self.node.set_instance_info('traits', [])
         self.node.save()
 
         # Vendor matches filter expression below.
-        self.port.vendor = 'fake_vendor'
+        self.port.vendor = 'bad_vendor'
         self.port.internal_info = {}
         self.port.save()
 
