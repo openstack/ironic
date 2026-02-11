@@ -700,27 +700,47 @@ opts = [
             "to the conductor service log (WARNING for aborted/failure, "
             "INFO otherwise.")),
 
-    # Trait Based Networking related configuration.
+    # NOTE(clif) Trait Based Networking related configuration.
     cfg.BoolOpt(
         'enable_trait_based_networking',
         default=False,
-        help=(
+        help=_(
             'Enables Trait Based Networking (TBN) feature if True. When '
             'enabled, will apply traits defined in the TBN configuration file '
             'to networking actions when building instances with relevant '
-            'traits defined. When False the prior behavior of mapping ports '
-            'by physical_network is maintained.'
-        )),
+            'traits defined.')),
     cfg.StrOpt(
         'trait_based_networking_config_file',
         default='/etc/ironic/trait_based_networking.yaml',
-        help=(
+        help=_(
             'The location of the configuration file for trait based '
             'configuration. Ironic will load this configuration file if TBN '
             'is enabled and apply the traits defined when building and '
             'attaching networks to node instances. Ironic will also reload '
             'this file if it detects the file has changed.'
         )),
+    cfg.BoolOpt('trait_based_networking_raise_when_no_match',
+        default=True,
+        help=_(
+            'If True: TBN will raise an exception when no traits '
+            '(and actions) apply to a node when planning its network.'
+        )),
+    cfg.BoolOpt(
+        'trait_based_networking_enable_default_trait',
+        default=True,
+        help=(
+            'Enables the application of a default trait if no other TBN '
+            'traits apply to a node during network planning. This trait is '
+            'named "CUSTOM_DEFAULT_TBN_TRAIT". If defined in the TBN '
+            'configuration file supplied to ironic, that trait will be used. '
+            'Otherwise, a pre-defined default trait will apply which '
+            'will generate an action to attach the first available port or '
+            'portgroup. To be clear: If this option is set to True and there '
+            'are no matching traits, CUSTOM_DEFAULT_TBN_TRAIT is applied. '
+            'This behavior does not require CUSTOM_DEFAULT_TBN_TRAIT to be '
+            'added to node traits.'
+        )),
+
     cfg.BoolOpt('enable_health_monitoring',
                 default=True,
                 mutable=True,

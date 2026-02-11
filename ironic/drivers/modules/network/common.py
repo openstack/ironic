@@ -28,6 +28,7 @@ from ironic.common import neutron
 from ironic.common.pxe_utils import DHCP_CLIENT_ID
 from ironic.common import states
 from ironic.common.trait_based_networking import base as tbn_base
+from ironic.common.trait_based_networking import defaults as tbn_defaults
 from ironic.common.trait_based_networking import plan
 from ironic import objects
 
@@ -626,25 +627,44 @@ class NeutronVIFPortIDMixin(VIFPortIDMixin):
                  network.
 
         """
-        # TODO(clif): What about a default trait if none apply?
         applicable_traits = plan.filter_traits_for_node(task.node,
                                                         task.tbn_traits)
+
+        if len(applicable_traits) == 0:
+            if CONF.conductor.trait_based_networking_enable_default_trait:
+                applicable_traits = [tbn_defaults.default_network_trait()]
+            elif CONF.conductor.trait_based_networking_raise_when_no_match:
+                raise exception.TBNNoTraitsApplicableToNode(
+                        node=task.node.uuid)
+            else:
+                LOG.warning(('_vif_attach_tbn: No applicable traits found '
+                             'for node %(node)s. Trait Based Networking '
+                             'unable to plan networking actions without '
+                             'any traits.'),
+                            {'node': task.node.uuid})
+                return
 
         actions = plan.plan_vif_attach(applicable_traits, task, vif_info)
 
         if len(actions) == 0 or plan.all_no_match(actions):
-            # TODO(Clif): Raise a more specific exception associated with
-            # TBN?
-            raise exception.NoFreePhysicalPorts(vif=vif_info['id'])
+            if CONF.conductor.trait_based_networking_raise_when_no_match:
+                raise exception.TBNNoPortMatchesFound(node=task.node.uuid,
+                                                      vif_id=vif_info['id'])
+            else:
+                LOG.warning(('_vif_attach_tbn: No trait generated networking '
+                              'actions to apply or ports to attach to the '
+                              'node %(node)s.'),
+                            {'node': task.node.uuid})
+                return
 
-        # Filter out any no matches, there will be some attach actions
-        # left over.
+        # NOTE(clif) Filter out any no matches, there will be some attach
+        # actions left over.
         actions = [action for action in actions if
                    not isinstance(action, tbn_base.NoMatch)]
 
         client = neutron.get_client(context=task.context)
 
-        # TODO(Clif): This logic must change when we support more TBN actions.
+        # TODO(clif): This logic must change when we support more TBN actions.
         for action in actions:
             port_like_obj = action.get_portlike_object(task)
             self._attach_port_to_vif(task, client, port_like_obj,
@@ -704,7 +724,7 @@ class NeutronVIFPortIDMixin(VIFPortIDMixin):
                  network.
         """
 
-        # Use TBN to pick the port <-> vif mapping if enabled.
+        # NOTE(clif) Use TBN to pick the port <-> vif mapping if enabled.
         if CONF.conductor.enable_trait_based_networking:
             return self._vif_attach_tbn(task, vif_info)
 

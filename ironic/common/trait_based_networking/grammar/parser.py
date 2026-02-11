@@ -39,8 +39,8 @@ comparator: "==" -> equality
           | "<"  -> lt
           | "=~" -> prefix_match
 
-function: "is_port"      -> port_is_port
-        | "is_portgroup" -> port_is_portgroup
+function: "port.is_port"      -> port_is_port
+        | "port.is_portgroup" -> port_is_portgroup
 
 string_literal: /\'[A-Za-z0-9_\-\.]*\'/
 variable_name: /[a-z]+\.[a-z\_]+/

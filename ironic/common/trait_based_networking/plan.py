@@ -21,7 +21,7 @@ import itertools
 
 
 def filter_out_attached_portlikes(portlikes: list[base.PrimordialPort],
-                                 actions: list[base.AttachAction]):
+                                  actions: list[base.AttachAction]):
     matched_uuids = set([action.portlike_uuid() for action in actions])
     return [portlike for portlike in portlikes
             if portlike.uuid not in matched_uuids]
@@ -165,11 +165,5 @@ def plan_vif_attach(traits: list[base.NetworkTrait],
 def filter_traits_for_node(node: Node,
                            traits: list[base.NetworkTrait]
                            ) -> list[base.NetworkTrait]:
-    instance_traits = node.instance_info.get('traits')
-    if instance_traits is None:
-        # TODO(clif): Or return TBN default traits if none apply?
-        # Or always return some default traits along with filtered ones?
-        return []
-
-    instance_traits_set = set(instance_traits)
-    return [trait for trait in traits if trait.name in instance_traits_set]
+    instance_traits = node.instance_info.get('traits') or []
+    return [trait for trait in traits if trait.name in set(instance_traits)]
