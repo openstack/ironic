@@ -472,6 +472,9 @@ class RedfishBiosTestCase(db_base.DbTestCase):
                                   shared=False) as task:
             bios = mock_get_system(task.node).bios
             bios.supported_apply_times = ['immediate']
+            task.node.deploy_step = {
+                'step': 'apply_configuration',
+                'interface': 'bios'}
 
             task.driver.bios.apply_configuration(task, settings)
 
@@ -494,6 +497,9 @@ class RedfishBiosTestCase(db_base.DbTestCase):
                                   shared=False) as task:
             bios = mock_get_system(task.node).bios
             bios.supported_apply_times = [sushy.APPLY_TIME_ON_RESET]
+            task.node.deploy_step = {
+                'step': 'apply_configuration',
+                'interface': 'bios'}
 
             task.driver.bios.apply_configuration(task, settings)
 
@@ -515,6 +521,9 @@ class RedfishBiosTestCase(db_base.DbTestCase):
                                   shared=False) as task:
             bios = mock_get_system(task.node).bios
             bios.supported_apply_times = None
+            task.node.deploy_step = {
+                'step': 'apply_configuration',
+                'interface': 'bios'}
 
             task.driver.bios.apply_configuration(task, settings)
 
@@ -536,6 +545,9 @@ class RedfishBiosTestCase(db_base.DbTestCase):
                                   shared=False) as task:
             bios = mock_get_system(task.node).bios
             del bios.supported_apply_times
+            task.node.deploy_step = {
+                'step': 'apply_configuration',
+                'interface': 'bios'}
 
             task.driver.bios.apply_configuration(task, settings)
 

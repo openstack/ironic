@@ -10,6 +10,7 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
+from ironic.common import exception
 from ironic.common import states
 
 # These flags tell the conductor that we're rebooting inside or after a step.
@@ -47,17 +48,17 @@ def get_return_state(node):
               or states.DEPLOYWAIT if deploy operation in progress,
               or states.SERVICEWAIT if servicing in progress.
     """
-    # FIXME(dtantsur): this distinction is rather useless, create a new
-    # constant to use for all step types?
     if node.clean_step:
         return states.CLEANWAIT
     elif node.service_step:
         return states.SERVICEWAIT
-    else:
-        # TODO(dtantsur): ideally, check for node.deploy_step and raise
-        # something if this function is called without any step field set.
-        # Unfortunately, a lot of unit tests rely on exactly this.
+    elif node.deploy_step:
         return states.DEPLOYWAIT
+    else:
+        raise exception.InvalidState(
+            "No active step found; node has no clean, service,"
+            " or deploy step set."
+        )
 
 
 def _check_agent_token_prior_to_agent_reboot(node):

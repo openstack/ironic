@@ -3592,24 +3592,31 @@ class AsyncStepTestCase(db_base.DbTestCase):
         self.node = obj_utils.create_test_node(self.context,
                                                driver="fake-hardware")
 
-    def _test_get_async_step_return_state(self):
-        result = utils.get_async_step_return_state(self.node)
-        if self.node.clean_step:
-            self.assertEqual(states.CLEANWAIT, result)
-        else:
-            self.assertEqual(states.DEPLOYWAIT, result)
-
     def test_get_async_step_return_state_cleaning(self):
         self.node.clean_step = {'step': 'create_configuration',
                                 'interface': 'raid'}
         self.node.save()
-        self._test_get_async_step_return_state()
+        result = utils.get_async_step_return_state(self.node)
+        self.assertEqual(states.CLEANWAIT, result)
+
+    def test_get_async_step_return_state_servicing(self):
+        self.node.service_step = {'step': 'create_configuration',
+                                  'interface': 'raid'}
+        self.node.save()
+        result = utils.get_async_step_return_state(self.node)
+        self.assertEqual(states.SERVICEWAIT, result)
 
     def test_get_async_step_return_state_deploying(self):
         self.node.deploy_step = {'step': 'create_configuration',
                                  'interface': 'raid'}
         self.node.save()
-        self._test_get_async_step_return_state()
+        result = utils.get_async_step_return_state(self.node)
+        self.assertEqual(states.DEPLOYWAIT, result)
+
+    def test_get_async_step_return_state_no_step(self):
+        self.assertRaises(exception.InvalidState,
+                          utils.get_async_step_return_state,
+                          self.node)
 
     def test_set_async_step_flags_cleaning_set_all(self):
         self.node.clean_step = {'step': 'create_configuration',

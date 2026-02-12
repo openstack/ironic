@@ -1010,6 +1010,9 @@ class RedfishManagementTestCase(db_base.DbTestCase):
         with task_manager.acquire(self.context, self.node.uuid,
                                   shared=False) as task:
             task.node.save = mock.Mock()
+            task.node.deploy_step = {
+                'step': 'update_firmware',
+                'interface': 'management'}
 
             result = task.driver.management.update_firmware(
                 task,
@@ -1059,6 +1062,9 @@ class RedfishManagementTestCase(db_base.DbTestCase):
         with task_manager.acquire(self.context, self.node.uuid,
                                   shared=False) as task:
             task.node.save = mock.Mock()
+            task.node.deploy_step = {
+                'step': 'update_firmware',
+                'interface': 'management'}
 
             task.driver.management.update_firmware(
                 task,
@@ -1109,6 +1115,8 @@ class RedfishManagementTestCase(db_base.DbTestCase):
         info = self.node.driver_internal_info
         info['firmware_cleanup'] = ['swift']
         self.node.driver_internal_info = info
+        self.node.deploy_step = {'step': 'update_firmware',
+                                 'interface': 'management'}
         self.node.save()
 
         with task_manager.acquire(self.context, self.node.uuid,

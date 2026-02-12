@@ -748,6 +748,8 @@ class PostStepHooksTest(AgentDeployMixinBaseTest):
             i_info = task.node.driver_internal_info
             i_info['agent_secret_token'] = 'magicvalue01'
             task.node.driver_internal_info = i_info
+            task.node.clean_step = {'step': 'test_step',
+                                    'interface': 'test'}
             agent_base._post_step_reboot(task, 'clean')
             self.assertTrue(mock_build_opt.called)
             self.assertTrue(mock_prepare.called)
@@ -767,6 +769,8 @@ class PostStepHooksTest(AgentDeployMixinBaseTest):
             i_info = task.node.driver_internal_info
             i_info['agent_secret_token'] = 'magicvalue01'
             task.node.driver_internal_info = i_info
+            task.node.deploy_step = {'step': 'test_step',
+                                     'interface': 'test'}
             agent_base._post_step_reboot(task, 'deploy')
             self.assertTrue(mock_build_opt.called)
             self.assertTrue(mock_prepare.called)
@@ -788,6 +792,8 @@ class PostStepHooksTest(AgentDeployMixinBaseTest):
             i_info['agent_secret_token'] = 'magicvalue01'
             i_info['agent_secret_token_pregenerated'] = True
             task.node.driver_internal_info = i_info
+            task.node.clean_step = {'step': 'test_step',
+                                    'interface': 'test'}
             agent_base._post_step_reboot(task, 'clean')
             self.assertTrue(mock_build_opt.called)
             self.assertTrue(mock_prepare.called)

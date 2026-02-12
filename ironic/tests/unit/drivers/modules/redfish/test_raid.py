@@ -230,6 +230,8 @@ class RedfishRAIDTestCase(db_base.DbTestCase):
         mock_get_system.return_value.storage.get_members.return_value = [
             self.mock_storage]
         self.node.target_raid_config = target_raid_config
+        self.node.deploy_step = {'step': 'create_configuration',
+                                 'interface': 'raid'}
         self.node.save()
         mock_sdii = mock.Mock()
         with task_manager.acquire(self.context, self.node.uuid,
@@ -361,6 +363,8 @@ class RedfishRAIDTestCase(db_base.DbTestCase):
         task_mon.task_monitor_uri = '/TaskService/123'
         volumes.create.return_value = task_mon
         self.node.target_raid_config = target_raid_config
+        self.node.deploy_step = {'step': 'create_configuration',
+                                 'interface': 'raid'}
         self.node.save()
         with task_manager.acquire(self.context, self.node.uuid,
                                   shared=True) as task:
@@ -517,6 +521,8 @@ class RedfishRAIDTestCase(db_base.DbTestCase):
         task_mon.task_monitor_uri = '/TaskService/123'
         volumes.create.return_value = task_mon
         self.node.target_raid_config = target_raid_config
+        self.node.deploy_step = {'step': 'create_configuration',
+                                 'interface': 'raid'}
         self.node.save()
         with task_manager.acquire(self.context, self.node.uuid,
                                   shared=True) as task:
@@ -587,6 +593,8 @@ class RedfishRAIDTestCase(db_base.DbTestCase):
         mock_get_system.return_value.storage.get_members.return_value = [
             self.mock_storage]
         self.node.target_raid_config = target_raid_config
+        self.node.deploy_step = {'step': 'create_configuration',
+                                 'interface': 'raid'}
         self.node.save()
         sdii_mock = mock.Mock()
         with task_manager.acquire(self.context, self.node.uuid,
@@ -1051,6 +1059,9 @@ class RedfishRAIDTestCase(db_base.DbTestCase):
                     'size_gb': 100}],
                 'last_updated': '2022-05-18 08:49:17.585443'}
             task.node.raid_config = raid_config
+            task.node.deploy_step = {
+                'step': 'delete_configuration',
+                'interface': 'raid'}
             result = task.driver.raid.delete_configuration(task)
             self.assertEqual(states.DEPLOYWAIT, result)
             self.assertEqual(mock_volumes[0].delete.call_count, 1)
