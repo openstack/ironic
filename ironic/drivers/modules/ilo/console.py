@@ -24,8 +24,8 @@ from ironic.drivers.modules import ipmitool
 METRICS = metrics_utils.get_metrics_logger(__name__)
 
 
-class IloConsoleInterface(ipmitool.IPMIShellinaboxConsole):
-    """A ConsoleInterface that uses ipmitool and shellinabox."""
+class IloConsoleInterface(ipmitool.IPMISocatConsole):
+    """A ConsoleInterface that uses ipmitool."""
 
     def get_properties(self):
         props = ilo_common.REQUIRED_PROPERTIES.copy()

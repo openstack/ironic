@@ -28,7 +28,7 @@ class IloConsoleInterfaceTestCase(test_common.BaseIloTest):
 
     boot_interface = 'ilo-virtual-media'
 
-    @mock.patch.object(ipmitool.IPMIShellinaboxConsole, 'validate',
+    @mock.patch.object(ipmitool.IPMISocatConsole, 'validate',
                        spec_set=True, autospec=True)
     @mock.patch.object(ilo_common, 'update_ipmi_properties', spec_set=True,
                        autospec=True)
@@ -41,7 +41,7 @@ class IloConsoleInterfaceTestCase(test_common.BaseIloTest):
             update_ipmi_mock.assert_called_once_with(task)
             ipmi_validate_mock.assert_called_once_with(mock.ANY, task)
 
-    @mock.patch.object(ipmitool.IPMIShellinaboxConsole, 'validate',
+    @mock.patch.object(ipmitool.IPMISocatConsole, 'validate',
                        spec_set=True, autospec=True)
     @mock.patch.object(ilo_common, 'update_ipmi_properties', spec_set=True,
                        autospec=True)

@@ -623,7 +623,7 @@ Consider the following configuration (shortened for simplicity):
 
     [DEFAULT]
     enabled_hardware_types = ipmi,redfish
-    enabled_console_interfaces = no-console,ipmitool-shellinabox
+    enabled_console_interfaces = no-console,ipmitool-socat
     enabled_deploy_interfaces = direct
     enabled_management_interfaces = ipmitool,redfish
     enabled_power_interfaces = ipmitool,redfish
@@ -660,11 +660,11 @@ power
     option has only one item: ``ipmitool``. It is used.
 console
     No default is configured. The ``ipmi`` hardware type supports the following
-    console interfaces: ``ipmitool-socat``, ``ipmitool-shellinabox`` and
-    ``no-console`` (in this order). Of these three, only two are enabled:
-    ``no-console`` and ``ipmitool-shellinabox`` (order does not matter). The
-    intersection contains ``ipmitool-shellinabox`` and ``no-console``.
-    The first item is used, and it is ``ipmitool-shellinabox``.
+    console interfaces: ``ipmitool-socat``, and ``no-console`` (in this
+    order). Both are enabled: ``no-console`` and ``ipmitool-socat``
+    (order does not matter). The intersection contains
+    ``ipmitool-socat`` and ``no-console``.
+    The first item is used, and it is ``ipmitool-socat``.
 management
     Following the same calculation as *power*, the ``ipmitool`` management
     interface is used.

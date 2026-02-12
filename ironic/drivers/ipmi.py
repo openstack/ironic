@@ -24,15 +24,14 @@ class IPMIHardware(generic.GenericHardware):
     """IPMI hardware type.
 
     Uses ``ipmitool`` to implement power and management.
-    Provides serial console implementations via ``shellinabox`` or ``socat``.
+    Provides serial console implementations via ``socat``.
     """
 
     @property
     def supported_console_interfaces(self):
         """List of supported console interfaces."""
         return [
-            ipmitool.IPMISocatConsole,
-            ipmitool.IPMIShellinaboxConsole
+            ipmitool.IPMISocatConsole
         ] + super().supported_console_interfaces
 
     @property

@@ -68,23 +68,6 @@ class IntelIPMIHardwareTestCase(db_base.DbTestCase):
         with task_manager.acquire(self.context, node.id) as task:
             self._validate_interfaces(task)
 
-    def test_override_with_shellinabox(self):
-        self.config(enabled_console_interfaces=['ipmitool-shellinabox',
-                                                'ipmitool-socat'])
-        node = obj_utils.create_test_node(
-            self.context, driver='intel-ipmi',
-            deploy_interface='direct',
-            raid_interface='agent',
-            console_interface='ipmitool-shellinabox',
-            vendor_interface='no-vendor')
-        with task_manager.acquire(self.context, node.id) as task:
-            self._validate_interfaces(
-                task,
-                deploy=agent.AgentDeploy,
-                console=ipmitool.IPMIShellinaboxConsole,
-                raid=agent.AgentRAID,
-                vendor=noop.NoVendor)
-
     def test_override_with_cinder_storage(self):
         self.config(enabled_storage_interfaces=['noop', 'cinder'])
         node = obj_utils.create_test_node(
