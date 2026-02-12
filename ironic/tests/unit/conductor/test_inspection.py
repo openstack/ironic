@@ -172,8 +172,10 @@ class TestContinueInspection(db_base.DbTestCase):
         self.inventory = {"test": "inventory"}
         self.plugin_data = {"plugin": "data", "logs": "delete me"}
 
+    @mock.patch('ironic.conductor.utils.node_cache_firmware_components',
+                autospec=True)
     @mock.patch.object(inspect_utils, 'store_inspection_data', autospec=True)
-    def test_ok(self, mock_store, mock_continue):
+    def test_ok(self, mock_store, mock_cache_fw, mock_continue):
         with task_manager.acquire(self.context, self.node.id) as task:
             inspection.continue_inspection(task, self.inventory,
                                            self.plugin_data)
@@ -182,6 +184,7 @@ class TestContinueInspection(db_base.DbTestCase):
                                                   self.plugin_data)
             mock_store.assert_called_once_with(task.node, self.inventory,
                                                self.plugin_data, self.context)
+            mock_cache_fw.assert_called_once_with(task)
             self.assertNotIn("logs", self.plugin_data)
         self.node.refresh()
         self.assertEqual(states.MANAGEABLE, self.node.provision_state)
@@ -189,8 +192,10 @@ class TestContinueInspection(db_base.DbTestCase):
         self.assertIn('agent_last_heartbeat',
                       self.node.driver_internal_info)
 
+    @mock.patch('ironic.conductor.utils.node_cache_firmware_components',
+                autospec=True)
     @mock.patch.object(inspect_utils, 'store_inspection_data', autospec=True)
-    def test_ok_asynchronous(self, mock_store, mock_continue):
+    def test_ok_asynchronous(self, mock_store, mock_cache_fw, mock_continue):
         mock_continue.return_value = states.INSPECTWAIT
         with task_manager.acquire(self.context, self.node.id) as task:
             inspection.continue_inspection(task, self.inventory,
@@ -199,13 +204,16 @@ class TestContinueInspection(db_base.DbTestCase):
                                                   task, self.inventory,
                                                   self.plugin_data)
             mock_store.assert_not_called()
+            mock_cache_fw.assert_not_called()
             self.assertEqual(states.INSPECTWAIT, task.node.provision_state)
             # Verify agent_last_heartbeat was updated
             self.assertIn('agent_last_heartbeat',
                           task.node.driver_internal_info)
 
+    @mock.patch('ironic.conductor.utils.node_cache_firmware_components',
+                autospec=True)
     @mock.patch.object(inspect_utils, 'store_inspection_data', autospec=True)
-    def test_failure(self, mock_store, mock_continue):
+    def test_failure(self, mock_store, mock_cache_fw, mock_continue):
         mock_continue.side_effect = exception.HardwareInspectionFailure("boom")
         with task_manager.acquire(self.context, self.node.id) as task:
             self.assertRaises(exception.HardwareInspectionFailure,
@@ -215,17 +223,21 @@ class TestContinueInspection(db_base.DbTestCase):
                                                   task, self.inventory,
                                                   self.plugin_data)
             mock_store.assert_not_called()
+            # Verify node_cache_firmware_components is NOT called on failure
+            mock_cache_fw.assert_not_called()
 
         mock_store.assert_not_called()
         self.node.refresh()
         self.assertEqual(states.INSPECTFAIL, self.node.provision_state)
         self.assertIn("boom", self.node.last_error)
 
+    @mock.patch('ironic.conductor.utils.node_cache_firmware_components',
+                autospec=True)
     @mock.patch('ironic.conductor.utils.inspecting_error_handler',
                 autospec=True)
     @mock.patch.object(inspect_utils, 'store_inspection_data', autospec=True)
     def test_failure_calls_error_handler(self, mock_store, mock_error_handler,
-                                         mock_continue):
+                                         mock_cache_fw, mock_continue):
         mock_continue.side_effect = RuntimeError("unexpected")
         with task_manager.acquire(self.context, self.node.id) as task:
             # Should re-raise the exception after calling error handler
@@ -236,6 +248,8 @@ class TestContinueInspection(db_base.DbTestCase):
                                                   task, self.inventory,
                                                   self.plugin_data)
             mock_store.assert_not_called()
+            # Verify node_cache_firmware_components is NOT called on failure
+            mock_cache_fw.assert_not_called()
             # Verify error handler was called to clean up VIFs
             mock_error_handler.assert_called_once()
             call_args = mock_error_handler.call_args
