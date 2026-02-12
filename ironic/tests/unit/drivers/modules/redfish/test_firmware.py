@@ -906,6 +906,8 @@ class RedfishFirmwareTestCase(db_base.DbTestCase):
 
         # Mock task still in progress
         mock_task_monitor.return_value.is_processing = True
+        mock_task_monitor.return_value.get_task.return_value.task_state = \
+            sushy.TASK_STATE_RUNNING
 
         firmware = redfish_fw.RedfishFirmware()
         with task_manager.acquire(self.context, self.node.uuid,
@@ -996,6 +998,8 @@ class RedfishFirmwareTestCase(db_base.DbTestCase):
 
         # Mock task still in progress
         mock_task_monitor.return_value.is_processing = True
+        mock_task_monitor.return_value.get_task.return_value.task_state = \
+            sushy.TASK_STATE_RUNNING
 
         firmware = redfish_fw.RedfishFirmware()
         with task_manager.acquire(self.context, self.node.uuid,
@@ -1093,6 +1097,10 @@ class RedfishFirmwareTestCase(db_base.DbTestCase):
     @mock.patch.object(redfish_utils, 'get_task_monitor', autospec=True)
     def test__check_update_in_progress(self, tm_mock, get_us_mock, log_mock):
         tm_mock.return_value.is_processing = True
+        task_mock = mock.Mock()
+        task_mock.task_state = sushy.TASK_STATE_RUNNING
+        tm_mock.return_value.get_task.return_value = task_mock
+
         self._generate_new_driver_internal_info(['bmc'])
 
         _, interface = self._test__check_node_redfish_firmware_update()
@@ -1133,9 +1141,10 @@ class RedfishFirmwareTestCase(db_base.DbTestCase):
 
             # Verify the new debug log message
             debug_calls = [
-                mock.call('Firmware update task for node %(node)s is in '
-                          '%(state)s state. Continuing to poll.',
-                          {'node': self.node.uuid, 'state': task_state})]
+                mock.call('Firmware update in progress for node %(node)s, '
+                          'firmware %(firmware_image)s.',
+                          {'node': self.node.uuid,
+                           'firmware_image': 'https://bmc/v1.0.1'})]
 
             log_mock.debug.assert_has_calls(debug_calls)
             interface._continue_updates.assert_not_called()
@@ -2440,9 +2449,14 @@ class RedfishFirmwareTestCase(db_base.DbTestCase):
             task.node.clean_step = {'step': 'update', 'interface': 'firmware'}
 
             # Mock task monitor to return is_processing=True
-            mock_task_monitor = mock.Mock()
-            mock_task_monitor.is_processing = True
-            mock_get_task_monitor.return_value = mock_task_monitor
+            mock_tm = mock.Mock()
+            mock_tm.is_processing = True
+
+            mock_task = mock.Mock()
+            mock_task.task_state = sushy.TASK_STATE_RUNNING
+            mock_tm.get_task.return_value = mock_task
+
+            mock_get_task_monitor.return_value = mock_tm
 
             # Call the check method
             firmware_interface = redfish_fw.RedfishFirmware()

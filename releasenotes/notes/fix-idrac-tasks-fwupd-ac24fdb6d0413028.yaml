@@ -1,0 +1,9 @@
+---
+fixes:
+  - |
+    Fixes a problem where iDRAC system tasks shows that is processing, even
+    when the task state is COMPLETED, which can prevent proper completion
+    handling of this tasks.
+    Now we ensure we always handle completed tasks properly regardless of
+    whether tasks show that is processing, and prevents premature completion
+    handling when tasks are still queued or in progress.

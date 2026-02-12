@@ -1284,6 +1284,107 @@ class RedfishFirmware(base.FirmwareInterface):
         manager_utils.servicing_error_handler(task, msg, traceback=False)
         return True
 
+    def _handle_firmware_update_task(self, task, node, current_update,
+                                     update_service, settings):
+        """Handle the firmware update task monitoring and completion.
+
+        :param task: a TaskManager instance
+        :param node: an Ironic node object
+        :param current_update: the current firmware update being processed
+        :param update_service: the sushy firmware update service
+        :param settings: firmware update settings
+        """
+        try:
+            task_monitor = redfish_utils.get_task_monitor(
+                node, current_update['task_monitor'])
+        except exception.RedfishConnectionError as e:
+            # If the BMC firmware is being updated, the BMC will be
+            # unavailable for some amount of time.
+            LOG.warning('Unable to communicate with task monitor service '
+                        'on node %(node)s. Will try again on the next poll. '
+                        'Error: %(error)s',
+                        {'node': node.uuid, 'error': e})
+            return
+        except exception.RedfishError:
+            # The BMC deleted the Task before we could query it
+            LOG.warning('Firmware update completed for node %(node)s, '
+                        'firmware %(firmware_image)s, but success of the '
+                        'update is unknown.  Assuming update was successful.',
+                        {'node': node.uuid,
+                         'firmware_image': current_update['url']})
+            self._continue_updates(task, update_service, settings)
+            return
+
+        try:
+            # The last response does not necessarily contain a Task,
+            # so get it
+            sushy_task = task_monitor.get_task()
+            task_state = sushy_task.task_state
+        except Exception as e:
+            LOG.warning('Unable to get task for node %(node)s: %(error)s. '
+                        'Will retry on next poll.',
+                        {'node': node.uuid, 'error': e})
+            return
+
+        # Check if task is in a terminal state (completed, failed, etc.)
+        # If so, proceed directly to completion handling
+        if task_state not in [sushy.TASK_STATE_RUNNING,
+                              sushy.TASK_STATE_STARTING,
+                              sushy.TASK_STATE_PENDING]:
+            # Taks is done (COMPLETED, EXCEPTION, KILLED, CANCELLED, etc.)
+            # Parse messages and handle completion
+            LOG.debug('Firmware update task in terminal state %(state)s '
+                      'for node %(node)s',
+                      {'state': task_state, 'node': node.uuid})
+
+            # Only parse the messages if the BMC did not return parsed
+            # messages
+            messages = []
+            if sushy_task.messages and not sushy_task.messages[0].message:
+                sushy_task.parse_messages()
+
+            if sushy_task.messages is not None:
+                for m in sushy_task.messages:
+                    msg = m.message
+                    if not msg or msg.lower() in ['unknown', 'unknown error']:
+                        msg = m.message_id
+                    if msg:
+                        messages.append(msg)
+
+            task.upgrade_lock()
+            self._handle_task_completion(task, sushy_task, messages,
+                                         update_service, settings,
+                                         current_update)
+            return
+
+        # Task is still in progress (RUNNING, STARTING, or PENDING)
+        # Special handling for BIOS and NIC updates
+        component = current_update.get('component', '')
+        component_type = redfish_utils.get_component_type(component)
+
+        if component_type == redfish_utils.BIOS:
+            # For BIOS, check if task has reached STARTING state
+            # and trigger reboot immediately
+            if self._handle_bios_task_starting(task, task_monitor, settings,
+                                               current_update):
+                return  # Reboot triggered, done
+            # Task is still processing, keep polling
+            return
+
+        if component_type == redfish_utils.NIC:
+            # For NIC, wait 30s to see if hardware needs reboot
+            if self._handle_nic_task_starting(task, task_monitor, settings,
+                                              current_update):
+                return  # Reboot triggered, done
+            # Task is still processing (or waiting), keep polling
+            return
+
+        # For other component types, just log and keep polling
+        LOG.debug('Firmware update in progress for node %(node)s, '
+                  'firmware %(firmware_image)s.',
+                  {'node': node.uuid,
+                   'firmware_image': current_update['url']})
+
     @METRICS.timer('RedfishFirmware._check_node_redfish_firmware_update')
     def _check_node_redfish_firmware_update(self, task):
         """Check the progress of running firmware update on a node."""
@@ -1343,88 +1444,9 @@ class RedfishFirmware(base.FirmwareInterface):
 
             return
 
-        try:
-            task_monitor = redfish_utils.get_task_monitor(
-                node, current_update['task_monitor'])
-        except exception.RedfishConnectionError as e:
-            # If the BMC firmware is being updated, the BMC will be
-            # unavailable for some amount of time.
-            LOG.warning('Unable to communicate with task monitor service '
-                        'on node %(node)s. Will try again on the next poll. '
-                        'Error: %(error)s',
-                        {'node': node.uuid, 'error': e})
-            return
-        except exception.RedfishError:
-            # The BMC deleted the Task before we could query it
-            LOG.warning('Firmware update completed for node %(node)s, '
-                        'firmware %(firmware_image)s, but success of the '
-                        'update is unknown.  Assuming update was successful.',
-                        {'node': node.uuid,
-                         'firmware_image': current_update['url']})
-            self._continue_updates(task, update_service, settings)
-            return
-
-        # Special handling for BIOS and NIC updates
-        component = current_update.get('component', '')
-        component_type = redfish_utils.get_component_type(component)
-
-        if task_monitor.is_processing and component_type == redfish_utils.BIOS:
-            # For BIOS, check if task has reached STARTING state
-            # and trigger reboot immediately
-            if self._handle_bios_task_starting(task, task_monitor, settings,
-                                               current_update):
-                return  # Reboot triggered, done
-            # Task is still processing, keep polling
-            return
-
-        if task_monitor.is_processing and component_type == redfish_utils.NIC:
-            # For NIC, wait 30s to see if hardware needs reboot
-            if self._handle_nic_task_starting(task, task_monitor, settings,
-                                              current_update):
-                return  # Reboot triggered, done
-            # Task is still processing (or waiting), keep polling
-            return
-
-        if not task_monitor.is_processing:
-            # The last response does not necessarily contain a Task,
-            # so get it
-            sushy_task = task_monitor.get_task()
-
-            # NOTE(iurygregory): Some BMCs (particularly HPE iLO) may return
-            # is_processing=False while the task is still in RUNNING, STARTING,
-            # or PENDING state. Only treat it as completion if the task state
-            # indicates it's actually finished.
-            if sushy_task.task_state in [sushy.TASK_STATE_RUNNING,
-                                         sushy.TASK_STATE_STARTING,
-                                         sushy.TASK_STATE_PENDING]:
-                LOG.debug('Firmware update task for node %(node)s is in '
-                          '%(state)s state. Continuing to poll.',
-                          {'node': node.uuid, 'state': sushy_task.task_state})
-                return
-
-            # Only parse the messages if the BMC did not return parsed
-            # messages
-            messages = []
-            if sushy_task.messages and not sushy_task.messages[0].message:
-                sushy_task.parse_messages()
-
-            if sushy_task.messages is not None:
-                for m in sushy_task.messages:
-                    msg = m.message
-                    if not msg or msg.lower() in ['unknown', 'unknown error']:
-                        msg = m.message_id
-                    if msg:
-                        messages.append(msg)
-
-            task.upgrade_lock()
-            self._handle_task_completion(task, sushy_task, messages,
-                                         update_service, settings,
-                                         current_update)
-        else:
-            LOG.debug('Firmware update in progress for node %(node)s, '
-                      'firmware %(firmware_image)s.',
-                      {'node': node.uuid,
-                       'firmware_image': current_update['url']})
+        # Handle firmware update task monitoring
+        self._handle_firmware_update_task(
+            task, node, current_update, update_service, settings)
 
     def _stage_firmware_file(self, node, component_update):
 
