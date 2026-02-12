@@ -1,0 +1,9 @@
+---
+issues:
+  - |
+    Fixes a bug where newly added baremetal hosts won't contain the NIC
+    firmware information. Some hardware only returns NetworkAdapters information
+    when the node is powered on, but firmware caching previously only occurred
+    during cleaning or servicing phases, which could be skipped or happen after
+    the node is powered off.
+

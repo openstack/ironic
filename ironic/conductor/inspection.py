@@ -177,6 +177,12 @@ def continue_inspection(task, inventory, plugin_data):
                 task.process_event('fail')
 
     if node.provision_state != states.ENROLL:
+        # NOTE(iurygregory): Cache firmware components while node is PowerOn.
+        # This ensures that we capture NIC firmware data from systems which
+        # only return NIC information when the node is powered on.
+        LOG.debug('Caching firmware components after inspection for node %s',
+                  node.uuid)
+        utils.node_cache_firmware_components(task)
         task.process_event('done')
         LOG.info('Successfully finished inspection of node %s', node.uuid)
     else:
