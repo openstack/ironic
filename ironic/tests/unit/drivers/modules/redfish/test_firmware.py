@@ -2269,6 +2269,115 @@ class RedfishFirmwareTestCase(db_base.DbTestCase):
             # Verify _continue_updates was called
             mock_continue_updates.assert_called_once()
 
+    @mock.patch.object(manager_utils, 'node_power_action', autospec=True)
+    @mock.patch.object(redfish_fw.RedfishFirmware, '_continue_updates',
+                       autospec=True)
+    @mock.patch.object(redfish_fw.RedfishFirmware,
+                       '_get_current_bmc_version', autospec=True)
+    @mock.patch.object(redfish_utils, 'get_update_service', autospec=True)
+    def test_bmc_version_change_with_multiple_components_triggers_reboot(
+            self, mock_get_update_service, mock_get_bmc_version,
+            mock_continue_updates, mock_power_action):
+        """Test BMC version change with multiple components triggers reboot."""
+        settings = [
+            {'component': 'bmc', 'url': 'http://bmc/v1.0.0',
+             'wait': 300, 'task_monitor': '/tasks/1',
+             'bmc_check_start_time': '2025-01-01T00:00:00.000000'},
+            {'component': 'nic:BCM57414', 'url': 'http://nic/v1.0.0',
+             'task_monitor': '/tasks/2'}
+        ]
+
+        with task_manager.acquire(self.context, self.node.uuid,
+                                  shared=False) as task:
+            # Set up node with BMC version before update
+            task.node.set_driver_internal_info(
+                'bmc_fw_version_before_update', '1.0.0')
+            task.node.set_driver_internal_info(
+                'redfish_fw_updates', settings)
+
+            # Mock BMC version has changed
+            mock_get_bmc_version.return_value = '2.0.0'
+
+            # Call the BMC update completion handler
+            firmware_interface = redfish_fw.RedfishFirmware()
+            firmware_interface._handle_bmc_update_completion(
+                task, mock_get_update_service.return_value,
+                settings, settings[0])
+
+            # Verify version check was called
+            mock_get_bmc_version.assert_called_once_with(
+                firmware_interface, task.node)
+
+            # Verify bmc_update_completed flag is set
+            info = task.node.driver_internal_info
+            fw_updates = info.get('redfish_fw_updates', [])
+            self.assertTrue(fw_updates[0].get('bmc_update_completed'))
+
+            # Verify bmc_fw_version_before_update is removed
+            self.assertNotIn('bmc_fw_version_before_update', info)
+
+            # Verify settings were saved
+            self.assertEqual(2, len(fw_updates))
+
+            # Verify reboot was triggered
+            mock_power_action.assert_called_once_with(task, states.REBOOT)
+
+            # Verify _continue_updates was NOT called (reboot happens first)
+            mock_continue_updates.assert_not_called()
+
+    @mock.patch.object(redfish_fw.RedfishFirmware, '_continue_updates',
+                       autospec=True)
+    @mock.patch.object(manager_utils, 'node_power_action', autospec=True)
+    @mock.patch.object(redfish_fw.RedfishFirmware,
+                       '_get_current_bmc_version', autospec=True)
+    @mock.patch.object(redfish_utils, 'get_update_service', autospec=True)
+    def test_bmc_version_change_last_component_continues_updates(
+            self, mock_get_update_service, mock_get_bmc_version,
+            mock_power_action, mock_continue_updates):
+        """Test BMC version change as last component continues updates."""
+        settings = [
+            {'component': 'bmc', 'url': 'http://bmc/v1.0.0',
+             'wait': 300, 'task_monitor': '/tasks/1',
+             'bmc_check_start_time': '2025-01-01T00:00:00.000000'}
+        ]
+
+        with task_manager.acquire(self.context, self.node.uuid,
+                                  shared=False) as task:
+            # Set up node with BMC version before update
+            task.node.set_driver_internal_info(
+                'bmc_fw_version_before_update', '1.0.0')
+            task.node.set_driver_internal_info(
+                'redfish_fw_updates', settings)
+
+            # Mock BMC version has changed
+            mock_get_bmc_version.return_value = '2.0.0'
+
+            # Call the BMC update completion handler
+            firmware_interface = redfish_fw.RedfishFirmware()
+            firmware_interface._handle_bmc_update_completion(
+                task, mock_get_update_service.return_value,
+                settings, settings[0])
+
+            # Verify version check was called
+            mock_get_bmc_version.assert_called_once_with(
+                firmware_interface, task.node)
+
+            # Verify bmc_fw_version_before_update is removed
+            info = task.node.driver_internal_info
+            self.assertNotIn('bmc_fw_version_before_update', info)
+
+            # Verify bmc_update_completed flag is NOT set (last component)
+            fw_updates = info.get('redfish_fw_updates', [])
+            self.assertNotIn('bmc_update_completed', fw_updates[0])
+
+            # Verify reboot was NOT triggered (last component)
+            mock_power_action.assert_not_called()
+
+            # Verify _continue_updates WAS called (proceeds to completion)
+            mock_continue_updates.assert_called_once_with(
+                firmware_interface, task,
+                mock_get_update_service.return_value, settings)
+
     @mock.patch.object(redfish_fw.RedfishFirmware, '_continue_updates',
                        autospec=True)
     @mock.patch.object(deploy_utils, 'set_async_step_flags', autospec=True)

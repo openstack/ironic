@@ -1,0 +1,7 @@
+---
+fixes:
+  - |
+    Fixes an issue where the PLDM/MCTP communication channel used for NIC
+    firmware updates was not available after a BMC firmware update, causing
+    subsequent NIC firmware update attempts to fail. In case there are more
+    components to be updated, we reboot before proceeding to the next update.
