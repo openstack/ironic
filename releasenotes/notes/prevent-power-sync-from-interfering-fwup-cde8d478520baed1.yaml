@@ -1,0 +1,7 @@
+---
+fixes:
+  - |
+    Fixes power state sync interfering with firmware updates. The conductor
+    now skips power synchronization for nodes with in-progress firmware
+    updates, preventing power cycling that could interrupt the update process
+    and cause failures.
