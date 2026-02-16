@@ -2015,15 +2015,28 @@ class RedfishFirmwareTestCase(db_base.DbTestCase):
             self.assertEqual(states.SERVICEWAIT, result)
 
     @mock.patch.object(deploy_utils, 'set_async_step_flags', autospec=True)
+    @mock.patch.object(redfish_utils, 'get_manager', autospec=True)
+    @mock.patch.object(redfish_utils, 'get_system', autospec=True)
     @mock.patch.object(redfish_fw.RedfishFirmware, '_execute_firmware_update',
                        autospec=True)
     @mock.patch.object(redfish_utils, 'get_update_service', autospec=True)
     def test_update_bmc_with_explicit_wait(self, mock_get_update_service,
                                            mock_execute_fw_update,
+                                           mock_get_system,
+                                           mock_get_manager,
                                            mock_set_async_flags):
         """Test BMC update with explicit wait."""
         settings = [{'component': 'bmc', 'url': 'http://bmc/v1.0.0',
                      'wait': 90}]
+
+        # Mock system
+        mock_system = mock.Mock()
+        mock_get_system.return_value = mock_system
+
+        # Mock BMC version reading
+        mock_manager = mock.Mock()
+        mock_manager.firmware_version = '1.0.0'
+        mock_get_manager.return_value = mock_manager
 
         # add task_monitor to the side effect
         mock_execute_fw_update.side_effect = self._mock_exc_fwup_side_effect
