@@ -39,7 +39,7 @@ There are however some limitations for different hardware interfaces:
   * File images must not be located in ``/dev``, ``/sys``, ``/proc``,
     ``/etc``, ``/boot``, ``/run`` or other system paths.
   * File images must be located in a path listed in
-    :oslo_config:option:`conductor.file_url_allowed_paths`
+    :oslo.config:option:`conductor.file_url_allowed_paths`
 
   .. warning::
     The Ironic CLI tool will not transfer the file from a local machine to the

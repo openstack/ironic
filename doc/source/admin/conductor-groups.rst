@@ -79,7 +79,7 @@ Advanced Usage with Multiple Deployments
 
 Conductor groups work within a single Ironic deployment. For complete
 service isolation across geographic regions or regulatory boundaries,
-consider using :ref:`multiple Ironic deployments <availability-zones:Tier 1: Multiple Ironic Deployments>`
+consider using :ref:`multiple Ironic deployments <multiple_ironic_deployments>`
 targeted by different Nova compute services.
 
 See Also

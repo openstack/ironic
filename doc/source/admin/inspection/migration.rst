@@ -31,7 +31,7 @@ This list currently includes:
   ones that `display the network interface information from the LLDP data
   <https://docs.openstack.org/python-ironic-inspector-client/latest/cli/index.html#list-interface-data>`_.
 
-:ironic-inspector-doc:`Inspection rules <user/usage.html#introspection-rules>`
+ironic-inspector :doc:`Inspection rules <rules>`
 have now been implemented as of 2025.1 "Epoxy" release.
 
 New defaults
@@ -45,9 +45,9 @@ New defaults
 Built-in hooks
 ~~~~~~~~~~~~~~
 
-Most of the :ironic-inspector-doc:`introspection hooks
-<user/usage.html#plugins>` have been :doc:`migrated to ironic <hooks>`,
-although many have been migrated for clarity and consistency.
+Most of the ironic-inspector introspection hooks have been
+:doc:`migrated to ironic <hooks>`, although many have been migrated for
+clarity and consistency.
 
 .. list-table:: Hooks mapping
    :header-rows: 1
@@ -113,8 +113,7 @@ Custom hooks
 A custom hook (called *processing hook* in ironic-inspector) has to be
 derived from the base class :py:class:`InspectionHook
 <ironic.drivers.modules.inspector.hooks.base.InspectionHook>`. It differs
-from the older :ironic-inspector-doc:`ProcessingHook
-<contributor/api/ironic_inspector.plugins.base.html#ironic_inspector.plugins.base.ProcessingHook>`
+from the older ironic-inspector ``ProcessingHook``
 in a few important ways, requiring custom hooks to be adapted for ironic:
 
 * Hooks operate on the regular :py:class:`task

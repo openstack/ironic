@@ -48,9 +48,9 @@ node:
 Inspection
 ----------
 
-If using :ref:`in-band inspection`, you need to tell ironic not to power off
-nodes afterwards. Depending on the inspection mode (managed or unmanaged),
-you need to configure two places.
+If using :ref:`agent inspection<agent-inspection>`, aka in-band, you need to tell ironic not to
+power off nodes afterwards. Depending on the inspection mode (managed or
+unmanaged), you need to configure two places.
 In ``ironic.conf``:
 
 .. code-block:: ini

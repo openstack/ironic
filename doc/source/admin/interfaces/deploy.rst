@@ -249,6 +249,8 @@ responsible to provide all necessary deploy steps with priorities between
 61 and 99 (see :ref:`node-deployment-core-steps` for information on
 priorities).
 
+.. _bootc-deploy:
+
 Bootc Agent Deploy
 ==================
 

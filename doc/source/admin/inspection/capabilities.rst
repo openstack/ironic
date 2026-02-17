@@ -1,8 +1,8 @@
+.. _capabilities-discovery:
+
 ======================
 Capabilities discovery
 ======================
-
-.. _capabilities-discovery:
 
 This is an incomplete list of capabilities we want to discover during
 inspection. The exact support is hardware and hardware type specific though,
