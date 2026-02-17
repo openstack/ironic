@@ -135,12 +135,12 @@ driver_opts = [
     cfg.StrOpt('default_console_interface',
                help=_DEFAULT_IFACE_HELP.format('console')),
     cfg.ListOpt('enabled_deploy_interfaces',
-                default=['autodetect', 'direct', 'ramdisk'],
+                default=['autodetect', 'direct', 'ramdisk', 'bootc'],
                 help=_ENABLED_IFACE_HELP.format('deploy')),
     cfg.StrOpt('default_deploy_interface',
                help=_DEFAULT_IFACE_HELP.format('deploy')),
     cfg.ListOpt('autodetect_deploy_interfaces',
-                default=['direct'],
+                default=['bootc', 'direct'],
                 help=_('List of deploy interfaces that the '
                        'autodetect deploy interface is allowed to '
                        'switch to. The order of interfaces in the list '

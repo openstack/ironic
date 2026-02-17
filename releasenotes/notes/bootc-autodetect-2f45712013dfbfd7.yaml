@@ -1,0 +1,11 @@
+---
+features:
+  - |
+    The ``bootc`` deploy interface is now enabled by default in
+    ``enabled_deploy_interfaces`` and has also been added to the default list
+    of ``autodetect_deploy_interfaces`` for the ``autodetect`` deploy
+    interface. This allows nodes configured with the ``autodetect`` deploy
+    interface to automatically select the ``bootc`` deploy interface for
+    container images which are identified as bootc images through registry
+    introspection. The ``autodetect`` deploy interface will fall back to the
+    ``direct`` deploy interface for standard disk images and OCI artifacts.

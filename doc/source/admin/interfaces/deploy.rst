@@ -163,10 +163,10 @@ their priority order. The default configuration is:
 .. code-block:: ini
 
    [DEFAULT]
-   autodetect_deploy_interfaces = direct
+   autodetect_deploy_interfaces = bootc,direct
 
-This default will always switch to :ref:`Direct deploy <direct-deploy>`
-for deployment.
+This default configuration checks :ref:`Bootc deploy <bootc-deploy>` first,
+then falls back to :ref:`Direct deploy <direct-deploy>`.
 
 .. note::
    The order of interfaces in the configuration list matters. Interfaces are
