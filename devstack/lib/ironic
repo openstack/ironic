@@ -961,6 +961,7 @@ function is_ironic_enabled {
 
 function is_deployed_by_agent {
     [[ "$IRONIC_DEFAULT_DEPLOY_INTERFACE" == "direct"
+        || "$IRONIC_DEFAULT_DEPLOY_INTERFACE" == "autodetect"
         || "$IRONIC_DEFAULT_DEPLOY_INTERFACE" == "" ]] && return 0
     return 1
 }
