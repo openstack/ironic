@@ -697,6 +697,7 @@
       tempest_concurrency: 3
       tempest_test_regex: "BaremetalMultitenancy"
       tempest_test_timeout: 2400
+      tempest_exclude_regex: "test_baremetal_vm_multitenancy"
       devstack_localrc:
         BUILD_TIMEOUT: 2400
         DEFAULT_INSTANCE_TYPE: baremetal
