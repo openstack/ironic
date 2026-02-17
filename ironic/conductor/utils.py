@@ -608,6 +608,9 @@ def cleaning_error_handler(task, logmsg, errmsg=None, traceback=False,
 
     node.save()
 
+    # Switch back to original interface, if necessary
+    task.driver.deploy.restore_interface(task)
+
     if set_fail_state and node.provision_state != states.CLEANFAIL:
         target_state = states.MANAGEABLE if manual_clean else None
         task.process_event('fail', target_state=target_state)

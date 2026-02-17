@@ -1789,3 +1789,42 @@ class FreshlyBootedTestCase(db_base.DbTestCase):
             {'command_name': 'get_deploy_steps'},
             {'command_name': 'get_service_steps'}]
         self.assertFalse(agent_base._freshly_booted(commands, 'deploy'))
+
+
+class RestoreDeployInterfaceTestCase(AgentDeployMixinBaseTest):
+
+    def setUp(self):
+        super(RestoreDeployInterfaceTestCase, self).setUp()
+        self.config(enabled_deploy_interfaces=['bootc', 'direct'])
+
+    def test_restore_interface_with_original(self):
+        """Test restore_interface when original exists."""
+        self.node.driver_internal_info = {
+            'original_deploy_interface': 'direct'
+        }
+        self.node.deploy_interface = 'bootc'
+        self.node.save()
+
+        with task_manager.acquire(
+                self.context, self.node.uuid, shared=False) as task:
+            self.deploy.restore_interface(task)
+
+        self.node.refresh()
+        self.assertEqual('direct', self.node.deploy_interface)
+        self.assertNotIn('original_deploy_interface',
+                         self.node.driver_internal_info)
+
+    def test_restore_interface_without_original(self):
+        """Test restore_interface when original doesn't exist."""
+        original_interface = self.node.deploy_interface
+        self.node.save()
+
+        with task_manager.acquire(
+                self.context, self.node.uuid, shared=False) as task:
+            self.deploy.restore_interface(task)
+
+        self.node.refresh()
+        # Deploy interface should remain unchanged
+        self.assertEqual(original_interface, self.node.deploy_interface)
+        self.assertNotIn('original_deploy_interface',
+                         self.node.driver_internal_info)

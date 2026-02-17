@@ -1009,6 +1009,38 @@ class BootcAgentDeploy(CustomAgentDeploy):
         # Call the helper to de-duplicate code.
         set_boot_to_disk(task)
 
+    def supports_deploy(self, task):
+        """Check if deploy is supported for the given node by this interface.
+
+        :param task: A TaskManager instance containing the node to act on.
+        :returns: True if the image_source has an oci:// URL scheme
+                  and repository introspection shows it is a bootc image.
+        """
+        node = task.node
+        image_source = node.instance_info.get('image_source')
+        if image_source and not image_source.startswith('oci://'):
+            return False
+
+        # Detect if the container image is actually a bootc image, which
+        # requires changing the deploy interface
+        try:
+            oci = image_service.OciImageService()
+            image_auth = image_service.get_image_service_auth_override(
+                node)
+            oci.set_image_auth(image_source, image_auth)
+
+            image_download_source = deploy_utils.get_image_download_source(
+                node)
+            image_info = oci.identify_specific_image(
+                image_source, image_download_source,
+                node.properties.get('cpu_arch')
+            )
+            return image_info.get('image_disk_format') == 'bootc'
+        except Exception as e:
+            LOG.error('Failed to detect bootc image for node %(node)s: '
+                      '%(err)s', {'node': node.uuid, 'err': e})
+            return False
+
 
 class AgentRAID(base.RAIDInterface):
     """Implementation of RAIDInterface which uses agent ramdisk."""

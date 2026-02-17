@@ -1,0 +1,26 @@
+---
+features:
+  - |
+    Adds a new ``autodetect`` deploy interface that automatically selects
+    the appropriate concrete deploy interface based on image metadata and
+    node configuration. This simplifies node configuration by eliminating
+    the need to manually specify different deploy interfaces for different
+    image types.
+
+    The autodetect interface inspects the deployment at the beginning of the
+    deployment and switches to the most appropriate deploy interface from the
+    configured list in ``autodetect_deploy_interfaces``.
+    The detection logic checks interfaces in priority order, so if
+    ``autodetect_deploy_interfaces`` is set to ``['bootc', 'direct']``:
+
+    - ``bootc`` Selected for OCI container images (oci:// URLs) that are
+      identified as bootc images through container introspection
+    - ``direct`` Fallback for standard disk images and OCI artifacts
+
+    The autodetect interface is now enabled by default in
+    ``enabled_deploy_interfaces``. A new configuration option
+    ``autodetect_deploy_interfaces`` (default: ``['direct']``)
+    controls which interfaces can be auto-selected and their priority order.
+
+    The original deploy interface is preserved in driver_internal_info
+    and automatically restored when exiting the ``cleaning`` state.

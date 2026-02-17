@@ -60,6 +60,9 @@ def do_node_clean(task, clean_steps=None, disable_ramdisk=False,
         node.clean_step = None
         node.save()
 
+        # Switch back to original interface, if necessary
+        task.driver.deploy.restore_interface(task)
+
         task.process_event('done')
         how = ('API' if node.automated_clean is False else 'configuration')
         LOG.info('Automated cleaning is disabled via %(how)s, node %(node)s '
@@ -311,6 +314,9 @@ def do_next_clean_step(task, step_index, disable_ramdisk=None):
         steps=node.driver_internal_info.get("clean_steps", []),
         status="end"
     )
+
+    # Switch back to original interface, if necessary
+    task.driver.deploy.restore_interface(task)
 
     event = 'manage' if manual_clean or node.retired else 'done'
     # NOTE(rloo): No need to specify target prov. state; we're done

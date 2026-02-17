@@ -174,6 +174,9 @@ def start_deploy(task, manager, configdrive=None, event='deploy',
         node.save()
 
     try:
+        # Give the deploy interface the opportunity to switch interfaces
+        task.driver.deploy.switch_interface(task)
+
         task.driver.power.validate(task)
         task.driver.deploy.validate(task)
         utils.validate_instance_info_traits(task.node)

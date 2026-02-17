@@ -121,6 +121,64 @@ To disable the conductor-side conversion completely, set
    [DEFAULT]
    force_raw_images = False
 
+Autodetect support
+------------------
+
+The ``direct`` deploy interface supports being auto-detected by the
+``autodetect`` deploy interface (see :ref:`autodetect-deploy` for details).
+The ``direct`` interface will always claim to support switching to it for
+deployment regardless of the supplied node information. This makes it
+appropriate to use as the last fallback value in the
+``autodetect_deploy_interfaces`` configuration option.
+
+.. _autodetect-deploy:
+
+Autodetect deploy
+=================
+
+The ``autodetect`` deploy interface automatically selects the most appropriate
+concrete deploy interface based on image metadata and node configuration. This
+simplifies node configuration by eliminating the need to manually specify
+different deploy interfaces for different image types.
+
+When a deployment begins, the autodetect interface inspects the image and node
+configuration, then switches to the most appropriate deploy interface from the
+configured list. The detection logic checks interfaces in priority order using
+each interface's ``supports_deploy()`` method. The first interface that
+returns ``True`` is selected. If no interfaces are detected as supported, the
+last interface in the configured list is used as a fallback.
+
+You can specify this deploy interface when creating or updating a node::
+
+    baremetal node create --driver ipmi --deploy-interface autodetect
+    baremetal node set <NODE> --deploy-interface autodetect
+
+Configuration
+-------------
+
+The autodetect interface uses the ``autodetect_deploy_interfaces``
+configuration option to control which interfaces can be auto-selected and
+their priority order. The default configuration is:
+
+.. code-block:: ini
+
+   [DEFAULT]
+   autodetect_deploy_interfaces = direct
+
+This default will always switch to :ref:`Direct deploy <direct-deploy>`
+for deployment.
+
+.. note::
+   The order of interfaces in the configuration list matters. Interfaces are
+   checked in the order listed, and the first supported interface is selected.
+   The last interface in the list serves as the fallback if no other interface
+   is detected as supported.
+
+.. note::
+   After deployment teardown, the node's deploy interface is automatically
+   restored to ``autodetect`` from whatever concrete interface was used during
+   deployment.
+
 .. _ansible-deploy:
 
 Ansible deploy
@@ -253,6 +311,16 @@ Additionally, this interface also supports the passing of a pull secret
 to enable download from the remote image registry, which is part of the
 support for retrieval of artifacts from OCI Container registires.
 This parameter is ``image_pull_secret``.
+
+Autodetect support
+------------------
+
+The ``bootc`` deploy interface supports being auto-detected by the
+``autodetect`` deploy interface (see :ref:`autodetect-deploy` for details). It
+checks whether the image source URL is an OCI container image (``oci://``
+URL), then introspects the image registry to confirm the artifact is a
+container image (OCI artifacts are handled by the ``direct`` deploy
+interface).
 
 Caveats
 -------

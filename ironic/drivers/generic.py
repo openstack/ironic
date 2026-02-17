@@ -20,6 +20,7 @@ from ironic.drivers import hardware_type
 from ironic.drivers.modules import agent
 from ironic.drivers.modules import agent_power
 from ironic.drivers.modules.ansible import deploy as ansible_deploy
+from ironic.drivers.modules import autodetect
 from ironic.drivers.modules import fake
 from ironic.drivers.modules import inspector
 from ironic.drivers.modules import ipxe
@@ -50,9 +51,10 @@ class GenericHardware(hardware_type.AbstractHardwareType):
     @property
     def supported_deploy_interfaces(self):
         """List of supported deploy interfaces."""
-        return [agent.AgentDeploy, ansible_deploy.AnsibleDeploy,
-                ramdisk.RamdiskDeploy, pxe.PXEAnacondaDeploy,
-                agent.BootcAgentDeploy, agent.CustomAgentDeploy]
+        return [autodetect.AutodetectDeploy, agent.AgentDeploy,
+                ansible_deploy.AnsibleDeploy, ramdisk.RamdiskDeploy,
+                pxe.PXEAnacondaDeploy, agent.BootcAgentDeploy,
+                agent.CustomAgentDeploy]
 
     @property
     def supported_inspect_interfaces(self):

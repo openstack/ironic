@@ -80,6 +80,7 @@ redfish-graphical = "ironic.drivers.modules.redfish.graphical_console:RedfishGra
 [project.entry-points."ironic.hardware.interfaces.deploy"]
 anaconda = "ironic.drivers.modules.pxe:PXEAnacondaDeploy"
 ansible = "ironic.drivers.modules.ansible.deploy:AnsibleDeploy"
+autodetect = "ironic.drivers.modules.autodetect:AutodetectDeploy"
 bootc = "ironic.drivers.modules.agent:BootcAgentDeploy"
 custom-agent = "ironic.drivers.modules.agent:CustomAgentDeploy"
 direct = "ironic.drivers.modules.agent:AgentDeploy"
