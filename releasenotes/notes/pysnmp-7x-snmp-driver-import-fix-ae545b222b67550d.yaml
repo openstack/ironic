@@ -1,0 +1,10 @@
+---
+fixes:
+  - |
+    Avoid import-time ``AttributeError`` when PySNMP 6.2+/7.x is present. In
+    those versions the legacy ``pysnmp.hlapi`` protocol constants (e.g.
+    ``usmHMACMD5AuthProtocol``) were removed, which previously caused unit
+    test discovery and SNMP driver import to fail. The SNMP driver now builds
+    protocol mappings using ``getattr()`` fallbacks so the module imports
+    without raising. Runtime still requires a PySNMP version that provides the
+    legacy hlapi (e.g. 5.x). See bug #2139557

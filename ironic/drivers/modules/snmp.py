@@ -39,42 +39,60 @@ from ironic.conf import CONF
 from ironic.drivers import base
 
 pysnmp = importutils.try_import('pysnmp')
+snmp = None
+snmp_error = None
+snmp_auth_protocols = {'none': None}
+snmp_priv_protocols = {'none': None}
+
+# Map Ironic protocol names to legacy pysnmp.hlapi attribute names.
+_AUTH_ATTRS = [
+    ('md5', 'usmHMACMD5AuthProtocol'),
+    ('sha', 'usmHMACSHAAuthProtocol'),
+    ('sha224', 'usmHMAC128SHA224AuthProtocol'),
+    ('sha256', 'usmHMAC192SHA256AuthProtocol'),
+    ('sha384', 'usmHMAC256SHA384AuthProtocol'),
+    ('sha512', 'usmHMAC384SHA512AuthProtocol'),
+    ('none', 'usmNoAuthProtocol'),
+]
+_PRIV_ATTRS = [
+    ('des', 'usmDESPrivProtocol'),
+    ('3des', 'usm3DESEDEPrivProtocol'),
+    ('aes', 'usmAesCfb128Protocol'),
+    ('aes192', 'usmAesCfb192Protocol'),
+    ('aes256', 'usmAesCfb256Protocol'),
+    ('aes192blmt', 'usmAesBlumenthalCfb192Protocol'),
+    ('aes256blmt', 'usmAesBlumenthalCfb256Protocol'),
+    ('none', 'usmNoPrivProtocol'),
+]
+
+
+def _build_snmp_protocol_dicts(hlapi):
+    """Build auth/priv protocol dicts from hlapi
+
+    Only includes keys whose attribute exists and always includes 'none'
+    to prevent KeyErrors during lookup when `snmp_*_protocol` is set to 'none'.
+    """
+    auth = {}
+    for key, attr in _AUTH_ATTRS:
+        val = getattr(hlapi, attr, None)
+        if val is not None:
+            auth[key] = val
+    if 'none' not in auth:
+        auth['none'] = None
+    priv = {}
+    for key, attr in _PRIV_ATTRS:
+        val = getattr(hlapi, attr, None)
+        if val is not None:
+            priv[key] = val
+    if 'none' not in priv:
+        priv['none'] = None
+    return auth, priv
+
+
 if pysnmp:
     from pysnmp import error as snmp_error
     from pysnmp import hlapi as snmp
-
-    snmp_auth_protocols = {
-        'md5': snmp.usmHMACMD5AuthProtocol,
-        'sha': snmp.usmHMACSHAAuthProtocol,
-        'sha224': snmp.usmHMAC128SHA224AuthProtocol,
-        'sha256': snmp.usmHMAC192SHA256AuthProtocol,
-        'sha384': snmp.usmHMAC256SHA384AuthProtocol,
-        'sha512': snmp.usmHMAC384SHA512AuthProtocol,
-        'none': snmp.usmNoAuthProtocol,
-    }
-
-    snmp_priv_protocols = {
-        'des': snmp.usmDESPrivProtocol,
-        '3des': snmp.usm3DESEDEPrivProtocol,
-        'aes': snmp.usmAesCfb128Protocol,
-        'aes192': snmp.usmAesCfb192Protocol,
-        'aes256': snmp.usmAesCfb256Protocol,
-        'aes192blmt': snmp.usmAesBlumenthalCfb192Protocol,
-        'aes256blmt': snmp.usmAesBlumenthalCfb256Protocol,
-        'none': snmp.usmNoPrivProtocol,
-    }
-
-else:
-    snmp = None
-    snmp_error = None
-
-    snmp_auth_protocols = {
-        'none': None
-    }
-
-    snmp_priv_protocols = {
-        'none': None
-    }
+    snmp_auth_protocols, snmp_priv_protocols = _build_snmp_protocol_dicts(snmp)
 
 LOG = logging.getLogger(__name__)
 
