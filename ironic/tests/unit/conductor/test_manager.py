@@ -9282,6 +9282,71 @@ class ConcurrentActionLimitTestCase(mgr_utils.ServiceSetUpMixin,
         self.service._concurrent_action_limit('cleaning')
         self.service._concurrent_action_limit('unprovisioning')
 
+    def test_concurrent_action_limit_per_conductor_group_deploy(self):
+        # Set up nodes in different conductor groups
+        self.node1.provision_state = states.DEPLOYING
+        self.node1.conductor_group = 'group-a'
+        self.node2.provision_state = states.DEPLOYWAIT
+        self.node2.conductor_group = 'group-a'
+        self.node3.provision_state = states.DEPLOYING
+        self.node3.conductor_group = 'group-b'
+        self.node1.save()
+        self.node2.save()
+        self.node3.save()
+
+        # Enable per-conductor-group limiting
+        CONF.set_override('max_concurrent_per_conductor_group', True,
+                          group='conductor')
+        CONF.set_override('conductor_group', 'group-a', group='conductor')
+        CONF.set_override('max_concurrent_deploy', 2, group='conductor')
+
+        # Should hit limit for group-a (2 nodes deploying)
+        self.assertRaises(
+            exception.ConcurrentActionLimit,
+            self.service._concurrent_action_limit,
+            'provisioning')
+
+        # Switch to group-b, should not hit limit (only 1 node deploying)
+        CONF.set_override('conductor_group', 'group-b', group='conductor')
+        self.service._concurrent_action_limit('provisioning')
+
+        # Disable per-conductor-group limiting, should hit global limit
+        CONF.set_override('max_concurrent_per_conductor_group', False,
+                          group='conductor')
+        CONF.set_override('max_concurrent_deploy', 3, group='conductor')
+        self.assertRaises(
+            exception.ConcurrentActionLimit,
+            self.service._concurrent_action_limit,
+            'provisioning')
+
+    def test_concurrent_action_limit_per_conductor_group_cleaning(self):
+        # Set up nodes in different conductor groups
+        self.node1.provision_state = states.CLEANING
+        self.node1.conductor_group = 'group-a'
+        self.node2.provision_state = states.CLEANWAIT
+        self.node2.conductor_group = 'group-a'
+        self.node3.provision_state = states.DELETING
+        self.node3.conductor_group = 'group-b'
+        self.node1.save()
+        self.node2.save()
+        self.node3.save()
+
+        # Enable per-conductor-group limiting
+        CONF.set_override('max_concurrent_per_conductor_group', True,
+                          group='conductor')
+        CONF.set_override('conductor_group', 'group-a', group='conductor')
+        CONF.set_override('max_concurrent_clean', 2, group='conductor')
+
+        # Should hit limit for group-a (2 nodes in cleaning states)
+        self.assertRaises(
+            exception.ConcurrentActionLimit,
+            self.service._concurrent_action_limit,
+            'cleaning')
+
+        # Switch to group-b, should not hit limit (only 1 node)
+        CONF.set_override('conductor_group', 'group-b', group='conductor')
+        self.service._concurrent_action_limit('cleaning')
+
 
 @mgr_utils.mock_record_keepalive
 class ContinueInspectionTestCase(mgr_utils.ServiceSetUpMixin,

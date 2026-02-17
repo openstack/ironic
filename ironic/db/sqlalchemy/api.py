@@ -3031,7 +3031,7 @@ class Connection(api.Connection):
                 models.NodeHistory.id.in_(entries)
             ).delete(synchronize_session=False)
 
-    def count_nodes_in_provision_state(self, state):
+    def count_nodes_in_provision_state(self, state, conductor_group=None):
         if not isinstance(state, list):
             state = [state]
         with _session_for_read() as session:
@@ -3043,15 +3043,18 @@ class Connection(api.Connection):
             # literally have the DB do *all* of the world, so no
             # client side ops occur. The column is also indexed,
             # which means this will be an index based response.
-            res = session.scalar(
-                sa.select(
-                    sa.func.count(models.Node.id)
-                ).filter(
-                    or_(
-                        models.Node.provision_state == v for v in state
-                    )
+            query = sa.select(
+                sa.func.count(models.Node.id)
+            ).filter(
+                or_(
+                    models.Node.provision_state == v for v in state
                 )
             )
+            if conductor_group is not None:
+                query = query.filter(
+                    models.Node.conductor_group == conductor_group
+                )
+            res = session.scalar(query)
         return res
 
     @wrap_sqlite_retry

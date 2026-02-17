@@ -502,6 +502,16 @@ opts = [
                       'is a global setting applying to all requests this '
                       'conductor receives, regardless of access rights. '
                       'The concurrent clean limit cannot be disabled.')),
+    cfg.BoolOpt('max_concurrent_per_conductor_group',
+                default=False,
+                mutable=True,
+                help=_('When set to True, the max_concurrent_deploy and '
+                       'max_concurrent_clean limits are applied per '
+                       'conductor group instead of globally. This allows '
+                       'different conductor groups to have their own '
+                       'independent concurrency limits. When False '
+                       '(the default), the limits apply to all nodes '
+                       'across the entire Ironic deployment.')),
     cfg.BoolOpt('poweroff_in_cleanfail',
                 default=False,
                 help=_('If True power off nodes in the ``clean failed`` '

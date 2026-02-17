@@ -1303,3 +1303,42 @@ class DbNodeTestCase(base.DbTestCase):
                 states.DEPLOYWAIT
             ])
         )
+
+    def test_node_provision_state_count_by_conductor_group(self):
+        # Create nodes in 'group-a'
+        for i in range(3):
+            utils.create_test_node(uuid=uuidutils.generate_uuid(),
+                                   provision_state=states.DEPLOYING,
+                                   conductor_group='group-a')
+        # Create nodes in 'group-b'
+        for i in range(2):
+            utils.create_test_node(uuid=uuidutils.generate_uuid(),
+                                   provision_state=states.DEPLOYING,
+                                   conductor_group='group-b')
+        # Create nodes in default (empty) conductor group
+        for i in range(4):
+            utils.create_test_node(uuid=uuidutils.generate_uuid(),
+                                   provision_state=states.DEPLOYING,
+                                   conductor_group='')
+
+        # Test filtering by conductor_group
+        self.assertEqual(
+            3,
+            self.dbapi.count_nodes_in_provision_state(
+                states.DEPLOYING, conductor_group='group-a')
+        )
+        self.assertEqual(
+            2,
+            self.dbapi.count_nodes_in_provision_state(
+                states.DEPLOYING, conductor_group='group-b')
+        )
+        self.assertEqual(
+            4,
+            self.dbapi.count_nodes_in_provision_state(
+                states.DEPLOYING, conductor_group='')
+        )
+        # Without conductor_group filter, should return all
+        self.assertEqual(
+            9,
+            self.dbapi.count_nodes_in_provision_state(states.DEPLOYING)
+        )

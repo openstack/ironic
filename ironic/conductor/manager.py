@@ -4046,11 +4046,16 @@ class ConductorManager(base_manager.BaseConductorManager):
                  is exceeded.
         """
         # NOTE(TheJulia): Keeping this all in one place for simplicity.
+        # Determine if we should filter by conductor group
+        conductor_group = None
+        if CONF.conductor.max_concurrent_per_conductor_group:
+            conductor_group = CONF.conductor.conductor_group
+
         if action == 'provisioning':
-            node_count = self.dbapi.count_nodes_in_provision_state([
-                states.DEPLOYING,
-                states.DEPLOYWAIT
-            ])
+            node_count = self.dbapi.count_nodes_in_provision_state(
+                [states.DEPLOYING, states.DEPLOYWAIT],
+                conductor_group=conductor_group
+            )
             if node_count >= CONF.conductor.max_concurrent_deploy:
                 raise exception.ConcurrentActionLimit(
                     task_type=action)
@@ -4060,11 +4065,10 @@ class ConductorManager(base_manager.BaseConductorManager):
             # which is super transitory, *but* you can get a node into
             # the state. So in order to guard against a DoS attack, we
             # need to check even the super transitory node state.
-            node_count = self.dbapi.count_nodes_in_provision_state([
-                states.DELETING,
-                states.CLEANING,
-                states.CLEANWAIT
-            ])
+            node_count = self.dbapi.count_nodes_in_provision_state(
+                [states.DELETING, states.CLEANING, states.CLEANWAIT],
+                conductor_group=conductor_group
+            )
             if node_count >= CONF.conductor.max_concurrent_clean:
                 raise exception.ConcurrentActionLimit(
                     task_type=action)

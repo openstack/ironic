@@ -1,0 +1,10 @@
+---
+features:
+  - |
+    Adds a new configuration option ``[conductor]max_concurrent_per_conductor_group``
+    which, when set to ``True``, causes the ``[conductor]max_concurrent_deploy``
+    and ``[conductor]max_concurrent_clean`` limits to be applied per conductor
+    group instead of globally across the entire Ironic deployment. This allows
+    operators with multiple conductor groups to have independent concurrency
+    limits for each group, enabling better resource isolation and control
+    in multi-tenant or segmented deployments.
