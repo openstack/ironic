@@ -27,4 +27,5 @@ the services.
   deploy-steps
   conductor-groups
   networking
+  vxlan
   multitenancy
