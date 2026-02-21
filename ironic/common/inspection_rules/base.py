@@ -105,6 +105,7 @@ class Base(object):
             raise exception.InspectionRuleValidationFailure(
                 _("args must be either a list or dictionary"))
 
+    @staticmethod
     def interpolate_variables(value, node, inventory, plugin_data,
                               loop_context=None, op=None):
         loop_context = loop_context or {}
