@@ -80,35 +80,24 @@ following command::
 
   ip route add $network via $OVN_ROUTER advmss $MAX_SEGMENT_SIZE mtu lock $MTU
 
-NAT of TFTP
------------
+Network Address Translation
+---------------------------
 
 Because the NAT and Connection Tracking layer gets applied differently with
 OVN, as the router doesn't appear as a namespace or to the local OS kernel,
-you will not be able to enable NAT translation for Bare Metal Networks
-under the direct management of OVN, that is if you don't have a separate
-TFTP service running from with-in that network.
+you will not be able to enable NAT translation for the Bare Metal Networks
+under the direct management of OVN which are used for provisioning, cleaning,
+servicing, rescuing, and any other Ironic driven activities.
 
-This is a result of the kernel of the OVN gateway being unable to associate
-and handle return packet directly as part of the connection tracking layer.
-No direct work around for this is known, but generally Ironic encourages the
-use of Virtual Media where possible to sidestep this sort of issue and ensure
-a higher operational security posture for the deployment. Users of the
-``redfish`` hardware type can learn about
-:ref:`redfish-virtual-media` in our Redfish documentation.
+In part, TFTP is also not advisable in these cases because the connection
+tracking layer which users of Linux networking may be familiar of, doesn't
+exist in the context of OVN. OVN is flows based which also prevents Ironic
+from being able to reach the private IP address of baremetal nodes in networks
+it utilizes when NAT is enabled.
 
-.. Warning::
-   Creation of FIPs, such as those which may be used grant SSH access to
-   a internal node on a network, for example which may be used by Tempest,
-   establishes a 1:1 NAT rule. When this is the case, TFTP packets
-   *cannot* transit OVN and network boot operations will fail.
-
-Rescue
-------
-
-Due to the aforementioned NAT issues, we know Rescue operations may not work.
-
-This is being tracked as `bug 2033083 <https://bugs.launchpad.net/ironic/+bug/2033083>`_.
+Operator are advised to setup and leverage dedicated networks,
+and utilize firewall rules to restrict and limit communication flowing through
+OVN.
 
 PXE boot of GRUB
 ----------------
@@ -146,20 +135,27 @@ least, it works that way in Devstack.
 Outbound SNAT
 -------------
 
-Outbound connectivity (that traverses the Neutron/OVN router) is known to be problematic
-due to a bug in the way External port priority is handled differently than port assignment
-than the Chassis Gateway, the very same mentioned previously. Ultimately this can create
-a mismatch between the ports and results in intermittent traffic loss. A known workaround
-is to manually update the HA Chassis Group and Gateway Chassis priorities so these are in sync
+Outbound connectivity (that traverses the Neutron/OVN router) is known to be
+problematic due to a bug in the way External port priority is handled
+differently than port assignment than the Chassis Gateway.
+Ultimately this can create a mismatch between the ports and results in
+intermittent traffic loss. A known workaround is to manually update the
+HA Chassis Group and Gateway Chassis priorities so these are in sync
 for a given Neutron network and associated router.
 
 This is being tracked as `bug 1995078 <https://bugs.launchpad.net/neutron/+bug/1995078>`_.
+
+The Ironic community may integrate a fix into the ``ironic-neutron-agent`` at a
+future point in time if the bug in Neutron is not resolved.
 
 ML2 Plugins
 -----------
 
 The ``ovn-router`` and ``trunk`` ml2 plugins as supplied with Neutron
 *must* be enabled.
+
+If your additionally using the ``baremetal-l2vni`` mechanism driver, the
+``segments`` plugin must also be enabled.
 
 If you need to attach to the network...
 ---------------------------------------
