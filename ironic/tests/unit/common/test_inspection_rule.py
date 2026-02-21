@@ -100,10 +100,8 @@ class TestApplyRules(TestInspectionRules):
         super(TestApplyRules, self).setUp()
 
     @mock.patch.object(engine, 'get_built_in_rules', autospec=True)
-    @mock.patch.object(engine, 'check_conditions', autospec=True)
-    @mock.patch.object(engine, 'apply_actions', autospec=True)
-    def test_apply_rules_no_rules(self, mock_apply_actions,
-                                  mock_check_conditions, mock_get_built_in,
+    @mock.patch.object(engine, '_check_rule', autospec=True)
+    def test_apply_rules_no_rules(self, mock_check_rule, mock_get_built_in,
                                   mock_list):
         mock_list.return_value = []
         mock_get_built_in.return_value = []
@@ -116,17 +114,14 @@ class TestApplyRules(TestInspectionRules):
             context=self.context,
             filters={'phase': 'main'})
         mock_get_built_in.assert_called_once()
-
-        mock_check_conditions.assert_not_called()
-        mock_apply_actions.assert_not_called()
+        mock_check_rule.assert_not_called()
         self.assertIsNone(result)
 
     @mock.patch.object(engine, 'get_built_in_rules', autospec=True)
-    @mock.patch.object(engine, 'check_conditions', autospec=True)
     @mock.patch.object(engine, 'apply_actions', autospec=True)
-    def test_apply_rules_success(self, mock_apply_actions,
-                                 mock_check_conditions, mock_get_built_in,
-                                 mock_list):
+    @mock.patch.object(engine, '_check_rule', autospec=True)
+    def test_apply_rules_success(self, mock_check_rule, mock_apply_actions,
+                                 mock_get_built_in, mock_list):
         rule1 = {'uuid': 'rule-1', 'priority': 100, 'conditions': [],
                  'actions': [{'op': 'set-attribute',
                               'args': {'path': 'a', 'value': 'b'}}]}
@@ -136,7 +131,7 @@ class TestApplyRules(TestInspectionRules):
                       'args': {'name': 'boot_mode', 'value': 'uefi'}}]}
         mock_list.return_value = [rule1]
         mock_get_built_in.return_value = [rule2]
-        mock_check_conditions.return_value = True
+        mock_check_rule.return_value = (mock.MagicMock(), mock.MagicMock())
 
         with task_manager.acquire(self.context, self.node.uuid) as task:
             engine.apply_rules(task, self.inventory, self.plugin_data, 'main')
@@ -144,62 +139,60 @@ class TestApplyRules(TestInspectionRules):
         mock_list.assert_called_once_with(
             context=self.context,
             filters={'phase': 'main'})
-
         mock_get_built_in.assert_called_once()
-        self.assertEqual(2, mock_check_conditions.call_count)
+        self.assertEqual(2, mock_check_rule.call_count)
         self.assertEqual(2, mock_apply_actions.call_count)
 
     @mock.patch.object(engine, 'get_built_in_rules', autospec=True)
-    @mock.patch.object(engine, 'check_conditions', autospec=True)
     @mock.patch.object(engine, 'apply_actions', autospec=True)
-    def test_apply_rules_some_conditions_pass(self, mock_apply_actions,
-                                              mock_check_conditions,
+    @mock.patch.object(engine, '_check_rule', autospec=True)
+    def test_apply_rules_some_conditions_pass(self, mock_check_rule,
+                                              mock_apply_actions,
                                               mock_get_built_in,
                                               mock_list):
         """Test that rules are skipped when conditions don't match."""
         mock_list.return_value = [self.rule1]
         mock_get_built_in.return_value = [self.rule2]
-
-        mock_check_conditions.side_effect = [False, True]
+        mock_check_rule.side_effect = [
+            None, (mock.MagicMock(), mock.MagicMock())
+        ]
 
         with task_manager.acquire(self.context, self.node.uuid) as task:
             engine.apply_rules(task, self.inventory, self.plugin_data, 'main')
 
-        self.assertEqual(2, mock_check_conditions.call_count)
+        self.assertEqual(2, mock_check_rule.call_count)
         mock_apply_actions.assert_called_once()
 
     @mock.patch.object(engine, 'get_built_in_rules', autospec=True)
-    @mock.patch.object(engine, 'check_conditions', autospec=True)
     @mock.patch.object(engine, 'apply_actions', autospec=True)
-    def test_apply_rules_all_conditions_fail(self, mock_apply_actions,
-                                             mock_check_conditions,
+    @mock.patch.object(engine, '_check_rule', autospec=True)
+    def test_apply_rules_all_conditions_fail(self, mock_check_rule,
+                                             mock_apply_actions,
                                              mock_get_built_in,
                                              mock_list):
         """Test that rules are skipped when conditions don't match."""
         mock_list.return_value = [self.rule1]
         mock_get_built_in.return_value = [self.rule2]
-
-        mock_check_conditions.side_effect = [False, False]
+        mock_check_rule.return_value = None
 
         with task_manager.acquire(self.context, self.node.uuid) as task:
             engine.apply_rules(task, self.inventory, self.plugin_data, 'main')
 
-        self.assertEqual(2, mock_check_conditions.call_count)
+        self.assertEqual(2, mock_check_rule.call_count)
         mock_apply_actions.assert_not_called()
 
     @mock.patch.object(engine, 'LOG', autospec=True)
     @mock.patch.object(engine, 'get_built_in_rules', autospec=True)
-    @mock.patch.object(engine, 'check_conditions', autospec=True)
     @mock.patch.object(engine, 'apply_actions', autospec=True)
-    def test_apply_rules_ironic_exception(self, mock_apply_actions,
-                                          mock_check_conditions,
+    @mock.patch.object(engine, '_check_rule', autospec=True)
+    def test_apply_rules_ironic_exception(self, mock_check_rule,
+                                          mock_apply_actions,
                                           mock_get_built_in,
                                           mock_log, mock_list):
         """Test that IronicException is re-raised."""
         mock_list.return_value = [self.rule1, self.rule2]
         mock_get_built_in.return_value = []
-        mock_check_conditions.return_value = True
-
+        mock_check_rule.return_value = (mock.MagicMock(), mock.MagicMock())
         mock_apply_actions.side_effect = [
             exception.IronicException("Expected error"),
             {'plugin_data': {'updated': 'data'}}
@@ -211,126 +204,121 @@ class TestApplyRules(TestInspectionRules):
                               self.plugin_data, 'main')
 
         mock_log.error.assert_called_once()
-
         self.assertEqual(1, mock_apply_actions.call_count)
 
-    @mock.patch.object(utils, 'ShallowMaskDict', autospec=True)
-    @mock.patch.object(engine, 'get_built_in_rules', autospec=True)
+
+class TestCheckRule(TestInspectionRules):
+
     @mock.patch.object(engine, 'check_conditions', autospec=True)
-    @mock.patch.object(engine, 'apply_actions', autospec=True)
-    def test_apply_rules_with_always_mask(self, mock_apply_actions,
-                                          mock_check_conditions,
-                                          mock_get_built_in,
-                                          mock_masked_dict, mock_list):
-        """Test apply_rules with mask_secrets='always'."""
+    def test_check_rule_conditions_pass(self, mock_check_conditions):
+        """Conditions pass: masked dicts are returned as a tuple."""
+        rule = {'uuid': 'rule-1', 'priority': 100, 'conditions': [],
+                'actions': [{'op': 'set-attribute',
+                             'args': {'path': 'a', 'value': 'b'}}]}
+        mock_check_conditions.return_value = True
+
+        with task_manager.acquire(self.context, self.node.uuid) as task:
+            result = engine._check_rule(task, rule, self.inventory,
+                                        self.plugin_data)
+
+        self.assertIsNotNone(result)
+        masked_inventory, masked_plugin_data = result
+        mock_check_conditions.assert_called_once()
+
+    @mock.patch.object(engine, 'check_conditions', autospec=True)
+    def test_check_rule_conditions_fail(self, mock_check_conditions):
+        """Conditions fail: None is returned."""
+        rule = {'uuid': 'rule-1', 'priority': 100, 'conditions': [],
+                'actions': [{'op': 'set-attribute',
+                             'args': {'path': 'a', 'value': 'b'}}]}
+        mock_check_conditions.return_value = False
+
+        with task_manager.acquire(self.context, self.node.uuid) as task:
+            result = engine._check_rule(task, rule, self.inventory,
+                                        self.plugin_data)
+
+        self.assertIsNone(result)
+        mock_check_conditions.assert_called_once()
+
+    @mock.patch.object(utils, 'ShallowMaskDict', autospec=True)
+    @mock.patch.object(engine, 'check_conditions', autospec=True)
+    def test_check_rule_mask_always(self, mock_check_conditions,
+                                    mock_masked_dict):
+        """mask_secrets='always' enables masking for any rule."""
         self.config(mask_secrets='always', group='inspection_rules')
-
-        mock_list.return_value = [self.rule1]
-        mock_get_built_in.return_value = [self.rule2]
+        rule = {'uuid': 'rule-1', 'sensitive': False, 'conditions': [],
+                'actions': []}
         mock_check_conditions.return_value = True
 
-        masked_inventory = mock.MagicMock()
-        masked_plugin_data = mock.MagicMock()
-        mock_masked_dict.side_effect = [masked_inventory, masked_plugin_data,
-                                        mock.MagicMock(), mock.MagicMock()]
-
         with task_manager.acquire(self.context, self.node.uuid) as task:
-            engine.apply_rules(task, self.inventory, self.plugin_data, 'main')
+            engine._check_rule(task, rule, self.inventory, self.plugin_data)
 
-        mock_masked_dict.assert_has_calls([
-            mock.call(self.inventory,
-                      sensitive_fields=engine.SENSITIVE_FIELDS,
-                      mask_enabled=True),
-            mock.call(self.plugin_data,
-                      sensitive_fields=engine.SENSITIVE_FIELDS,
-                      mask_enabled=True),
-            mock.call(self.inventory,
-                      sensitive_fields=engine.SENSITIVE_FIELDS,
-                      mask_enabled=True),
-            mock.call(self.plugin_data,
-                      sensitive_fields=engine.SENSITIVE_FIELDS,
-                      mask_enabled=True)
-        ])
+        mock_masked_dict.assert_any_call(
+            self.inventory, sensitive_fields=engine.SENSITIVE_FIELDS,
+            mask_enabled=True)
+        mock_masked_dict.assert_any_call(
+            self.plugin_data, sensitive_fields=engine.SENSITIVE_FIELDS,
+            mask_enabled=True)
 
     @mock.patch.object(utils, 'ShallowMaskDict', autospec=True)
-    @mock.patch.object(engine, 'get_built_in_rules', autospec=True)
     @mock.patch.object(engine, 'check_conditions', autospec=True)
-    @mock.patch.object(engine, 'apply_actions', autospec=True)
-    def test_apply_rules_with_never_mask(self, mock_apply_actions,
-                                         mock_check_conditions,
-                                         mock_get_built_in, mock_masked_dict,
-                                         mock_list):
-        """Test apply_rules with mask_secrets='never'."""
+    def test_check_rule_mask_never(self, mock_check_conditions,
+                                   mock_masked_dict):
+        """mask_secrets='never' disables masking for any rule."""
         self.config(mask_secrets='never', group='inspection_rules')
-
-        mock_list.return_value = [self.rule1]
-        mock_get_built_in.return_value = [self.rule2]
+        rule = {'uuid': 'rule-1', 'sensitive': False, 'conditions': [],
+                'actions': []}
         mock_check_conditions.return_value = True
 
-        masked_inventory = mock.MagicMock()
-        masked_plugin_data = mock.MagicMock()
-        mock_masked_dict.side_effect = [masked_inventory, masked_plugin_data,
-                                        mock.MagicMock(), mock.MagicMock()]
-
         with task_manager.acquire(self.context, self.node.uuid) as task:
-            engine.apply_rules(task, self.inventory, self.plugin_data, 'main')
+            engine._check_rule(task, rule, self.inventory, self.plugin_data)
 
-        mock_masked_dict.assert_has_calls([
-            mock.call(self.inventory,
-                      sensitive_fields=engine.SENSITIVE_FIELDS,
-                      mask_enabled=False),
-            mock.call(self.plugin_data,
-                      sensitive_fields=engine.SENSITIVE_FIELDS,
-                      mask_enabled=False),
-            mock.call(self.inventory,
-                      sensitive_fields=engine.SENSITIVE_FIELDS,
-                      mask_enabled=False),
-            mock.call(self.plugin_data,
-                      sensitive_fields=engine.SENSITIVE_FIELDS,
-                      mask_enabled=False)
-        ])
+        mock_masked_dict.assert_any_call(
+            self.inventory, sensitive_fields=engine.SENSITIVE_FIELDS,
+            mask_enabled=False)
+        mock_masked_dict.assert_any_call(
+            self.plugin_data, sensitive_fields=engine.SENSITIVE_FIELDS,
+            mask_enabled=False)
 
     @mock.patch.object(utils, 'ShallowMaskDict', autospec=True)
-    @mock.patch.object(engine, 'get_built_in_rules', autospec=True)
     @mock.patch.object(engine, 'check_conditions', autospec=True)
-    @mock.patch.object(engine, 'apply_actions', autospec=True)
-    def test_apply_rules_with_sensitive_mask(self, mock_apply_actions,
-                                             mock_check_conditions,
-                                             mock_get_built_in,
-                                             mock_masked_dict, mock_list):
-        """Test apply_rules with mask_secrets='sensitive'."""
+    def test_check_rule_mask_sensitive_non_sensitive_rule(
+            self, mock_check_conditions, mock_masked_dict):
+        """mask_secrets='sensitive' masks non-sensitive rules."""
         self.config(mask_secrets='sensitive', group='inspection_rules')
-
-        mock_list.return_value = [self.rule1, self.sensitive_rule]
-        mock_get_built_in.return_value = []
+        rule = {'uuid': 'rule-1', 'sensitive': False, 'conditions': [],
+                'actions': []}
         mock_check_conditions.return_value = True
 
-        masked_inventory1 = mock.MagicMock()
-        masked_plugin_data1 = mock.MagicMock()
-        masked_inventory2 = mock.MagicMock()
-        masked_plugin_data2 = mock.MagicMock()
-        mock_masked_dict.side_effect = [
-            masked_inventory1, masked_plugin_data1,
-            masked_inventory2, masked_plugin_data2
-        ]
+        with task_manager.acquire(self.context, self.node.uuid) as task:
+            engine._check_rule(task, rule, self.inventory, self.plugin_data)
+
+        mock_masked_dict.assert_any_call(
+            self.inventory, sensitive_fields=engine.SENSITIVE_FIELDS,
+            mask_enabled=True)
+        mock_masked_dict.assert_any_call(
+            self.plugin_data, sensitive_fields=engine.SENSITIVE_FIELDS,
+            mask_enabled=True)
+
+    @mock.patch.object(utils, 'ShallowMaskDict', autospec=True)
+    @mock.patch.object(engine, 'check_conditions', autospec=True)
+    def test_check_rule_mask_sensitive_sensitive_rule(
+            self, mock_check_conditions, mock_masked_dict):
+        """mask_secrets='sensitive' unmasks sensitive rules."""
+        self.config(mask_secrets='sensitive', group='inspection_rules')
+        rule = {'uuid': 'rule-1', 'sensitive': True, 'conditions': [],
+                'actions': []}
+        mock_check_conditions.return_value = True
 
         with task_manager.acquire(self.context, self.node.uuid) as task:
-            engine.apply_rules(task, self.inventory, self.plugin_data, 'main')
+            engine._check_rule(task, rule, self.inventory, self.plugin_data)
 
-        mock_masked_dict.assert_has_calls([
-            mock.call(self.inventory,
-                      sensitive_fields=engine.SENSITIVE_FIELDS,
-                      mask_enabled=True),
-            mock.call(self.plugin_data,
-                      sensitive_fields=engine.SENSITIVE_FIELDS,
-                      mask_enabled=True),
-            mock.call(self.inventory,
-                      sensitive_fields=engine.SENSITIVE_FIELDS,
-                      mask_enabled=False),
-            mock.call(self.plugin_data,
-                      sensitive_fields=engine.SENSITIVE_FIELDS,
-                      mask_enabled=False)
-        ])
+        mock_masked_dict.assert_any_call(
+            self.inventory, sensitive_fields=engine.SENSITIVE_FIELDS,
+            mask_enabled=False)
+        mock_masked_dict.assert_any_call(
+            self.plugin_data, sensitive_fields=engine.SENSITIVE_FIELDS,
+            mask_enabled=False)
 
 
 class TestOperators(TestInspectionRules):
