@@ -6027,7 +6027,7 @@ class ManagerSyncPowerStatesTestCase(mgr_utils.CommonMixIn,
         super(ManagerSyncPowerStatesTestCase, self).setUp()
         self.service = manager.ConductorManager('hostname', 'test-topic')
         self.service.dbapi = self.dbapi
-        self.node = self._create_node()
+        self.node = self._create_node(driver_internal_info={})
         self.filters = {'maintenance': False}
         self.columns = ['uuid', 'driver', 'conductor_group', 'id']
 
@@ -6184,7 +6184,8 @@ class ManagerSyncPowerStatesTestCase(mgr_utils.CommonMixIn,
                          mapped_mock, acquire_mock, sync_mock):
         get_nodeinfo_mock.return_value = self._get_nodeinfo_list_response()
         mapped_mock.return_value = True
-        task = self._create_task(node_attrs=dict(uuid=self.node.uuid))
+        task = self._create_task(node_attrs=dict(uuid=self.node.uuid,
+                                                  driver_internal_info={}))
         acquire_mock.side_effect = self._get_acquire_side_effect(task)
 
         self.service._sync_power_states(self.context)
@@ -6199,6 +6200,30 @@ class ManagerSyncPowerStatesTestCase(mgr_utils.CommonMixIn,
                                              purpose=mock.ANY,
                                              shared=True)
         sync_mock.assert_called_once_with(task, mock.ANY)
+
+    def test_single_node_with_firmware_update(self, get_nodeinfo_mock,
+                                               mapped_mock, acquire_mock,
+                                               sync_mock):
+        get_nodeinfo_mock.return_value = self._get_nodeinfo_list_response()
+        mapped_mock.return_value = True
+        task = self._create_task(
+            node_attrs=dict(uuid=self.node.uuid,
+                            driver_internal_info={'redfish_fw_updates': {
+                                'component': 'bmc', 'url': 'http://example.com'}}))
+        acquire_mock.side_effect = self._get_acquire_side_effect(task)
+
+        self.service._sync_power_states(self.context)
+
+        get_nodeinfo_mock.assert_called_once_with(
+            columns=self.columns, filters=self.filters)
+        mapped_mock.assert_called_once_with(self.service,
+                                            self.node.uuid,
+                                            self.node.driver,
+                                            self.node.conductor_group)
+        acquire_mock.assert_called_once_with(self.context, self.node.uuid,
+                                             purpose=mock.ANY,
+                                             shared=True)
+        self.assertFalse(sync_mock.called)
 
     def test_single_node_adopt_failed(self, get_nodeinfo_mock,
                                       mapped_mock, acquire_mock, sync_mock):
@@ -6239,7 +6264,8 @@ class ManagerSyncPowerStatesTestCase(mgr_utils.CommonMixIn,
         mapped_map = {}
         for i in range(1, 8):
             attrs = {'id': i,
-                     'uuid': uuidutils.generate_uuid()}
+                     'uuid': uuidutils.generate_uuid(),
+                     'driver_internal_info': {}}
             if i == 3:
                 attrs['provision_state'] = states.DEPLOYWAIT
                 attrs['target_provision_state'] = states.ACTIVE

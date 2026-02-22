@@ -1697,10 +1697,18 @@ class ConductorManager(base_manager.BaseConductorManager):
                     #             at the same time.
                     # NOTE(dtantsur): it's also pointless (and dangerous) to
                     # sync power state when a power action is in progress
+                    # NOTE(iurygregory): skip sync power state during firmware
+                    # update, as BMC may be temporarily unresponsive and power
+                    # cycling can interrupt the update process.
+                    has_fw_update = (
+                        task.node.driver_internal_info.get(
+                            'redfish_fw_updates') is not None
+                    )
                     if (task.node.provision_state in SYNC_EXCLUDED_STATES
                             or task.node.maintenance
                             or task.node.target_power_state
-                            or task.node.reservation):
+                            or task.node.reservation
+                            or has_fw_update):
                         continue
                     count = do_sync_power_state(
                         task, self.power_state_sync_count[node_uuid])
