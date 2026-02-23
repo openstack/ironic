@@ -391,6 +391,15 @@ def _insert_vmedia_in_resource(task, resource, boot_url, boot_device,
             if password:
                 kwargs['password'] = password
             v_media.insert_media(boot_url, **kwargs)
+        # NOTE(janders): On Cisco C845A M8 (and potentially other OpenBMC
+        # systems), some virtual media slots only support local/KVM access
+        # via WebSocket/NBD and do not have the InsertMedia action.
+        # Catch MissingActionError and try the next available device.
+        except sushy.exceptions.MissingActionError:
+            LOG.info("Virtual media device %(slot)s on node %(node)s does "
+                     "not support InsertMedia action, skipping.",
+                     {'slot': v_media.identity, 'node': task.node.uuid})
+            continue
         # NOTE(janders): On Cisco UCSB and UCSX blades there are several
         # vMedia devices. Some of those are only meant for internal use
         # by CIMC vKVM - attempts to InsertMedia into those will result
@@ -412,6 +421,24 @@ def _insert_vmedia_in_resource(task, resource, boot_url, boot_device,
 
             e.node_uuid = task.node.uuid
             return False
+        # NOTE(janders): On Cisco C845A M8 (and potentially other systems),
+        # attempting to use a virtual media slot that doesn't support remote
+        # media insertion may result in HTTP 405 (Method Not Allowed).
+        # Catch this and try the next available device.
+        # This must come after ServerSideError since it is a subclass of
+        # HTTPError.
+        except sushy.exceptions.HTTPError as exc:
+            if exc.status_code == 405:
+                err_msg = ("Inserting virtual media into %(boot_device)s "
+                           "failed for node %(node)s, moving to next "
+                           "virtual media device, if available. "
+                           "%(exc)s" %
+                           {'node': task.node.uuid, 'exc': exc,
+                            'boot_device': boot_device})
+                err_msgs.append(err_msg)
+                LOG.warning(err_msg)
+                continue
+            raise
 
         LOG.info("Inserted boot media %(boot_url)s into "
                  "%(boot_device)s for node "

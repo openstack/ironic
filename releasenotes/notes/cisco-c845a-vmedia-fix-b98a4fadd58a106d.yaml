@@ -1,0 +1,10 @@
+---
+fixes:
+  - |
+    Fixes virtual media insertion failures on Cisco C845A M8 (and potentially
+    other OpenBMC-based systems) where some virtual media slots only support
+    local/KVM access via WebSocket/NBD and do not expose the ``InsertMedia``
+    Redfish action. Ironic now checks for the presence of the ``InsertMedia``
+    action before attempting to use a virtual media slot, and also catches
+    HTTP 405 (Method Not Allowed) errors to gracefully fall back to the next
+    available slot.

@@ -1574,9 +1574,11 @@ class RedfishVirtualMediaBootTestCase(db_base.DbTestCase):
             mock_vmedia_cd = mock.MagicMock(
                 inserted=False,
                 media_types=[sushy.VIRTUAL_MEDIA_CD])
+            mock_vmedia_cd._actions.insert_media = mock.MagicMock()
 
             error = "Unable to locate the ISO or IMG image file"
             mock_response = mock.MagicMock()
+            mock_response.status_code = 500
             mock_response.json.return_value = {
                 "error": {"message": error}
             }
@@ -1607,6 +1609,83 @@ class RedfishVirtualMediaBootTestCase(db_base.DbTestCase):
                 exception.InvalidParameterValue,
                 redfish_boot._insert_vmedia,
                 task, [mock_manager], 'img-url', sushy.VIRTUAL_MEDIA_CD)
+
+    @mock.patch('time.sleep', lambda *args, **kwargs: None)
+    @mock.patch.object(redfish_boot, '_has_vmedia_via_systems', autospec=True)
+    @mock.patch.object(redfish_utils, 'get_system', autospec=True)
+    def test__insert_vmedia_skip_no_action(self, mock_sys, mock_vmd_sys):
+        """Test that vMedia slots without InsertMedia action are skipped."""
+        mock_vmd_sys.return_value = False
+        with task_manager.acquire(self.context, self.node.uuid,
+                                  shared=True) as task:
+            # First slot has no InsertMedia action (like Cisco C845A M8 Slot_0)
+            mock_vmedia_no_action = mock.MagicMock(
+                inserted=False,
+                identity='Slot_0',
+                media_types=[sushy.VIRTUAL_MEDIA_CD])
+            mock_vmedia_no_action.insert_media.side_effect = (
+                sushy.exceptions.MissingActionError(
+                    action='#VirtualMedia.InsertMedia',
+                    resource=mock_vmedia_no_action.path))
+
+            # Second slot has InsertMedia action (like Cisco C845A M8 Slot_2)
+            mock_vmedia_with_action = mock.MagicMock(
+                inserted=False,
+                identity='Slot_2',
+                media_types=[sushy.VIRTUAL_MEDIA_CD])
+
+            mock_manager = mock.MagicMock()
+            mock_manager.virtual_media.get_members.return_value = [
+                mock_vmedia_no_action, mock_vmedia_with_action]
+
+            redfish_boot._insert_vmedia(
+                task, [mock_manager], 'img-url', sushy.VIRTUAL_MEDIA_CD)
+
+            # First slot should raise MissingActionError and be skipped
+            self.assertTrue(mock_vmedia_no_action.insert_media.called)
+            self.assertTrue(mock_vmedia_with_action.insert_media.called)
+
+    @mock.patch('time.sleep', lambda *args, **kwargs: None)
+    @mock.patch.object(redfish_boot, '_has_vmedia_via_systems', autospec=True)
+    @mock.patch.object(redfish_utils, 'get_system', autospec=True)
+    def test__insert_vmedia_retry_on_http_405(self, mock_sys, mock_vmd_sys):
+        """Test that HTTP 405 errors trigger retry with next slot."""
+        mock_vmd_sys.return_value = False
+        with task_manager.acquire(self.context, self.node.uuid,
+                                  shared=True) as task:
+            # First slot raises HTTP 405
+            mock_vmedia_405 = mock.MagicMock(
+                inserted=False,
+                identity='Slot_1',
+                media_types=[sushy.VIRTUAL_MEDIA_CD])
+            mock_vmedia_405._actions = mock.MagicMock()
+            mock_vmedia_405._actions.insert_media = mock.MagicMock()
+
+            mock_response = mock.MagicMock()
+            mock_response.status_code = 405
+            http_405_error = sushy.exceptions.HTTPError(
+                "PATCH", 'img-url', mock_response)
+            http_405_error.status_code = 405
+            mock_vmedia_405.insert_media.side_effect = http_405_error
+
+            # Second slot succeeds
+            mock_vmedia_success = mock.MagicMock(
+                inserted=False,
+                identity='Slot_2',
+                media_types=[sushy.VIRTUAL_MEDIA_CD])
+            mock_vmedia_success._actions = mock.MagicMock()
+            mock_vmedia_success._actions.insert_media = mock.MagicMock()
+
+            mock_manager = mock.MagicMock()
+            mock_manager.virtual_media.get_members.return_value = [
+                mock_vmedia_405, mock_vmedia_success]
+
+            redfish_boot._insert_vmedia(
+                task, [mock_manager], 'img-url', sushy.VIRTUAL_MEDIA_CD)
+
+            # First slot should fail, second slot should succeed
+            self.assertTrue(mock_vmedia_405.insert_media.called)
+            self.assertTrue(mock_vmedia_success.insert_media.called)
 
     @mock.patch.object(redfish_boot, '_has_vmedia_via_systems', autospec=True)
     @mock.patch.object(redfish_utils, 'get_system', autospec=True)
