@@ -21,7 +21,6 @@ import json
 
 from oslo_config import cfg
 from oslo_log import log as logging
-from oslo_utils import excutils
 
 from ironic.common.i18n import _
 
@@ -111,17 +110,17 @@ class IronicException(Exception):
                 message = self._msg_fmt % kwargs
 
             except Exception:
-                with excutils.save_and_reraise_exception() as ctxt:
-                    # kwargs doesn't match a variable in the message
-                    # log the issue and the kwargs
-                    prs = ', '.join('%s=%s' % pair for pair in kwargs.items())
-                    LOG.exception('Exception in string format operation '
-                                  '(arguments %s)', prs)
-                    if not CONF.errors.fatal_exception_format_errors:
-                        # at least get the core message out if something
-                        # happened
-                        message = self._msg_fmt
-                        ctxt.reraise = False
+                # kwargs doesn't match a variable in the message
+                # log the issue and the kwargs
+                prs = ', '.join('%s=%s' % pair for pair in kwargs.items())
+                LOG.exception('Exception in string format operation '
+                              '(arguments %s)', prs)
+                if not CONF.errors.fatal_exception_format_errors:
+                    # at least get the core message out if something
+                    # happened
+                    message = self._msg_fmt
+                else:
+                    raise
 
         super(IronicException, self).__init__(message)
 

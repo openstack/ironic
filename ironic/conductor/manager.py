@@ -48,7 +48,6 @@ import time
 from futurist import waiters
 from oslo_log import log
 import oslo_messaging as messaging
-from oslo_utils import excutils
 from oslo_utils import timeutils
 from oslo_utils import uuidutils
 
@@ -748,14 +747,13 @@ class ConductorManager(base_manager.BaseConductorManager):
         try:
             next_state = task.driver.rescue.rescue(task)
         except exception.IronicException as e:
-            with excutils.save_and_reraise_exception():
-                handle_failure(e,
-                               _('Failed to rescue: %s'))
+            handle_failure(e, _('Failed to rescue: %s'))
+            raise
         except Exception as e:
-            with excutils.save_and_reraise_exception():
-                handle_failure(e,
-                               _('Failed to rescue. Exception: %s'),
-                               log_func=LOG.exception)
+            handle_failure(e,
+                           _('Failed to rescue. Exception: %s'),
+                           log_func=LOG.exception)
+            raise
         if next_state == states.RESCUEWAIT:
             task.process_event('wait')
         elif next_state == states.RESCUE:
@@ -841,14 +839,13 @@ class ConductorManager(base_manager.BaseConductorManager):
         try:
             next_state = task.driver.rescue.unrescue(task)
         except exception.IronicException as e:
-            with excutils.save_and_reraise_exception():
-                handle_failure(e,
-                               _('Failed to unrescue: %s'))
+            handle_failure(e, _('Failed to unrescue: %s'))
+            raise
         except Exception as e:
-            with excutils.save_and_reraise_exception():
-                handle_failure(e,
-                               _('Failed to unrescue. Exception: %s'),
-                               log_func=LOG.exception)
+            handle_failure(e,
+                           _('Failed to unrescue. Exception: %s'),
+                           log_func=LOG.exception)
+            raise
 
         utils.wipe_token_and_url(task)
 
@@ -1120,14 +1117,13 @@ class ConductorManager(base_manager.BaseConductorManager):
                 try:
                     # Keep console_enabled=True for next deployment
                     task.driver.console.stop_console(task)
-                except Exception as err:
-                    with excutils.save_and_reraise_exception():
-                        LOG.error('Failed to stop console while tearing down '
-                                  'the node %(node)s: %(err)s.',
-                                  {'node': node.uuid, 'err': err})
-                        notify_utils.emit_console_notification(
-                            task, 'console_stop',
-                            fields.NotificationStatus.ERROR)
+                except Exception:
+                    LOG.exception('Failed to stop console while tearing down '
+                                  'the node %s.', node.uuid)
+                    notify_utils.emit_console_notification(
+                        task, 'console_stop',
+                        fields.NotificationStatus.ERROR)
+                    raise
                 else:
                     notify_utils.emit_console_notification(
                         task, 'console_stop', fields.NotificationStatus.END)
@@ -1135,15 +1131,15 @@ class ConductorManager(base_manager.BaseConductorManager):
             task.driver.deploy.clean_up(task)
             task.driver.deploy.tear_down(task)
         except Exception as e:
-            with excutils.save_and_reraise_exception():
-                LOG.exception('Error in tear_down of node %(node)s: %(err)s',
-                              {'node': node.uuid, 'err': e})
-                error = _("Failed to tear down: %s") % e
-                utils.node_history_record(task.node, event=error,
-                                          event_type=states.UNPROVISION,
-                                          error=True,
-                                          user=task.context.user_id)
-                task.process_event('fail')
+            LOG.exception('Error in tear_down of node %s', node.uuid)
+            error = _("Failed to tear down: %s") % e
+            utils.node_history_record(task.node, event=error,
+                                      event_type=states.UNPROVISION,
+                                      error=True,
+                                      user=task.context.user_id)
+            task.process_event('fail')
+            raise
+
         else:
             # NOTE(tenbrae): When tear_down finishes, the deletion is done,
             # cleaning will start next
@@ -1171,16 +1167,15 @@ class ConductorManager(base_manager.BaseConductorManager):
             try:
                 network.remove_vifs_from_node(task)
             except Exception as e:
-                with excutils.save_and_reraise_exception():
-                    LOG.exception('Error in tear_down of node '
-                                  '%(node)s: %(err)s',
-                                  {'node': node.uuid, 'err': e})
-                    error = _("Failed to tear down: %s") % e
-                    utils.node_history_record(task.node, event=error,
-                                              event_type=states.UNPROVISION,
-                                              error=True,
-                                              user=task.context.user_id)
-                    task.process_event('fail')
+                LOG.exception('Error in tear_down of node '
+                              '%s', node.uuid)
+                error = _("Failed to tear down: %s") % e
+                utils.node_history_record(task.node, event=error,
+                                          event_type=states.UNPROVISION,
+                                          error=True,
+                                          user=task.context.user_id)
+                task.process_event('fail')
+                raise
 
             node.save()
             if node.allocation_id:
@@ -2255,12 +2250,12 @@ class ConductorManager(base_manager.BaseConductorManager):
                 try:
                     task.load_driver()
                 except Exception:
-                    with excutils.save_and_reraise_exception():
-                        LOG.exception('Could not load the driver for node %s '
-                                      'to shut down its console', node.uuid)
-                        notify_utils.emit_console_notification(
-                            task, 'console_set',
-                            fields.NotificationStatus.ERROR)
+                    LOG.exception('Could not load the driver for node %s '
+                                  'to shut down its console', node.uuid)
+                    notify_utils.emit_console_notification(
+                        task, 'console_set',
+                        fields.NotificationStatus.ERROR)
+                    raise
 
                 try:
                     task.driver.console.stop_console(task)
@@ -2530,20 +2525,20 @@ class ConductorManager(base_manager.BaseConductorManager):
                 task.driver.console.stop_console(task)
 
         except Exception as e:
-            with excutils.save_and_reraise_exception():
-                op = _('enabling') if enabled else _('disabling')
-                msg = (_('Error %(op)s the console on node %(node)s. '
-                         'Reason: %(error)s') % {'op': op,
-                                                 'node': node.uuid,
-                                                 'error': e})
-                utils.node_history_record(task.node, event=msg,
-                                          event_type=states.CONSOLE,
-                                          error=True,
-                                          user=task.context.user_id)
-                LOG.error(msg)
-                node.save()
-                notify_utils.emit_console_notification(
-                    task, 'console_set', fields.NotificationStatus.ERROR)
+            op = _('enabling') if enabled else _('disabling')
+            msg = (_('Error %(op)s the console on node %(node)s. '
+                     'Reason: %(error)s') % {'op': op,
+                                             'node': node.uuid,
+                                             'error': e})
+            utils.node_history_record(task.node, event=msg,
+                                      event_type=states.CONSOLE,
+                                      error=True,
+                                      user=task.context.user_id)
+            LOG.error(msg)
+            node.save()
+            notify_utils.emit_console_notification(
+                task, 'console_set', fields.NotificationStatus.ERROR)
+            raise
 
         node.console_enabled = enabled
         node.last_error = None

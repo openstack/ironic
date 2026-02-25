@@ -14,7 +14,6 @@
 
 from oslo_config import cfg
 from oslo_log import log
-from oslo_utils import excutils
 from oslo_utils import strutils
 import tenacity
 
@@ -249,11 +248,11 @@ class CinderStorage(base.StorageInterface):
         try:
             connected = cinder.attach_volumes(task, targets, connector)
         except exception.StorageError as e:
-            with excutils.save_and_reraise_exception():
-                LOG.error("Error attaching volumes for node %(node)s: "
-                          "%(err)s", {'node': node.uuid, 'err': e})
-                self.detach_volumes(task, connector=connector,
-                                    aborting_attach=True)
+            LOG.error("Error attaching volumes for node %(node)s: "
+                      "%(err)s", {'node': node.uuid, 'err': e})
+            self.detach_volumes(task, connector=connector,
+                                aborting_attach=True)
+            raise
 
         if len(targets) != len(connected):
             LOG.error("The number of volumes defined for node %(node)s does "
@@ -323,24 +322,24 @@ class CinderStorage(base.StorageInterface):
                 cinder.detach_volumes(task, targets, connector,
                                       allow_errors=allow_errors)
             except exception.StorageError as e:
-                with excutils.save_and_reraise_exception():
-                    # NOTE(TheJulia): In the event that the node is not in
-                    # ACTIVE state, we need to fail hard as we need to ensure
-                    # all attachments are removed.
-                    if aborting_attach:
-                        msg_format = ("Error on aborting volume detach for "
-                                      "node %(node)s: %(err)s.")
-                    else:
-                        msg_format = ("Error detaching volume for "
-                                      "node %(node)s: %(err)s.")
-                    msg = (msg_format) % {'node': node.uuid,
-                                          'err': e}
-                    if outer_args['attempt'] < CONF.cinder.action_retries:
-                        outer_args['attempt'] += 1
-                        msg += " Re-attempting detachment."
-                        LOG.warning(msg)
-                    else:
-                        LOG.error(msg)
+                # NOTE(TheJulia): In the event that the node is not in
+                # ACTIVE state, we need to fail hard as we need to ensure
+                # all attachments are removed.
+                if aborting_attach:
+                    msg_format = ("Error on aborting volume detach for "
+                                  "node %(node)s: %(err)s.")
+                else:
+                    msg_format = ("Error detaching volume for "
+                                  "node %(node)s: %(err)s.")
+                msg = (msg_format) % {'node': node.uuid,
+                                      'err': e}
+                if outer_args['attempt'] < CONF.cinder.action_retries:
+                    outer_args['attempt'] += 1
+                    msg += " Re-attempting detachment."
+                    LOG.warning(msg)
+                else:
+                    LOG.error(msg)
+                raise
 
         # NOTE(mjturek): This dict is used by detach_volumes to determine
         # if this is the last attempt. This is a dict rather than an int

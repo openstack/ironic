@@ -20,7 +20,6 @@ from urllib import parse as urlparse
 
 from oslo_log import log as logging
 from oslo_service import loopingcall
-from oslo_utils import excutils
 from oslo_utils import importutils
 from oslo_utils import strutils
 
@@ -722,10 +721,10 @@ class IloManagement(base.ManagementInterface):
                           {'firmware_file': fw_location, 'node': node.uuid})
         except (exception.NodeCleaningFailure,
                 exception.InstanceDeployFailure):
-            with excutils.save_and_reraise_exception():
-                LOG.error("Firmware update for %(firmware_file)s on "
-                          "node: %(node)s failed.",
-                          {'firmware_file': fw_location, 'node': node.uuid})
+            LOG.error("Firmware update for %(firmware_file)s on "
+                      "node: %(node)s failed.",
+                      {'firmware_file': fw_location, 'node': node.uuid})
+            raise
         finally:
             for fw_loc_obj_n_comp_tup in fw_location_objs_n_components:
                 fw_loc_obj_n_comp_tup[0].remove()

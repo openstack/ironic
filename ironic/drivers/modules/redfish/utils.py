@@ -20,7 +20,6 @@ import os
 from urllib import parse as urlparse
 
 from oslo_log import log
-from oslo_utils import excutils
 from oslo_utils import netutils
 from oslo_utils import strutils
 import rfc3986
@@ -507,12 +506,12 @@ def _get_connection(node, lambda_fun, *args):
 
     try:
         return _get_cached_connection(lambda_fun, *args)
-    except exception.RedfishConnectionError as e:
-        with excutils.save_and_reraise_exception():
-            LOG.error('Failed to connect to Redfish at %(address)s for '
-                      'node %(node)s. Error: %(error)s',
+    except exception.RedfishConnectionError:
+        LOG.exception('Failed to connect to Redfish at %(address)s for '
+                      'node %(node)s.',
                       {'address': driver_info['address'],
-                       'node': node.uuid, 'error': e})
+                       'node': node.uuid})
+        raise
 
 
 def get_enabled_macs(task, system):

@@ -39,7 +39,6 @@ import time
 
 from oslo_concurrency import processutils
 from oslo_log import log as logging
-from oslo_utils import excutils
 from oslo_utils import strutils
 
 from ironic.common import boot_devices
@@ -300,11 +299,11 @@ def _prepare_ipmi_password(driver_info):
         except (IOError, OSError) as exc:
             if f is not None:
                 f.close()
-            raise exception.PasswordFileFailedToCreate(error=exc)
+            raise exception.PasswordFileFailedToCreate(error=exc) from exc
         except Exception:
-            with excutils.save_and_reraise_exception():
-                if f is not None:
-                    f.close()
+            if f is not None:
+                f.close()
+            raise
 
         try:
             # NOTE(jlvillal): This yield can not be in the try/except block
@@ -711,29 +710,29 @@ def _exec_ipmitool(driver_info, command, check_exit_code=None,
                     actual_cs = update_cipher_suite_cmd(actual_cs, args)
                 else:
                     change_cs = False
-                with excutils.save_and_reraise_exception() as ctxt:
-                    err_list = [
-                        x for x in (
-                            IPMITOOL_RETRYABLE_FAILURES
-                            + CONF.ipmi.additional_retryable_ipmi_errors)
-                        if x in str(e)]
-                    # If Ironic is doing retries then retry all errors
-                    retry_failures = (err_list
-                                      or not CONF.ipmi.use_ipmitool_retries)
-                    if ((time.time() > end_time)
-                        or (num_tries == 0)
-                        or not retry_failures):
-                        LOG.error('IPMI Error while attempting "%(cmd)s" '
-                                  'for node %(node)s. Error: %(error)s',
-                                  {'node': driver_info['uuid'],
-                                   'cmd': e.cmd, 'error': e})
-                    else:
-                        ctxt.reraise = False
-                        LOG.warning('IPMI Error encountered, retrying '
-                                    '"%(cmd)s" for node %(node)s. '
-                                    'Error: %(error)s',
-                                    {'node': driver_info['uuid'],
-                                     'cmd': e.cmd, 'error': e})
+
+                err_list = [
+                    x for x in (
+                        IPMITOOL_RETRYABLE_FAILURES
+                        + CONF.ipmi.additional_retryable_ipmi_errors)
+                    if x in str(e)]
+                # If Ironic is doing retries then retry all errors
+                retry_failures = (err_list
+                                  or not CONF.ipmi.use_ipmitool_retries)
+                if ((time.time() > end_time)
+                    or (num_tries == 0)
+                    or not retry_failures):
+                    LOG.error('IPMI Error while attempting "%(cmd)s" '
+                              'for node %(node)s. Error: %(error)s',
+                              {'node': driver_info['uuid'],
+                               'cmd': e.cmd, 'error': e})
+                    raise
+                else:
+                    LOG.warning('IPMI Error encountered, retrying '
+                                '"%(cmd)s" for node %(node)s. '
+                                'Error: %(error)s',
+                                {'node': driver_info['uuid'],
+                                 'cmd': e.cmd, 'error': e})
 
             finally:
                 LAST_CMD_TIME[driver_info['address']] = time.time()
@@ -1006,13 +1005,13 @@ def _check_temp_dir():
         except (exception.PathNotFound,
                 exception.DirectoryNotWritable,
                 exception.InsufficientDiskSpace) as e:
-            with excutils.save_and_reraise_exception():
-                TMP_DIR_CHECKED = False
-                err_msg = (_("Ipmitool drivers need to be able to create "
-                             "temporary files to pass password to ipmitool. "
-                             "Encountered error: %s") % e)
-                e.message = err_msg
-                LOG.error(err_msg)
+            TMP_DIR_CHECKED = False
+            err_msg = (_("Ipmitool drivers need to be able to create "
+                         "temporary files to pass password to ipmitool. "
+                         "Encountered error: %s") % e)
+            e.message = err_msg
+            LOG.exception(err_msg)
+            raise
         else:
             TMP_DIR_CHECKED = True
 

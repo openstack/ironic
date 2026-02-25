@@ -23,7 +23,6 @@ import time
 from oslo_config import cfg
 from oslo_log import log
 from oslo_service import loopingcall
-from oslo_utils import excutils
 from oslo_utils import secretutils
 from oslo_utils import strutils
 from oslo_utils import timeutils
@@ -256,16 +255,16 @@ def _can_skip_state_change(task, new_state):
     try:
         curr_state = task.driver.power.get_power_state(task)
     except Exception as e:
-        with excutils.save_and_reraise_exception():
-            error = _(
-                "Failed to change power state to '%(target)s': %(error)s") % {
-                    'target': new_state, 'error': e}
-            node_history_record(node, event=error, error=True)
-            node['target_power_state'] = states.NOSTATE
-            node.save()
-            notify_utils.emit_power_set_notification(
-                task, fields.NotificationLevel.ERROR,
-                fields.NotificationStatus.ERROR, new_state)
+        error = _(
+            "Failed to change power state to '%(target)s': %(error)s") % {
+                'target': new_state, 'error': e}
+        node_history_record(node, event=error, error=True)
+        node['target_power_state'] = states.NOSTATE
+        node.save()
+        notify_utils.emit_power_set_notification(
+            task, fields.NotificationLevel.ERROR,
+            fields.NotificationStatus.ERROR, new_state)
+        raise
 
     if curr_state == states.POWER_ON:
         if new_state == states.POWER_ON:
@@ -371,19 +370,19 @@ def node_power_action(task, new_state, timeout=None):
             # really verify what cinder has connector wise.
             task.driver.power.reboot(task, timeout=timeout)
     except Exception as e:
-        with excutils.save_and_reraise_exception():
-            node['target_power_state'] = states.NOSTATE
-            error = _(
-                "Failed to change power state to '%(target_state)s' "
-                "by '%(new_state)s': %(error)s") % {
-                    'target_state': target_state,
-                    'new_state': new_state,
-                    'error': e}
-            node_history_record(node, event=error, error=True)
-            node.save()
-            notify_utils.emit_power_set_notification(
-                task, fields.NotificationLevel.ERROR,
-                fields.NotificationStatus.ERROR, new_state)
+        node['target_power_state'] = states.NOSTATE
+        error = _(
+            "Failed to change power state to '%(target_state)s' "
+            "by '%(new_state)s': %(error)s") % {
+                'target_state': target_state,
+                'new_state': new_state,
+                'error': e}
+        node_history_record(node, event=error, error=True)
+        node.save()
+        notify_utils.emit_power_set_notification(
+            task, fields.NotificationLevel.ERROR,
+            fields.NotificationStatus.ERROR, new_state)
+        raise
     else:
         # success!
         node['power_state'] = target_state
@@ -1577,9 +1576,9 @@ def store_agent_certificate(node, agent_verify_ca):
                 with open(existing_verify_ca, 'rt') as fp:
                     existing_text = fp.read()
             except EnvironmentError:
-                with excutils.save_and_reraise_exception():
-                    LOG.exception('Could not read the existing TLS certificate'
-                                  ' for node %s', node.uuid)
+                LOG.exception('Could not read the existing TLS certificate'
+                              ' for node %s', node.uuid)
+                raise
 
             if existing_text.strip() != agent_verify_ca.strip():
                 LOG.error('Content mismatch for agent_verify_ca for '
@@ -1600,9 +1599,9 @@ def store_agent_certificate(node, agent_verify_ca):
         with open(fname, 'wt') as fp:
             fp.write(agent_verify_ca)
     except EnvironmentError:
-        with excutils.save_and_reraise_exception():
-            LOG.exception('Could not save the TLS certificate for node %s',
-                          node.uuid)
+        LOG.exception('Could not save the TLS certificate for node %s',
+                      node.uuid)
+        raise
     else:
         LOG.debug('Saved the custom certificate for node %(node)s to %(file)s',
                   {'node': node.uuid, 'file': fname})

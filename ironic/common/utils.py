@@ -38,7 +38,6 @@ import jinja2
 from oslo_concurrency import processutils
 from oslo_log import log as logging
 from oslo_serialization import jsonutils
-from oslo_utils import excutils
 from oslo_utils import fileutils
 from oslo_utils import netutils
 from oslo_utils import specs_matcher
@@ -122,11 +121,11 @@ def execute(*cmd, use_standard_locale=False, log_stdout=True, **kwargs):
     try:
         result = processutils.execute(*cmd, **kwargs)
     except FileNotFoundError:
-        with excutils.save_and_reraise_exception():
-            LOG.debug('Command not found: "%s"', ' '.join(map(str, cmd)))
+        LOG.debug('Command not found: "%s"', ' '.join(map(str, cmd)))
+        raise
     except processutils.ProcessExecutionError as exc:
-        with excutils.save_and_reraise_exception():
-            _log(exc.stdout, exc.stderr)
+        _log(exc.stdout, exc.stderr)
+        raise
     else:
         _log(result[0], result[1])
         return result
@@ -787,16 +786,15 @@ def mkfs(fs, path, label=None):
     try:
         execute(*args, use_standard_locale=True)
     except processutils.ProcessExecutionError as e:
-        with excutils.save_and_reraise_exception() as ctx:
-            if os.strerror(errno.ENOENT) in e.stderr:
-                ctx.reraise = False
-                LOG.exception('Failed to make file system. '
-                              'File system %s is not supported.', fs)
-                raise exception.FileSystemNotSupported(fs=fs)
-            else:
-                LOG.exception('Failed to create a file system '
-                              'in %(path)s. Error: %(error)s',
-                              {'path': path, 'error': e})
+        if os.strerror(errno.ENOENT) in e.stderr:
+            LOG.exception('Failed to make file system. '
+                          'File system %s is not supported.', fs)
+            raise exception.FileSystemNotSupported(fs=fs) from e
+        else:
+            LOG.exception('Failed to create a file system '
+                          'in %(path)s. Error: %(error)s',
+                          {'path': path, 'error': e})
+            raise
 
 
 def unlink_without_raise(path):

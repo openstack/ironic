@@ -16,7 +16,6 @@ import tempfile
 
 from oslo_db import exception as db_exception
 from oslo_log import log
-from oslo_utils import excutils
 
 from ironic.common import async_steps
 from ironic.common import exception
@@ -218,35 +217,35 @@ def do_node_deploy(task, conductor_id=None, configdrive=None,
                     task, configdrive)
             _store_configdrive(node, configdrive)
     except (exception.SwiftOperationError, exception.ConfigInvalid) as e:
-        with excutils.save_and_reraise_exception():
-            utils.deploying_error_handler(
-                task,
-                ('Error while uploading the configdrive for %(node)s '
-                 'to Swift') % {'node': node.uuid},
-                _('Failed to upload the configdrive to Swift: %s') % e,
-                clean_up=False)
+        utils.deploying_error_handler(
+            task,
+            ('Error while uploading the configdrive for %(node)s '
+             'to Swift') % {'node': node.uuid},
+            _('Failed to upload the configdrive to Swift: %s') % e,
+            clean_up=False)
+        raise
     except db_exception.DBDataError as e:
-        with excutils.save_and_reraise_exception():
-            # NOTE(hshiina): This error happens when the configdrive is
-            #                too large. Remove the configdrive from the
-            #                object to update DB successfully in handling
-            #                the failure.
-            node.obj_reset_changes()
-            utils.deploying_error_handler(
-                task,
-                ('Error while storing the configdrive for %(node)s into '
-                 'the database: %(err)s') % {'node': node.uuid, 'err': e},
-                _("Failed to store the configdrive in the database. "
-                  "%s") % e,
-                clean_up=False)
+        # NOTE(hshiina): This error happens when the configdrive is
+        #                too large. Remove the configdrive from the
+        #                object to update DB successfully in handling
+        #                the failure.
+        node.obj_reset_changes()
+        utils.deploying_error_handler(
+            task,
+            ('Error while storing the configdrive for %(node)s into '
+             'the database: %(err)s') % {'node': node.uuid, 'err': e},
+            _("Failed to store the configdrive in the database. "
+              "%s") % e,
+            clean_up=False)
+        raise
     except Exception as e:
-        with excutils.save_and_reraise_exception():
-            utils.deploying_error_handler(
-                task,
-                ('Unexpected error while preparing the configdrive for '
-                 'node %(node)s') % {'node': node.uuid},
-                _("Failed to prepare the configdrive. Exception: %s") % e,
-                traceback=True, clean_up=False)
+        utils.deploying_error_handler(
+            task,
+            ('Unexpected error while preparing the configdrive for '
+             'node %(node)s') % {'node': node.uuid},
+            _("Failed to prepare the configdrive. Exception: %s") % e,
+            traceback=True, clean_up=False)
+        raise
 
     try:
         task.driver.deploy.prepare(task)
@@ -256,21 +255,21 @@ def do_node_deploy(task, conductor_id=None, configdrive=None,
         task.process_event('wait')
         return
     except exception.IronicException as e:
-        with excutils.save_and_reraise_exception():
-            utils.deploying_error_handler(
-                task,
-                ('Error while preparing to deploy to node %(node)s: '
-                 '%(err)s') % {'node': node.uuid, 'err': e},
-                _("Failed to prepare to deploy: %s") % e,
-                clean_up=False)
+        utils.deploying_error_handler(
+            task,
+            ('Error while preparing to deploy to node %(node)s: '
+             '%(err)s') % {'node': node.uuid, 'err': e},
+            _("Failed to prepare to deploy: %s") % e,
+            clean_up=False)
+        raise
     except Exception as e:
-        with excutils.save_and_reraise_exception():
-            utils.deploying_error_handler(
-                task,
-                ('Unexpected error while preparing to deploy to node '
-                 '%(node)s') % {'node': node.uuid},
-                _("Failed to prepare to deploy. Exception: %s") % e,
-                traceback=True, clean_up=False)
+        utils.deploying_error_handler(
+            task,
+            ('Unexpected error while preparing to deploy to node '
+             '%(node)s') % {'node': node.uuid},
+            _("Failed to prepare to deploy. Exception: %s") % e,
+            traceback=True, clean_up=False)
+        raise
 
     try:
         # If any deploy steps provided by user, save them to node. They will be
@@ -285,12 +284,12 @@ def do_node_deploy(task, conductor_id=None, configdrive=None,
         # we know that an agent is not running yet.
         conductor_steps.set_node_deployment_steps(task, skip_missing=True)
     except exception.InstanceDeployFailure as e:
-        with excutils.save_and_reraise_exception():
-            utils.deploying_error_handler(
-                task,
-                'Error while getting deploy steps; cannot deploy to node '
-                '%(node)s: %(err)s' % {'node': node.uuid, 'err': e},
-                _("Cannot get deploy steps; failed to deploy: %s") % e)
+        utils.deploying_error_handler(
+            task,
+            'Error while getting deploy steps; cannot deploy to node '
+            '%(node)s: %(err)s' % {'node': node.uuid, 'err': e},
+            _("Cannot get deploy steps; failed to deploy: %s") % e)
+        raise
 
     if not node.driver_internal_info.get('deploy_steps'):
         msg = _('Error while getting deploy steps: no steps returned for '
