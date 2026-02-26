@@ -93,6 +93,25 @@ class TestLoadRules(TestInspectionRules):
                               engine.get_built_in_rules,
                               "fake_file")
 
+    def test_load_rules_generate_missing_uuids(self):
+        test_rules = [
+            {'description': 'rule-a',
+             'actions': [{'op': 'set-attribute',
+                          'args': {'path': '/foo', 'value': 'bar'}}]},
+            {'description': 'rule-b',
+             'actions': [{'op': 'set-attribute',
+                          'args': {'path': '/foo', 'value': 'baz'}}]},
+        ]
+        test_rules_yaml = yaml.safe_dump(test_rules)
+        with mock.patch('builtins.open', mock.mock_open(
+                read_data=test_rules_yaml)):
+            loaded_rules = engine.get_built_in_rules("fake_file")
+
+        self.assertEqual('00000000-0000-0000-0000-000000000000',
+                         loaded_rules[0]['uuid'])
+        self.assertEqual('00000000-0000-0000-0000-000000000001',
+                         loaded_rules[1]['uuid'])
+
 
 @mock.patch('ironic.objects.InspectionRule.list', autospec=True)
 class TestApplyRules(TestInspectionRules):
