@@ -164,6 +164,8 @@ class DracRedfishManagementTestCase(test_utils.BaseDracTest):
             '"data": {"prop1": "value1", "prop2": 2}}}')
         mock_sdii = mock.Mock()
         task.node.set_driver_internal_info = mock_sdii
+        task.node.deploy_step = {'step': 'import_configuration',
+                                 'interface': 'management'}
         result = self.management.import_configuration(task, 'edge')
         self.assertEqual(states.DEPLOYWAIT, result)
 

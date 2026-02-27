@@ -171,6 +171,9 @@ class IloBiosTestCase(test_common.BaseIloTest):
                 "SET_D": "VAL_D"
             }
             step = 'apply_configuration'
+            task.node.deploy_step = {
+                'step': 'apply_configuration',
+                'interface': 'bios'}
             task.driver.bios._execute_pre_boot_bios_step(task, step, data)
             driver_info = task.node.driver_internal_info
             self.assertTrue(
