@@ -27,6 +27,10 @@ LOG = log.getLogger(__name__)
 SENSITIVE_FIELDS = ['password', 'auth_token', 'bmc_password']
 
 
+def _synthetic_rule_uuid(index):
+    return '00000000-0000-0000-0000-%012x' % index
+
+
 def get_built_in_rules(rules_file):
     """Load built-in inspection rules."""
     built_in_rules = []
@@ -46,10 +50,15 @@ def get_built_in_rules(rules_file):
             LOG.error(msg)
             raise exception.IronicException(msg)
 
+        synthetic_uuid_index = 0
         for rule_data in rules_data:
             try:
+                rule_uuid = rule_data.get('uuid')
+                if rule_uuid is None:
+                    rule_uuid = _synthetic_rule_uuid(synthetic_uuid_index)
+                    synthetic_uuid_index += 1
                 rule = {
-                    'uuid': rule_data.get('uuid'),
+                    'uuid': rule_uuid,
                     'priority': rule_data.get('priority', 0),
                     'description': rule_data.get('description'),
                     'sensitive': rule_data.get('sensitive', False),
