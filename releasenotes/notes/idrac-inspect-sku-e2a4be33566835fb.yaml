@@ -1,0 +1,17 @@
+---
+fixes:
+  - |
+    Fixes serial number reporting for Dell systems during iDRAC Redfish
+    inspection. Dell systems report the motherboard serial number in the
+    Redfish ``SerialNumber`` field, while the actual system service tag
+    (which is the expected serial number) is stored in the ``SKU`` field.
+    The ``idrac-redfish`` inspect interface now correctly uses the SKU
+    value as the serial number in the inspection data for Dell systems.
+upgrade:
+  - |
+    The ``sku`` field is no longer collected by generic Redfish inspection.
+    This field was previously added to ``system_vendor`` in the inspection
+    inventory data but has been removed as it is not part of the standard
+    inspection data format. For Dell systems, the SKU (service tag) is now
+    correctly reported as the ``serial_number`` via the ``idrac-redfish``
+    inspect interface.

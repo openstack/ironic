@@ -234,7 +234,6 @@ class RedfishInspectTestCase(db_base.DbTestCase):
         expected_product_name = 'PowerEdge R1234'
         expected_serial_number = '123456'
         expected_manufacturer = 'Sushy Emulator'
-        expected_sku = 'DELL123456'
         expected_system_uuid = '12345678-1234-1234-1234-12345'
         self.assertEqual(expected_product_name,
                          system_vendor['product_name'])
@@ -242,8 +241,7 @@ class RedfishInspectTestCase(db_base.DbTestCase):
                          system_vendor['serial_number'])
         self.assertEqual(expected_manufacturer,
                          system_vendor['manufacturer'])
-        self.assertEqual(expected_sku,
-                         system_vendor['sku'])
+        self.assertNotIn('sku', system_vendor)
         self.assertEqual(expected_system_uuid,
                          system_vendor['system_uuid'])
 
