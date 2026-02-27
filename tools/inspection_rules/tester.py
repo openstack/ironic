@@ -250,10 +250,13 @@ class InspectionRulesEvaluator:
         if not self.load_node():
             return 1
         self.evaluate_rules()
+        errors = sum(len(r["errors"]) for r in self.results)
         if self.json_output:
             self.output_json()
         else:
             self.print_results()
+            if errors:
+                return 1
         return 0
 
 
