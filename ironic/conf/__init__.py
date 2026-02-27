@@ -14,6 +14,7 @@
 #    under the License.
 
 from oslo_config import cfg
+import osprofiler.opts
 
 from ironic.conf import agent
 from ironic.conf import agent_containers
@@ -105,3 +106,5 @@ service_catalog.register_opts(CONF)
 snmp.register_opts(CONF)
 swift.register_opts(CONF)
 vnc.register_opts(CONF)
+
+osprofiler.opts.set_defaults(cfg.CONF)
