@@ -145,7 +145,9 @@ exclude_patterns = ['api/ironic.drivers.modules.ansible.playbooks.*',
 # Ignore the following warning: WARNING: while setting up extension
 # wsmeext.sphinxext: directive 'autoattribute' is already registered,
 # it will be overridden.
-suppress_warnings = ['app.add_directive']
+# NOTE(clif) Also suppress autodoc warnings as a whole since it seems
+# impossible to only suppress mocked imports warnings.
+suppress_warnings = ['app.add_directive', 'autodoc']
 
 # -- Options for HTML output --------------------------------------------------
 
