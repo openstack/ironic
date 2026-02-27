@@ -54,6 +54,8 @@ Comparison with Other OpenStack Services
 Ironic's Three-Tier Approach
 =============================
 
+.. _multiple_ironic_deployments:
+
 Tier 1: Multiple Ironic Deployments
 ------------------------------------
 

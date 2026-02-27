@@ -44,6 +44,8 @@ Functionality
    migration
    copy-inspection-data-swift
 
+.. _agent-inspection:
+
 Agent Inspection
 ----------------
 

@@ -69,6 +69,7 @@ primarily for developers.
   OSProfiler Tracing <osprofiler-support>
   Rolling Upgrades <rolling-upgrades>
   Role Based Access Control Testing <rbac-testing>
+  Metrics <metrics>
 
 Governance and Processes
 ------------------------
@@ -129,3 +130,4 @@ the documentation below.
   Job Roles in the CI <jobs-description>
   How to Add a New Job? <adding-new-job>
   How to Debug Failures in CI Jobs <debug-ci-failures>
+  Metal3 Continuous Integration <metal3-integration>
