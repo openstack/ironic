@@ -17,7 +17,6 @@ Boot Interface for iLO drivers and its supporting methods.
 
 from oslo_config import cfg
 from oslo_log import log as logging
-from oslo_utils import excutils
 from oslo_utils import strutils
 
 from ironic.common import boot_devices
@@ -318,13 +317,13 @@ class IloVirtualMediaBoot(base.BootInterface):
                 try:
                     image_service.HttpImageService().validate_href(boot_iso)
                 except exception.ImageRefValidationFailed:
-                    with excutils.save_and_reraise_exception():
-                        LOG.error("Virtual media deploy with 'ramdisk' "
-                                  "deploy accepts only Glance images or "
-                                  "HTTP(S) URLs as "
-                                  "instance_info['boot_iso']. Either %s "
-                                  "is not a valid HTTP(S) URL or is not "
-                                  "reachable.", boot_iso)
+                    LOG.error("Virtual media deploy with 'ramdisk' "
+                              "deploy accepts only Glance images or "
+                              "HTTP(S) URLs as "
+                              "instance_info['boot_iso']. Either %s "
+                              "is not a valid HTTP(S) URL or is not "
+                              "reachable.", boot_iso)
+                    raise
             return
 
         _validate_driver_info(task)
@@ -894,13 +893,13 @@ class IloUefiHttpsBoot(base.BootInterface):
                 try:
                     image_service.HttpImageService().validate_href(boot_iso)
                 except exception.ImageRefValidationFailed:
-                    with excutils.save_and_reraise_exception():
-                        LOG.error("UEFI-HTTPS boot with 'ramdisk' "
-                                  "deploy accepts only Glance images or "
-                                  "HTTPS URLs as "
-                                  "instance_info['boot_iso']. Either %s "
-                                  "is not a valid HTTPS URL or is not "
-                                  "reachable.", boot_iso)
+                    LOG.error("UEFI-HTTPS boot with 'ramdisk' "
+                              "deploy accepts only Glance images or "
+                              "HTTPS URLs as "
+                              "instance_info['boot_iso']. Either %s "
+                              "is not a valid HTTPS URL or is not "
+                              "reachable.", boot_iso)
+                    raise
             return
 
         self._validate_driver_info(task)

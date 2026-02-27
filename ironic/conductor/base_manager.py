@@ -21,7 +21,6 @@ import futurist
 from futurist import periodics
 from oslo_db import exception as db_exception
 from oslo_log import log
-from oslo_utils import excutils
 from oslo_utils import netutils
 from oslo_utils import versionutils
 
@@ -239,9 +238,9 @@ class BaseConductorManager(object):
                 exception.ConductorHardwareInterfacesAlreadyRegistered,
                 exception.InterfaceNotFoundInEntrypoint,
                 exception.NoValidDefaultForInterface) as e:
-            with excutils.save_and_reraise_exception():
-                LOG.error('Failed to register hardware types. %s', e)
-                self.del_host()
+            LOG.error('Failed to register hardware types. %s', e)
+            self.del_host()
+            raise
 
         # Start periodic tasks
         self._periodic_tasks_worker = self._executor.submit(
@@ -267,9 +266,9 @@ class BaseConductorManager(object):
                      '%(hostname)s.',
                      {'hostname': self.host})
         except exception.NoFreeConductorWorker:
-            with excutils.save_and_reraise_exception():
-                LOG.critical('Failed to start keepalive')
-                self.del_host()
+            LOG.critical('Failed to start keepalive')
+            self.del_host()
+            raise
 
         # Resume allocations that started before the restart.
         try:

@@ -24,7 +24,6 @@ from urllib import parse as urlparse
 import jinja2
 from oslo_concurrency import processutils
 from oslo_log import log as logging
-from oslo_utils import excutils
 from oslo_utils import fileutils
 from oslo_utils import netutils
 
@@ -382,10 +381,10 @@ def create_pxe_config(task, pxe_options, template=None, ipxe_enabled=False):
         # we can remove IP address creation for the grub use.
         except exception.FailedToGetIPAddressOnPort as e:
             if CONF.dhcp.dhcp_provider != 'none':
-                with excutils.save_and_reraise_exception():
-                    LOG.error('Unable to create boot config, IP address '
-                              'was unable to be retrieved. %(error)s',
-                              {'error': e})
+                LOG.error('Unable to create boot config, IP address '
+                          'was unable to be retrieved. %(error)s',
+                          {'error': e})
+                raise
 
 
 def create_ipxe_boot_script():

@@ -14,7 +14,6 @@
 #    under the License.
 
 from oslo_log import log as logging
-from oslo_utils import excutils
 
 from ironic.common import exception
 from ironic.common.i18n import _
@@ -283,11 +282,11 @@ def configure_secure_boot_if_needed(task):
                     {'node': task.node.uuid,
                      'driver': task.node.get_interface('management')})
     except Exception as exc:
-        with excutils.save_and_reraise_exception():
-            LOG.error('Failed to configure secure boot for node %(node)s: '
-                      '%(error)s',
-                      {'node': task.node.uuid, 'error': exc},
-                      exc_info=not isinstance(exc, exception.IronicException))
+        LOG.error('Failed to configure secure boot for node %(node)s: '
+                  '%(error)s',
+                  {'node': task.node.uuid, 'error': exc},
+                  exc_info=not isinstance(exc, exception.IronicException))
+        raise
     else:
         LOG.info('Secure boot has been enabled for node %s', task.node.uuid)
         manager_utils.node_cache_boot_mode(task)
@@ -309,11 +308,11 @@ def deconfigure_secure_boot_if_needed(task):
                   {'node': task.node.uuid,
                    'driver': task.node.get_interface('management')})
     except Exception as exc:
-        with excutils.save_and_reraise_exception():
-            LOG.error('Failed to deconfigure secure boot for node %(node)s: '
-                      '%(error)s',
-                      {'node': task.node.uuid, 'error': exc},
-                      exc_info=not isinstance(exc, exception.IronicException))
+        LOG.error('Failed to deconfigure secure boot for node %(node)s: '
+                  '%(error)s',
+                  {'node': task.node.uuid, 'error': exc},
+                  exc_info=not isinstance(exc, exception.IronicException))
+        raise
     else:
         LOG.info('Secure boot has been disabled for node %s', task.node.uuid)
         manager_utils.node_cache_boot_mode(task)

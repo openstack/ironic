@@ -19,7 +19,6 @@ import re
 from urllib import parse as urlparse
 
 from oslo_log import log as logging
-from oslo_utils import excutils
 from oslo_utils import fileutils
 from oslo_utils import strutils
 from oslo_utils import units
@@ -372,12 +371,12 @@ def try_set_boot_device(task, device, persistent=True):
         manager_utils.node_set_boot_device(task, device,
                                            persistent=persistent)
     except exception.IPMIFailure:
-        with excutils.save_and_reraise_exception() as ctxt:
-            if boot_mode_utils.get_boot_mode(task.node) == 'uefi':
-                ctxt.reraise = False
-                LOG.warning("ipmitool is unable to set boot device while "
-                            "the node %s is in UEFI boot mode. Please set "
-                            "the boot device manually.", task.node.uuid)
+        if boot_mode_utils.get_boot_mode(task.node) == 'uefi':
+            LOG.warning("ipmitool is unable to set boot device while "
+                        "the node %s is in UEFI boot mode. Please set "
+                        "the boot device manually.", task.node.uuid)
+        else:
+            raise
 
 
 def get_disk_label(node):
@@ -1226,10 +1225,10 @@ def _validate_image_url(node, url, secret=False, inspect_image=None,
                     LOG.debug('URL %s redirected to %s', url, resp.url)
                     image_info['image_source'] = resp.url
     except exception.ImageRefValidationFailed as e:
-        with excutils.save_and_reraise_exception():
-            LOG.error("The specified URL is not a valid HTTP(S)/NFS/CIFS URL "
-                      "or is not reachable for node %(node)s: %(msg)s",
-                      {'node': node.uuid, 'msg': e})
+        LOG.error("The specified URL is not a valid HTTP(S)/NFS/CIFS URL "
+                  "or is not reachable for node %(node)s: %(msg)s",
+                  {'node': node.uuid, 'msg': e})
+        raise
     if inspect:
         LOG.info("Inspecting image contents for %(node)s with url %(url)s. "
                  "Expecting user supplied format: %(expected)s",

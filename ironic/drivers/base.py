@@ -25,7 +25,6 @@ import json
 import os
 
 from oslo_log import log as logging
-from oslo_utils import excutils
 
 from ironic.common import exception
 from ironic.common.i18n import _
@@ -930,12 +929,12 @@ def _passthru(http_methods, method=None, async_call=True,
             try:
                 return func(*args, **kwargs)
             except exception.IronicException:
-                with excutils.save_and_reraise_exception():
-                    LOG.exception(passthru_logmessage, api_method)
+                LOG.exception(passthru_logmessage, api_method)
+                raise
             except Exception as e:
                 # catch-all in case something bubbles up here
                 LOG.exception(passthru_logmessage, api_method)
-                raise exception.VendorPassthruException(message=e)
+                raise exception.VendorPassthruException(message=e) from e
         return passthru_handler
     return handle_passthru
 

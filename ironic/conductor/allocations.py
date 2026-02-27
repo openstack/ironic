@@ -16,7 +16,6 @@ import random
 
 from oslo_config import cfg
 from oslo_log import log
-from oslo_utils import excutils
 import tenacity
 
 from ironic.common import exception
@@ -275,15 +274,15 @@ def backfill_allocation(context, allocation, node_id):
             exception.InstanceAssociated,
             exception.NodeAssociated,
             exception.NodeNotFound) as exc:
-        with excutils.save_and_reraise_exception():
-            LOG.error(str(exc))
-            _allocation_failed(allocation, exc)
+        LOG.error(str(exc))
+        _allocation_failed(allocation, exc)
+        raise
     except Exception as exc:
-        with excutils.save_and_reraise_exception():
-            LOG.exception("Unexpected exception during backfilling of "
-                          "allocation %s", allocation.uuid)
-            reason = _("Unexpected exception during allocation: %s") % exc
-            _allocation_failed(allocation, reason)
+        LOG.exception("Unexpected exception during backfilling of "
+                      "allocation %s", allocation.uuid)
+        reason = _("Unexpected exception during allocation: %s") % exc
+        _allocation_failed(allocation, reason)
+        raise
 
 
 def _do_backfill_allocation(context, allocation, node_id):

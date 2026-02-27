@@ -107,7 +107,6 @@ import traceback
 import futurist
 from oslo_config import cfg
 from oslo_log import log as logging
-from oslo_utils import excutils
 from oslo_utils import timeutils
 import tenacity
 
@@ -251,8 +250,8 @@ class TaskManager(object):
                 self.driver = None
 
         except Exception:
-            with excutils.save_and_reraise_exception():
-                self.release_resources()
+            self.release_resources()
+            raise
 
     @property
     def node(self):
@@ -272,8 +271,8 @@ class TaskManager(object):
                 self._ports = objects.Port.list_by_node_id(self.context,
                                                            self.node.id)
         except Exception:
-            with excutils.save_and_reraise_exception():
-                self.release_resources()
+            self.release_resources()
+            raise
         return self._ports
 
     @ports.setter
@@ -287,8 +286,8 @@ class TaskManager(object):
                 self._portgroups = objects.Portgroup.list_by_node_id(
                     self.context, self.node.id)
         except Exception:
-            with excutils.save_and_reraise_exception():
-                self.release_resources()
+            self.release_resources()
+            raise
         return self._portgroups
 
     @portgroups.setter
@@ -303,8 +302,8 @@ class TaskManager(object):
                     objects.VolumeConnector.list_by_node_id(
                         self.context, self.node.id)
         except Exception:
-            with excutils.save_and_reraise_exception():
-                self.release_resources()
+            self.release_resources()
+            raise
         return self._volume_connectors
 
     @volume_connectors.setter
@@ -317,8 +316,8 @@ class TaskManager(object):
             if self._tbn_traits is None:
                 self._tbn_traits = tbn_config_file_traits()
         except Exception:
-            with excutils.save_and_reraise_exception():
-                self.release_resources()
+            self.release_resources()
+            raise
 
         return self._tbn_traits
 
@@ -329,8 +328,8 @@ class TaskManager(object):
                 self._volume_targets = objects.VolumeTarget.list_by_node_id(
                     self.context, self.node.id)
         except Exception:
-            with excutils.save_and_reraise_exception():
-                self.release_resources()
+            self.release_resources()
+            raise
         return self._volume_targets
 
     @volume_targets.setter
@@ -675,21 +674,21 @@ class TaskManager(object):
                 self._notify_provision_state_change()
                 return
             except Exception as e:
-                with excutils.save_and_reraise_exception():
-                    try:
-                        # Execute the on_error hook if set
-                        if self._on_error_method:
-                            self._on_error_method(e, *self._on_error_args,
-                                                  **self._on_error_kwargs)
-                    except Exception:
-                        LOG.warning("Task's on_error hook failed to "
-                                    "call %(method)s on node %(node)s",
-                                    {'method': self._on_error_method.__name__,
-                                     'node': self.node.uuid})
+                try:
+                    # Execute the on_error hook if set
+                    if self._on_error_method:
+                        self._on_error_method(e, *self._on_error_args,
+                                              **self._on_error_kwargs)
+                except Exception:
+                    LOG.warning("Task's on_error hook failed to "
+                                "call %(method)s on node %(node)s",
+                                {'method': self._on_error_method.__name__,
+                                 'node': self.node.uuid})
 
-                    if fut is not None:
-                        # This means the add_done_callback() failed for some
-                        # reason. Nuke the thread.
-                        fut.cancel()
-                    self.release_resources()
+                if fut is not None:
+                    # This means the add_done_callback() failed for some
+                    # reason. Nuke the thread.
+                    fut.cancel()
+                self.release_resources()
+                raise
         self.release_resources()

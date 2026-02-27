@@ -13,7 +13,6 @@
 """Inspection implementation for the conductor."""
 
 from oslo_log import log
-from oslo_utils import excutils
 
 from ironic.common import exception
 from ironic.common.i18n import _
@@ -55,14 +54,14 @@ def inspect_hardware(task):
     try:
         new_state = task.driver.inspect.inspect_hardware(task)
     except exception.IronicException as e:
-        with excutils.save_and_reraise_exception():
-            error = str(e)
-            handle_failure(error)
+        error = str(e)
+        handle_failure(error)
+        raise
     except Exception as e:
         error = (_('Unexpected exception of type %(type)s: %(msg)s') %
                  {'type': type(e).__name__, 'msg': e})
         handle_failure(error, log_func=LOG.exception)
-        raise exception.HardwareInspectionFailure(error=error)
+        raise exception.HardwareInspectionFailure(error=error) from e
 
     if new_state == states.MANAGEABLE:
         task.process_event('done')
@@ -87,20 +86,20 @@ def abort_inspection(task):
     try:
         task.driver.inspect.abort(task)
     except exception.UnsupportedDriverExtension:
-        with excutils.save_and_reraise_exception():
-            LOG.error('Inspect interface "%(intf)s" does not support abort '
-                      'operation for node %(node)s',
-                      {'intf': node.inspect_interface, 'node': node.uuid})
+        LOG.error('Inspect interface "%(intf)s" does not support abort '
+                  'operation for node %(node)s',
+                  {'intf': node.inspect_interface, 'node': node.uuid})
+        raise
     except Exception as e:
-        with excutils.save_and_reraise_exception():
-            LOG.exception('Error when aborting inspection of node %(node)s',
-                          {'node': node.uuid})
-            error = _('Failed to abort inspection: %s') % e
-            utils.node_history_record(task.node, event=error,
-                                      event_type=states.INTROSPECTION,
-                                      error=True,
-                                      user=task.context.user_id)
-            node.save()
+        LOG.exception('Error when aborting inspection of node %(node)s',
+                      {'node': node.uuid})
+        error = _('Failed to abort inspection: %s') % e
+        utils.node_history_record(task.node, event=error,
+                                  event_type=states.INTROSPECTION,
+                                  error=True,
+                                  user=task.context.user_id)
+        node.save()
+        raise
 
     error = _('Inspection was aborted by request.')
     utils.node_history_record(task.node, event=error,
@@ -156,25 +155,25 @@ def continue_inspection(task, inventory, plugin_data):
         inspect_utils.store_inspection_data(
             node, inventory, plugin_data, context=task.context)
     except exception.UnsupportedDriverExtension:
-        with excutils.save_and_reraise_exception():
-            intf_name = task.driver.inspect.__class__.__name__
-            LOG.error('Inspect interface %(intf)s does not '
-                      'support processing inspection data for node %(node)s',
-                      {'intf': intf_name, 'node': node.uuid})
+        intf_name = task.driver.inspect.__class__.__name__
+        LOG.error('Inspect interface %(intf)s does not '
+                  'support processing inspection data for node %(node)s',
+                  {'intf': intf_name, 'node': node.uuid})
+        raise
     except Exception as e:
-        with excutils.save_and_reraise_exception():
-            LOG.exception('Error when processing inspection data for '
-                          'node %(node)s', {'node': node.uuid})
-            error = _('Failed to finish inspection: %s') % e
-            # Use the error handler which will clean up inspection resources
-            utils.inspecting_error_handler(
-                task,
-                logmsg="Inspection processing failed for node %(node)s: "
-                       "%(error)s" % {'node': node.uuid, 'error': error},
-                errmsg=error,
-                traceback=False)
-            if node.provision_state != states.ENROLL:
-                task.process_event('fail')
+        LOG.exception('Error when processing inspection data for '
+                      'node %(node)s', {'node': node.uuid})
+        error = _('Failed to finish inspection: %s') % e
+        # Use the error handler which will clean up inspection resources
+        utils.inspecting_error_handler(
+            task,
+            logmsg="Inspection processing failed for node %(node)s: "
+                   "%(error)s" % {'node': node.uuid, 'error': error},
+            errmsg=error,
+            traceback=False)
+        if node.provision_state != states.ENROLL:
+            task.process_event('fail')
+        raise
 
     if node.provision_state != states.ENROLL:
         # NOTE(iurygregory): Cache firmware components while node is PowerOn.

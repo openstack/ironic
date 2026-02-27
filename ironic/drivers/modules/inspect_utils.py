@@ -20,7 +20,6 @@ import typing
 import urllib
 
 from oslo_log import log as logging
-from oslo_utils import excutils
 from oslo_utils import netutils
 import stevedore
 
@@ -549,16 +548,16 @@ def run_inspection_hooks(task,
     try:
         _run_preprocess_hooks(task, inventory, plugin_data, hooks)
     except exception.HardwareInspectionFailure:
-        with excutils.save_and_reraise_exception():
-            if on_error_plugin_data:
-                on_error_plugin_data(plugin_data, task.node)
+        if on_error_plugin_data:
+            on_error_plugin_data(plugin_data, task.node)
+        raise
 
     try:
         _run_post_hooks(task, inventory, plugin_data, hooks)
     except exception.HardwareInspectionFailure:
-        with excutils.save_and_reraise_exception():
-            if on_error_plugin_data:
-                on_error_plugin_data(plugin_data, task.node)
+        if on_error_plugin_data:
+            on_error_plugin_data(plugin_data, task.node)
+        raise
     except Exception as exc:
         LOG.exception('Unexpected exception while running inspection hooks for'
                       ' node %(node)s', {'node': task.node.uuid})
@@ -569,7 +568,7 @@ def run_inspection_hooks(task,
                  'error': exc})
         if on_error_plugin_data:
             on_error_plugin_data(plugin_data, task.node)
-        raise exception.HardwareInspectionFailure(error=msg)
+        raise exception.HardwareInspectionFailure(error=msg) from exc
 
 
 def _run_preprocess_hooks(task, inventory, plugin_data, hooks):

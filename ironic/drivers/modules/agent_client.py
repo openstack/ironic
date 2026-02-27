@@ -19,7 +19,6 @@ import time
 
 from oslo_log import log
 from oslo_serialization import jsonutils
-from oslo_utils import excutils
 from oslo_utils import strutils
 import requests
 import tenacity
@@ -896,13 +895,13 @@ class AgentClient(object):
         try:
             self._command(node=node, method='system.lockdown', params={})
         except Exception as e:
-            with excutils.save_and_reraise_exception():
-                LOG.error('Failed to lock down node %(node_uuid)s. '
-                          '%(cls)s: %(error)s',
-                          {'node_uuid': node.uuid,
-                           'cls': e.__class__.__name__, 'error': e},
-                          exc_info=not isinstance(
-                              e, exception.IronicException))
+            LOG.error('Failed to lock down node %(node_uuid)s. '
+                      '%(cls)s: %(error)s',
+                      {'node_uuid': node.uuid,
+                       'cls': e.__class__.__name__, 'error': e},
+                      exc_info=not isinstance(
+                          e, exception.IronicException))
+            raise
 
         try:
             _wait_until_locked_down(node)
@@ -916,10 +915,10 @@ class AgentClient(object):
             raise exception.AgentCommandTimeout(command='system.lockdown',
                                                 node=node.uuid)
         except Exception as e:
-            with excutils.save_and_reraise_exception():
-                LOG.error('Failed to lock down node %(node_uuid)s. '
-                          '%(cls)s: %(error)s',
-                          {'node_uuid': node.uuid,
-                           'cls': e.__class__.__name__, 'error': e},
-                          exc_info=not isinstance(
-                              e, exception.IronicException))
+            LOG.error('Failed to lock down node %(node_uuid)s. '
+                      '%(cls)s: %(error)s',
+                      {'node_uuid': node.uuid,
+                       'cls': e.__class__.__name__, 'error': e},
+                      exc_info=not isinstance(
+                          e, exception.IronicException))
+            raise

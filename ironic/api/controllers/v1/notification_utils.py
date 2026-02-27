@@ -15,7 +15,6 @@ import contextlib
 from oslo_config import cfg
 from oslo_log import log
 from oslo_messaging import exceptions as oslo_msg_exc
-from oslo_utils import excutils
 from oslo_versionedobjects import exception as oslo_vo_exc
 
 from ironic.common import exception
@@ -155,11 +154,11 @@ def handle_error_notification(context, obj, action, **kwargs):
     try:
         yield
     except Exception:
-        with excutils.save_and_reraise_exception():
-            _emit_api_notification(context, obj, action,
-                                   fields.NotificationLevel.ERROR,
-                                   fields.NotificationStatus.ERROR,
-                                   **kwargs)
+        _emit_api_notification(context, obj, action,
+                               fields.NotificationLevel.ERROR,
+                               fields.NotificationStatus.ERROR,
+                               **kwargs)
+        raise
 
 
 def emit_end_notification(context, obj, action, **kwargs):

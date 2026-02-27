@@ -25,7 +25,6 @@ from urllib import parse as urlparse
 
 from oslo_config import cfg
 from oslo_log import log as logging
-from oslo_utils import excutils
 from oslo_utils import importutils
 
 from ironic.common import exception
@@ -238,10 +237,10 @@ class FirmwareProcessor(object):
             fw_image_location_obj, is_different_file = (_extract_fw_from_file(
                 node, target_file))
         except exception.IronicException:
-            with excutils.save_and_reraise_exception():
-                # delete the target file along with temp dir and
-                # re-raise the exception
-                shutil.rmtree(temp_dir, ignore_errors=True)
+            # delete the target file along with temp dir and
+            # re-raise the exception
+            shutil.rmtree(temp_dir, ignore_errors=True)
+            raise
 
         # Note(deray): In case of raw (no need for extraction) firmware files,
         # the same firmware file is returned from the extract method.
