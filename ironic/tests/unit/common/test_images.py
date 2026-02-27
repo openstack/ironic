@@ -57,7 +57,7 @@ class IronicImagesTestCase(base.TestCase):
         image_service_mock.assert_called_once_with('image_href',
                                                    context='context')
         image_service_mock.return_value.download.assert_called_once_with(
-            'image_href', 'file')
+            'image_href', 'file', checksum=None, checksum_algo=None)
         mock_zstd.assert_called_once_with('path')
 
     @mock.patch.object(images, '_handle_zstd_compression', autospec=True)
@@ -76,7 +76,7 @@ class IronicImagesTestCase(base.TestCase):
 
         open_mock.assert_called_once_with('path', 'wb')
         image_service_mock.return_value.download.assert_called_once_with(
-            'image_href', 'file')
+            'image_href', 'file', checksum=None, checksum_algo=None)
         image_to_raw_mock.assert_called_once_with(
             'image_href', 'path', 'path.part')
         mock_zstd.assert_called_once_with('path')
@@ -102,7 +102,7 @@ class IronicImagesTestCase(base.TestCase):
         mock_checksum.assert_called_once_with('path', algorithm='sha256')
         open_mock.assert_called_once_with('path', 'wb')
         image_service_mock.return_value.download.assert_called_once_with(
-            'image_href', 'file')
+            'image_href', 'file', checksum='f00', checksum_algo='sha256')
         image_to_raw_mock.assert_called_once_with(
             'image_href', 'path', 'path.part')
         mock_zstd.assert_called_once_with('path')
@@ -131,7 +131,7 @@ class IronicImagesTestCase(base.TestCase):
         mock_checksum.assert_called_once_with('path', algorithm='sha256')
         open_mock.assert_called_once_with('path', 'wb')
         image_service_mock.return_value.download.assert_called_once_with(
-            'image_href', 'file')
+            'image_href', 'file', checksum='f00', checksum_algo='sha256')
         # If the checksum fails, then we don't attempt to convert the image.
         image_to_raw_mock.assert_not_called()
         mock_zstd.assert_not_called()
@@ -158,7 +158,7 @@ class IronicImagesTestCase(base.TestCase):
         mock_checksum.assert_called_once_with('path', algorithm='md5')
         open_mock.assert_called_once_with('path', 'wb')
         image_service_mock.return_value.download.assert_called_once_with(
-            'image_href', 'file')
+            'image_href', 'file', checksum='f00', checksum_algo=None)
         image_to_raw_mock.assert_called_once_with(
             'image_href', 'path', 'path.part')
         mock_zstd.assert_called_once_with('path')
@@ -185,7 +185,7 @@ class IronicImagesTestCase(base.TestCase):
         mock_checksum.assert_called_once_with('path', algorithm='sha512')
         open_mock.assert_called_once_with('path', 'wb')
         image_service_mock.return_value.download.assert_called_once_with(
-            'image_href', 'file')
+            'image_href', 'file', checksum='sha512:f00', checksum_algo=None)
         image_to_raw_mock.assert_called_once_with(
             'image_href', 'path', 'path.part')
         mock_zstd.assert_called_once_with('path')
@@ -215,7 +215,7 @@ class IronicImagesTestCase(base.TestCase):
         mock_checksum.assert_not_called()
         open_mock.assert_called_once_with('path', 'wb')
         svc_mock.return_value.download.assert_called_once_with(
-            'image_href', 'file')
+            'image_href', 'file', checksum='sha512:f00', checksum_algo=None)
         image_to_raw_mock.assert_called_once_with(
             'image_href', 'path', 'path.part')
         svc_mock.return_value.set_image_auth.assert_called_once_with(
