@@ -1,0 +1,11 @@
+---
+fixes:
+  - |
+    Fixed an issue in the Redfish management driver where boot device setting
+    failed for vendors requiring full boot parameter requests (such as American
+    Megatrends International, ASRock Rack, and Redfish compatible systems). The
+    driver was incorrectly using a parameter that could be None, but
+    these vendors require explicit values for all boot parameters. This fix ensures
+    that vendors in ``VENDORS_REQUIRING_FULL_BOOT_REQUEST`` always receive
+    explicit boot configuration values, resolving boot device configuration
+    failures on affected systems.
