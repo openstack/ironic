@@ -29,3 +29,4 @@ Bare Metal Service Features
    Node Health Monitoring <health-monitoring>
    OCI Container Registry Support <oci-container-registry>
    Runbooks for Cleaning & Servicing <runbooks>
+   Trait Based Networking (TBN) <trait-based-networking>
