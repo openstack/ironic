@@ -145,6 +145,41 @@ def apply_actions(task, rule, inventory, plugin_data):
             raise
 
 
+def _check_rule(task, rule, inventory, plugin_data):
+    """Check a single inspection rule's conditions.
+
+    Applies secret masking appropriate for the rule and evaluates its
+    conditions.  Returns the masked data for use by the caller when applying
+    actions, so that the same masked views are used consistently.
+
+    :param task: a TaskManager instance
+    :param rule: a dict representing the inspection rule
+    :param inventory: hardware inventory dict
+    :param plugin_data: plugin data dict
+    :returns: a ``(masked_inventory, masked_plugin_data)`` tuple if conditions
+              passed, or ``None`` if conditions were not met
+    :raises: exception.HardwareInspectionFailure, exception.IronicException
+    """
+    mask_secrets = CONF.inspection_rules.mask_secrets
+    is_sensitive_rule = rule.get('sensitive', False)
+
+    should_mask = (mask_secrets == 'always'
+                   or mask_secrets == 'sensitive' and not is_sensitive_rule)
+
+    masked_inventory = utils.ShallowMaskDict(
+        inventory, sensitive_fields=SENSITIVE_FIELDS,
+        mask_enabled=should_mask)
+
+    masked_plugin_data = utils.ShallowMaskDict(
+        plugin_data, sensitive_fields=SENSITIVE_FIELDS,
+        mask_enabled=should_mask)
+
+    if not check_conditions(task, rule, masked_inventory, masked_plugin_data):
+        return None
+
+    return masked_inventory, masked_plugin_data
+
+
 def apply_rules(task, inventory, plugin_data, inspection_phase):
     """Apply inspection rules to a node."""
     node = task.node
@@ -167,34 +202,15 @@ def apply_rules(task, inventory, plugin_data, inspection_phase):
     LOG.debug("Applying %(count)d inspection rules to node %(node)s",
               {'count': len(rules), 'node': node.uuid})
 
-    mask_secrets = CONF.inspection_rules.mask_secrets
     for rule in rules:
         try:
-
-            should_mask = False
-            is_sensitive_rule = rule.get('sensitive', False)
-
-            if (mask_secrets == 'always'
-                or mask_secrets == 'sensitive' and not is_sensitive_rule):
-                should_mask = True
-
-            masked_inventory = utils.ShallowMaskDict(
-                inventory, sensitive_fields=SENSITIVE_FIELDS,
-                mask_enabled=should_mask)
-
-            masked_plugin_data = utils.ShallowMaskDict(
-                plugin_data, sensitive_fields=SENSITIVE_FIELDS,
-                mask_enabled=should_mask)
-
-            if not check_conditions(task, rule, masked_inventory,
-                                    masked_plugin_data):
+            result = _check_rule(task, rule, inventory, plugin_data)
+            if result is None:
                 continue
-
+            masked_inventory, masked_plugin_data = result
             LOG.info("Applying actions for rule %(rule)s to node %(node)s",
                      {'rule': rule['uuid'], 'node': node.uuid})
-
             apply_actions(task, rule, masked_inventory, masked_plugin_data)
-
         except exception.HardwareInspectionFailure:
             raise
         except exception.IronicException as e:
