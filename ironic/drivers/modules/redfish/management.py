@@ -1024,8 +1024,12 @@ class RedfishManagement(base.ManagementInterface):
 
             LOG.info('Firmware updates completed for node %(node)s',
                      {'node': node.uuid})
-
-            manager_utils.notify_conductor_resume_clean(task)
+            if task.node.clean_step:
+                manager_utils.notify_conductor_resume_clean(task)
+            elif task.node.service_step:
+                manager_utils.notify_conductor_resume_service(task)
+            elif task.node.deploy_step:
+                manager_utils.notify_conductor_resume_deploy(task)
         else:
             firmware_updates.pop(0)
             self._apply_firmware_update(node,
@@ -1053,7 +1057,10 @@ class RedfishManagement(base.ManagementInterface):
     @periodics.node_periodic(
         purpose='checking if async firmware update failed',
         spacing=CONF.redfish.firmware_update_fail_interval,
-        filters={'reserved': False, 'provision_state': states.CLEANFAIL,
+        filters={'reserved': False,
+                 'provision_state_in': {states.CLEANFAIL,
+                                        states.SERVICEFAIL,
+                                        states.DEPLOYFAIL},
                  'maintenance': True},
         predicate_extra_fields=['driver_internal_info'],
         predicate=lambda n: n.driver_internal_info.get('firmware_updates'),
@@ -1075,7 +1082,10 @@ class RedfishManagement(base.ManagementInterface):
     @periodics.node_periodic(
         purpose='checking async firmware update tasks',
         spacing=CONF.redfish.firmware_update_status_interval,
-        filters={'reserved': False, 'provision_state': states.CLEANWAIT},
+        filters={'reserved': False,
+                 'provision_state_in': {states.CLEANWAIT,
+                                        states.SERVICEWAIT,
+                                        states.DEPLOYWAIT}},
         predicate_extra_fields=['driver_internal_info'],
         predicate=lambda n: n.driver_internal_info.get('firmware_updates'),
     )
