@@ -1,0 +1,6 @@
+---
+fixes:
+  - |
+    The flat network driver now raises ``NetworkError`` when rebind operations
+    fail to bind any VIFs, instead of silently continuing. This prevents
+    unexpected behavior when all port bindings fail during node rebind.
