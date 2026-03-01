@@ -125,7 +125,8 @@ class RedfishFirmware(base.FirmwareInterface):
         try:
             nic_components = self.retrieve_nic_components(task, system)
         except (exception.RedfishError,
-                sushy.exceptions.BadRequestError) as e:
+                sushy.exceptions.BadRequestError,
+                sushy.exceptions.MissingAttributeError) as e:
             # NOTE(janders) if an exception is raised, log a warning
             # with exception details. This is important for HP hardware
             # which at the time of writing this are known to return 400

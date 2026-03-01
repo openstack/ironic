@@ -1,0 +1,5 @@
+---
+fixes:
+  - |
+    Fixes exception on retrieving NIC components in the periodic power sync
+    on Redfish hardware when NetworkAdapters is not implemented for Chassis.
