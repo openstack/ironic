@@ -1,0 +1,10 @@
+---
+features:
+  - |
+    The ``ramdisk`` deploy interface now implements ``supports_deploy()``,
+    allowing it to be used with the ``autodetect`` deploy interface.
+    When ``ramdisk`` is included in ``autodetect_deploy_interfaces``
+    and ``enabled_deploy_interfaces``, autodetect will select it when the
+    node's
+    ``instance_info`` contains ``kernel`` and ``ramdisk`` without an
+    ``image_source``, or when ``boot_iso`` is set.

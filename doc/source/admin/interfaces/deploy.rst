@@ -163,10 +163,12 @@ their priority order. The default configuration is:
 .. code-block:: ini
 
    [DEFAULT]
-   autodetect_deploy_interfaces = bootc,direct
+   autodetect_deploy_interfaces = ramdisk,bootc,direct
 
-This default configuration checks :ref:`Bootc deploy <bootc-deploy>` first,
-then falls back to :ref:`Direct deploy <direct-deploy>`.
+This example configuration checks :doc:`Ramdisk deploy </admin/ramdisk-boot>` first
+(for nodes with ``kernel``/``ramdisk`` or ``boot_iso`` in ``instance_info``),
+then :ref:`Bootc deploy <bootc-deploy>` (for OCI container images), and falls
+back to :ref:`Direct deploy <direct-deploy>` for standard disk images.
 
 .. note::
    The order of interfaces in the configuration list matters. Interfaces are
@@ -235,6 +237,16 @@ Ramdisk deploy
 The ramdisk interface is intended to provide a mechanism to "deploy" an
 instance where the item to be deployed is in reality a ramdisk. It is
 documented separately, see :doc:`/admin/ramdisk-boot`.
+
+Autodetect support
+------------------
+
+The ``ramdisk`` deploy interface supports being auto-detected by the
+``autodetect`` deploy interface (see :ref:`autodetect-deploy` for details).
+It checks whether the node's ``instance_info`` contains ``kernel`` and
+``ramdisk`` (without an ``image_source``), or whether ``boot_iso`` is set.
+When either condition is met, autodetect will select the ``ramdisk`` deploy
+interface.
 
 .. _custom-agent-deploy:
 

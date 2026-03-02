@@ -39,6 +39,56 @@ class RamdiskDeploy(agent_base.AgentBaseMixin, agent_base.HeartbeatMixin,
     def get_properties(self):
         return {}
 
+    def supports_deploy(self, task):
+        """Check if this interface supports the given deployment.
+
+        Ramdisk deploy is appropriate when
+        ``ironic_ramdisk_deploy=True`` is present **and** one of
+        the following holds:
+
+        * ``boot_iso`` is set in instance_info, or
+        * ``kernel`` and ``ramdisk`` are set in instance_info, or
+        * ``image_source`` is a Glance image with ``boot_iso_id``
+          property, or
+        * ``image_source`` is a Glance image with ``kernel_id``
+          and ``ramdisk_id`` properties.
+
+        For instance_info cases the sentinel is looked up in
+        ``instance_info``; for Glance image cases it is looked up
+        in the image properties.
+
+        :param task: A TaskManager instance containing the node to
+            act on.
+        :returns: True if ramdisk deploy is appropriate.
+        """
+        instance_info = task.node.instance_info
+        if (instance_info.get('boot_iso')
+                and instance_info.get('ironic_ramdisk_deploy')):
+            return True
+        if (instance_info.get('kernel')
+                and instance_info.get('ramdisk')
+                and instance_info.get('ironic_ramdisk_deploy')):
+            return True
+        image_source = instance_info.get('image_source')
+        if (image_source
+                and service_utils.is_glance_image(image_source)):
+            try:
+                props = deploy_utils.get_image_properties(
+                    task.context, image_source)
+                if not props.get('ironic_ramdisk_deploy'):
+                    return False
+                if props.get('boot_iso_id'):
+                    return True
+                if (props.get('kernel_id')
+                        and props.get('ramdisk_id')):
+                    return True
+            except Exception:
+                LOG.warning(
+                    'Failed to query Glance image %s '
+                    'for ramdisk deploy detection',
+                    image_source)
+        return False
+
     def validate(self, task):
         if 'ramdisk_boot' not in task.driver.boot.capabilities:
             raise exception.InvalidParameterValue(

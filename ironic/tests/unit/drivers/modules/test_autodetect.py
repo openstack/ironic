@@ -28,8 +28,9 @@ class AutodetectDeployTestCase(db_base.DbTestCase):
 
         # Enable required deploy interfaces for autodetect to use
         self.config(
-            autodetect_deploy_interfaces=['bootc', 'direct'],
-            enabled_deploy_interfaces=['autodetect', 'direct', 'bootc'],
+            autodetect_deploy_interfaces=['ramdisk', 'bootc', 'direct'],
+            enabled_deploy_interfaces=[
+                'autodetect', 'direct', 'bootc', 'ramdisk'],
             default_deploy_interface='autodetect',
         )
 
@@ -164,7 +165,9 @@ class AutodetectDeployTestCase(db_base.DbTestCase):
         def get_interface_side_effect(hw_type, iface_type, iface_name):
             if iface_name == 'bootc':
                 return mock_bootc_interface
-            return mock.MagicMock()
+            iface = mock.MagicMock()
+            iface.supports_deploy.return_value = False
+            return iface
 
         mock_get_interface.side_effect = get_interface_side_effect
 
@@ -172,7 +175,7 @@ class AutodetectDeployTestCase(db_base.DbTestCase):
             switchable = self.deploy._create_switchable_interface(task)
             interface, name, supports = switchable
 
-            # Should select bootc (second in priority list)
+            # Should select bootc
             self.assertEqual('bootc', name)
             self.assertTrue(supports)
             self.assertEqual(mock_bootc_interface, interface)
@@ -197,11 +200,15 @@ class AutodetectDeployTestCase(db_base.DbTestCase):
         mock_direct_interface.supports_deploy.return_value = False
 
         def get_interface_side_effect(hw_type, iface_type, iface_name):
-            if iface_name == 'bootc':
+            if iface_name == 'ramdisk':
+                return mock_ramdisk_interface
+            elif iface_name == 'bootc':
                 return mock_bootc_interface
             elif iface_name == 'direct':
                 return mock_direct_interface
-            return mock.MagicMock()
+            iface = mock.MagicMock()
+            iface.supports_deploy.return_value = False
+            return iface
 
         mock_get_interface.side_effect = get_interface_side_effect
 
@@ -209,7 +216,7 @@ class AutodetectDeployTestCase(db_base.DbTestCase):
             switchable = self.deploy._create_switchable_interface(task)
             interface, name, supports = switchable
 
-            # Should fallback to direct (last in priority list)
+            # Should fallback to direct (last in list)
             self.assertEqual('direct', name)
             self.assertFalse(supports)
             self.assertEqual(mock_direct_interface, interface)
@@ -301,3 +308,39 @@ class AutodetectDeployTestCase(db_base.DbTestCase):
             self.assertEqual(
                 original_interface,
                 task.node.driver_internal_info['original_deploy_interface'])
+
+    @mock.patch('ironic.common.driver_factory.get_interface',
+                autospec=True)
+    @mock.patch('ironic.common.driver_factory.get_hardware_type',
+                autospec=True)
+    def test__create_switchable_interface_ramdisk(
+            self, mock_get_hw_type, mock_get_interface):
+        """Test _create_switchable_interface selects ramdisk."""
+        mock_hw_type = mock.MagicMock()
+        mock_get_hw_type.return_value = mock_hw_type
+
+        mock_ramdisk_interface = mock.MagicMock()
+        mock_ramdisk_interface.supports_deploy.return_value = True
+
+        def get_interface_side_effect(
+                hw_type, iface_type, iface_name):
+            if iface_name == 'ramdisk':
+                return mock_ramdisk_interface
+            iface = mock.MagicMock()
+            iface.supports_deploy.return_value = False
+            return iface
+
+        mock_get_interface.side_effect = (
+            get_interface_side_effect)
+
+        with task_manager.acquire(
+                self.context, self.node.uuid) as task:
+            switchable = (
+                self.deploy._create_switchable_interface(
+                    task))
+            interface, name, supports = switchable
+
+            self.assertEqual('ramdisk', name)
+            self.assertTrue(supports)
+            self.assertEqual(
+                mock_ramdisk_interface, interface)
