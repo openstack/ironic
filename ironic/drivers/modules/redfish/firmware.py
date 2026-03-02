@@ -229,7 +229,8 @@ class RedfishFirmware(base.FirmwareInterface):
         return nic_list
 
     @METRICS.timer('RedfishFirmware.update')
-    @base.deploy_step(priority=0, argsinfo=_FW_SETTINGS_ARGSINFO)
+    @base.deploy_step(priority=0, abortable=False,
+                      argsinfo=_FW_SETTINGS_ARGSINFO)
     @base.clean_step(priority=0, abortable=False,
                      argsinfo=_FW_SETTINGS_ARGSINFO,
                      requires_ramdisk=True)

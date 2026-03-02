@@ -268,8 +268,8 @@ class RamdiskDeployTestCase(db_base.DbTestCase):
 
     def test_get_deploy_steps(self):
         # Only the default deploy step exists in the ramdisk deploy
-        expected = [{'argsinfo': None, 'interface': 'deploy', 'priority': 100,
-                     'step': 'deploy'}]
+        expected = [{'argsinfo': None, 'abortable': True,
+                     'interface': 'deploy', 'priority': 100, 'step': 'deploy'}]
         with task_manager.acquire(self.context, self.node.uuid) as task:
             steps = task.driver.deploy.get_deploy_steps(task)
             self.assertEqual(expected, steps)

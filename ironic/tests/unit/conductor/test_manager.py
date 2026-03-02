@@ -2252,6 +2252,56 @@ class ContinueNodeDeployTestCase(mgr_utils.ServiceSetUpMixin,
                                       mock.ANY)
         self.assertFalse(mock_event.called)
 
+    def _continue_node_deploy_abort(self):
+        last_deploy_step = self.deploy_steps[0]
+        last_deploy_step['abortable'] = False
+        last_deploy_step['abort_after'] = True
+        driver_info = {'deploy_steps': self.deploy_steps,
+                       'deploy_step_index': 0,
+                       'steps_validated': True}
+        tgt_prov_state = states.ACTIVE
+        node = obj_utils.create_test_node(
+            self.context, driver='fake-hardware',
+            provision_state=states.DEPLOYWAIT,
+            target_provision_state=tgt_prov_state, last_error=None,
+            driver_internal_info=driver_info, deploy_step=self.deploy_steps[0])
+
+        self._start_service()
+        self.service.continue_node_deploy(self.context, node.uuid)
+        node.refresh()
+        self.assertEqual(states.DEPLOYFAIL, node.provision_state)
+        self.assertEqual(tgt_prov_state, node.target_provision_state)
+        self.assertIsNotNone(node.last_error)
+        # assert the deploy step name is in the last error message
+        self.assertIn(self.deploy_steps[0]['step'], node.last_error)
+
+    def test_continue_node_deploy_abort(self):
+        self._continue_node_deploy_abort()
+
+    def _continue_node_deploy_abort_last_deploy_step(self):
+        last_deploy_step = self.deploy_steps[0]
+        last_deploy_step['abortable'] = False
+        last_deploy_step['abort_after'] = True
+        driver_info = {'deploy_steps': [self.deploy_steps[0]],
+                       'deploy_step_index': 0,
+                       'steps_validated': True}
+        tgt_prov_state = states.ACTIVE
+        node = obj_utils.create_test_node(
+            self.context, driver='fake-hardware',
+            provision_state=states.DEPLOYWAIT,
+            target_provision_state=tgt_prov_state, last_error=None,
+            driver_internal_info=driver_info, deploy_step=self.deploy_steps[0])
+
+        self._start_service()
+        self.service.continue_node_deploy(self.context, node.uuid)
+        node.refresh()
+        self.assertEqual(states.ACTIVE, node.provision_state)
+        self.assertIsNone(node.target_provision_state)
+        self.assertIsNone(node.last_error)
+
+    def test_continue_node_deploy_abort_last_deploy_step(self):
+        self._continue_node_deploy_abort_last_deploy_step()
+
 
 @mgr_utils.mock_record_keepalive
 class CheckTimeoutsTestCase(mgr_utils.ServiceSetUpMixin, db_base.DbTestCase):
@@ -2905,6 +2955,47 @@ class DoProvisioningActionTestCase(mgr_utils.ServiceSetUpMixin,
             mock.ANY,
             states.DEPLOYHOLD)
         self.assertNotIn('agent_url', node.driver_internal_info)
+
+    @mock.patch('ironic.conductor.manager.ConductorManager._spawn_worker',
+                autospec=True)
+    def test_do_provision_action_abort_from_deploywait(self, mock_spawn):
+        node = obj_utils.create_test_node(
+            self.context, driver='fake-hardware',
+            provision_state=states.DEPLOYWAIT,
+            driver_internal_info={
+                'agent_url': 'https://foo.bar/'
+            })
+
+        self._start_service()
+        self.service.do_provisioning_action(self.context, node.uuid, 'abort')
+        node.refresh()
+        mock_spawn.assert_called_with(
+            self.service,
+            deployments.do_node_deploy_abort,
+            mock.ANY)
+        self.assertNotIn('agent_url', node.driver_internal_info)
+
+    @mock.patch('ironic.conductor.manager.ConductorManager._spawn_worker',
+                autospec=True)
+    def test_do_provision_action_abort_from_deploywait_step_not_abortable(
+            self, mock_spawn):
+        node = obj_utils.create_test_node(
+            self.context, driver='fake-hardware',
+            provision_state=states.DEPLOYWAIT,
+            target_provision_state=states.ACTIVE,
+            deploy_step={'step': 'foo', 'abortable': False})
+
+        self._start_service(start_allocations=False)
+        self.service.do_provisioning_action(self.context, node.uuid, 'abort')
+        node.refresh()
+        # Assert the current deploy step was marked to be aborted later
+        self.assertIn('abort_after', node.deploy_step)
+        self.assertTrue(node.deploy_step['abort_after'])
+        # Make sure things stays as it was before
+        self.assertEqual(states.DEPLOYWAIT, node.provision_state)
+        self.assertEqual(states.ACTIVE, node.target_provision_state)
+        # Make sure spawn worker was not called
+        mock_spawn.assert_not_called()
 
     @mock.patch('ironic.conductor.manager.ConductorManager._spawn_worker',
                 autospec=True)

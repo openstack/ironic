@@ -1474,6 +1474,14 @@ def allow_inspect_abort():
     return api.request.version.minor >= versions.MINOR_41_INSPECTION_ABORT
 
 
+def allow_deploy_abort():
+    """Check if deployment abort is allowed.
+
+    Version 1.110 of the API added support for deployment abort in DEPLOYWAIT
+    """
+    return api.request.version.minor >= versions.MINOR_110_DEPLOYWAIT_ABORT
+
+
 def allow_detail_query():
     """Check if passing a detail=True query string is allowed.
 

@@ -261,6 +261,7 @@ class BaseInterface(object, metaclass=abc.ABCMeta):
                 # Create a DeployStep to represent this method
                 step = {'step': method.__name__,
                         'priority': method._deploy_step_priority,
+                        'abortable': method._deploy_step_abortable,
                         'argsinfo': method._deploy_step_argsinfo,
                         'interface': instance.interface_type}
                 instance.deploy_steps.append(step)
@@ -2123,7 +2124,7 @@ def clean_step(priority, abortable=False, argsinfo=None,
     return decorator
 
 
-def deploy_step(priority, argsinfo=None):
+def deploy_step(priority, abortable=True, argsinfo=None):
     """Decorator for deployment steps.
 
     Only steps with priorities greater than 0 are used.
@@ -2152,8 +2153,14 @@ def deploy_step(priority, argsinfo=None):
             def example_deploying(self, task):
                 # do some deploying
 
+            @base.deploy_step(priority=50, abortable=False)
+            def non_abortable_deploy(self, task):
+                # do some critical deploying that cannot be aborted
+
     :param priority: an integer (>=0) priority; used for determining the order
         in which the step is run in the deployment process.
+    :param abortable: Boolean value. Whether the deploy step is abortable
+        or not; defaults to True.
     :param argsinfo: a dictionary of keyword arguments where key is the name of
         the argument and value is a dictionary as follows::
 
@@ -2172,6 +2179,13 @@ def deploy_step(priority, argsinfo=None):
             raise exception.InvalidParameterValue(
                 _('"priority" must be an integer value >= 0, instead of "%s"')
                 % priority)
+
+        if isinstance(abortable, bool):
+            func._deploy_step_abortable = abortable
+        else:
+            raise exception.InvalidParameterValue(
+                _('"abortable" must be a Boolean value instead of "%s"')
+                % abortable)
 
         _validate_argsinfo(argsinfo)
         func._deploy_step_argsinfo = argsinfo

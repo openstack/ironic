@@ -1438,6 +1438,7 @@ class ConductorManager(base_manager.BaseConductorManager):
                                                  states.RESCUEWAIT,
                                                  states.INSPECTWAIT,
                                                  states.CLEANHOLD,
+                                                 states.DEPLOYWAIT,
                                                  states.DEPLOYHOLD,
                                                  states.SERVICEWAIT,
                                                  states.SERVICEHOLD,
@@ -1555,6 +1556,42 @@ class ConductorManager(base_manager.BaseConductorManager):
 
         if node.provision_state == states.INSPECTWAIT:
             return inspection.abort_inspection(task)
+
+        if node.provision_state == states.DEPLOYWAIT:
+            # Check if the deploy step is abortable; if so abort it.
+            # Otherwise, indicate in that deploy step, that deployment
+            # should be aborted after that step is done.
+            if (node.deploy_step and not
+                    node.deploy_step.get('abortable')):
+                LOG.info('The current deploy step "%(deploy_step)s" for '
+                         'node %(node)s is not abortable. Adding a '
+                         'flag to abort the deployment after the deploy '
+                         'step is completed.',
+                         {'deploy_step': node.deploy_step['step'],
+                          'node': node.uuid})
+                deploy_step = node.deploy_step
+                if not deploy_step.get('abort_after'):
+                    deploy_step['abort_after'] = True
+                    node.deploy_step = deploy_step
+                    node.save()
+                return
+
+            LOG.debug('Aborting the deployment operation during deploy step '
+                      '"%(step)s" for node %(node)s in provision state '
+                      '"%(prov)s".',
+                      {'node': node.uuid,
+                       'prov': node.provision_state,
+                       'step': node.deploy_step.get('step')
+                       if node.deploy_step else None})
+            # Immediately break agent API interaction
+            utils.remove_agent_url(task.node)
+            # Abort the deployment, leaving the node in DEPLOYFAIL
+            task.process_event(
+                'abort',
+                callback=self._spawn_worker,
+                call_args=(deployments.do_node_deploy_abort, task),
+                err_handler=utils.provisioning_error_handler)
+            return
 
         if node.provision_state == states.DEPLOYHOLD:
             # Immediately break agent API interaction

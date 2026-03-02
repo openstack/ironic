@@ -651,7 +651,8 @@ class IloManagement(base.ManagementInterface):
                  "is completed.", {'node': node.uuid})
 
     @METRICS.timer('IloManagement.update_firmware')
-    @base.deploy_step(priority=0, argsinfo=_FIRMWARE_UPDATE_ARGSINFO)
+    @base.deploy_step(priority=0, abortable=False,
+                      argsinfo=_FIRMWARE_UPDATE_ARGSINFO)
     @base.clean_step(priority=0, abortable=False,
                      argsinfo=_FIRMWARE_UPDATE_ARGSINFO)
     @firmware_processor.verify_firmware_update_args

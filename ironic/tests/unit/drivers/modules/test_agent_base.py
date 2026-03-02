@@ -1650,16 +1650,16 @@ class StepMethodsTestCase(db_base.DbTestCase):
             steps = self.deploy.get_deploy_steps(task)
             # 2 in-band steps + 3 out-of-band
             expected = [
-                {'step': 'deploy', 'priority': 100, 'argsinfo': None,
-                 'interface': 'deploy'},
+                {'step': 'deploy', 'priority': 100, 'abortable': True,
+                 'argsinfo': None, 'interface': 'deploy'},
                 {'step': 'prepare_instance_boot', 'priority': 60,
+                 'abortable': True, 'argsinfo': None, 'interface': 'deploy'},
+                {'step': 'tear_down_agent', 'priority': 40, 'abortable': True,
                  'argsinfo': None, 'interface': 'deploy'},
-                {'step': 'tear_down_agent', 'priority': 40, 'argsinfo': None,
-                 'interface': 'deploy'},
                 {'step': 'switch_to_tenant_network', 'priority': 30,
+                 'abortable': True, 'argsinfo': None, 'interface': 'deploy'},
+                {'step': 'boot_instance', 'priority': 20, 'abortable': True,
                  'argsinfo': None, 'interface': 'deploy'},
-                {'step': 'boot_instance', 'priority': 20, 'argsinfo': None,
-                 'interface': 'deploy'},
             ] + self.clean_steps['deploy']
             self.assertCountEqual(expected, steps)
 
@@ -1669,16 +1669,16 @@ class StepMethodsTestCase(db_base.DbTestCase):
             steps = self.deploy.get_deploy_steps(task)
             # three base out-of-band steps
             expected = [
-                {'step': 'deploy', 'priority': 100, 'argsinfo': None,
-                 'interface': 'deploy'},
+                {'step': 'deploy', 'priority': 100, 'abortable': True,
+                 'argsinfo': None, 'interface': 'deploy'},
                 {'step': 'prepare_instance_boot', 'priority': 60,
+                 'abortable': True, 'argsinfo': None, 'interface': 'deploy'},
+                {'step': 'tear_down_agent', 'priority': 40, 'abortable': True,
                  'argsinfo': None, 'interface': 'deploy'},
-                {'step': 'tear_down_agent', 'priority': 40, 'argsinfo': None,
-                 'interface': 'deploy'},
                 {'step': 'switch_to_tenant_network', 'priority': 30,
+                 'abortable': True, 'argsinfo': None, 'interface': 'deploy'},
+                {'step': 'boot_instance', 'priority': 20, 'abortable': True,
                  'argsinfo': None, 'interface': 'deploy'},
-                {'step': 'boot_instance', 'priority': 20, 'argsinfo': None,
-                 'interface': 'deploy'},
             ]
             self.assertCountEqual(expected, steps)
 

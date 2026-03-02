@@ -1289,9 +1289,13 @@ class NodeStatesController(rest.RestController):
             raise exception.ClientSideError(
                 msg, status_code=http_client.BAD_REQUEST)
 
-        if (rpc_node.provision_state == ir_states.INSPECTWAIT
-                and target == ir_states.VERBS['abort']):
-            if not api_utils.allow_inspect_abort():
+        if target == ir_states.VERBS['abort']:
+            if (rpc_node.provision_state == ir_states.INSPECTWAIT
+                    and not api_utils.allow_inspect_abort()):
+                raise exception.NotAcceptable()
+
+            if (rpc_node.provision_state == ir_states.DEPLOYWAIT
+                    and not api_utils.allow_deploy_abort()):
                 raise exception.NotAcceptable()
 
         if target == ir_states.VERBS['unhold']:

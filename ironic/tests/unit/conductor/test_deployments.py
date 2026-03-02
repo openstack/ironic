@@ -1351,3 +1351,65 @@ class StoreConfigDriveTestCase(db_base.DbTestCase):
             container_name, expected_obj_name, 1800)
         self.node.refresh()
         self.assertEqual(expected_instance_info, self.node.instance_info)
+
+
+@mock.patch.object(fake.FakeDeploy, 'clean_up', autospec=True)
+class DoNodeDeployAbortTestCase(db_base.DbTestCase):
+
+    def setUp(self):
+        super(DoNodeDeployAbortTestCase, self).setUp()
+        self.node = obj_utils.create_test_node(
+            self.context, driver='fake-hardware',
+            provision_state=states.DEPLOYFAIL,
+            target_provision_state=states.ACTIVE)
+
+    def _test_do_node_deploy_abort(self, deploy_step, clean_up_mock):
+        self.node.provision_state = states.DEPLOYWAIT
+        self.node.deploy_step = deploy_step
+        self.node.driver_internal_info = {
+            'agent_url': 'some url',
+            'agent_secret_token': 'token',
+            'deploy_step_index': 2,
+            'deployment_reboot': True,
+            'deployment_polling': True,
+            'skip_current_deploy_step': True
+        }
+        self.node.save()
+
+        with task_manager.acquire(self.context, self.node.uuid) as task:
+            deployments.do_node_deploy_abort(task)
+            self.assertIsNotNone(task.node.last_error)
+            clean_up_mock.assert_called_once_with(task.driver.deploy, task)
+            if deploy_step:
+                self.assertIn(deploy_step['step'], task.node.last_error)
+            # assert node's deploy_step and metadata was cleaned up
+            self.assertEqual({}, task.node.deploy_step)
+            self.assertNotIn('deploy_step_index',
+                             task.node.driver_internal_info)
+            self.assertNotIn('deployment_reboot',
+                             task.node.driver_internal_info)
+            self.assertNotIn('deployment_polling',
+                             task.node.driver_internal_info)
+            self.assertNotIn('skip_current_deploy_step',
+                             task.node.driver_internal_info)
+
+    def test_do_node_deploy_abort_early(self, clean_up_mock):
+        self._test_do_node_deploy_abort(None, clean_up_mock)
+
+    def test_do_node_deploy_abort_with_step(self, clean_up_mock):
+        self._test_do_node_deploy_abort(
+            {'step': 'foo', 'interface': 'deploy', 'abortable': True},
+            clean_up_mock)
+
+    def test_do_node_deploy_abort_clean_up_fail(self, clean_up_mock):
+        clean_up_mock.side_effect = Exception('Surprise')
+        self.node.provision_state = states.DEPLOYWAIT
+        self.node.deploy_step = {'step': 'foo', 'abortable': True}
+        self.node.save()
+
+        with task_manager.acquire(self.context, self.node.uuid) as task:
+            deployments.do_node_deploy_abort(task)
+            clean_up_mock.assert_called_once_with(task.driver.deploy, task)
+            self.assertIsNotNone(task.node.last_error)
+            # Node should be in DEPLOYFAIL after clean_up failure
+            self.assertEqual(states.DEPLOYFAIL, task.node.provision_state)
