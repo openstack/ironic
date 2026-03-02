@@ -91,6 +91,11 @@ the Image service for each one as it is generated.
        kernel_id=$MY_VMLINUZ_UUID --property \
        ramdisk_id=$MY_INITRD_UUID --file my-image.qcow2
 
+- For images used with the *ramdisk deploy interface* (e.g. when deploying
+  ramdisk nodes through Nova), you can use either ``kernel_id`` /
+  ``ramdisk_id`` properties or a single ``boot_iso_id`` property pointing to
+  an ISO in Glance. See :doc:`/admin/ramdisk-boot` for details.
+
 Deploy ramdisk images
 ~~~~~~~~~~~~~~~~~~~~~
 
