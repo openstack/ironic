@@ -126,8 +126,6 @@ the :oslo.config:option:`enabled_network_interfaces` setting.
 VIF Attachment flow
 -------------------
 
-FIXME(clif): Probably need add a note and link to TBN related documentation here.
-
 When creating a virtual interface (VIF), the action occurs against the
 Neutron Networking Service, such as by using the ``openstack port create``
 command, and then the port ID is submitted to Ironic to facilitate a VIF
@@ -283,6 +281,14 @@ configuration and dynamic configuration. That being said, tools like
 <https://github.com/canonical/cloud-init>`_ may be useful to enable
 metadata translation to static system configuration in cases where
 it is needed.
+
+Advanced Port and Network/VIF Attachment Flow with Trait Based Networking
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Ironic can also be configured to dynamically setup a node's ports and
+networks based on traits defined on a node's ``instance_info.traits`` field at
+``vif_attach`` time. Please see :doc:`trait-based-networking` for more
+information.
 
 .. _multitenancy-physnets:
 
