@@ -408,6 +408,21 @@ def get_system(node):
         raise exception.RedfishError(error=e)
 
 
+def get_root_vendor(node):
+    """Get the BMC vendor from the Redfish Service Root.
+
+    :param node: an Ironic node object
+    :returns: The Vendor string from the ServiceRoot, or None
+    """
+    try:
+        return _get_connection(node, lambda conn: conn.json.get('Vendor'))
+    except Exception as e:
+        LOG.debug('Failed to get vendor from the Redfish Service Root '
+                  'for node %(node)s. Error %(error)s',
+                  {'node': node.uuid, 'error': e})
+        return None
+
+
 def get_system_collection(node):
     """Get a Redfish System Collection that includes the node
 

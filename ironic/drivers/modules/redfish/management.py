@@ -1239,7 +1239,9 @@ class RedfishManagement(base.ManagementInterface):
     def detect_vendor(self, task):
         """Detects and returns the hardware vendor.
 
-        Uses the System's Manufacturer field.
+        Uses the Service Root's Vendor field to identify the BMC firmware
+        vendor. Falls back to the System's Manufacturer field if Vendor
+        is not available in the Service Root.
 
         :param task: A task from TaskManager.
         :raises: InvalidParameterValue if an invalid component, indicator
@@ -1249,6 +1251,9 @@ class RedfishManagement(base.ManagementInterface):
         :returns: String representing the BMC reported Vendor or
                   Manufacturer, otherwise returns None.
         """
+        vendor = redfish_utils.get_root_vendor(task.node)
+        if vendor:
+            return vendor
         return redfish_utils.get_system(task.node).manufacturer
 
     @METRICS.timer('RedfishManagement.update_firmware')

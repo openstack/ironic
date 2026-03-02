@@ -1,0 +1,10 @@
+---
+fixes:
+  - |
+    Fixes vendor detection for systems where the BMC firmware vendor differs
+    from the chassis OEM. The detect_vendor() method now reads the Vendor field
+    from the Redfish Service Root (/redfish/v1/) which identifies the BMC
+    firmware vendor, rather than System.Manufacturer which reflects the
+    chassis OEM. This prevents incorrect firmware compatibility checks and
+    ensures vendor-specific code paths are triggered correctly. Falls
+    back to System.Manufacturer when ServiceRoot.Vendor is not available.

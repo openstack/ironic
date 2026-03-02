@@ -982,7 +982,31 @@ class RedfishManagementTestCase(db_base.DbTestCase):
             self.assertEqual(indicator_states.ON, state)
 
     @mock.patch.object(redfish_utils, 'get_system', autospec=True)
-    def test_detect_vendor(self, mock_get_system):
+    @mock.patch.object(redfish_utils, 'get_root_vendor', autospec=True)
+    def test_detect_vendor(self, mock_get_root_vendor, mock_get_system):
+        mock_get_root_vendor.return_value = "AMI"
+        with task_manager.acquire(self.context, self.node.uuid,
+                                  shared=True) as task:
+            response = task.driver.management.detect_vendor(task)
+            self.assertEqual("AMI", response)
+            mock_get_system.assert_not_called()
+
+    @mock.patch.object(redfish_utils, 'get_system', autospec=True)
+    @mock.patch.object(redfish_utils, 'get_root_vendor', autospec=True)
+    def test_detect_vendor_no_root_vendor(self, mock_get_root_vendor,
+                                          mock_get_system):
+        mock_get_root_vendor.return_value = None
+        mock_get_system.return_value.manufacturer = "Fake GmbH"
+        with task_manager.acquire(self.context, self.node.uuid,
+                                  shared=True) as task:
+            response = task.driver.management.detect_vendor(task)
+            self.assertEqual("Fake GmbH", response)
+
+    @mock.patch.object(redfish_utils, 'get_system', autospec=True)
+    @mock.patch.object(redfish_utils, 'get_root_vendor', autospec=True)
+    def test_detect_vendor_root_vendor_empty(self, mock_get_root_vendor,
+                                             mock_get_system):
+        mock_get_root_vendor.return_value = ""
         mock_get_system.return_value.manufacturer = "Fake GmbH"
         with task_manager.acquire(self.context, self.node.uuid,
                                   shared=True) as task:
