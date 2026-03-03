@@ -63,6 +63,31 @@ class BaseConductorManager(object):
         self._zeroconf = None
         self.dbapi = None
 
+    def __getstate__(self):
+        """Exclude unpicklable objects for spawn safety.
+
+        oslo.service checks if the service is picklable to determine
+        whether to use the spawn or fork multiprocessing context.
+        ``_shutdown`` is a threading.Event (contains ``_thread.lock``);
+        ``sensors_notifier`` and ``dbapi`` may contain unpicklable
+        transport objects and connection-pool locks respectively.
+        All three are recreated during startup.
+        """
+        state = self.__dict__.copy()
+        state['_shutdown'] = self._shutdown.is_set()
+        state.pop('sensors_notifier', None)
+        state.pop('dbapi', None)
+        return state
+
+    def __setstate__(self, state):
+        shutdown_was_set = state.pop('_shutdown')
+        self.__dict__.update(state)
+        self._shutdown = threading.Event()
+        if shutdown_was_set:
+            self._shutdown.set()
+        self.sensors_notifier = None  # recreated in init_host()
+        self.dbapi = None  # recreated in prepare_host()/init_host()
+
     def prepare_host(self):
         """Prepares host for initialization
 
@@ -170,6 +195,9 @@ class BaseConductorManager(object):
 
         if not self.dbapi:
             self.dbapi = dbapi.get_instance()
+
+        if not self.sensors_notifier:
+            self.sensors_notifier = rpc.get_sensors_notifier()
 
         self._keepalive_evt = threading.Event()
         """Event for the keepalive thread."""

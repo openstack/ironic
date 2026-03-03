@@ -11,6 +11,8 @@
 #    under the License.
 
 import datetime
+import multiprocessing.reduction
+import pickle
 import time
 from unittest import mock
 
@@ -300,3 +302,23 @@ class TestRPCService(db_base.DbTestCase):
             self.assertFalse(
                 self.rpc_svc._shutdown_timeout_reached(initial_time))
             self.assertEqual(4, mock_drain.call_count)
+
+    def test_pickle_roundtrip(self):
+        """Test that RPCService can be pickled for oslo.service spawn check.
+
+        oslo.service uses ForkingPickler.dumps() to determine whether
+        to use the spawn or fork multiprocessing context. This test
+        verifies that RPCService survives a pickle roundtrip.
+        """
+        # Verify ForkingPickler.dumps succeeds (this is the exact call
+        # oslo.service makes)
+        data = multiprocessing.reduction.ForkingPickler.dumps(self.rpc_svc)
+        restored = pickle.loads(data)
+        self.assertEqual(self.rpc_svc.host, restored.host)
+        self.assertEqual(self.rpc_svc.topic, restored.topic)
+        self.assertFalse(restored._started)
+        # Manager should survive the roundtrip
+        self.assertEqual(self.rpc_svc.manager.host, restored.manager.host)
+        self.assertEqual(self.rpc_svc.manager.topic, restored.manager.topic)
+        # threading.Event should be recreated as unset
+        self.assertFalse(restored.manager._shutdown.is_set())
