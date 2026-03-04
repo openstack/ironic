@@ -946,6 +946,9 @@ def check_allowed_portgroup_fields(fields):
     if (('mode' in fields or 'properties' in fields)
             and not allow_portgroup_mode_properties()):
         raise exception.NotAcceptable()
+    if ('dynamic_portgroup' in fields
+            and not allow_portgroup_dynamic_portgroup()):
+        raise exception.NotAcceptable()
 
 
 def check_allow_management_verbs(verb):
@@ -2345,3 +2348,23 @@ def check_allow_filter_by_instance_name(instance_name):
     if instance_name is not None and not allow_node_instance_name():
         raise exception.NotAcceptable(
             _("instance_name is not acceptable in this API version"))
+
+
+def allow_port_available_for_dynamic_portgroup():
+    """Check if available_for_dynamic_portgroup is allowed for ports.
+
+    Version 1.111 of the API added available_for_dynamic_portgroup
+    field to the port object.
+    """
+    return (api.request.version.minor
+            >= versions.MINOR_111_DYNAMIC_PORTGROUP)
+
+
+def allow_portgroup_dynamic_portgroup():
+    """Check if dynamic_portgroup is allowed for portgroups.
+
+    Version 1.111 of the API added dynamic_portgroup field to the
+    portgroup object.
+    """
+    return (api.request.version.minor
+            >= versions.MINOR_111_DYNAMIC_PORTGROUP)

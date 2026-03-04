@@ -56,6 +56,7 @@ PORT_SCHEMA = {
         'description': {'type': ['string', 'null'], 'maxLength': 255},
         'vendor': {'type': ['string', 'null'], 'maxLength': 32},
         'category': {'type': ['string', 'null'], 'maxLength': 80},
+        'available_for_dynamic_portgroup': {'type': 'boolean'},
     },
     'required': ['address'],
     'oneOf': [
@@ -82,6 +83,7 @@ PATCH_ALLOWED_FIELDS = [
     'description',
     'vendor',
     'category',
+    'available_for_dynamic_portgroup',
 ]
 
 PORT_VALIDATOR_EXTRA = args.dict_valid(
@@ -92,6 +94,7 @@ PORT_VALIDATOR_EXTRA = args.dict_valid(
     portgroup_uuid=args.uuid,
     pxe_enabled=args.boolean,
     uuid=args.uuid,
+    available_for_dynamic_portgroup=args.boolean,
 )
 
 PORT_VALIDATOR = args.and_valid(
@@ -149,6 +152,10 @@ def hide_fields_in_newer_versions(port):
     # if requested version is < 1.101, hide category field.
     if not api_utils.allow_port_category():
         port.pop('category', None)
+    # if requested version is < 1.111, hide
+    # available_for_dynamic_portgroup field.
+    if not api_utils.allow_port_available_for_dynamic_portgroup():
+        port.pop('available_for_dynamic_portgroup', None)
 
 
 def convert_with_links(rpc_port, fields=None, sanitize=True):
@@ -168,6 +175,7 @@ def convert_with_links(rpc_port, fields=None, sanitize=True):
             'description',
             'vendor',
             'category',
+            'available_for_dynamic_portgroup',
         )
     )
     if rpc_port.portgroup_id:
@@ -422,6 +430,10 @@ class PortsController(rest.RestController):
             raise exception.NotAcceptable()
         if ('category' in fields
                 and not api_utils.allow_port_category()):
+            raise exception.NotAcceptable()
+        allow_dynpg = api_utils.allow_port_available_for_dynamic_portgroup
+        if ('available_for_dynamic_portgroup' in fields
+                and not allow_dynpg()):
             raise exception.NotAcceptable()
 
     @METRICS.timer('PortsController.get_all')

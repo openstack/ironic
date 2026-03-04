@@ -1141,6 +1141,21 @@ class TestPatch(test_api_base.BaseApiTest):
         self.assertTrue(response.json['error_message'])
         self.assertFalse(mock_upd.called)
 
+    def test_update_portgroup_dynamic_portgroup_not_allowed(
+            self, mock_upd):
+        mock_upd.return_value = self.portgroup
+        response = self.patch_json(
+            '/portgroups/%s' % self.portgroup.uuid,
+            [{'path': '/dynamic_portgroup',
+              'value': True,
+              'op': 'replace'}],
+            expect_errors=True,
+            headers=self.headers)
+        self.assertEqual('application/json', response.content_type)
+        self.assertEqual(http_client.BAD_REQUEST, response.status_int)
+        self.assertTrue(response.json['error_message'])
+        self.assertFalse(mock_upd.called)
+
     def test_update_portgroup_mode_properties(self, mock_upd):
         mock_upd.return_value = self.portgroup
         mock_upd.return_value.mode = '802.3ad'
@@ -1456,6 +1471,16 @@ class TestPost(test_api_base.BaseApiTest):
         pdict = apiutils.post_get_test_portgroup()
         pdict['internal_info'] = 'info'
         response = self.post_json('/portgroups', pdict, expect_errors=True,
+                                  headers=self.headers)
+        self.assertEqual(http_client.BAD_REQUEST, response.status_int)
+        self.assertEqual('application/json', response.content_type)
+        self.assertTrue(response.json['error_message'])
+
+    def test_create_portgroup_dynamic_portgroup_not_allowed(self):
+        pdict = apiutils.post_get_test_portgroup()
+        pdict['dynamic_portgroup'] = True
+        response = self.post_json('/portgroups', pdict,
+                                  expect_errors=True,
                                   headers=self.headers)
         self.assertEqual(http_client.BAD_REQUEST, response.status_int)
         self.assertEqual('application/json', response.content_type)

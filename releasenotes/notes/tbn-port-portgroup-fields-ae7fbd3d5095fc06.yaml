@@ -1,0 +1,21 @@
+---
+features:
+  - |
+    Adds two new fields for trait-based networking in REST API version
+    *1.111*:
+
+    * ``Port.available_for_dynamic_portgroup``: a boolean field (default
+      True) indicating whether the port should be considered for dynamic
+      portgroup assignment. This field is operator-editable via POST and
+      PATCH.
+    * ``Portgroup.dynamic_portgroup``: a read-only boolean field (default
+      False) that indicates whether the portgroup was dynamically created
+      by the trait-based networking subsystem. This field is managed
+      internally by Ironic and cannot be modified by API consumers.
+upgrade:
+  - |
+    Adds ``available_for_dynamic_portgroup`` and ``dynamic_portgroup``
+    fields to the port and portgroup objects respectively in REST API
+    version *1.111*. Upgrading to this release will set
+    ``available_for_dynamic_portgroup`` to True for all existing ports
+    and ``dynamic_portgroup`` to False for all existing portgroups.

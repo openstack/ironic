@@ -424,3 +424,60 @@ class TestConvertToVersion(db_base.DbTestCase):
         port._convert_to_version("1.9", False)
         self.assertIsNone(port.name)
         self.assertNotIn('name', port.obj_get_changes())
+
+    def test_available_for_dynamic_portgroup_supported_missing(self):
+        port = objects.Port(self.context, **self.fake_port)
+        delattr(port, 'available_for_dynamic_portgroup')
+        port.obj_reset_changes()
+        port._convert_to_version("1.16")
+        self.assertTrue(port.available_for_dynamic_portgroup)
+        self.assertIn('available_for_dynamic_portgroup',
+                      port.obj_get_changes())
+
+    def test_available_for_dynamic_portgroup_supported_set(self):
+        port = objects.Port(self.context, **self.fake_port)
+        port.available_for_dynamic_portgroup = False
+        port.obj_reset_changes()
+        port._convert_to_version("1.16")
+        self.assertFalse(port.available_for_dynamic_portgroup)
+        self.assertNotIn('available_for_dynamic_portgroup',
+                         port.obj_get_changes())
+
+    def test_available_for_dynamic_portgroup_unsupported(self):
+        port = objects.Port(self.context, **self.fake_port)
+        port._convert_to_version("1.15")
+        self.assertNotIn('available_for_dynamic_portgroup', port)
+
+    def test_available_for_dynamic_portgroup_unsupported_missing(self):
+        port = objects.Port(self.context, **self.fake_port)
+        delattr(port, 'available_for_dynamic_portgroup')
+        port.obj_reset_changes()
+        port._convert_to_version("1.15")
+        self.assertNotIn('available_for_dynamic_portgroup', port)
+
+    def test_available_for_dynamic_portgroup_unsupported_set_remove(self):
+        port = objects.Port(self.context, **self.fake_port)
+        port.available_for_dynamic_portgroup = True
+        port.obj_reset_changes()
+        port._convert_to_version("1.15")
+        self.assertNotIn('available_for_dynamic_portgroup', port)
+
+    def test_available_for_dynamic_portgroup_unsupported_no_remove_non_default(
+            self):
+        port = objects.Port(self.context, **self.fake_port)
+        port.available_for_dynamic_portgroup = False
+        port.obj_reset_changes()
+        port._convert_to_version("1.15", False)
+        self.assertTrue(port.available_for_dynamic_portgroup)
+        self.assertIn('available_for_dynamic_portgroup',
+                      port.obj_get_changes())
+
+    def test_available_for_dynamic_portgroup_unsupported_no_remove_default(
+            self):
+        port = objects.Port(self.context, **self.fake_port)
+        port.available_for_dynamic_portgroup = True
+        port.obj_reset_changes()
+        port._convert_to_version("1.15", False)
+        self.assertTrue(port.available_for_dynamic_portgroup)
+        self.assertNotIn('available_for_dynamic_portgroup',
+                         port.obj_get_changes())

@@ -49,7 +49,8 @@ class Port(base.IronicObject, object_base.VersionedObjectDictCompat):
     # Version 1.13: Add vendor field
     # Version 1.14: Mark multiple methods as remotable methods.
     # Version 1.15: Add category field
-    VERSION = '1.15'
+    # Version 1.16: Add available_for_dynamic_portgroup field
+    VERSION = '1.16'
 
     dbapi = dbapi.get_instance()
 
@@ -72,6 +73,8 @@ class Port(base.IronicObject, object_base.VersionedObjectDictCompat):
         'description': object_fields.StringField(nullable=True),
         'vendor': object_fields.StringField(nullable=True),
         'category': object_fields.StringField(nullable=True),
+        'available_for_dynamic_portgroup': object_fields.BooleanField(
+            default=True),
     }
 
     def _convert_field_by_version(self, field_name, introduced_version,
@@ -134,6 +137,9 @@ class Port(base.IronicObject, object_base.VersionedObjectDictCompat):
         Version 1.15: remove category for unsupported versions if
             remove_unavailable_fields is True.
 
+        Version 1.16: remove available_for_dynamic_portgroup for
+            unsupported versions if remove_unavailable_fields is True.
+
         :param target_version: the desired version of the object
         :param remove_unavailable_fields: True to remove fields that are
             unavailable in the target version; set this to True when
@@ -171,6 +177,10 @@ class Port(base.IronicObject, object_base.VersionedObjectDictCompat):
         # Convert the category field.
         self._convert_field_by_version('category', (1, 15), target_version,
                                        remove_unavailable_fields)
+        # Convert the available_for_dynamic_portgroup field.
+        self._convert_field_by_version(
+            'available_for_dynamic_portgroup', (1, 16), target_version,
+            remove_unavailable_fields, True)
 
     @object_base.remotable_classmethod
     def get(cls, context, port_id):
@@ -504,7 +514,8 @@ class PortCRUDPayload(notification.NotificationPayloadBase):
     # Version 1.5: Add "description" field
     # Version 1.6: Add "vendor" field
     # Version 1.7: Add "category" field
-    VERSION = '1.7'
+    # Version 1.8: Add "available_for_dynamic_portgroup" field
+    VERSION = '1.8'
 
     SCHEMA = {
         'address': ('port', 'address'),
@@ -520,6 +531,8 @@ class PortCRUDPayload(notification.NotificationPayloadBase):
         'description': ('port', 'description'),
         'vendor': ('port', 'vendor'),
         'category': ('port', 'category'),
+        'available_for_dynamic_portgroup': (
+            'port', 'available_for_dynamic_portgroup'),
     }
 
     fields = {
@@ -540,6 +553,8 @@ class PortCRUDPayload(notification.NotificationPayloadBase):
         'description': object_fields.StringField(nullable=True),
         'vendor': object_fields.StringField(nullable=True),
         'category': object_fields.StringField(nullable=True),
+        'available_for_dynamic_portgroup': object_fields.BooleanField(
+            default=True),
     }
 
     def __init__(self, port, node_uuid, portgroup_uuid):
