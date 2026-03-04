@@ -443,31 +443,28 @@ def continue_node_clean(task):
 
     next_step_index = utils.update_next_step_index(task, 'clean')
 
-    # If this isn't the final clean step in the cleaning operation
-    # and it is flagged to abort after the clean step that just
-    # finished, we abort the cleaning operation.
+    # If the cleaning operation is flagged to abort after the clean step
+    # that just finished, we abort the cleaning operation.
     if node.clean_step.get('abort_after'):
         step_name = node.clean_step['step']
         if next_step_index is not None:
             LOG.debug('The cleaning operation for node %(node)s was '
-                      'marked to be aborted after step "%(step)s '
+                      'marked to be aborted after step "%(step)s" '
                       'completed. Aborting now that it has completed.',
                       {'node': task.node.uuid, 'step': step_name})
+        else:
+            LOG.debug('The cleaning operation for node %(node)s was '
+                      'marked to be aborted after the last step '
+                      '"%(step)s" completed. Aborting now.',
+                      {'node': node.uuid, 'step': step_name})
 
-            if node.target_provision_state == states.MANAGEABLE:
-                target_state = states.MANAGEABLE
-            else:
-                target_state = None
+        if node.target_provision_state == states.MANAGEABLE:
+            target_state = states.MANAGEABLE
+        else:
+            target_state = None
 
-            task.process_event('fail', target_state=target_state)
-            do_node_clean_abort(task)
-            return
-
-        LOG.debug('The cleaning operation for node %(node)s was '
-                  'marked to be aborted after step "%(step)s" '
-                  'completed. However, since there are no more '
-                  'clean steps after this, the abort is not going '
-                  'to be done.', {'node': node.uuid,
-                                  'step': step_name})
+        task.process_event('fail', target_state=target_state)
+        do_node_clean_abort(task)
+        return
 
     do_next_clean_step(task, next_step_index)

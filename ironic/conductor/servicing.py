@@ -401,26 +401,23 @@ def continue_node_service(task):
 
     next_step_index = utils.update_next_step_index(task, 'service')
 
-    # If this isn't the final service step in the service operation
-    # and it is flagged to abort after the service step that just
-    # finished, we abort the operation.
+    # If the service operation is flagged to abort after the service step
+    # that just finished, we abort the operation.
     if node.service_step.get('abort_after'):
         step_name = node.service_step['step']
         if next_step_index is not None:
             LOG.debug('The service operation for node %(node)s was '
-                      'marked to be aborted after step "%(step)s '
+                      'marked to be aborted after step "%(step)s" '
                       'completed. Aborting now that it has completed.',
                       {'node': task.node.uuid, 'step': step_name})
+        else:
+            LOG.debug('The service operation for node %(node)s was '
+                      'marked to be aborted after the last step '
+                      '"%(step)s" completed. Aborting now.',
+                      {'node': node.uuid, 'step': step_name})
 
-            task.process_event('fail')
-            do_node_service_abort(task)
-            return
-
-        LOG.debug('The service operation for node %(node)s was '
-                  'marked to be aborted after step "%(step)s" '
-                  'completed. However, since there are no more '
-                  'service steps after this, the abort is not going '
-                  'to be done.', {'node': node.uuid,
-                                  'step': step_name})
+        task.process_event('fail')
+        do_node_service_abort(task)
+        return
 
     do_next_service_step(task, next_step_index)

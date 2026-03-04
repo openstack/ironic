@@ -1,0 +1,7 @@
+---
+fixes:
+  - |
+    Previously, if abort was requested on the last step of cleaning,
+    servicing, or deployment, the operation would complete successfully,
+    ignoring the abort. Now the operation consistently transitions to the
+    appropriate failed state (clean failed, deploy failed, or service failed).

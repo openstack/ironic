@@ -2295,9 +2295,10 @@ class ContinueNodeDeployTestCase(mgr_utils.ServiceSetUpMixin,
         self._start_service()
         self.service.continue_node_deploy(self.context, node.uuid)
         node.refresh()
-        self.assertEqual(states.ACTIVE, node.provision_state)
-        self.assertIsNone(node.target_provision_state)
-        self.assertIsNone(node.last_error)
+        self.assertEqual(states.DEPLOYFAIL, node.provision_state)
+        self.assertEqual(tgt_prov_state, node.target_provision_state)
+        self.assertIsNotNone(node.last_error)
+        self.assertIn(self.deploy_steps[0]['step'], node.last_error)
 
     def test_continue_node_deploy_abort_last_deploy_step(self):
         self._continue_node_deploy_abort_last_deploy_step()
@@ -3285,9 +3286,10 @@ class DoNodeCleanTestCase(mgr_utils.ServiceSetUpMixin, db_base.DbTestCase):
         self._start_service()
         self.service.continue_node_clean(self.context, node.uuid)
         node.refresh()
-        self.assertEqual(tgt_prov_state, node.provision_state)
-        self.assertIsNone(node.target_provision_state)
-        self.assertIsNone(node.last_error)
+        self.assertEqual(states.CLEANFAIL, node.provision_state)
+        self.assertEqual(tgt_prov_state, node.target_provision_state)
+        self.assertIsNotNone(node.last_error)
+        self.assertIn(self.clean_steps[0]['step'], node.last_error)
 
     def test_continue_node_clean_automated_abort_last_clean_step(self):
         self._continue_node_clean_abort_last_clean_step()
@@ -3527,9 +3529,10 @@ class DoNodeServiceTestCase(mgr_utils.ServiceSetUpMixin, db_base.DbTestCase):
         self._start_service()
         self.service.continue_node_service(self.context, node.uuid)
         node.refresh()
-        self.assertEqual(tgt_prov_state, node.provision_state)
-        self.assertIsNone(node.target_provision_state)
-        self.assertIsNone(node.last_error)
+        self.assertEqual(states.SERVICEFAIL, node.provision_state)
+        self.assertEqual(tgt_prov_state, node.target_provision_state)
+        self.assertIsNotNone(node.last_error)
+        self.assertIn(self.service_steps[0]['step'], node.last_error)
 
     def test_continue_node_service_abort_last_service_step(self):
         self._continue_node_service_abort_last_service_step()

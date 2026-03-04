@@ -530,27 +530,24 @@ def continue_node_deploy(task):
 
     next_step_index = utils.update_next_step_index(task, 'deploy')
 
-    # If this isn't the final deploy step in the deployment operation
-    # and it is flagged to abort after the deploy step that just
-    # finished, we abort the deployment operation.
+    # If the deployment operation is flagged to abort after the deploy step
+    # that just finished, we abort the deployment operation.
     if node.deploy_step.get('abort_after'):
         step_name = node.deploy_step['step']
         if next_step_index is not None:
             LOG.debug('The deployment operation for node %(node)s was '
-                      'marked to be aborted after step "%(step)s '
+                      'marked to be aborted after step "%(step)s" '
                       'completed. Aborting now that it has completed.',
                       {'node': task.node.uuid, 'step': step_name})
+        else:
+            LOG.debug('The deployment operation for node %(node)s was '
+                      'marked to be aborted after the last step '
+                      '"%(step)s" completed. Aborting now.',
+                      {'node': node.uuid, 'step': step_name})
 
-            task.process_event('fail')
-            do_node_deploy_abort(task)
-            return
-
-        LOG.debug('The deployment operation for node %(node)s was '
-                  'marked to be aborted after step "%(step)s" '
-                  'completed. However, since there are no more '
-                  'deploy steps after this, the abort is not going '
-                  'to be done.', {'node': node.uuid,
-                                  'step': step_name})
+        task.process_event('fail')
+        do_node_deploy_abort(task)
+        return
 
     do_next_deploy_step(task, next_step_index)
 
