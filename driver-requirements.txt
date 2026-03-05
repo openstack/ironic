@@ -14,4 +14,4 @@ python-scciclient>=0.16.0,<0.17.0
 ansible>=2.7
 
 # Standalone Networking Switch drivers
-networking-generic-switch>=8.0.0
+networking-generic-switch>=9.0.0
