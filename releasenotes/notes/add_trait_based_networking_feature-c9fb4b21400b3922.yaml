@@ -1,0 +1,9 @@
+---
+features:
+  - |
+    Adds a new Ironic networking-related feature: Trait Based Networking (aka
+    TBN). Trait Based Networking enables operators to customize how ports and
+    portgroups are setup and attached to networks on newly provisioned nodes
+    Documentation on how to enable and use TBN can be found in
+    `Ironic's administrator documentation
+    <https://docs.openstack.org/ironic/latest/admin/trait-based-networking.html>`_.

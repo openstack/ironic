@@ -130,6 +130,35 @@ def _retrieve_attribute(attribute_name, tbn_obj):
     return attribute
 
 
+# Allows special case FilterExpression evaluations where Port does not
+# matter. In these cases a port  with this name will always evaluate to
+# True.
+UNIVERSAL_PORT_CATEGORY = "__UNIVERSAL_PORT"
+
+
+def _is_universal_port(port):
+    """Check if the port is a special Port that always passes filter"""
+    return isinstance(port, Port) \
+        and port.category == UNIVERSAL_PORT_CATEGORY
+
+
+# Allows special case FilterExpression evaluations where Network does not
+# matter. In these cases a network  with this name will always evaluate to
+# True.
+UNIVERSAL_NETWORK_NAME = "__UNIVERSAL_NETWORK"
+
+
+def _is_universal_network(network):
+    """Check if the network is a special Network that always passes filter"""
+    return isinstance(network, Network) \
+        and network.name == UNIVERSAL_NETWORK_NAME
+
+
+def _is_universal_tbn_obj(tbn_obj):
+    """Check if the TBN object is a special one that always passes filter"""
+    return _is_universal_port(tbn_obj) or _is_universal_network(tbn_obj)
+
+
 class FunctionExpression(object):
     """A callable function from within a FilterExpression
 
@@ -140,6 +169,10 @@ class FunctionExpression(object):
 
     def eval(self, port, network):
         tbn_obj = port if self._variable.object_name() == "port" else network
+
+        if _is_universal_tbn_obj(tbn_obj):
+            return True
+
         attr_name = self._variable.attribute_name()
         attr_func = _retrieve_attribute(attr_name, tbn_obj)
         return attr_func()
@@ -167,6 +200,10 @@ class SingleExpression(object):
 
     def eval(self, port, network):
         tbn_obj = port if self._variable.object_name() == "port" else network
+
+        if _is_universal_tbn_obj(tbn_obj):
+            return True
+
         attr_name = self._variable.attribute_name()
         attribute = _retrieve_attribute(attr_name, tbn_obj)
         return self._comparator.eval(attribute, self._literal)
@@ -247,6 +284,9 @@ class FilterExpression(object):
         return str(self) == str(other)
 
 
+DEFAULT_GROUP_AND_ATTACH_MIN_COUNT: int = 2
+
+
 @dataclass(frozen=True)
 class TraitAction:
     """An action defined by a NetworkTrait
@@ -266,6 +306,28 @@ class TraitAction:
     def matches(self, portlike, network):
         """Check if filter expression matches the port, network pairing."""
         return self.filter.eval(portlike, network)
+
+    def validate(self):
+        """Check that the action is valid."""
+        match self.action:
+            case Actions.GROUP_AND_ATTACH_PORTS:
+                if self.min_count is None \
+                        or self.min_count < DEFAULT_GROUP_AND_ATTACH_MIN_COUNT:
+                    return (False,
+                            _(f"{self.action.value} must have a min_count of "
+                              f"{DEFAULT_GROUP_AND_ATTACH_MIN_COUNT} or "
+                              f"greater. Got '{self.min_count}'."))
+                if self.max_count is not None and \
+                        self.max_count < self.min_count:
+                    return (False,
+                            _(f"{self.action.value} must have a max_count "
+                              "greater or equal to it's min_count. min_count "
+                              f"is '{self.min_count}' while max_count is "
+                              f"'{self.max_count}'."))
+            case _:
+                return (True, "")
+
+        return (True, "")
 
 
 # Keys from the config file action dict (excludes trait_name, which comes
@@ -332,6 +394,8 @@ class PrimordialPort:
 @dataclass(frozen=True)
 class Port(PrimordialPort):
     """A Port used internally to query and match to TraitActions"""
+    available_for_dynamic_portgroup: bool
+
     @classmethod
     def from_ironic_port(cls, ironic_port):
         return cls(
@@ -341,6 +405,17 @@ class Port(PrimordialPort):
             category=ironic_port.category,
             physical_network=ironic_port.physical_network,
             vendor=ironic_port.vendor,
+            available_for_dynamic_portgroup=\
+            ironic_port.available_for_dynamic_portgroup
+        )
+
+    @classmethod
+    def universal_port(cls):
+        return cls(
+            id=0,
+            uuid="UNIVERSAL",
+            address="UNIVERSAL",
+            category=UNIVERSAL_PORT_CATEGORY
         )
 
     def is_port(self):
@@ -353,6 +428,8 @@ class Port(PrimordialPort):
 @dataclass(frozen=True)
 class Portgroup(PrimordialPort):
     """A Portgroup used internally to query and match to TraitActions"""
+    dynamic_portgroup: bool
+
     @classmethod
     def from_ironic_portgroup(cls, ironic_portgroup):
         return cls(
@@ -362,6 +439,7 @@ class Portgroup(PrimordialPort):
             category=ironic_portgroup.category,
             physical_network=ironic_portgroup.physical_network,
             vendor=ironic_portgroup.vendor,
+            dynamic_portgroup=ironic_portgroup.dynamic_portgroup
         )
 
     def is_port(self):
@@ -369,7 +447,6 @@ class Portgroup(PrimordialPort):
 
     def is_portgroup(self):
         return True
-
 
 @dataclass(frozen=True)
 class Network:
@@ -388,6 +465,14 @@ class Network:
                    vif_info.get('name'),
                    vif_info.get('tags'))
 
+    @classmethod
+    def universal_network(cls):
+        return cls(
+            id=0,
+            name=UNIVERSAL_NETWORK_NAME,
+            tags=[]
+        )
+
 
 @dataclass(frozen=True)
 class RenderedAction:
@@ -395,7 +480,7 @@ class RenderedAction:
     trait_action: TraitAction
     node_uuid: str
 
-
+@dataclass(frozen=True)
 class AttachAction(RenderedAction):
     """Base class for actions which will attach objects to networks"""
 
@@ -408,90 +493,85 @@ class AttachAction(RenderedAction):
         ...
 
 
+@dataclass(frozen=True)
 class AttachPort(AttachAction):
     """Attach a port to a network
 
     Contains all the necessary information to attach a port to a network (vif)
     """
-    def __init__(self, trait_action, node_uuid, port_uuid, network_id):
-        super().__init__(trait_action, node_uuid)
-        self._port_uuid = port_uuid
-        self._network_id = network_id
+    port_uuid: str
+    network_id: str
 
     def get_portlike_object(self, task):
         for port in task.ports:
-            if port.uuid == self._port_uuid:
+            if port.uuid == self.port_uuid:
                 return port
         return None
 
     def portlike_uuid(self):
-        return self._port_uuid
+        return self.port_uuid
 
     def __str__(self):
-        return _(f"Attach port '{self._port_uuid}' on node "
-                 f"'{self.node_uuid}' to network '{self._network_id}' "
+        return _(f"Attach port '{self.port_uuid}' on node "
+                 f"'{self.node_uuid}' to network '{self.network_id}' "
                  f"via trait {self.trait_action.trait_name}")
 
-    def __eq__(self, other):
-        return (isinstance(other, AttachPort)
-                and self._port_uuid == other._port_uuid
-                and self._network_id == other._network_id
-                and super().__eq__(other))
 
-
+@dataclass(frozen=True)
 class AttachPortgroup(AttachAction):
     """Attach a portgroup to a network
 
     Contains all the necessary information to attach a portgroup to a network
     (vif)
     """
-    def __init__(self, trait_action, node_uuid, portgroup_uuid, network_id):
-        super().__init__(trait_action, node_uuid)
-        self._portgroup_uuid = portgroup_uuid
-        self._network_id = network_id
+    portgroup_uuid: str
+    network_id: str
 
     def get_portlike_object(self, task):
         for portgroup in task.portgroups:
-            if portgroup.uuid == self._portgroup_uuid:
+            if portgroup.uuid == self.portgroup_uuid:
                 return portgroup
         return None
 
     def portlike_uuid(self):
-        return self._portgroup_uuid
+        return self.portgroup_uuid
 
     def __str__(self):
-        return _(f"Attach portgroup '{self._portgroup_uuid}' on node "
-                 f"'{self.node_uuid}' to network '{self._network_id}'"
+        return _(f"Attach portgroup '{self.portgroup_uuid}' on node "
+                 f"'{self.node_uuid}' to network '{self.network_id}'"
                  f"via trait {self.trait_action.trait_name}")
 
-    def __eq__(self, other):
-        return (isinstance(other, AttachPortgroup)
-                and self._portgroup_uuid == other._portgroup_uuid
-                and self._network_id == other._network_id
-                and super().__eq__(other))
 
+@dataclass(frozen=True)
+class GroupAndAttachPorts(RenderedAction):
+    """Assemble a group of ports as a dynamic portgroup and attach it
 
+    Contains all necessary information to assemble the new portgroup and
+    attach it to a network (vif).
+    """
+    port_uuids: list[str]
+    network_id: str
+
+    def __str__(self):
+        return _(f"Assemble node '{self.node_uuid}' ports into a dynamic "
+                 f"portgroup and attach it to network '{self.network_id}'. "
+                 f"Selected Port UUIDs: {self.port_uuids}.")
+
+@dataclass(frozen=True)
 class NoMatch(RenderedAction):
     """Returned by network planning when a trait action finds no matches"""
-    def __init__(self, trait_action, node_uuid, reason):
-        super().__init__(trait_action, node_uuid)
-        self._reason = reason
+    reason: str
 
     def __str__(self):
         return _(f"No match found for action under trait "
                  f"'{self.trait_action.trait_name}' "
                  f"on node '{self.node_uuid}': {self._reason}")
 
-    def __eq__(self, other):
-        return (isinstance(other, NoMatch)
-                and self._reason == other._reason
-                and super().__eq__(other))
 
-
+@dataclass(frozen=True)
 class NotImplementedAction(RenderedAction):
     """Returned by network planning if an action has not been implemented"""
-    def __init__(self, action):
-        self._action = action
+    action: Actions
 
     def __str__(self):
-        return _(f"Action '{self._action.value}' not yet implemented.")
+        return _(f"Action '{self.action.value}' not yet implemented.")

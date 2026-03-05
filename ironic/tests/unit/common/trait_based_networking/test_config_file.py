@@ -146,6 +146,20 @@ class TraitBasedNetworkingConfigFileTestCase(base.TestCase):
                  ("'CUSTOM_TRAIT_NAME' trait action has unrecognized key "
                   "'wrong'")],
             ),
+            SubTestCase(
+                "Invalid - group_and_attach_ports is invalid",
+                ("CUSTOM_TRAIT_NAME:\n"
+                 "  actions:\n"
+                 "    - action: group_and_attach_ports\n"
+                 "      filter: port.vendor == 'vendor_string'\n"
+                 "      min_count: 0\n"),
+                False,
+                [("'CUSTOM_TRAIT_NAME' has an invalid "
+                  "'group_and_attach_ports': group_and_attach_ports must have "
+                  "a min_count of "
+                  f"{tbn_base.DEFAULT_GROUP_AND_ATTACH_MIN_COUNT} "
+                  "or greater. Got '0'.")],
+            ),
         ]
 
         for subtest in subtests:

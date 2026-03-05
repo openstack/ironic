@@ -18,6 +18,7 @@ from ironic.objects.node import Node
 from ironic.objects.port import Port
 from ironic.objects.portgroup import Portgroup
 
+
 from collections.abc import Callable
 import itertools
 
@@ -34,6 +35,17 @@ def filter_out_attached_portlikes(
 def is_no_match_list(actions: list[base.RenderedAction]) -> bool:
     """Check if a list contains only a NoMatch action"""
     return len(actions) == 1 and isinstance(actions[0], base.NoMatch)
+
+
+def filter_out_grouped_ports(
+        portlikes: list[base.PrimordialPort],
+        actions: list[base.GroupAndAttachPorts]) -> list[base.PrimordialPort]:
+    """Filters out ports that have been used to form dynamic portgroups"""
+    matched_uuids: set[str] = set()
+    for action in actions:
+        matched_uuids = matched_uuids.union(set(action.port_uuids))
+    return [portlike for portlike in portlikes
+            if portlike.uuid not in matched_uuids]
 
 
 def plan_network(
@@ -88,10 +100,20 @@ def plan_network(
                             portgrouplikes,
                             new_actions)
 
-            # TODO(clif): Support bond_ports and group_and_attach_ports
+            case base.Actions.GROUP_AND_ATTACH_PORTS:
+                new_actions = _plan_group_and_attach_ports(
+                    trait_action, node_uuid, portlikes,
+                    node_networks)
+                if not is_no_match_list(new_actions):
+                    portlikes = filter_out_grouped_ports(
+                            portlikes,
+                            new_actions)
+
+            # TODO(clif): Support bond_ports?
             case _:
                 new_actions = [base.NotImplementedAction(trait_action.action)]
 
+        # NOTE(clif): Ordering of actions is up to the operator.
         rendered_actions.extend(new_actions)
 
     return rendered_actions
@@ -137,6 +159,68 @@ def _plan_attach_portlike(
                                f"{trait_action.min_count}."))]
 
     return actions
+
+
+def _plan_group_and_attach_ports(
+        trait_action: base.TraitAction,
+        node_uuid: str,
+        node_ports: list[base.Port],
+        node_networks: list[base.Network]) -> list[base.RenderedAction]:
+    """Called by plan_network to handle group_and_attach_ports actions"""
+    matched_ports: list [base.Port] = []
+
+    # NOTE(clif): Valid min_count and max_counts for group_and_attach_ports
+    # actions are enforced at configuration ingestion time.
+
+    # NOTE(Clif): Only consider ports that allow dynamic_portgrouping.
+    available_ports: list[base.Port] = [
+        port for port in node_ports
+        if port.available_for_dynamic_portgroup
+    ]
+
+    for port in available_ports:
+        # NOTE(clif): Network is not considered when grouping ports together.
+        # It will be when deciding which network to attach.
+        if trait_action.matches(port,
+                                base.Network.universal_network()):
+            if len(matched_ports) > 0:
+                # NOTE(clif): Once we match a port, all subsequent ports must
+                # have the same physical_network. This is a requirement of
+                # Portgroups.
+                if matched_ports[0].physical_network \
+                        == port.physical_network:
+                    matched_ports.append(port)
+            else:
+                matched_ports.append(port)
+
+            if len(matched_ports) == trait_action.max_count:
+                break
+
+    if len(matched_ports) < trait_action.min_count:
+        return [base.NoMatch(trait_action,
+                             node_uuid,
+                             _("Couldn't match enough ports to form a "
+                               f"dynamic portgroup for node '{node_uuid}'."
+                               "Minimum ports needed is "
+                               f"{trait_action.min_count}, and "
+                               f"{len(matched_ports)} ports matched."))]
+
+    # NOTE(clif) Now decide which network we'll attach to. We consider the
+    # first port selected to stand in for the portgroup.
+    for network in node_networks:
+        if trait_action.matches(matched_ports[0], network):
+            return [base.GroupAndAttachPorts(
+                        trait_action,
+                        node_uuid,
+                        [portlike.uuid for portlike in matched_ports],
+                        network.id)]
+
+    # NOTE(clif) If we made it here, no networks matched.
+    return [base.NoMatch(trait_action,
+                         node_uuid,
+                         _("Enough ports matched to form a dynamic "
+                           f"portgroup for node '{node_uuid}'. Unfortunately "
+                           "no suitable networks were found to attach."))]
 
 
 def all_no_match(actions: list[base.RenderedAction]) -> bool:

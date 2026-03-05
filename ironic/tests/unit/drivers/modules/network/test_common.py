@@ -24,6 +24,7 @@ from ironic.common import neutron as neutron_common
 from ironic.common import states
 from ironic.conductor import task_manager
 from ironic.drivers.modules.network import common
+from ironic.objects import portgroup
 from ironic.tests.unit.db import base as db_base
 from ironic.tests.unit.objects import utils as obj_utils
 
@@ -1337,6 +1338,77 @@ class TestNeutronVifPortIDMixin(db_base.DbTestCase):
                              self.port.id)
             self.assertEqual(mock_save.call_args_list[0][0][1], vif_info['id'])
 
+    @mock.patch.object(common.VIFPortIDMixin, '_save_vif_to_port_like_obj',
+                       autospec=True)
+    @mock.patch.object(common, 'get_free_port_like_object', autospec=True)
+    @mock.patch.object(neutron_common, 'get_client', autospec=True)
+    @mock.patch.object(neutron_common, 'update_port_address', autospec=True)
+    @mock.patch.object(neutron_common, 'get_physnets_by_port_uuid',
+                       autospec=True)
+    def test_vif_attach_trait_based_networking_enabled_dynamic_portgroup(
+            self, mock_gpbpi, mock_upa, mock_client, mock_gfp, mock_save):
+        # Trait will match TBN trait defined below.
+        self.node.set_instance_info('traits', ['CUSTOM_TRAIT_NAME'])
+        self.node.save()
+
+        # Vendor matches filter expression below.
+        self.port.vendor = 'dynamic'
+        self.port.internal_info = {}
+        self.port.available_for_dynamic_portgroup = True
+        self.port.save()
+
+        second_port = obj_utils.create_test_port(
+                self.context, node_id=self.node.id,
+                uuid=uuidutils.generate_uuid(),
+                address='52:54:00:cf:2d:33',
+                vendor='dynamic',
+                internal_info={},
+                available_for_dynamic_portgroup=True)
+        second_port.save()
+
+        vif_info = {'id': 'fake_vif_id'}
+
+        # This should create a dynamic portgroup with the two existing test
+        # ports and attach it to the available network.
+        contents = ("CUSTOM_TRAIT_NAME:\n"
+                    "  actions:\n"
+                    "    - action: group_and_attach_ports\n"
+                    "      filter: port.vendor == 'dynamic' \n"
+                    "      min_count: 2\n")
+        self.tmpdir = tempfile.TemporaryDirectory()
+
+        with tempfile.NamedTemporaryFile(mode='w', dir=self.tmpdir.name,
+                                         delete=False) as tmpfile:
+            tmpfile.write(contents)
+            tmpfile.close()
+
+            # Enable TBN through conductor configuration
+            self.config(enable_trait_based_networking=True, group='conductor')
+            self.config(trait_based_networking_config_file=tmpfile.name,
+                        group='conductor')
+
+            with task_manager.acquire(self.context, self.node.id) as task:
+                self.interface.vif_attach(task, vif_info)
+
+            self.assertFalse(mock_gpbpi.called)
+            self.assertFalse(mock_gfp.called)
+
+            # Make sure the new portgroup was attached to the network.
+            self.assertTrue(mock_save.called)
+            self.assertEqual(len(mock_save.call_args_list), 1)
+
+            saved_pg = mock_save.call_args_list[0][0][0]
+            self.assertTrue(saved_pg.name.startswith('tbn_dyn_portgroup_'))
+            self.assertEqual(mock_save.call_args_list[0][0][1], vif_info['id'])
+
+            # Make sure the selected ports are now part of the dynamic
+            # portgroup.
+            self.port.refresh()
+            self.assertEqual(self.port.portgroup_id, saved_pg.id)
+            second_port.refresh()
+            self.assertEqual(second_port.portgroup_id, saved_pg.id)
+
+
     @mock.patch.object(common.VIFPortIDMixin, '_clear_vif_from_port_like_obj',
                        autospec=True)
     @mock.patch.object(neutron_common, 'unbind_neutron_port', autospec=True)
@@ -1431,6 +1503,45 @@ class TestNeutronVifPortIDMixin(db_base.DbTestCase):
                                              context=task.context)
         mock_get.assert_called_once_with(self.interface, task, 'fake_vif_id')
         mock_clear.assert_called_once_with(self.port)
+
+    @mock.patch.object(common.VIFPortIDMixin, '_clear_vif_from_port_like_obj',
+                       autospec=True)
+    @mock.patch.object(neutron_common, 'unbind_neutron_port', autospec=True)
+    @mock.patch.object(common.VIFPortIDMixin, '_get_port_like_obj_by_vif_id',
+                       autospec=True)
+    def test_vif_detach_dynamic_portgroup(self, mock_get, mock_unp,
+                                          mock_clear):
+        # Create a dynamic portgroup.
+        pg = obj_utils.create_test_portgroup(
+            self.context, node_id=self.node.id, dynamic_portgroup=True)
+
+        # Add some ports to it.
+        self.port.portgroup_id = pg.id
+        second_port = obj_utils.create_test_port(
+                self.context, node_id=self.node.id,
+                uuid=uuidutils.generate_uuid(),
+                address='52:54:00:cf:2d:33',
+                vendor='fake_vendor',
+                internal_info={},
+                portgroup_id=pg.id)
+        second_port.save()
+
+        mock_get.return_value = pg
+        with task_manager.acquire(self.context, self.node.id) as task:
+            self.interface.vif_detach(task, 'fake_vif_id')
+        mock_get.assert_called_once_with(self.interface, task, 'fake_vif_id')
+        self.assertTrue(mock_unp.called)
+        mock_clear.assert_called_once_with(pg)
+
+        # Make sure ports are no longer part  of the portgroup.
+        self.port.refresh()
+        self.assertIsNone(self.port.portgroup_id)
+        second_port.refresh()
+        self.assertIsNone(second_port.portgroup_id)
+
+        # Ensure pg is gone.
+        with self.assertRaises(exception.PortgroupNotFound):
+            portgroup.Portgroup.get_by_uuid(self.context, pg.uuid)
 
     @mock.patch.object(neutron_common, 'update_port_address', autospec=True)
     def test_port_changed_address(self, mac_update_mock):

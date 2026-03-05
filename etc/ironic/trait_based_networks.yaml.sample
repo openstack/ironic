@@ -12,6 +12,7 @@ CUSTOM_BOND_PURPLE_BY_2:
   actions:
     - action: group_and_attach_ports
       filter: port.vendor == 'purple'
+      min_count: 2
       max_count: 2
 CUSTOM_BOND_GREEN_STORAGE_TO_STORAGE_BY_2:
   actions:

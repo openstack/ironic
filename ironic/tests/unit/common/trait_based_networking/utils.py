@@ -29,11 +29,15 @@ class FauxPortLikeObject(object):
     physical_network: str = "test_physnet"
     vendor: str = "fake_vendor"
     internal_info: dict = field(default_factory=default_internal_info)
+    # NOTE(clif): Only relevant on ports, this defaults to True in ironic
+    available_for_dynamic_portgroup: bool = True
+    # NOTE(clif): Only relevant on portgroups
+    dynamic_portgroup: bool = False
 
 
 @dataclass
 class FauxNetwork(object):
-    network_id: str = "fake_net_id"
+    id: str = "fake_net_id"
     name: str = "test_network"
     tags: frozenset[str] = field(default_factory=frozenset)
 
