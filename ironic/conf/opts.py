@@ -19,6 +19,7 @@ import ironic.conf
 _opts = [
     ('DEFAULT', ironic.conf.default.list_opts()),
     ('agent', ironic.conf.agent.opts),
+    ('agent_containers', ironic.conf.agent_containers.opts),
     ('anaconda', ironic.conf.anaconda.opts),
     ('ansible', ironic.conf.ansible.opts),
     ('api', ironic.conf.api.opts),

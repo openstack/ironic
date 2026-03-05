@@ -1,0 +1,5 @@
+fixes:
+  - |
+    Fixes an issue where ``[agent_container]`` config section was not
+    registered properly. Now they are registered properly and will show up
+    in ``ironic.conf.sample``.
