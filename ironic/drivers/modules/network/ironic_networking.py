@@ -33,6 +33,7 @@ from ironic.common import states
 from ironic.conf import ironic_networking
 from ironic.drivers import base
 from ironic.drivers.modules.network import ironic_networking_schemas
+from ironic.drivers.modules.network.switchport_config import SwitchPortConfig
 from ironic.networking import api as networking_api
 
 LOG = log.getLogger(__name__)
@@ -94,8 +95,8 @@ class IronicNetworking(base.NetworkInterface):
             self._validate_portgroup_member_ports(task, portgroup)
 
     @staticmethod
-    def _get_network_mode_and_vlan(task, network_type):
-        """Get the mode and native_vlan for a given network type.
+    def _get_switch_port_config(task, network_type):
+        """Get the SwitchPortConfig for a given network type.
 
         The value is determined by first checking the node's driver_info
         for an override, and then falling back to the global conf option.
@@ -103,8 +104,7 @@ class IronicNetworking(base.NetworkInterface):
         :param task: A TaskManager instance.
         :param network_type: One of 'cleaning', 'provisioning', 'servicing',
                              'rescuing', or 'inspection'.
-        :returns: Tuple of (mode, native_vlan, allowed_vlans) or
-                  (None, None, None) if not set.
+        :returns: A SwitchPortConfig instance, or None if not set.
         :raises: InvalidParameterValue if the network value is set but
                  has an invalid format.
         """
@@ -132,36 +132,18 @@ class IronicNetworking(base.NetworkInterface):
                 "Falling back to port's switchport attributes.",
                 network_type
             )
-            return None, None, None
+            return None
 
-        # Expected format:
-        # {access|trunk|hybrid}/native_vlan=VLAN_ID/[allowed_vlans=CSV]
-        try:
-            # TODO(alegacy): Add support for allowed_vlans
-            mode_part, vlan_part = network_value.split('/', 1)
-            mode = mode_part.strip()
-            if vlan_part.startswith('native_vlan='):
-                native_vlan = int(vlan_part.split('=', 1)[1])
-            else:
-                native_vlan = None
-        except ValueError as e:
-            raise exception.InvalidParameterValue(
-                _("Invalid %(network_type)s network value '%(value)s'. "
-                  "Expected: {access|trunk|hybrid}/native_vlan=VLAN_ID. "
-                  "Error: %(error)s")
-                % {'network_type': network_type, 'value': network_value,
-                   'error': e})
+        config = SwitchPortConfig.from_string(network_value, network_type)
 
         LOG.debug(
-            "Called _get_network_mode_and_vlan with node=%(node)s, "
-            "network_type=%(network_type)s; returning mode=%(mode)s, "
-            "native_vlan=%(native_vlan)s from value='%(value)s'",
+            "Called _get_switch_port_config with node=%(node)s, "
+            "network_type=%(network_type)s; returning %(config)s "
+            "from value='%(value)s'",
             {'node': task.node.uuid, 'network_type': network_type,
-             'mode': mode, 'native_vlan': native_vlan,
-             'value': network_value})
+             'config': config, 'value': network_value})
 
-        # TODO(alegacy): Add support for allowed_vlans from above
-        return mode, native_vlan, None
+        return config
 
     def _validate_network_requirements(self, task, network_type):
         """Validate that at least one port has required network configuration.
@@ -187,18 +169,15 @@ class IronicNetworking(base.NetworkInterface):
             if not switchport:
                 continue
 
-            # Get the mode and native_vlan for the network type
-            mode, native_vlan, ignored_allowed_vlans = (
-                self._get_network_mode_and_vlan(task, network_type)
-            )
+            # Get the SwitchPortConfig for the network type
+            config = self._get_switch_port_config(task, network_type)
 
             # If network configuration is not set, use port's switchport info
-            if mode is None or native_vlan is None:
-                mode = switchport.get('mode')
-                native_vlan = switchport.get('native_vlan')
+            if config is None or not config.is_valid:
+                config = SwitchPortConfig.from_switchport(switchport)
 
             # If we have valid configuration, we found at least one valid port
-            if mode and native_vlan is not None:
+            if config and config.is_valid:
                 return
 
         # TODO(alegacy): Need to consider how far the validation should go.
@@ -442,37 +421,32 @@ class IronicNetworking(base.NetworkInterface):
         :param task: A TaskManager instance.
         :param port_obj: A Port object.
         :param network_type: The type of network to resolve configuration for.
-        :returns: Tuple of (mode, native_vlan, allowed_vlans).
-        :raises: InvalidParameterValue if unable to parse network configuration
+        :returns: A SwitchPortConfig instance, or None if not configured.
+        :raises: InvalidParameterValue if unable to parse network
+            configuration
         """
         # Try network-specific configuration first
-        mode, native_vlan, allowed_vlans = self._get_network_mode_and_vlan(
-            task, network_type)
+        config = self._get_switch_port_config(task, network_type)
 
-        if mode is None or native_vlan is None:
+        if config is None or not config.is_valid:
             # Fallback to port's switchport configuration unless the network
             # is the idle network in which case we simply allow the port to
             # remain unconfigured (or configured to the switch-wide default)
             if network_type == network.IDLE_NETWORK:
-                return None, None, None
+                return None
             switchport = (port_obj.extra.get('switchport', {})
                           if port_obj.extra else {})
-            mode = switchport.get('mode')
-            native_vlan = switchport.get('native_vlan')
-            allowed_vlans = switchport.get('allowed_vlans')
+            config = SwitchPortConfig.from_switchport(switchport)
 
         LOG.debug(
             "Resolving network configuration for port %(port)s, "
-            "network_type=%(network_type)s: mode=%(mode)s, "
-            "native_vlan=%(native_vlan)s, allowed_vlans=%(allowed_vlans)s",
+            "network_type=%(network_type)s: %(config)s",
             {
                 'port': getattr(port_obj, 'uuid', None),
                 'network_type': network_type,
-                'mode': mode,
-                'native_vlan': native_vlan,
-                'allowed_vlans': allowed_vlans
+                'config': config,
             })
-        return mode, native_vlan, allowed_vlans
+        return config
 
     def _get_original_port_config(self, task, port_obj):
         """Get original port configuration before changes.
@@ -560,27 +534,26 @@ class IronicNetworking(base.NetworkInterface):
             {'port': port_obj.uuid})
 
         # Resolve the idle network configuration (if any)
-        idle_mode, idle_native_vlan, idle_allowed_vlans = (
-            self._get_network_mode_and_vlan(task, network.IDLE_NETWORK))
+        idle_config = self._get_switch_port_config(task, network.IDLE_NETWORK)
 
         if original_local_link and original_switchport:
             # Get configuration for reset operation using original values
-            (original_mode, original_native_vlan,
-             original_allowed_vlans) = (
-                self._resolve_network_configuration(
-                    task, original_port, active_network_type))
+            original_config = self._resolve_network_configuration(
+                task, original_port, active_network_type)
 
-            if original_mode and original_native_vlan is not None:
+            if original_config and original_config.is_valid:
                 # Get switch and port info from original state
                 switch_id = original_local_link.get('switch_id')
                 port_name = original_local_link.get('port_id')
 
                 if switch_id and port_name:
+                    idle_vlan = (idle_config.native_vlan
+                                 if idle_config else None)
                     result = networking_api.reset_port(
                         task.context, switch_id, port_name,
-                        original_native_vlan,
-                        allowed_vlans=original_allowed_vlans,
-                        default_vlan=idle_native_vlan)
+                        original_config.native_vlan,
+                        allowed_vlans=original_config.allowed_vlans,
+                        default_vlan=idle_vlan)
                     LOG.debug(
                         "Successfully reset port %(port_name)s on "
                         "switch %(switch_id)s via networking service: "
@@ -620,26 +593,25 @@ class IronicNetworking(base.NetworkInterface):
                   {'port': port_obj.uuid})
 
         # Resolve the idle network configuration (if any)
-        idle_mode, idle_native_vlan, idle_allowed_vlans = (
-            self._get_network_mode_and_vlan(task, network.IDLE_NETWORK))
+        idle_config = self._get_switch_port_config(task, network.IDLE_NETWORK)
 
         # First, reset the old port
         if original_local_link and original_switchport:
-            (original_mode, original_native_vlan,
-             original_allowed_vlans) = (
-                self._resolve_network_configuration(
-                    task, original_port, active_network_type))
+            original_config = self._resolve_network_configuration(
+                task, original_port, active_network_type)
 
-            if original_mode and original_native_vlan is not None:
+            if original_config and original_config.is_valid:
                 switch_id = original_local_link.get('switch_id')
                 port_name = original_local_link.get('port_id')
 
                 if switch_id and port_name:
+                    idle_vlan = (idle_config.native_vlan
+                                 if idle_config else None)
                     result = networking_api.reset_port(
                         task.context, switch_id, port_name,
-                        original_native_vlan,
-                        allowed_vlans=original_allowed_vlans,
-                        default_vlan=idle_native_vlan)
+                        original_config.native_vlan,
+                        allowed_vlans=original_config.allowed_vlans,
+                        default_vlan=idle_vlan)
                     LOG.debug(
                         "Successfully reset old port %(port_name)s "
                         "on switch %(switch_id)s via networking "
@@ -680,15 +652,13 @@ class IronicNetworking(base.NetworkInterface):
         self._validate_port_switchport_config(task, port_obj)
 
         # Resolve the idle network configuration (if any)
-        idle_mode, idle_native_vlan, idle_allowed_vlans = (
-            self._get_network_mode_and_vlan(task, network.IDLE_NETWORK))
+        idle_config = self._get_switch_port_config(task, network.IDLE_NETWORK)
 
         # Resolve configuration based on active network type
-        mode, native_vlan, allowed_vlans = (
-            self._resolve_network_configuration(
-                task, port_obj, active_network_type))
+        config = self._resolve_network_configuration(
+            task, port_obj, active_network_type)
 
-        if mode and native_vlan is not None:
+        if config and config.is_valid:
             # Get switch and port info from current state
             switch_id = current_local_link.get('switch_id')
             port_name = current_local_link.get('port_id')
@@ -696,12 +666,14 @@ class IronicNetworking(base.NetworkInterface):
             lag_name = current_switchport.get('lag_name')
 
             if switch_id and port_name:
+                idle_vlan = (idle_config.native_vlan
+                             if idle_config else None)
                 result = networking_api.update_port(
                     task.context, switch_id, port_name,
-                    description, mode, native_vlan,
-                    allowed_vlans=allowed_vlans,
+                    description, config.mode, config.native_vlan,
+                    allowed_vlans=config.allowed_vlans,
                     lag_name=lag_name,
-                    default_vlan=idle_native_vlan)
+                    default_vlan=idle_vlan)
                 LOG.debug(
                     "Successfully updated port %(port_name)s "
                     "on switch %(switch_id)s for %(network_type)s "
@@ -868,8 +840,7 @@ class IronicNetworking(base.NetworkInterface):
                   {'node': task.node.uuid})
 
         # Resolve the idle network configuration (if any)
-        idle_mode, idle_native_vlan, idle_allowed_vlans = (
-            self._get_network_mode_and_vlan(task, network.IDLE_NETWORK))
+        idle_config = self._get_switch_port_config(task, network.IDLE_NETWORK)
 
         for port in task.ports:
             switchport = port.extra.get('switchport') if port.extra else None
@@ -883,29 +854,29 @@ class IronicNetworking(base.NetworkInterface):
                 )
                 continue
 
-            mode = switchport.get('mode')
-            native_vlan = switchport.get('native_vlan')
-            allowed_vlans = switchport.get('allowed_vlans')
+            config = SwitchPortConfig.from_switchport(switchport)
 
-            if not mode or native_vlan is None:
+            if not config or not config.is_valid:
                 LOG.debug(
-                    "Skipping port %(port)s: missing mode or native_vlan for "
-                    "tenant network setup.",
+                    "Skipping port %(port)s: missing mode or native_vlan or "
+                    "allowed_vlans for tenant network setup.",
                     {'port': port.uuid}
                 )
                 continue
 
             try:
+                idle_vlan = (idle_config.native_vlan
+                             if idle_config else None)
                 networking_api.update_port(
                     task.context,
                     link_info.get('switch_id'),
                     link_info.get('port_id'),
                     self._get_port_description(port),
-                    mode,
-                    native_vlan,
-                    allowed_vlans=allowed_vlans,
+                    config.mode,
+                    config.native_vlan,
+                    allowed_vlans=config.allowed_vlans,
                     lag_name=None,
-                    default_vlan=idle_native_vlan,
+                    default_vlan=idle_vlan,
                 )
             except (exception.InvalidParameterValue,
                     exception.NetworkError) as exc:
@@ -935,8 +906,7 @@ class IronicNetworking(base.NetworkInterface):
                   {'node': task.node.uuid})
 
         # Resolve the idle network configuration (if any)
-        idle_mode, idle_native_vlan, idle_allowed_vlans = (
-            self._get_network_mode_and_vlan(task, network.IDLE_NETWORK))
+        idle_config = self._get_switch_port_config(task, network.IDLE_NETWORK)
 
         errors = []
         for port in task.ports:
@@ -951,26 +921,26 @@ class IronicNetworking(base.NetworkInterface):
                 )
                 continue
 
-            mode = switchport.get('mode')
-            native_vlan = switchport.get('native_vlan')
-            allowed_vlans = switchport.get('allowed_vlans')
+            config = SwitchPortConfig.from_switchport(switchport)
 
-            if not mode or native_vlan is None:
+            if not config or not config.is_valid:
                 LOG.debug(
-                    "Skipping port %(port)s: missing mode or native_vlan for "
-                    "tenant network removal.",
+                    "Skipping port %(port)s: missing mode or native_vlan or "
+                    "allowed_vlans for tenant network removal.",
                     {'port': port.uuid}
                 )
                 continue
 
             try:
+                idle_vlan = (idle_config.native_vlan
+                             if idle_config else None)
                 networking_api.reset_port(
                     task.context,
                     link_info.get('switch_id'),
                     link_info.get('port_id'),
-                    native_vlan,
-                    allowed_vlans=allowed_vlans,
-                    default_vlan=idle_native_vlan
+                    config.native_vlan,
+                    allowed_vlans=config.allowed_vlans,
+                    default_vlan=idle_vlan
                 )
             except (exception.InvalidParameterValue,
                     exception.NetworkError) as exc:
@@ -1004,13 +974,11 @@ class IronicNetworking(base.NetworkInterface):
                  {'network_type': network_type, 'node': task.node.uuid})
 
         # Resolve the idle network configuration (if any)
-        idle_mode, idle_native_vlan, idle_allowed_vlans = (
-            self._get_network_mode_and_vlan(task, network.IDLE_NETWORK))
+        idle_config = self._get_switch_port_config(task, network.IDLE_NETWORK)
 
-        # Get the mode and native_vlan for the network type. It may be
+        # Get the config for the network type. It may be
         # overridden by the port's switchport configuration.
-        global_mode, global_native_vlan, global_allowed_vlans = (
-            self._get_network_mode_and_vlan(task, network_type))
+        global_config = self._get_switch_port_config(task, network_type)
 
         for port in task.ports:
             # If the local_link_connection info is missing, skip the port
@@ -1023,58 +991,47 @@ class IronicNetworking(base.NetworkInterface):
                 )
                 continue
 
-            # If the global mode and native_vlan are not set, try to get
+            # If the global config is not complete, try to get
             # switchport info from port.extra
-            mode = None
-            native_vlan = None
-            allowed_vlans = None
-            if global_mode is None or global_native_vlan is None:
-                # Try to get switchport info from port.extra
+            config = global_config
+            if config is None or not config.is_valid:
                 switchport = (port.extra.get('switchport')
                               if port.extra else None)
                 if switchport:
-                    mode = switchport.get('mode')
-                    native_vlan = switchport.get('native_vlan')
-                    allowed_vlans = switchport.get('allowed_vlans')
-            else:
-                mode = global_mode
-                native_vlan = global_native_vlan
-                allowed_vlans = global_allowed_vlans
+                    config = SwitchPortConfig.from_switchport(switchport)
 
-            if not mode or native_vlan is None:
+            if not config or not config.is_valid:
                 LOG.debug(
-                    "Skipping port %(port)s: missing mode or native_vlan for "
-                    "%(network_type)s network setup.",
+                    "Skipping port %(port)s: missing mode or native_vlan or "
+                    "allowed_vlans for %(network_type)s network setup.",
                     {'port': port.uuid, 'network_type': network_type}
                 )
                 continue
 
             try:
+                idle_vlan = (idle_config.native_vlan
+                             if idle_config else None)
                 networking_api.update_port(
                     task.context,
                     link_info.get('switch_id'),
                     link_info.get('port_id'),
                     self._get_port_description(port),
-                    mode,
-                    native_vlan,
-                    allowed_vlans=allowed_vlans,
+                    config.mode,
+                    config.native_vlan,
+                    allowed_vlans=config.allowed_vlans,
                     lag_name=None,
-                    default_vlan=idle_native_vlan
+                    default_vlan=idle_vlan
                 )
                 LOG.debug(
                     "Configured %(network_type)s network for port %(port)s: "
                     "switch_id=%(switch_id)s, port_name=%(port_name)s, "
-                    "mode=%(mode)s, native_vlan=%(native_vlan)s, "
-                    "allowed_vlans=%(allowed_vlans)s",
+                    "config=%(config)s",
                     {
                         'network_type': network_type,
                         'port': port.uuid,
                         'switch_id': link_info.get('switch_id'),
                         'port_name': link_info.get('port_id'),
-                        'mode': mode,
-                        'native_vlan': native_vlan,
-                        'allowed_vlans': allowed_vlans,
-                        'default_vlan': idle_native_vlan
+                        'config': config,
                     }
                 )
             except (exception.InvalidParameterValue,
@@ -1110,13 +1067,11 @@ class IronicNetworking(base.NetworkInterface):
                  {'network_type': network_type, 'node': task.node.uuid})
 
         # Resolve the idle network configuration (if any)
-        idle_mode, idle_native_vlan, idle_allowed_vlans = (
-            self._get_network_mode_and_vlan(task, network.IDLE_NETWORK))
+        idle_config = self._get_switch_port_config(task, network.IDLE_NETWORK)
 
-        # Get the mode and native_vlan for the network type. It may be
+        # Get the config for the network type. It may be
         # overridden by the port's switchport configuration.
-        global_mode, global_native_vlan, global_allowed_vlans = (
-            self._get_network_mode_and_vlan(task, network_type))
+        global_config = self._get_switch_port_config(task, network_type)
 
         errors = []
         for port in task.ports:
@@ -1131,54 +1086,44 @@ class IronicNetworking(base.NetworkInterface):
                 )
                 continue
 
-            # If the global mode and native_vlan are not set, try to get
+            # If the global config is not complete, try to get
             # switchport info from port.extra
-            mode = None
-            native_vlan = None
-            allowed_vlans = None
-            if global_mode is None or global_native_vlan is None:
-                # Try to get switchport info from port.extra
+            config = global_config
+            if config is None or not config.is_valid:
                 switchport = (port.extra.get('switchport')
                               if port.extra else None)
                 if switchport:
-                    mode = switchport.get('mode')
-                    native_vlan = switchport.get('native_vlan')
-                    allowed_vlans = switchport.get('allowed_vlans')
-            else:
-                mode = global_mode
-                native_vlan = global_native_vlan
-                allowed_vlans = global_allowed_vlans
+                    config = SwitchPortConfig.from_switchport(switchport)
 
-            if not mode or native_vlan is None:
+            if not config or not config.is_valid:
                 LOG.debug(
-                    "Skipping port %(port)s: missing mode or native_vlan for "
-                    "%(network_type)s network removal.",
+                    "Skipping port %(port)s: missing mode or native_vlan or "
+                    "allowed_vlans for %(network_type)s network removal.",
                     {'port': port.uuid, 'network_type': network_type}
                 )
                 continue
 
             try:
+                idle_vlan = (idle_config.native_vlan
+                             if idle_config else None)
                 networking_api.reset_port(
                     task.context,
                     link_info.get('switch_id'),
                     link_info.get('port_id'),
-                    native_vlan,
-                    allowed_vlans=allowed_vlans,
-                    default_vlan=idle_native_vlan
+                    config.native_vlan,
+                    allowed_vlans=config.allowed_vlans,
+                    default_vlan=idle_vlan
                 )
                 LOG.debug(
                     "Reset %(network_type)s network for port %(port)s: "
                     "switch_id=%(switch_id)s, port_name=%(port_name)s, "
-                    "native_vlan=%(native_vlan)s, "
-                    "allowed_vlans=%(allowed_vlans)s",
+                    "config=%(config)s",
                     {
                         'network_type': network_type,
                         'port': port.uuid,
                         'switch_id': link_info.get('switch_id'),
                         'port_name': link_info.get('port_id'),
-                        'native_vlan': native_vlan,
-                        'allowed_vlans': allowed_vlans,
-                        'default_vlan': idle_native_vlan
+                        'config': config,
                     }
                 )
             except (exception.InvalidParameterValue,
