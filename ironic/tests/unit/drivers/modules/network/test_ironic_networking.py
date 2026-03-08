@@ -554,12 +554,12 @@ class IronicNetworkingPortChangedTestCase(
         )
         with task_manager.acquire(self.context, self.node.uuid) as task:
             task.ports = [original_port]
-            self.config(provisioning_network='trunk/native_vlan=222',
+            self.config(provisioning_network='access/native_vlan=222',
                         group='ironic_networking')
             self.interface.port_changed(task, current_port)
         mock_update_port.assert_called_once_with(
             task.context, '00:11:22:33:44:55', 'GigE1/0/1',
-            'Ironic Port ' + str(current_port.uuid), 'trunk', 222,
+            'Ironic Port ' + str(current_port.uuid), 'access', 222,
             allowed_vlans=None, lag_name=None, default_vlan=None)
 
     @mock.patch.object(networking_api, 'update_port', autospec=True)
@@ -892,7 +892,7 @@ class IronicNetworkingHelperMethodsTestCase(
         self.assertEqual(
             'idle', network.get_network_type_for_state(states.ENROLL))
 
-    def test_get_network_mode_and_vlan_driver_info(self):
+    def test_get_switch_port_config_driver_info(self):
         """Driver info overrides networking configuration."""
         driver_info = dict(self.node.driver_info or {})
         driver_info['provisioning_network'] = (
@@ -900,14 +900,13 @@ class IronicNetworkingHelperMethodsTestCase(
         self.node.driver_info = driver_info
         self.node.save()
         with task_manager.acquire(self.context, self.node.uuid) as task:
-            mode, native_vlan, allowed = (
-                self.interface._get_network_mode_and_vlan(
-                    task, 'provisioning'))
-        self.assertEqual('access', mode)
-        self.assertEqual(66, native_vlan)
-        self.assertIsNone(allowed)
+            config = self.interface._get_switch_port_config(
+                task, 'provisioning')
+        self.assertEqual('access', config.mode)
+        self.assertEqual(66, config.native_vlan)
+        self.assertIsNone(config.allowed_vlans)
 
-    def test_get_network_mode_and_vlan_conf_fallback(self):
+    def test_get_switch_port_config_conf_fallback(self):
         """Global networking configuration is used when no override."""
         driver_info = dict(self.node.driver_info or {})
         driver_info.pop('cleaning_network', None)
@@ -916,14 +915,13 @@ class IronicNetworkingHelperMethodsTestCase(
         self.config(cleaning_network='trunk/native_vlan=77',
                     group='ironic_networking')
         with task_manager.acquire(self.context, self.node.uuid) as task:
-            mode, native_vlan, allowed = (
-                self.interface._get_network_mode_and_vlan(
-                    task, 'cleaning'))
-        self.assertEqual('trunk', mode)
-        self.assertEqual(77, native_vlan)
-        self.assertIsNone(allowed)
+            config = self.interface._get_switch_port_config(
+                task, 'cleaning')
+        self.assertEqual('trunk', config.mode)
+        self.assertEqual(77, config.native_vlan)
+        self.assertIsNone(config.allowed_vlans)
 
-    def test_get_network_mode_and_vlan_invalid_format(self):
+    def test_get_switch_port_config_invalid_format(self):
         """Invalid configuration raises InvalidParameterValue."""
         driver_info = dict(self.node.driver_info or {})
         driver_info['provisioning_network'] = 'invalid'
@@ -931,14 +929,25 @@ class IronicNetworkingHelperMethodsTestCase(
         self.node.save()
         with task_manager.acquire(self.context, self.node.uuid) as task:
             self.assertRaises(exception.InvalidParameterValue,
-                              self.interface._get_network_mode_and_vlan,
+                              self.interface._get_switch_port_config,
                               task, 'provisioning')
+
+    def test_get_switch_port_config_not_set(self):
+        """Returns None when no network is configured."""
+        driver_info = dict(self.node.driver_info or {})
+        driver_info.pop('provisioning_network', None)
+        self.node.driver_info = driver_info
+        self.node.save()
+        with task_manager.acquire(self.context, self.node.uuid) as task:
+            config = self.interface._get_switch_port_config(
+                task, 'provisioning')
+        self.assertIsNone(config)
 
     def test_resolve_network_configuration_prefers_network(self):
         """_resolve_network_configuration prefers global network config."""
         driver_info = dict(self.node.driver_info or {})
         driver_info['provisioning_network'] = (
-            'hybrid/native_vlan=88')
+            'hybrid/native_vlan=88/allowed_vlans=88,89')
         self.node.driver_info = driver_info
         self.node.save()
         port = self._create_test_port(
@@ -950,13 +959,11 @@ class IronicNetworkingHelperMethodsTestCase(
         )
         with (task_manager.acquire(self.context, self.node.uuid) as task):
             task.ports = [port]
-            mode, vlan, allowed = (
-                self.interface._resolve_network_configuration(
-                    task, port, 'provisioning')
-            )
-        self.assertEqual('hybrid', mode)
-        self.assertEqual(88, vlan)
-        self.assertIsNone(allowed)
+            config = self.interface._resolve_network_configuration(
+                task, port, 'provisioning')
+        self.assertEqual('hybrid', config.mode)
+        self.assertEqual(88, config.native_vlan)
+        self.assertEqual([88, 89], config.allowed_vlans)
 
     def test_resolve_network_configuration_fallback_switchport(self):
         """_resolve_network_configuration falls back to switchport."""
@@ -973,13 +980,11 @@ class IronicNetworkingHelperMethodsTestCase(
         )
         with task_manager.acquire(self.context, self.node.uuid) as task:
             task.ports = [port]
-            mode, vlan, allowed = (
-                self.interface._resolve_network_configuration(
-                    task, port, 'provisioning')
-            )
-        self.assertEqual('hybrid', mode)
-        self.assertEqual(55, vlan)
-        self.assertEqual([55, 56], allowed)
+            config = self.interface._resolve_network_configuration(
+                task, port, 'provisioning')
+        self.assertEqual('hybrid', config.mode)
+        self.assertEqual(55, config.native_vlan)
+        self.assertEqual([55, 56], config.allowed_vlans)
 
     def test_validate_portgroup_members_missing_switchport(self):
         """Portgroup validation raises when member lacks switchport."""
@@ -1061,9 +1066,9 @@ class IronicNetworkingNetworkActionsTestCase(
     def test_add_provisioning_network_with_config(self):
         mock_call = self._test_add_network(
             'add_provisioning_network', states.DEPLOYING, 'provisioning',
-            'trunk/native_vlan=200')
+            'access/native_vlan=200')
         expected_args, expected_kwargs = self._expected_update_call(
-            f'Ironic Port {self.port.uuid}', 'trunk', 200)
+            f'Ironic Port {self.port.uuid}', 'access', 200)
         mock_call.assert_called_with(*expected_args, **expected_kwargs)
 
     def test_remove_provisioning_network_with_config(self):
@@ -1079,10 +1084,10 @@ class IronicNetworkingNetworkActionsTestCase(
                           group='ironic_networking')
         mock_call = self._test_add_network(
             'add_provisioning_network', states.DEPLOYING, 'provisioning',
-            'trunk/native_vlan=200')
+            'access/native_vlan=200')
         expected_args, expected_kwargs = self._expected_update_call(
             f'Ironic Port {self.port.uuid}',
-            'trunk', 200, default_vlan=1)
+            'access', 200, default_vlan=1)
         mock_call.assert_called_with(*expected_args, **expected_kwargs)
 
     def test_remove_provisioning_network_with_idle(self):
