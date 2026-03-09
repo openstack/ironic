@@ -583,7 +583,7 @@ class RedfishManagementTestCase(db_base.DbTestCase):
                                   shared=False) as task:
             mock_system = mock.Mock()
             mock_manager = mock.Mock()
-            mock_manager.datetime = 'wrong-time'
+            mock_manager.datetime = '2025-01-01T00:00:00'
 
             mock_get_system.return_value = mock_system
             mock_get_manager.return_value = mock_manager
@@ -687,7 +687,7 @@ class RedfishManagementTestCase(db_base.DbTestCase):
         mock_manager.set_datetime.assert_called_once_with(
             current_datetime.replace(
                 tzinfo=datetime.timezone.utc).isoformat(),
-            datetime_local_offset="+00:00")
+            datetime_local_offset=None)
 
     @mock.patch.object(redfish_utils, 'get_system', autospec=True)
     def test_inject_nmi(self, mock_get_system):

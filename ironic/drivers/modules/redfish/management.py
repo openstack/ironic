@@ -558,6 +558,11 @@ class RedfishManagement(base.ManagementInterface):
         try:
             system = redfish_utils.get_system(task.node)
             manager = redfish_utils.get_manager(task.node, system)
+            # if the Redfish manager interface does not have microseconds,
+            # we cannot send microseconds in our update so strip them out
+            if not parser.isoparse(manager.datetime).microsecond:
+                target_datetime = parser.isoparse(target_datetime).replace(
+                    microsecond=0).isoformat()
             LOG.debug("Setting BMC clock to %s (offset: %s)",
                       target_datetime, datetime_local_offset)
             manager._conn.timeout = 30
@@ -594,14 +599,17 @@ class RedfishManagement(base.ManagementInterface):
             return
 
         try:
-            system_time = timeutils.utcnow().replace(
-                tzinfo=timezone.utc).isoformat()
+            local_time = timeutils.utcnow().replace(tzinfo=timezone.utc)
             system = redfish_utils.get_system(task.node)
             manager = redfish_utils.get_manager(task.node, system)
             manager.refresh()
 
             manager_time = parser.isoparse(manager.datetime)
-            local_time = parser.isoparse(system_time)
+            # if the Redfish manager interface does not have microseconds,
+            # we cannot send microseconds in our update so strip them out
+            if not manager_time.microsecond:
+                local_time = local_time.replace(microsecond=0)
+            system_time = local_time.isoformat()
 
             LOG.debug("BMC time: %s, Local time: %s",
                       manager_time, local_time)
@@ -612,8 +620,11 @@ class RedfishManagement(base.ManagementInterface):
             # by more than 1 second
             if abs((manager_time - local_time).total_seconds()) > 1:
                 LOG.info("BMC clock is out of sync. Updating...")
+                offset = "+00:00"
+                if manager.datetimelocaloffset == offset:
+                    offset = None
                 manager.set_datetime(system_time,
-                                     datetime_local_offset="+00:00")
+                                     datetime_local_offset=offset)
                 manager.refresh()
 
                 updated_time = parser.isoparse(manager.datetime)

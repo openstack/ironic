@@ -1,0 +1,9 @@
+---
+fixes:
+  - |
+    Some BMCs do not allow changing the DateTimeLocalOffset to the same value
+    that it already is. Since DateTimeLocalOffset is applied after DateTime if
+    both are supplied, just supply the DateTime if the values are the same. Some
+    BMCs do not utilize microseconds and per the Redfish spec they should not be
+    sent a microsecond if they did not advertise one in their interface. This
+    partially fixes `bug 2143772 <https://bugs.launchpad.net/ironic/+bug/2143772>`_.
