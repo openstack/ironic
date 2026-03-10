@@ -13,7 +13,8 @@
       - opendev.org/openstack/ironic
       - opendev.org/openstack/ironic-python-agent
       - opendev.org/openstack/ironic-python-agent-builder
-      - opendev.org/openstack/ironic-tempest-plugin
+      - name: opendev.org/openstack/ironic-tempest-plugin
+        override-checkout: 2024.1-last
       - opendev.org/openstack/virtualbmc
     irrelevant-files:
       - ^.*\.rst$
@@ -594,7 +595,8 @@
       - opendev.org/openstack/ironic
       - opendev.org/openstack/ironic-python-agent
       - opendev.org/openstack/ironic-python-agent-builder
-      - opendev.org/openstack/ironic-tempest-plugin
+      - name: opendev.org/openstack/ironic-tempest-plugin
+        override-checkout: 2024.1-last
       - opendev.org/openstack/virtualbmc
       - opendev.org/openstack/networking-generic-switch
     irrelevant-files:
@@ -965,7 +967,8 @@
       - opendev.org/openstack/ironic
       - opendev.org/openstack/ironic-python-agent
       - opendev.org/openstack/ironic-python-agent-builder
-      - opendev.org/openstack/ironic-tempest-plugin
+      - name: opendev.org/openstack/ironic-tempest-plugin
+        override-checkout: 2024.1-last
       - opendev.org/openstack/virtualbmc
     vars:
       grenade_devstack_localrc:
@@ -1062,7 +1065,8 @@
       - opendev.org/openstack/ironic-lib
       - opendev.org/openstack/ironic-python-agent
       - opendev.org/openstack/ironic-python-agent-builder
-      - opendev.org/openstack/ironic-tempest-plugin
+      - name: opendev.org/openstack/ironic-tempest-plugin
+        override-checkout: 2024.1-last
       - opendev.org/openstack/networking-generic-switch
       - opendev.org/openstack/python-ironicclient
       - opendev.org/openstack/virtualbmc
