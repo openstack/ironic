@@ -218,6 +218,22 @@ class RedfishUtilsTestCase(db_base.DbTestCase):
         self.assertRaises(exception.RedfishError,
                           redfish_utils.get_update_service, self.node)
 
+    def test_get_root_vendor(self):
+        redfish_utils._get_connection = mock.Mock()
+        redfish_utils._get_connection.return_value = "AMI"
+
+        result = redfish_utils.get_root_vendor(self.node)
+
+        self.assertEqual("AMI", result)
+
+    def test_get_root_vendor_error(self):
+        redfish_utils._get_connection = mock.Mock()
+        redfish_utils._get_connection.side_effect = Exception('conn failed')
+
+        result = redfish_utils.get_root_vendor(self.node)
+
+        self.assertIsNone(result)
+
     def test_get_event_service(self):
         redfish_utils._get_connection = mock.Mock()
         mock_event_service = mock.Mock()
