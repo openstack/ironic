@@ -2189,6 +2189,20 @@ class ValidatePortPhysnetTestCase(db_base.DbTestCase):
             current_physnet=None,
             new_physnet='physnet1')
 
+    def test_validate_port_physnet_empty_portgroup_with_physnet_mismatch(self):
+        portgroup = obj_utils.create_test_portgroup(
+            self.context, node_id=self.node.id,
+            physical_network='physnet1')
+        port = db_utils.get_test_port(
+            node_id=self.node.id, portgroup_id=portgroup.id,
+            address='00:11:22:33:44:01', uuid=uuidutils.generate_uuid(),
+            physical_network='physnet2')
+        port = objects.Port(self.context, **port)
+        with task_manager.acquire(self.context, self.node.uuid) as task:
+            self.assertRaises(exception.Conflict,
+                              conductor_utils.validate_port_physnet,
+                              task, port)
+
     # 1-port portgroup, no physnet.
 
     def test_validate_port_physnet_1_port_portgroup_no_physnet_create_1(self):

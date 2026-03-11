@@ -1095,7 +1095,11 @@ def validate_port_physnet(task, port_obj):
                                                        exclude_port=port_obj)
 
     if not pg_physnets:
-        return
+        portgroup = network.get_portgroup_by_id(task, port_obj.portgroup_id)
+        if portgroup and portgroup.physical_network is not None:
+            pg_physnets = {portgroup.physical_network}
+        else:
+            return
 
     # Check that the port has the same physical network as any existing
     # member ports.

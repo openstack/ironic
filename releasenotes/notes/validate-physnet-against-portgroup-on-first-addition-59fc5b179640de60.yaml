@@ -1,0 +1,7 @@
+---
+fixes:
+  - |
+    Fixes a case where the first port added to a portgroup could have
+    a different physical network than the portgroup itself.
+    The physical network validation now checks against the portgroup's
+    ``physical_network`` when no existing member ports are present.
