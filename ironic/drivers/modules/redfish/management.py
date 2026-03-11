@@ -182,11 +182,20 @@ def _set_boot_device(task, system, device, persistent=False,
                        for vendor_id in
                        VENDORS_REQUIRING_FULL_BOOT_REQUEST)
     )
+
+    desired_enabled = BOOT_DEVICE_PERSISTENT_MAP_REV[persistent]
     if vendor and vendor.lower() == 'supermicro':
-        enabled = BOOT_DEVICE_PERSISTENT_MAP_REV[persistent]
+        # Supermicro requires the persistent setting when setting the
+        # boot device (see https://storyboard.openstack.org/#!/story/2008547).
+        enabled = desired_enabled
         LOG.debug('Setting BootSourceOverrideEnable to %(enable)s '
                   'on Supermicro BMC, node %(node)s',
                   {'enable': enabled, 'node': task.node.uuid})
+    elif requires_full_boot_request:
+        # NOTE(cid): These vendors need all boot parameters sent
+        # unconditionally (see https://bugs.launchpad.net/ironic/+bug/2073518
+        # and commit f420c3d17).
+        enabled = desired_enabled
     else:
         desired_enabled = BOOT_DEVICE_PERSISTENT_MAP_REV[persistent]
         current_enabled = system.boot.get(BOOT_OVERRIDE_ENABLED)
@@ -225,17 +234,19 @@ def _set_boot_device(task, system, device, persistent=False,
                       'Sending: mode=%(mode)s, enabled=%(enabled)s, '
                       'target=%(target)s for node %(node)s',
                       {'vendor': vendor, 'mode': desired_mode,
-                       'enabled': desired_enabled,
+                       'enabled': enabled,
                        'target': device, 'node': task.node.uuid})
             system.set_system_boot_options(
                 device,
                 mode=desired_mode,
-                enabled=desired_enabled,
+                enabled=enabled,
                 http_boot_uri=http_boot_url
             )
         else:
-            LOG.debug('Sending minimal Redfish boot device change for '
-                      'node %(node)s', {'node': task.node.uuid})
+            LOG.debug('Sending boot device %(target)s, enabled=%(enabled)s '
+                      'for node %(node)s',
+                      {'target': device, 'enabled': enabled,
+                       'node': task.node.uuid})
             system.set_system_boot_options(device, enabled=enabled,
                                            http_boot_uri=http_boot_url)
 

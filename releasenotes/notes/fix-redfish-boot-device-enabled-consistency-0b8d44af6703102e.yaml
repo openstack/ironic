@@ -1,0 +1,9 @@
+---
+fixes:
+  - |
+    Fixes inconsistent handling of the ``BootSourceOverrideEnabled``
+    parameter for vendors requiring full boot requests
+    (American Megatrends International, ASRock Rack, and Redfish
+    compatible systems).  The ``enabled`` variable could be ``None`` when
+    the desired persistence matched the current BMC state, which prevented
+    the CONTINUOUS-to-ONCE fallback from triggering on these vendors.
