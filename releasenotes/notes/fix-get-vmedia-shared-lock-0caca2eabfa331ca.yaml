@@ -1,0 +1,12 @@
+---
+fixes:
+  - |
+    Fixes a race condition where the ``GET /v1/nodes/{node}/vmedia``
+    endpoint used an exclusive node lock, causing ``NodeLocked`` (HTTP 409)
+    errors when the node was reserved by another operation. Under parallel
+    workloads (e.g. concurrent bare metal deployments), this prevented
+    callers from querying virtual media status while attach, deploy, or
+    power operations were in progress, leading to hosts failing to power on.
+    The endpoint now uses a shared lock, consistent with other read-only
+    management endpoints such as ``get_supported_boot_devices``.
+

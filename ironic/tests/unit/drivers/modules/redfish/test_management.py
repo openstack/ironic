@@ -2052,7 +2052,8 @@ class RedfishManagementTestCase(db_base.DbTestCase):
 
     @mock.patch.object(redfish_boot, 'get_vmedia', autospec=True)
     def test_get_virtual_media(self, mock_get_vmedia):
-        with task_manager.acquire(self.context, self.node.uuid) as task:
+        with task_manager.acquire(self.context, self.node.uuid,
+                                  shared=True) as task:
             task.driver.management.get_virtual_media(task)
             mock_get_vmedia.assert_called_once_with(task)
 

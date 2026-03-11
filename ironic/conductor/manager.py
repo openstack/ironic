@@ -4234,7 +4234,6 @@ class ConductorManager(base_manager.BaseConductorManager):
 
     @METRICS.timer('ConductorManager.get_virtual_media')
     @messaging.expected_exceptions(exception.InvalidParameterValue,
-                                   exception.NodeLocked,
                                    exception.UnsupportedDriverExtension)
     def get_virtual_media(self, context, node_id):
         """Get all virtual media devices from the node.
@@ -4245,14 +4244,13 @@ class ConductorManager(base_manager.BaseConductorManager):
                  this call.
         :raises: InvalidParameterValue if validation of management driver
                  interface failed.
-        :raises: NodeLocked if node is locked by another conductor.
         :raises: NoFreeConductorWorker when there is no free worker to start
                  async task.
 
         """
         LOG.debug("RPC get_virtual_media called for node %(node)s ",
                   {'node': node_id})
-        with task_manager.acquire(context, node_id,
+        with task_manager.acquire(context, node_id, shared=True,
                                   purpose='get virtual media devices') as task:
             task.driver.management.validate(task)
             return task.driver.management.get_virtual_media(task)
