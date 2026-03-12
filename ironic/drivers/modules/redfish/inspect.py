@@ -144,7 +144,7 @@ class RedfishInspect(base.InspectInterface):
         if system.ethernet_interfaces and system.ethernet_interfaces.summary:
             inventory['interfaces'] = []
             for eth in system.ethernet_interfaces.get_members():
-                iface = {'mac_address': eth.mac_address,
+                iface = {'mac_address': utils.normalize_mac(eth.mac_address),
                          'name': eth.identity}
                 inventory['interfaces'].append(iface)
 

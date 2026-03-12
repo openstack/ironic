@@ -1,0 +1,8 @@
+---
+fixes:
+  - |
+    MAC address handling was not consistent in normalizing uppercase vs lowercase
+    which lead to cases where a port would not properly match to one in the
+    system during inspection breaking clean up of old ports or setting of the
+    PXE flag on other ports. This fixes
+    `bug 2143955 <https://bugs.launchpad.net/ironic/+bug/2143955>`_.

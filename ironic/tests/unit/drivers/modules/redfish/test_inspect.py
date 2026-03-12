@@ -196,7 +196,7 @@ class RedfishInspectTestCase(db_base.DbTestCase):
 
         expected_interfaces = [{'mac_address': '00:11:22:33:44:55',
                                 'name': 'NIC.Integrated.1-1'},
-                               {'mac_address': '66:77:88:99:AA:BB',
+                               {'mac_address': '66:77:88:99:aa:bb',
                                 'name': 'NIC.Integrated.2-1'}]
         self.assertEqual(expected_interfaces,
                          inventory['inventory']['interfaces'])

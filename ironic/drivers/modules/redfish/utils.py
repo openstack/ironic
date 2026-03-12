@@ -509,6 +509,7 @@ def get_enabled_macs(task, system):
                 LOG.warning("Ignoring device for %(node)s as no MAC "
                             "reported", {'node': task.node.uuid})
                 continue
+            nic_mac = utils.normalize_mac(nic_mac)
             enabled_macs[nic_mac] = nic_state
 
     if not enabled_macs:

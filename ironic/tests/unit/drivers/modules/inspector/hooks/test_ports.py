@@ -123,3 +123,18 @@ class UpdatePortsTestCase(db_base.DbTestCase):
             {port.address: port.pxe_enabled for port in ports},
             # Extra port removed, pxe_enabled updated
             {mac: (mac == _PXE_INTERFACE) for mac in self.present_macs})
+
+    def test_keep_present_case_insensitive(self):
+        CONF.set_override('keep_ports', 'present', group='inspector')
+        upper_valid = {
+            name: {**iface, 'mac_address': iface['mac_address'].upper()}
+            for name, iface in _VALID.items()
+        }
+        upper_macs = {mac.upper() for mac in self.macs}
+        with task_manager.acquire(self.context, self.node.id) as task:
+            ports_hook.update_ports(task, upper_valid, upper_macs)
+        ports = objects.Port.list_by_node_id(self.context, self.node.id)
+        self.assertEqual(
+            {port.address: port.pxe_enabled for port in ports},
+            # Extra port removed even when inventory MACs are uppercase.
+            {mac: (mac == _PXE_INTERFACE) for mac in self.present_macs})
