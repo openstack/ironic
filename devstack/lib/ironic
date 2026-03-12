@@ -290,6 +290,8 @@ IRONIC_DEFAULT_RESCUE_INTERFACE=${IRONIC_DEFAULT_RESCUE_INTERFACE:-}
 IRONIC_DEFAULT_STORAGE_INTERFACE=${IRONIC_DEFAULT_STORAGE_INTERFACE:-}
 IRONIC_DEFAULT_VENDOR_INTERFACE=${IRONIC_DEFAULT_VENDOR_INTERFACE:-}
 
+IRONIC_AUTODETECT_DEPLOY_INTERFACES=${IRONIC_AUTODETECT_DEPLOY_INTERFACES:-}
+
 IRONIC_UNMANAGED_INSPECTION=$(trueorfalse False IRONIC_UNMANAGED_INSPECTION)
 
 # If we should setup a TFTP server for devstack
@@ -2012,6 +2014,10 @@ function configure_ironic_conductor {
             iniset $IRONIC_CONF_FILE DEFAULT default_${iface}_interface ${!default_iface_var}
         fi
     done
+
+    if [[ -n "${IRONIC_AUTODETECT_DEPLOY_INTERFACES}" ]]; then
+        iniset $IRONIC_CONF_FILE DEFAULT autodetect_deploy_interfaces ${IRONIC_AUTODETECT_DEPLOY_INTERFACES}
+    fi
 
     if is_deployed_by_snmp; then
         iniset $IRONIC_CONF_FILE pxe enable_netboot_fallback True
