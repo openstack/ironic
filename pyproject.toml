@@ -178,6 +178,7 @@ architecture = "ironic.drivers.modules.inspector.hooks.architecture:Architecture
 accelerators = " ironic.drivers.modules.inspector.hooks.accelerators:AcceleratorsHook"
 boot-mode = "ironic.drivers.modules.inspector.hooks.boot_mode:BootModeHook"
 cpu-capabilities = "ironic.drivers.modules.inspector.hooks.cpu_capabilities:CPUCapabilitiesHook"
+cpus = "ironic.drivers.modules.inspector.hooks.cpus:CPUSHook"
 extra-hardware = "ironic.drivers.modules.inspector.hooks.extra_hardware:ExtraHardwareHook"
 memory = "ironic.drivers.modules.inspector.hooks.memory:MemoryHook"
 pci-devices = "ironic.drivers.modules.inspector.hooks.pci_devices:PciDevicesHook"
