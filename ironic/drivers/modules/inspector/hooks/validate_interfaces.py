@@ -12,7 +12,6 @@
 # limitations under the License.
 
 from oslo_log import log as logging
-from oslo_utils import netutils
 
 from ironic.common import exception
 from ironic.common.i18n import _
@@ -77,13 +76,13 @@ def get_interfaces(node, inventory):
                       {'node': node.uuid, 'if': iface})
             continue
 
-        if not netutils.is_valid_mac(mac):
+        try:
+            mac = utils.validate_and_normalize_mac(mac)
+        except exception.InvalidMAC:
             LOG.warning('MAC address of interface %(if)s of node %(node)s '
                         'is not valid, skipping',
                         {'node': node.uuid, 'if': iface})
             continue
-
-        mac = mac.lower()
 
         LOG.debug('Found interface %(name)s with MAC "%(mac)s", '
                   'IP address "%(ip)s" and client_id "%(client_id)s" '
@@ -152,5 +151,7 @@ def get_pxe_mac(inventory):
     if pxe_mac and '-' in pxe_mac:
         # pxelinux format: 01-aa-bb-cc-dd-ee-ff
         pxe_mac = pxe_mac.split('-', 1)[1]
-        pxe_mac = pxe_mac.replace('-', ':').lower()
+        pxe_mac = pxe_mac.replace('-', ':')
+    if pxe_mac:
+        pxe_mac = utils.normalize_mac(pxe_mac)
     return pxe_mac

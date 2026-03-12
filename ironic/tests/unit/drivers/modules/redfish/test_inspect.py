@@ -248,7 +248,7 @@ class RedfishInspectTestCase(db_base.DbTestCase):
         expected_interfaces = [{'mac_address': '00:11:22:33:44:55',
                                 'name': 'NIC.Integrated.1-1',
                                 'speed_mbps': 25000},
-                               {'mac_address': '66:77:88:99:AA:BB',
+                               {'mac_address': '66:77:88:99:aa:bb',
                                 'name': 'NIC.Integrated.2-1',
                                 'speed_mbps': 25000}]
         self.assertEqual(expected_interfaces,

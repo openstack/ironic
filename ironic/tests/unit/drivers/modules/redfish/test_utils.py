@@ -251,6 +251,22 @@ class RedfishUtilsTestCase(db_base.DbTestCase):
         self.assertRaises(exception.RedfishError,
                           redfish_utils.get_event_service, self.node)
 
+    def test_get_enabled_macs_normalizes_mac_addresses(self):
+        system = mock.Mock()
+        system.ethernet_interfaces.summary = {
+            '00:11:22:33:44:55': sushy.STATE_ENABLED,
+            '66:77:88:99:AA:BB': sushy.STATE_ENABLED,
+            'aa:bb:cc:dd:ee:ff': sushy.STATE_DISABLED,
+        }
+
+        result = redfish_utils.get_enabled_macs(mock.Mock(node=self.node),
+                                                system)
+
+        self.assertEqual(
+            {'00:11:22:33:44:55': sushy.STATE_ENABLED,
+             '66:77:88:99:aa:bb': sushy.STATE_ENABLED},
+            result)
+
     def test_get_system_collection(self):
         redfish_utils._get_connection = mock.Mock()
         mock_system_collection = mock.Mock()
