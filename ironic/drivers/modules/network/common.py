@@ -15,6 +15,8 @@
 
 import collections
 from enum import Enum
+import random
+import string
 
 from openstack.connection import exceptions as openstack_exc
 from oslo_config import cfg
@@ -407,6 +409,12 @@ def update_port_host_id(task, vif_id, client=None):
         raise exception.NetworkError(msg)
 
 
+def _is_dynamic_portgroup(portlike_obj):
+    """Determine if the supplied portlike is a dynamic portgroup"""
+    return hasattr(portlike_obj, 'dynamic_portgroup') \
+        and getattr(portlike_obj, 'dynamic_portgroup', False)
+
+
 class VIFPortIDMixin(object):
     """VIF port ID mixin class for non-neutron network interfaces.
 
@@ -610,6 +618,47 @@ class NeutronVIFPortIDMixin(VIFPortIDMixin):
                                'reason': ', '.join(reason)})
                         raise exception.Conflict(msg)
 
+    def _create_dynamic_portgroup(self, task, first_port):
+        """Creates a dynamic portgroup"""
+
+        def pick_random_suffix():
+            return ''.join(random.choices(string.ascii_letters + string.digits,
+                                          k=8))
+
+        def generate_name():
+            return f'tbn_dyn_portgroup_{pick_random_suffix()}'
+
+        # Retries a few times if there's a name collision.
+        for i in range(0, 3):
+            dyn_portgroup = objects.Portgroup(
+                context=task.context,
+                name=generate_name(),
+                node_id=task.node.id,
+                node_uuid=task.node.uuid,
+                physical_network=first_port.physical_network,
+                dynamic_portgroup=True
+            )
+
+            # Create the dynamic portgroup.
+            try:
+                dyn_portgroup.create(context=task.context)
+                LOG.info('Created dynamic portgroup \'%(name)s\'',
+                         {'name': dyn_portgroup.name})
+                return dyn_portgroup
+            except exception.PortgroupDuplicateName:
+                # Try again with a new name
+                continue
+            except (exception.MACAlreadyExists,
+                    exception.PortgroupAlreadyExists) as e:
+                msg = (_('Could not create dynamic portgroup. '
+                         '%(exc)s') % {'exc': e})
+                LOG.error(msg)
+                raise exception.NetworkError(msg)
+
+        msg = (_('Could not create dynamic portgroup due to duplicate name '
+                 'collisions despite several retries.'))
+        raise exception.NetworkError(msg)
+
     def _vif_attach_tbn(self, task, vif_info):
         """Attach a virtual network interface to a node using traits from TBN
 
@@ -657,18 +706,56 @@ class NeutronVIFPortIDMixin(VIFPortIDMixin):
                             {'node': task.node.uuid})
                 return
 
-        # NOTE(clif) Filter out any no matches, there will be some attach
+        # NOTE(clif) Filter out any no matches, there will be some actual
         # actions left over.
         actions = [action for action in actions if
                    not isinstance(action, tbn_base.NoMatch)]
 
         client = neutron.get_client(context=task.context)
 
-        # TODO(clif): This logic must change when we support more TBN actions.
         for action in actions:
-            port_like_obj = action.get_portlike_object(task)
-            self._attach_port_to_vif(task, client, port_like_obj,
-                                     vif_info['id'])
+            match type(action):
+                case tbn_base.AttachPort | tbn_base.AttachPortgroup:
+                    port_like_obj = action.get_portlike_object(task)
+                    self._attach_port_to_vif(task, client, port_like_obj,
+                                             vif_info['id'])
+
+                case tbn_base.GroupAndAttachPorts:
+                    # Get each constituent port information
+                    try:
+                        dyn_pg_ports = [
+                            objects.Port.get_by_uuid(task.context, uuid)
+                            for uuid in action.port_uuids
+                        ]
+                    except exception.PortNotFound as e:
+                        msg = (_("A selected port for the dynamic portgroup "
+                                 "was not found. %(exc)s") % {'exc': e})
+                        raise exception.NetworkError(msg)
+
+                    dyn_portgroup = self._create_dynamic_portgroup(
+                        task, dyn_pg_ports[0])
+
+                    # Update every port so it is part of the new portgroup.
+                    for port in dyn_pg_ports:
+                        port.portgroup_id = dyn_portgroup.id
+                        try:
+                            port.save()
+                        except (exception.PortNotFound,
+                                exception.MACAlreadyExists) as e:
+                            msg = (_('Could not update port to belong to '
+                                     'dynamic portgroup. '
+                                     '%(exc)s') % {'exc': e})
+                            LOG.error(msg)
+                            raise exception.NetworkError(msg)
+
+                    # Attach the dynamic portgroup to the network.
+                    self._attach_port_to_vif(task, client, dyn_portgroup,
+                                             vif_info['id'])
+
+                case _:
+                    LOG.warning(('_vif_attach_tbn: Unhandled action '
+                                 'encountered: \'s(action)%\'.',
+                                 {'action': type(action)}))
 
 
     def _attach_port_to_vif(self, task, client, port_like_obj, vif_id):
@@ -737,6 +824,17 @@ class NeutronVIFPortIDMixin(VIFPortIDMixin):
 
         self._attach_port_to_vif(task, client, port_like_obj, vif_id)
 
+    def _teardown_dynamic_portgroup(self, task, dynamic_portgroup):
+        """Teardown and delete dynamic portgroup"""
+        ports = objects.Port.list_by_portgroup_id(task.context,
+                                                  dynamic_portgroup.id)
+        # Remove all constituent ports
+        for port in ports:
+            port.portgroup_id = None
+            port.save()
+
+        dynamic_portgroup.destroy()
+
     def vif_detach(self, task, vif_id):
         """Detach a virtual network interface from a node
 
@@ -750,6 +848,10 @@ class NeutronVIFPortIDMixin(VIFPortIDMixin):
         port_like_obj = self._get_port_like_obj_by_vif_id(task, vif_id)
 
         self._clear_vif_from_port_like_obj(port_like_obj)
+
+        # NOTE(clif): Dynamic portgroups go away once they are detached.
+        if _is_dynamic_portgroup(port_like_obj):
+            self._teardown_dynamic_portgroup(task, port_like_obj)
 
         # NOTE(vsaienko): allow to unplug VIFs from ACTIVE instance.
         # NOTE(TheJulia): Also ensure that we delete the vif when in

@@ -367,3 +367,41 @@ class TraitBasedNetworkingBaseTestCase(base.TestCase):
 
         self.assertEqual("fake_portgroup_uuid",
                          attach_portgroup.portlike_uuid())
+
+    def test_trait_action_validate(self):
+        gaps = tbn.TraitAction(
+                "CUSTOM_TRAIT",
+                tbn.Actions.GROUP_AND_ATTACH_PORTS,
+                tbn.FilterExpression.parse("port.vendor == 'cogwork'"),
+                2,
+                2)
+        valid, reason = gaps.validate()
+        self.assertTrue(valid)
+        self.assertEqual(reason, "")
+
+        gaps = tbn.TraitAction(
+                "CUSTOM_TRAIT",
+                tbn.Actions.GROUP_AND_ATTACH_PORTS,
+                tbn.FilterExpression.parse("port.vendor == 'cogwork'"),
+                0,
+                2)
+        valid, reason = gaps.validate()
+        self.assertFalse(valid)
+        self.assertEqual(reason,
+                         "group_and_attach_ports must have a min_count of "
+                         f"{tbn.DEFAULT_GROUP_AND_ATTACH_MIN_COUNT} or "
+                         "greater. Got '0'.")
+
+        gaps = tbn.TraitAction(
+                "CUSTOM_TRAIT",
+                tbn.Actions.GROUP_AND_ATTACH_PORTS,
+                tbn.FilterExpression.parse("port.vendor == 'cogwork'"),
+                2,
+                1)
+        valid, reason = gaps.validate()
+        self.assertFalse(valid)
+        self.assertEqual(reason,
+                         "group_and_attach_ports must have a max_count "
+                         "greater or equal to it's min_count. min_count "
+                         f"is '{gaps.min_count}' while max_count is "
+                         f"'{gaps.max_count}'.")

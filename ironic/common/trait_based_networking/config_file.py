@@ -68,10 +68,12 @@ class ConfigFile(object):
                 continue
             for trait_action in trait_members['actions']:
                 # Check necessary keys are present.
+                action_valid = True
                 for n in base.TraitAction.NECESSARY_KEYS:
                     if n not in trait_action.keys():
                         reasons.append(
                             _(f"'{trait_name}' trait is missing '{n}' key"))
+                        action_valid = False
                         valid = False
 
                 # Check for errant keys.
@@ -80,14 +82,17 @@ class ConfigFile(object):
                         reasons.append(
                             _(f"'{trait_name}' trait action has unrecognized "
                               f"key '{sub_key}'"))
+                        action_valid = False
                         valid = False
 
                 # Make sure action is valid
                 if 'action' in trait_action.keys():
                     action = trait_action['action']
+                    action_obj = None
                     try:
-                        base.Actions(action)
+                        action_obj = base.Actions(action)
                     except Exception:
+                        action_valid = False
                         valid = False
                         reasons.append(
                             _(f"'{trait_name}' trait action has unrecognized "
@@ -98,12 +103,35 @@ class ConfigFile(object):
                     try:
                         base.FilterExpression.parse(trait_action['filter'])
                     except Exception:
+                        action_valid = False
                         valid = False
                         # TODO(clif): Surface exception text in reason below?
                         reasons.append(
                             _(f"'{trait_name}' trait action has malformed "
                               "filter expression: "
                               f"'{trait_action['filter']}'"))
+
+                if action_valid:
+                    min_count = trait_action.get('min_count', None)
+                    if min_count is not None:
+                        min_count = int(min_count)
+                    max_count = trait_action.get('max_count', None)
+                    if max_count is not None:
+                        max_count = int(max_count)
+
+                    action_obj = base.TraitAction(
+                        trait_name,
+                        base.Actions(trait_action['action']),
+                        base.FilterExpression.parse(trait_action['filter']),
+                        min_count=min_count,
+                        max_count=max_count)
+
+                    validated, reason = action_obj.validate()
+                    if not validated:
+                        valid = False
+                        reasons.append(
+                            _(f"'{trait_name}' has an invalid '{action}': "
+                              f"{reason}"))
 
         return valid, reasons
 
@@ -116,12 +144,18 @@ class ConfigFile(object):
         for trait_name, trait_members in self._contents.items():
             parsed_actions = []
             for action in trait_members['actions']:
+                min_count = action.get('min_count', None)
+                if min_count is not None:
+                    min_count = int(min_count)
+                max_count = action.get('max_count', None)
+                if max_count is not None:
+                    max_count = int(max_count)
                 parsed_actions.append(base.TraitAction(
                     trait_name,
                     base.Actions(action['action']),
                     base.FilterExpression.parse(action['filter']),
-                    min_count=action.get('min_count', None),
-                    max_count=action.get('max_count', None)))
+                    min_count=min_count,
+                    max_count=max_count))
             order = trait_members.get('order', 1)
             self._traits.append(base.NetworkTrait(trait_name, parsed_actions,
                                                   order))

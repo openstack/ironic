@@ -525,3 +525,169 @@ class TraitBasedNetworkingPlanningTestCase(base.TestCase):
             expected_result: bool):
         self.assertEqual(expected_result,
                          tbn_plan.is_portlike_attached(portlike))
+
+    @data(
+        annotate("a dynamic portgroup is created and attached",
+                 tbn_base.TraitAction(
+                    "CUSTOM_TRAIT",
+                    tbn_base.Actions.GROUP_AND_ATTACH_PORTS,
+                    tbn_base.FilterExpression.parse(
+                        "port.physical_network == 'test_physnet' "
+                        "&& network.name == 'test'"),
+                    2,
+                    2
+                 ),
+                 "fake_node_uuid",
+                 [
+                     utils.FauxPortLikeObject(),
+                     utils.FauxPortLikeObject(uuid="fake_uuid2"),
+                 ],
+                 [utils.FauxNetwork(name="test")],
+                 [tbn_base.GroupAndAttachPorts(
+                     tbn_base.TraitAction(
+                         "CUSTOM_TRAIT",
+                         tbn_base.Actions.GROUP_AND_ATTACH_PORTS,
+                         tbn_base.FilterExpression.parse(
+                            "port.physical_network == 'test_physnet' "
+                            "&& network.name == 'test'"),
+                         2,
+                         2
+                     ),
+                     "fake_node_uuid",
+                     ["fake_uuid", "fake_uuid2"],
+                     "fake_net_id")]),
+        annotate("cannot create dynamic portgroup, too few ports matched",
+                 tbn_base.TraitAction(
+                    "CUSTOM_TRAIT",
+                    tbn_base.Actions.GROUP_AND_ATTACH_PORTS,
+                    tbn_base.FilterExpression.parse(
+                        "port.physical_network == 'test_physnet' "
+                        "&& network.name == 'test'"),
+                    2,
+                    2,
+                 ),
+                 "fake_node_uuid",
+                 [
+                     utils.FauxPortLikeObject(physical_network='wrong'),
+                     utils.FauxPortLikeObject(uuid="fake_uuid2"),
+                 ],
+                 [utils.FauxNetwork(name="test")],
+                 [tbn_base.NoMatch(
+                    tbn_base.TraitAction(
+                        "CUSTOM_TRAIT",
+                        tbn_base.Actions.GROUP_AND_ATTACH_PORTS,
+                        tbn_base.FilterExpression.parse(
+                            "port.physical_network == 'test_physnet' "
+                            "&& network.name == 'test'"),
+                        2,
+                        2
+                    ),
+                    "fake_node_uuid",
+                    ("Couldn't match enough ports to form a "
+                     "dynamic portgroup for node 'fake_node_uuid'."
+                     "Minimum ports needed is 2, and 1 ports matched.")
+                 )]),
+        annotate("a suitable network couldn't be found",
+                 tbn_base.TraitAction(
+                    "CUSTOM_TRAIT",
+                    tbn_base.Actions.GROUP_AND_ATTACH_PORTS,
+                    tbn_base.FilterExpression.parse(
+                        "port.physical_network == 'test_physnet' "
+                        "&& network.name == 'test'"),
+                    2,
+                    2
+                 ),
+                 "fake_node_uuid",
+                 [
+                     utils.FauxPortLikeObject(),
+                     utils.FauxPortLikeObject(uuid="fake_uuid2"),
+                 ],
+                 [utils.FauxNetwork(name="bad_name")],
+                 [tbn_base.NoMatch(
+                    tbn_base.TraitAction(
+                        "CUSTOM_TRAIT",
+                        tbn_base.Actions.GROUP_AND_ATTACH_PORTS,
+                        tbn_base.FilterExpression.parse(
+                            "port.physical_network == 'test_physnet' "
+                            "&& network.name == 'test'"),
+                        2,
+                        2
+                    ),
+                    "fake_node_uuid",
+                    ("Enough ports matched to form a dynamic "
+                     "portgroup for node 'fake_node_uuid'. Unfortunately "
+                     "no suitable networks were found to attach.")
+                 )]),
+        annotate("only allow available_for_dynamic_portgroup",
+                 tbn_base.TraitAction(
+                    "CUSTOM_TRAIT",
+                    tbn_base.Actions.GROUP_AND_ATTACH_PORTS,
+                    tbn_base.FilterExpression.parse(
+                        "network.name == 'test'"),
+                    2,
+                    2
+                 ),
+                 "fake_node_uuid",
+                 [
+                     utils.FauxPortLikeObject(
+                         available_for_dynamic_portgroup=False),
+                     utils.FauxPortLikeObject(uuid="fake_uuid2"),
+                     utils.FauxPortLikeObject(uuid="fake_uuid3"),
+                 ],
+                 [utils.FauxNetwork(name="test")],
+                 [tbn_base.GroupAndAttachPorts(
+                     tbn_base.TraitAction(
+                         "CUSTOM_TRAIT",
+                         tbn_base.Actions.GROUP_AND_ATTACH_PORTS,
+                         tbn_base.FilterExpression.parse(
+                            "network.name == 'test'"),
+                         2,
+                         2
+                     ),
+                     "fake_node_uuid",
+                     ["fake_uuid2", "fake_uuid3"],
+                     "fake_net_id")]),
+
+        annotate("all ports have the same physical_network",
+                 tbn_base.TraitAction(
+                    "CUSTOM_TRAIT",
+                    tbn_base.Actions.GROUP_AND_ATTACH_PORTS,
+                    tbn_base.FilterExpression.parse("network.name == 'test'"),
+                    2,
+                    2
+                 ),
+                 "fake_node_uuid",
+                 [
+                     utils.FauxPortLikeObject(physical_network='alpha'),
+                     utils.FauxPortLikeObject(uuid="fake_uuid2",
+                                              physical_network='beta'),
+                     utils.FauxPortLikeObject(uuid="fake_uuid3",
+                                              physical_network='alpha'),
+                 ],
+                 [utils.FauxNetwork(name="test")],
+                 [tbn_base.GroupAndAttachPorts(
+                     tbn_base.TraitAction(
+                         "CUSTOM_TRAIT",
+                         tbn_base.Actions.GROUP_AND_ATTACH_PORTS,
+                         tbn_base.FilterExpression.parse(
+                            "network.name == 'test'"),
+                         2,
+                         2
+                     ),
+                     "fake_node_uuid",
+                     # Only 'alpha' physical_network ports are picked
+                     ["fake_uuid", "fake_uuid3"],
+                     "fake_net_id")]),
+    )
+    @unpack
+    def test__plan_group_and_attach_ports(
+            self,
+            trait: tbn_base.NetworkTrait,
+            node_uuid: str,
+            node_portlikes: list[utils.FauxPortLikeObject],
+            node_networks: list[tbn_base.Network],
+            expected_actions: list[tbn_base.RenderedAction]):
+        self.assertEqual(expected_actions,
+                         tbn_plan._plan_group_and_attach_ports(
+                             trait, node_uuid, node_portlikes,
+                             node_networks))
