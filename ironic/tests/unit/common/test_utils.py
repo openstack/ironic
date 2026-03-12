@@ -182,6 +182,10 @@ class GenericUtilsTestCase(base.TestCase):
             self.assertEqual(mac.lower(),
                              utils.validate_and_normalize_mac(mac))
 
+    def test_normalize_mac(self):
+        mac = 'AA:BB:CC:DD:EE:FF'
+        self.assertEqual(mac.lower(), utils.normalize_mac(mac))
+
     def test_validate_and_normalize_datapath_id(self):
         datapath_id = 'AA:BB:CC:DD:EE:FF'
         with mock.patch.object(utils, 'is_valid_datapath_id',

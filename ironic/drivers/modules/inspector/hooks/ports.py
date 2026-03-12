@@ -14,6 +14,7 @@
 from oslo_log import log as logging
 
 from ironic.common import exception
+from ironic.common import utils as common_utils
 from ironic.conf import CONF
 from ironic.drivers.modules.inspector.hooks import base
 from ironic import objects
@@ -64,17 +65,22 @@ def update_ports(task, all_interfaces, valid_macs):
     # TODO(dtantsur): no port update for active nodes (when supported)
 
     if CONF.inspector.keep_ports == 'present':
-        expected_macs = {iface['mac_address']
-                         for iface in all_interfaces.values()}
+        expected_macs = {
+            common_utils.normalize_mac(iface['mac_address'])
+            for iface in all_interfaces.values()}
     elif CONF.inspector.keep_ports == 'added':
-        expected_macs = set(valid_macs)
+        expected_macs = {common_utils.normalize_mac(mac)
+                         for mac in valid_macs}
     else:
         expected_macs = None  # unused
 
-    pxe_macs = {iface['mac_address'] for iface in all_interfaces.values()
-                if iface['pxe_enabled']}
-    client_ids = {iface['mac_address']: iface.get('client_id')
-                  for iface in all_interfaces.values()}
+    pxe_macs = {
+        common_utils.normalize_mac(iface['mac_address'])
+        for iface in all_interfaces.values() if iface['pxe_enabled']}
+    client_ids = {
+        common_utils.normalize_mac(iface['mac_address']): iface.get(
+            'client_id')
+        for iface in all_interfaces.values()}
 
     for port in objects.Port.list_by_node_id(task.context, task.node.id):
         if expected_macs and port.address not in expected_macs:

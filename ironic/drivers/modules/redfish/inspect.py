@@ -323,8 +323,9 @@ class RedfishInspect(base.InspectInterface):
                              'inf': eth.identity,
                              'node': task.node.uuid})
                 continue
+            mac_address = utils.normalize_mac(eth.mac_address)
             intf = {
-                'mac_address': eth.mac_address,
+                'mac_address': mac_address,
                 'name': eth.identity
             }
             try:

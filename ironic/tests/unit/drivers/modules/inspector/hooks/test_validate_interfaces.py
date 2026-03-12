@@ -173,6 +173,21 @@ class GetInterfacesTestCase(db_base.DbTestCase):
                                                          self.inventory)
         self.assertEqual(_VALID, result)
 
+    def test_get_interfaces_normalizes_mac_addresses(self):
+        self.inventory['boot']['pxe_interface'] = _PXE_INTERFACE.upper()
+        self.inventory['interfaces'][1]['mac_address'] = _PXE_INTERFACE.upper()
+        self.inventory['interfaces'][2]['mac_address'] = (
+            self.inventory['interfaces'][2]['mac_address'].upper())
+
+        result = validate_interfaces_hook.get_interfaces(self.node,
+                                                         self.inventory)
+
+        self.assertTrue(result['em0']['pxe_enabled'])
+        self.assertFalse(result['em1']['pxe_enabled'])
+        self.assertEqual(_PXE_INTERFACE.upper(), result['em0']['mac_address'])
+        self.assertEqual('11:11:11:11:11:11'.upper(),
+                         result['em1']['mac_address'])
+
 
 class ValidateInterfacesTestCase(db_base.DbTestCase):
     def setUp(self):

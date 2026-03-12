@@ -243,6 +243,15 @@ def validate_and_normalize_mac(address):
     """
     if not netutils.is_valid_mac(address):
         raise exception.InvalidMAC(mac=address)
+    return normalize_mac(address)
+
+
+def normalize_mac(address):
+    """Normalize a MAC address without validating it.
+
+    :param address: MAC address to be normalized.
+    :returns: Normalized MAC address.
+    """
     return address.lower()
 
 
