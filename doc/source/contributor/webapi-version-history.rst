@@ -2,6 +2,14 @@
 REST API Version History
 ========================
 
+1.111 (Gazpacho)
+----------------------
+
+Add ``available_for_dynamic_portgroup`` boolean field to the port object
+(defaults to ``True``) and ``dynamic_portgroup`` boolean field to the
+portgroup object. The port field is user-editable via POST and PATCH
+requests. The portgroup field is read-only to API consumers.
+
 1.110 (Gazpacho)
 ----------------------
 

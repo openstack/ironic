@@ -148,6 +148,8 @@ BASE_VERSION = 1
 # v1.108: Add disable_ramdisk support for servicing
 # v1.109: Add health field to node object.
 # v1.110: Add support for aborting deployment in DEPLOYWAIT state
+# v1.111: Add available_for_dynamic_portgroup to port,
+#          dynamic_portgroup to portgroup
 
 MINOR_0_JUNO = 0
 MINOR_1_INITIAL_VERSION = 1
@@ -260,6 +262,7 @@ MINOR_107_X_OPENSTACK_REQUEST_ID = 107
 MINOR_108_SERVICE_DISABLE_RAMDISK = 108
 MINOR_109_NODE_HEALTH = 109
 MINOR_110_DEPLOYWAIT_ABORT = 110
+MINOR_111_DYNAMIC_PORTGROUP = 111
 
 # When adding another version, update:
 # - MINOR_MAX_VERSION
@@ -269,7 +272,7 @@ MINOR_110_DEPLOYWAIT_ABORT = 110
 # - Add a comment describing the change above the list of consts
 
 
-MINOR_MAX_VERSION = MINOR_110_DEPLOYWAIT_ABORT
+MINOR_MAX_VERSION = MINOR_111_DYNAMIC_PORTGROUP
 
 # String representations of the minor and maximum versions
 _MIN_VERSION_STRING = '{}.{}'.format(BASE_VERSION, MINOR_1_INITIAL_VERSION)

@@ -93,6 +93,9 @@ def hide_fields_in_newer_versions(portgroup):
     # if requested version is < 1.103, hide category
     if not api_utils.allow_portgroup_category():
         portgroup.pop('category', None)
+    # if requested version is < 1.111, hide dynamic_portgroup
+    if not api_utils.allow_portgroup_dynamic_portgroup():
+        portgroup.pop('dynamic_portgroup', None)
 
 
 def portgroup_sanitize(portgroup, fields=None):
@@ -123,7 +126,8 @@ def convert_with_links(rpc_portgroup, fields=None, sanitize=True):
             'standalone_ports_supported',
             'node_uuid',
             'physical_network',
-            'category'
+            'category',
+            'dynamic_portgroup',
         )
     )
     url = api.request.public_url

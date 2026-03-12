@@ -2025,6 +2025,7 @@ class TestPost(test_api_base.BaseApiTest):
         pdict.pop('description')
         pdict.pop('vendor')
         pdict.pop('category')
+        pdict.pop('available_for_dynamic_portgroup')
         headers = {api_base.Version.string: str(api_v1.min_version())}
         response = self.post_json('/ports', pdict, headers=headers)
         self.assertEqual('application/json', response.content_type)

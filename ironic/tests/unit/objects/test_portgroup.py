@@ -245,3 +245,54 @@ class TestConvertToVersion(db_base.DbTestCase):
         portgroup._convert_to_version('1.4', False)
         # no change
         self.assertEqual(vif2, portgroup.internal_info['tenant_vif_port_id'])
+
+    def test_dynamic_portgroup_supported_missing(self):
+        portgroup = objects.Portgroup(self.context, **self.fake_portgroup)
+        delattr(portgroup, 'dynamic_portgroup')
+        portgroup.obj_reset_changes()
+        portgroup._convert_to_version("1.9")
+        self.assertFalse(portgroup.dynamic_portgroup)
+        self.assertIn('dynamic_portgroup', portgroup.obj_get_changes())
+
+    def test_dynamic_portgroup_supported_set(self):
+        portgroup = objects.Portgroup(self.context, **self.fake_portgroup)
+        portgroup.dynamic_portgroup = True
+        portgroup.obj_reset_changes()
+        portgroup._convert_to_version("1.9")
+        self.assertTrue(portgroup.dynamic_portgroup)
+        self.assertNotIn('dynamic_portgroup', portgroup.obj_get_changes())
+
+    def test_dynamic_portgroup_unsupported(self):
+        portgroup = objects.Portgroup(self.context, **self.fake_portgroup)
+        portgroup._convert_to_version("1.8")
+        self.assertNotIn('dynamic_portgroup', portgroup)
+
+    def test_dynamic_portgroup_unsupported_missing(self):
+        portgroup = objects.Portgroup(self.context, **self.fake_portgroup)
+        delattr(portgroup, 'dynamic_portgroup')
+        portgroup.obj_reset_changes()
+        portgroup._convert_to_version("1.8")
+        self.assertNotIn('dynamic_portgroup', portgroup)
+
+    def test_dynamic_portgroup_unsupported_set_remove(self):
+        portgroup = objects.Portgroup(self.context, **self.fake_portgroup)
+        portgroup.dynamic_portgroup = False
+        portgroup.obj_reset_changes()
+        portgroup._convert_to_version("1.8")
+        self.assertNotIn('dynamic_portgroup', portgroup)
+
+    def test_dynamic_portgroup_unsupported_no_remove_non_default(self):
+        portgroup = objects.Portgroup(self.context, **self.fake_portgroup)
+        portgroup.dynamic_portgroup = True
+        portgroup.obj_reset_changes()
+        portgroup._convert_to_version("1.8", False)
+        self.assertFalse(portgroup.dynamic_portgroup)
+        self.assertIn('dynamic_portgroup', portgroup.obj_get_changes())
+
+    def test_dynamic_portgroup_unsupported_no_remove_default(self):
+        portgroup = objects.Portgroup(self.context, **self.fake_portgroup)
+        portgroup.dynamic_portgroup = False
+        portgroup.obj_reset_changes()
+        portgroup._convert_to_version("1.8", False)
+        self.assertFalse(portgroup.dynamic_portgroup)
+        self.assertNotIn('dynamic_portgroup', portgroup.obj_get_changes())

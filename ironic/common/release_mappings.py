@@ -944,7 +944,7 @@ RELEASE_MAPPING = {
     # make it below. To release, we will preserve a version matching
     # the release as a separate block of text, like above.
     'master': {
-        'api': '1.110',
+        'api': '1.111',
         'rpc': '1.62',
         'networking_rpc': '1.0',
         'objects': {
@@ -957,8 +957,8 @@ RELEASE_MAPPING = {
             'Chassis': ['1.4', '1.3'],
             'Deployment': ['1.1', '1.0'],
             'DeployTemplate': ['1.2', '1.1'],
-            'Port': ['1.15', '1.14', '1.13', '1.12'],
-            'Portgroup': ['1.8', '1.7', '1.6', '1.5'],
+            'Port': ['1.16', '1.15', '1.14', '1.13', '1.12'],
+            'Portgroup': ['1.9', '1.8', '1.7', '1.6', '1.5'],
             'Trait': ['1.1', '1.0'],
             'TraitList': ['1.2', '1.1', '1.0'],
             'VolumeConnector': ['1.1', '1.0'],

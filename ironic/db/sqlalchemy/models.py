@@ -25,7 +25,7 @@ from oslo_db import options as db_options
 from oslo_db.sqlalchemy import models
 from oslo_db.sqlalchemy import types as db_types
 from sqlalchemy.ext.associationproxy import association_proxy
-from sqlalchemy import Boolean, Column, DateTime, false, Index
+from sqlalchemy import Boolean, Column, DateTime, false, Index, true
 from sqlalchemy import BigInteger, ForeignKey, Integer
 from sqlalchemy import schema, String, Text
 from sqlalchemy import orm
@@ -273,6 +273,8 @@ class Port(Base):
     description = Column(String(255), nullable=True)
     vendor = Column(String(32), nullable=True)
     category = Column(String(80), nullable=True)
+    available_for_dynamic_portgroup = Column(Boolean, server_default=true(),
+                                             nullable=False)
 
     _node_uuid = orm.relationship(
         "Node",
@@ -305,6 +307,7 @@ class Portgroup(Base):
     properties = Column(db_types.JsonEncodedDict)
     physical_network = Column(String(64), nullable=True)
     category = Column(String(80), nullable=True)
+    dynamic_portgroup = Column(Boolean, nullable=True, default=False)
 
     _node_uuid = orm.relationship(
         "Node",

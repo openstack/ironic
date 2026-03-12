@@ -41,7 +41,8 @@ class Portgroup(base.IronicObject, object_base.VersionedObjectDictCompat):
     # Version 1.6: Relevant methods changed to be remotable methods.
     # Version 1.7: Add physical_network field
     # Version 1.8: Add category field
-    VERSION = '1.8'
+    # Version 1.9: Add dynamic_portgroup field
+    VERSION = '1.9'
 
     dbapi = dbapi.get_instance()
 
@@ -59,6 +60,8 @@ class Portgroup(base.IronicObject, object_base.VersionedObjectDictCompat):
         'properties': object_fields.FlexibleDictField(nullable=True),
         'physical_network': object_fields.StringField(nullable=True),
         'category': object_fields.StringField(nullable=True),
+        'dynamic_portgroup': object_fields.BooleanField(
+            nullable=True, default=False),
     }
 
     # TODO(clif): Abstract this, already exists in Port object.
@@ -112,6 +115,9 @@ class Portgroup(base.IronicObject, object_base.VersionedObjectDictCompat):
         Version 1.8: remove category for unsupported versions if
             remove_unavailable_fields is True.
 
+        Version 1.9: remove dynamic_portgroup for unsupported versions
+            if remove_unavailable_fields is True.
+
         :param target_version: the desired version of the object
         :param remove_unavailable_fields: True to remove fields that are
             unavailable in the target version; set this to True when
@@ -142,6 +148,10 @@ class Portgroup(base.IronicObject, object_base.VersionedObjectDictCompat):
         # Convert the category field.
         self._convert_field_by_version('category', (1, 8), target_version,
                                        remove_unavailable_fields)
+        # Convert the dynamic_portgroup field.
+        self._convert_field_by_version(
+            'dynamic_portgroup', (1, 9), target_version,
+            remove_unavailable_fields, False)
 
     @object_base.remotable_classmethod
     def get(cls, context, portgroup_ident):
@@ -418,7 +428,8 @@ class PortgroupCRUDPayload(notification.NotificationPayloadBase):
     # Version 1.0: Initial version
     # Version 1.1: Add physical_network field
     # Version 1.2: Add category field
-    VERSION = '1.2'
+    # Version 1.3: Add dynamic_portgroup field
+    VERSION = '1.3'
 
     SCHEMA = {
         'address': ('portgroup', 'address'),
@@ -432,7 +443,8 @@ class PortgroupCRUDPayload(notification.NotificationPayloadBase):
                                        'standalone_ports_supported'),
         'created_at': ('portgroup', 'created_at'),
         'updated_at': ('portgroup', 'updated_at'),
-        'uuid': ('portgroup', 'uuid')
+        'uuid': ('portgroup', 'uuid'),
+        'dynamic_portgroup': ('portgroup', 'dynamic_portgroup'),
     }
 
     fields = {
@@ -448,7 +460,9 @@ class PortgroupCRUDPayload(notification.NotificationPayloadBase):
             nullable=True),
         'created_at': object_fields.DateTimeField(nullable=True),
         'updated_at': object_fields.DateTimeField(nullable=True),
-        'uuid': object_fields.UUIDField()
+        'uuid': object_fields.UUIDField(),
+        'dynamic_portgroup': object_fields.BooleanField(
+            nullable=True, default=False),
     }
 
     def __init__(self, portgroup, node_uuid):
