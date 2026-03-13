@@ -61,7 +61,8 @@ class RamdiskDeployTestCase(db_base.DbTestCase):
             self.config(**config_kwarg)
         self.config(enabled_hardware_types=['fake-hardware'])
         instance_info = {'kernel': 'kernelUUID',
-                         'ramdisk': 'ramdiskUUID'}
+                         'ramdisk': 'ramdiskUUID',
+                         'ironic_ramdisk_deploy': 'True'}
         self.node = obj_utils.create_test_node(
             self.context,
             driver='fake-hardware',
@@ -387,3 +388,133 @@ class RamdiskDeployTestCase(db_base.DbTestCase):
             task.driver.deploy.tear_down_cleaning(task)
             tear_down_cleaning_mock.assert_called_once_with(
                 task, manage_boot=True)
+
+    def test_supports_deploy_kernel_ramdisk(self):
+        """Returns True when kernel and ramdisk are set."""
+        with task_manager.acquire(self.context, self.node.uuid) as task:
+            self.assertTrue(
+                task.driver.deploy.supports_deploy(task))
+
+    def test_supports_deploy_boot_iso(self):
+        """Returns True when boot_iso is set."""
+        self.node.instance_info = {'boot_iso': 'bootISOUUID',
+                                   'ironic_ramdisk_deploy': True}
+        self.node.save()
+        with task_manager.acquire(self.context, self.node.uuid) as task:
+            self.assertTrue(
+                task.driver.deploy.supports_deploy(task))
+
+    def test_supports_deploy_kernel_ramdisk_with_image_source(self):
+        """Returns True when kernel and ramdisk are set with image."""
+        self.node.instance_info = {
+            'kernel': 'kernelUUID',
+            'ramdisk': 'ramdiskUUID',
+            'image_source': 'glance://image-uuid',
+            'ironic_ramdisk_deploy': True,
+        }
+        self.node.save()
+        with task_manager.acquire(self.context, self.node.uuid) as task:
+            self.assertTrue(
+                task.driver.deploy.supports_deploy(task))
+
+    def test_supports_deploy_empty(self):
+        """Returns False when nothing relevant is set."""
+        self.node.instance_info = {}
+        self.node.save()
+        with task_manager.acquire(self.context, self.node.uuid) as task:
+            self.assertFalse(
+                task.driver.deploy.supports_deploy(task))
+
+    @mock.patch.object(deploy_utils, 'get_image_properties',
+                       autospec=True)
+    def test_supports_deploy_glance_image_source(
+            self, mock_get_props):
+        """Returns True when Glance image has kernel/ramdisk/sentinel."""
+        mock_get_props.return_value = {
+            'kernel_id': 'kernel-uuid',
+            'ramdisk_id': 'ramdisk-uuid',
+            'ironic_ramdisk_deploy': 'True',
+        }
+        self.node.instance_info = {
+            'image_source': 'glance://image-uuid',
+        }
+        self.node.save()
+        with task_manager.acquire(self.context, self.node.uuid) as task:
+            self.assertTrue(
+                task.driver.deploy.supports_deploy(task))
+
+    @mock.patch.object(deploy_utils, 'get_image_properties',
+                       autospec=True)
+    def test_supports_deploy_glance_boot_iso_id(
+            self, mock_get_props):
+        """Returns True when Glance image has boot_iso_id."""
+        mock_get_props.return_value = {
+            'boot_iso_id': 'boot-iso-uuid',
+            'ironic_ramdisk_deploy': True,
+        }
+        self.node.instance_info = {
+            'image_source': 'glance://image-uuid',
+        }
+        self.node.save()
+        with task_manager.acquire(self.context, self.node.uuid) as task:
+            self.assertTrue(
+                task.driver.deploy.supports_deploy(task))
+
+    @mock.patch.object(deploy_utils, 'get_image_properties',
+                       autospec=True)
+    def test_supports_deploy_glance_with_sentinel(
+            self, mock_get_props):
+        """Returns True with kernel/ramdisk and sentinel property."""
+        mock_get_props.return_value = {
+            'kernel_id': 'kernel-uuid',
+            'ramdisk_id': 'ramdisk-uuid',
+            'ironic_ramdisk_deploy': 'True',
+        }
+        self.node.instance_info = {
+            'image_source': 'glance://image-uuid',
+        }
+        self.node.save()
+        with task_manager.acquire(self.context, self.node.uuid) as task:
+            self.assertTrue(
+                task.driver.deploy.supports_deploy(task))
+
+    @mock.patch.object(deploy_utils, 'get_image_properties',
+                       autospec=True)
+    def test_supports_deploy_glance_kernel_ramdisk_no_sentinel(
+            self, mock_get_props):
+        """Returns False with kernel/ramdisk but no sentinel."""
+        mock_get_props.return_value = {
+            'kernel_id': 'kernel-uuid',
+            'ramdisk_id': 'ramdisk-uuid',
+        }
+        self.node.instance_info = {
+            'image_source': 'glance://image-uuid',
+        }
+        self.node.save()
+        with task_manager.acquire(self.context, self.node.uuid) as task:
+            self.assertFalse(
+                task.driver.deploy.supports_deploy(task))
+
+    @mock.patch.object(deploy_utils, 'get_image_properties',
+                       autospec=True)
+    def test_supports_deploy_glance_no_kernel_ramdisk(
+            self, mock_get_props):
+        """Returns False when Glance image lacks kernel/ramdisk."""
+        mock_get_props.return_value = {}
+        self.node.instance_info = {
+            'image_source': 'glance://image-uuid',
+        }
+        self.node.save()
+        with task_manager.acquire(self.context, self.node.uuid) as task:
+            self.assertFalse(
+                task.driver.deploy.supports_deploy(task))
+
+    def test_supports_deploy_http_image_source(self):
+        """Returns False for non-Glance image_source."""
+        self.node.instance_info = {
+            'image_source': 'http://example.com/image',
+        }
+        self.node.save()
+        with task_manager.acquire(self.context, self.node.uuid) as task:
+            self.assertFalse(
+                task.driver.deploy.supports_deploy(task))

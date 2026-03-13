@@ -93,8 +93,9 @@ the Image service for each one as it is generated.
 
 - For images used with the *ramdisk deploy interface* (e.g. when deploying
   ramdisk nodes through Nova), you can use either ``kernel_id`` /
-  ``ramdisk_id`` properties or a single ``boot_iso_id`` property pointing to
-  an ISO in Glance. See :doc:`/admin/ramdisk-boot` for details.
+  ``ramdisk_id`` properties (with ``ironic_ramdisk_deploy=True`` to
+  distinguish from partition images) or a single ``boot_iso_id`` property
+  pointing to an ISO in Glance. See :doc:`/admin/ramdisk-boot` for details.
 
 Deploy ramdisk images
 ~~~~~~~~~~~~~~~~~~~~~

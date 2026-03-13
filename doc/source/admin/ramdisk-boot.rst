@@ -40,6 +40,13 @@ or update an existing node:
 You can also use it with :ref:`redfish virtual media
 <redfish-virtual-media-ramdisk>` instead of iPXE.
 
+Alternatively, if the node uses the ``autodetect`` deploy interface, the
+ramdisk interface is selected automatically when ``kernel`` and ``ramdisk``
+are set in ``instance_info`` (without an ``image_source``), or when
+``boot_iso`` is set. To enable this, add ``ramdisk`` to the
+``autodetect_deploy_interfaces`` configuration option. See
+:ref:`autodetect-deploy` for details.
+
 Creating a ramdisk
 ------------------
 
@@ -155,7 +162,11 @@ and Ironic resolves the kernel and ramdisk from Glance automatically.
 
 #. Create the Glance image with ``kernel_id`` and ``ramdisk_id`` properties.
    Since the ramdisk deploy interface does not write to disk, the disk image
-   file is not used — an empty placeholder file is sufficient:
+   file is not used — an empty placeholder file is sufficient.
+
+   Include ``ironic_ramdisk_deploy=True`` so that the deploy interface
+   autodetect mechanism can distinguish this image from a partition image
+   (which also carries ``kernel_id`` / ``ramdisk_id``):
 
    .. code-block:: shell
 
@@ -164,6 +175,7 @@ and Ironic resolves the kernel and ramdisk from Glance automatically.
         --disk-format raw --container-format bare \
         --property kernel_id=$MY_KERNEL_UUID \
         --property ramdisk_id=$MY_RAMDISK_UUID \
+        --property ironic_ramdisk_deploy=True \
         --file /tmp/placeholder
 
 #. Boot a Nova instance using this image:
