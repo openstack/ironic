@@ -125,6 +125,93 @@ ISO images are also cached across deployments, similarly to how it is done for
 normal instance images. The URL together with the last modified response header
 are used to determine if an image needs updating.
 
+Using with Nova (Glance images)
+-------------------------------
+
+When deploying ramdisk nodes through Nova, the user creates a Glance image with
+``kernel_id`` and ``ramdisk_id`` properties — the same AMI-style pattern used
+for partition images. Nova sets ``image_source`` in the node's ``instance_info``
+and Ironic resolves the kernel and ramdisk from Glance automatically.
+
+#. Upload the kernel to Glance:
+
+   .. code-block:: shell
+
+      openstack image create my-ramdisk-kernel --public \
+        --disk-format raw --container-format bare \
+        --file my-ramdisk.kernel
+
+   Store the image UUID as ``MY_KERNEL_UUID``.
+
+#. Upload the ramdisk (initramfs) to Glance:
+
+   .. code-block:: shell
+
+      openstack image create my-ramdisk-initrd --public \
+        --disk-format raw --container-format bare \
+        --file my-ramdisk.initramfs
+
+   Store the image UUID as ``MY_RAMDISK_UUID``.
+
+#. Create the Glance image with ``kernel_id`` and ``ramdisk_id`` properties.
+   Since the ramdisk deploy interface does not write to disk, the disk image
+   file is not used — an empty placeholder file is sufficient:
+
+   .. code-block:: shell
+
+      touch /tmp/placeholder
+      openstack image create my-ramdisk-image --public \
+        --disk-format raw --container-format bare \
+        --property kernel_id=$MY_KERNEL_UUID \
+        --property ramdisk_id=$MY_RAMDISK_UUID \
+        --file /tmp/placeholder
+
+#. Boot a Nova instance using this image:
+
+   .. code-block:: shell
+
+      openstack server create --image my-ramdisk-image \
+        --flavor my-baremetal-flavor my-ramdisk-instance
+
+Alternative: Using a boot ISO in Glance
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Instead of separate kernel and ramdisk images, you can reference a single boot
+ISO stored in Glance via the ``boot_iso_id`` property:
+
+#. Upload the boot ISO to Glance:
+
+   .. code-block:: shell
+
+      openstack image create my-ramdisk-boot-iso --public \
+        --disk-format raw --container-format bare \
+        --file my-ramdisk.iso
+
+   Store the image UUID as ``MY_BOOT_ISO_UUID``.
+
+#. Create the Glance image with the ``boot_iso_id`` property:
+
+   .. code-block:: shell
+
+      touch /tmp/placeholder
+      openstack image create my-ramdisk-image --public \
+        --disk-format raw --container-format bare \
+        --property boot_iso_id=$MY_BOOT_ISO_UUID \
+        --file /tmp/placeholder
+
+#. Boot a Nova instance as above:
+
+   .. code-block:: shell
+
+      openstack server create --image my-ramdisk-image \
+        --flavor my-baremetal-flavor my-ramdisk-instance
+
+.. note::
+   The disk image file attached to the Glance image is **not** used by the
+   ramdisk deploy interface. Only the kernel and ramdisk referenced by
+   ``kernel_id`` / ``ramdisk_id``, or the ISO referenced by ``boot_iso_id``,
+   are booted.
+
 Limitations
 -----------
 

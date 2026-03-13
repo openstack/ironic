@@ -609,6 +609,9 @@ def validate_image_properties(task, deploy_info):
         if boot_option == 'kickstart':
             properties.append('stage2_id')
         image_props = get_image_properties(task.context, image_href)
+        # boot_iso_id is sufficient for ramdisk deploy
+        if boot_option == 'ramdisk' and image_props.get('boot_iso_id'):
+            return
     else:
         # We are likely netbooting in this case...
         properties = ['kernel', 'ramdisk']
@@ -891,9 +894,21 @@ def get_image_instance_info(node):
     else:
         boot_option = get_boot_option(node)
         if boot_option == 'ramdisk':
-            # Ramdisk deploy does not require an image
-            info['kernel'] = node.instance_info.get('kernel')
-            info['ramdisk'] = node.instance_info.get('ramdisk')
+            kernel = node.instance_info.get('kernel')
+            ramdisk_val = node.instance_info.get('ramdisk')
+            if kernel or ramdisk_val:
+                # Standalone: kernel/ramdisk directly specified
+                info['kernel'] = kernel
+                info['ramdisk'] = ramdisk_val
+            elif image_source:
+                # Nova path: resolve kernel/ramdisk from Glance
+                # image properties later (in
+                # pxe_utils.get_instance_image_info)
+                info['image_source'] = image_source
+            else:
+                # Nothing useful provided — will fail validation
+                info['kernel'] = None
+                info['ramdisk'] = None
         else:
             info['image_source'] = image_source
 

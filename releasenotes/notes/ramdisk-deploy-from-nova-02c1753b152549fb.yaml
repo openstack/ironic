@@ -1,0 +1,12 @@
+features:
+  - |
+    The ramdisk deploy_interface now accepts a single glance image in
+    image_source in addition to the previous syntax requiring separate kernel
+    and ramdisk ids. This will permit operators using Nova to deploy instances
+    using the ramdisk deploy_interface.
+
+    Operators wishing to use this new support will need to upload a
+    placeholder image in Glance with metadata indicating either a boot_iso_id
+    or a kernel_id and ramdisk_id. See the Ramdisk Boot section of the admin
+    guide for more detail.
+

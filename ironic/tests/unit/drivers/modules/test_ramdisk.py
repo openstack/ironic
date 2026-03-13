@@ -20,6 +20,7 @@ from oslo_config import cfg
 from ironic.common import boot_devices
 from ironic.common import dhcp_factory
 from ironic.common import exception
+from ironic.common import image_service
 from ironic.common import pxe_utils
 from ironic.common import states
 from ironic.conductor import task_manager
@@ -286,6 +287,89 @@ class RamdiskDeployTestCase(db_base.DbTestCase):
             result = task.driver.deploy.execute_clean_step(task, step)
             self.assertIs(result, mock_execute_step.return_value)
             mock_execute_step.assert_called_once_with(task, step, 'clean')
+
+    @mock.patch.object(pxe.PXEBoot, 'prepare_instance', autospec=True)
+    @mock.patch.object(image_service, 'get_image_service', autospec=True)
+    def test_prepare_resolves_glance_boot_iso(
+            self, mock_image_service, mock_prepare_instance):
+        """Ramdisk prepare resolves boot_iso from Glance."""
+        mock_show = mock.MagicMock()
+        mock_show.return_value = {
+            'properties': {'boot_iso_id': 'glance-iso-uuid'}
+        }
+        mock_image_service.return_value.show = mock_show
+
+        self.node.provision_state = states.DEPLOYING
+        self.node.instance_info = {
+            'image_source': 'glance://image-uuid',
+        }
+        self.node.save()
+        with task_manager.acquire(self.context, self.node.uuid) as task:
+            task.driver.deploy.prepare(task)
+            self.assertEqual(
+                'glance-iso-uuid',
+                task.node.instance_info['boot_iso'])
+        self.assertFalse(mock_prepare_instance.called)
+
+    @mock.patch.object(pxe.PXEBoot, 'prepare_instance', autospec=True)
+    @mock.patch.object(image_service, 'get_image_service', autospec=True)
+    def test_prepare_resolves_glance_kernel_ramdisk(
+            self, mock_image_service, mock_prepare_instance):
+        """Ramdisk prepare resolves kernel/ramdisk from Glance."""
+        mock_show = mock.MagicMock()
+        mock_show.return_value = {
+            'properties': {
+                'kernel_id': 'glance-kernel-uuid',
+                'ramdisk_id': 'glance-ramdisk-uuid',
+            }
+        }
+        mock_image_service.return_value.show = mock_show
+
+        self.node.provision_state = states.DEPLOYING
+        self.node.instance_info = {
+            'image_source': 'glance://image-uuid',
+        }
+        self.node.save()
+        with task_manager.acquire(self.context, self.node.uuid) as task:
+            task.driver.deploy.prepare(task)
+            self.assertEqual(
+                'glance-kernel-uuid',
+                task.node.instance_info['kernel'])
+            self.assertEqual(
+                'glance-ramdisk-uuid',
+                task.node.instance_info['ramdisk'])
+        self.assertFalse(mock_prepare_instance.called)
+
+    @mock.patch.object(pxe.PXEBoot, 'prepare_instance', autospec=True)
+    @mock.patch.object(image_service, 'get_image_service', autospec=True)
+    def test_prepare_skips_glance_when_kernel_set(
+            self, mock_image_service, mock_prepare_instance):
+        """Ramdisk prepare skips Glance when kernel already set."""
+        self.node.provision_state = states.DEPLOYING
+        self.node.instance_info = {
+            'kernel': 'http://kernel',
+            'ramdisk': 'http://ramdisk',
+        }
+        self.node.save()
+        with task_manager.acquire(self.context, self.node.uuid) as task:
+            task.driver.deploy.prepare(task)
+        mock_image_service.assert_not_called()
+        self.assertFalse(mock_prepare_instance.called)
+
+    @mock.patch.object(pxe.PXEBoot, 'prepare_instance', autospec=True)
+    @mock.patch.object(image_service, 'get_image_service', autospec=True)
+    def test_prepare_skips_glance_when_not_glance_image(
+            self, mock_image_service, mock_prepare_instance):
+        """Ramdisk prepare skips Glance for non-Glance image sources."""
+        self.node.provision_state = states.DEPLOYING
+        self.node.instance_info = {
+            'image_source': 'http://example.com/image',
+        }
+        self.node.save()
+        with task_manager.acquire(self.context, self.node.uuid) as task:
+            task.driver.deploy.prepare(task)
+        mock_image_service.assert_not_called()
+        self.assertFalse(mock_prepare_instance.called)
 
     @mock.patch.object(deploy_utils, 'prepare_inband_cleaning', autospec=True)
     def test_prepare_cleaning(self, prepare_inband_cleaning_mock):

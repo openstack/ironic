@@ -1524,6 +1524,70 @@ class ValidateImagePropertiesTestCase(db_base.DbTestCase):
         image_service_show_mock.assert_not_called()
 
     @mock.patch.object(utils, 'get_boot_option', autospec=True,
+                       return_value='ramdisk')
+    @mock.patch.object(image_service, 'get_image_service', autospec=True)
+    def test_validate_image_properties_ramdisk_deploy_glance(
+            self, image_service_mock, boot_options_mock):
+        """Ramdisk deploy with Glance image_source validates via Glance."""
+        instance_info = {
+            'image_source': 'glance://image-uuid',
+        }
+        self.node.instance_info = instance_info
+        inst_info = utils.get_image_instance_info(self.node)
+        image_service_mock.return_value.show.return_value = {
+            'properties': {
+                'kernel_id': 'kernel-uuid',
+                'ramdisk_id': 'ramdisk-uuid',
+            },
+        }
+        utils.validate_image_properties(self.task, inst_info)
+        image_service_mock.assert_called_once_with(
+            'glance://image-uuid', context=self.context
+        )
+
+    @mock.patch.object(utils, 'get_boot_option', autospec=True,
+                       return_value='ramdisk')
+    @mock.patch.object(image_service, 'get_image_service', autospec=True)
+    def test_validate_image_properties_ramdisk_glance_boot_iso_id(
+            self, image_service_mock, boot_options_mock):
+        """Ramdisk deploy with Glance boot_iso_id passes validation."""
+        instance_info = {
+            'image_source': 'glance://image-uuid',
+        }
+        self.node.instance_info = instance_info
+        inst_info = utils.get_image_instance_info(self.node)
+        image_service_mock.return_value.show.return_value = {
+            'properties': {
+                'boot_iso_id': 'boot-iso-uuid',
+            },
+        }
+        utils.validate_image_properties(self.task, inst_info)
+        image_service_mock.assert_called_once_with(
+            'glance://image-uuid', context=self.context
+        )
+
+    @mock.patch.object(utils, 'get_boot_option', autospec=True,
+                       return_value='kickstart')
+    @mock.patch.object(image_service, 'get_image_service', autospec=True)
+    def test_validate_image_properties_non_ramdisk_boot_iso_id_fails(
+            self, image_service_mock, boot_options_mock):
+        """Non-ramdisk deploy with only boot_iso_id fails validation."""
+        instance_info = {
+            'image_source': 'glance://image-uuid',
+        }
+        self.node.instance_info = instance_info
+        inst_info = utils.get_image_instance_info(self.node)
+        image_service_mock.return_value.show.return_value = {
+            'properties': {
+                'boot_iso_id': 'boot-iso-uuid',
+            },
+        }
+        self.assertRaises(
+            exception.MissingParameterValue,
+            utils.validate_image_properties,
+            self.task, inst_info)
+
+    @mock.patch.object(utils, 'get_boot_option', autospec=True,
                        return_value='kickstart')
     @mock.patch.object(image_service.HttpImageService, 'show', autospec=True)
     def test_validate_image_properties_anaconda_deploy_image_source(
@@ -1652,6 +1716,50 @@ class ValidateParametersTestCase(db_base.DbTestCase):
         self.assertIsNotNone(info['kernel'])
         self.assertIsNotNone(info['ramdisk'])
         self.assertNotIn('image_source', info)
+
+    @mock.patch.object(utils, 'get_boot_option', autospec=True,
+                       return_value='ramdisk')
+    def test__get_img_instance_info_ramdisk_with_image_source(
+            self, mock_boot_opt):
+        """Ramdisk boot with only image_source (Nova/Glance path)."""
+        instance_info = {
+            'image_source': 'glance://image-uuid',
+        }
+
+        info = self._test__get_img_instance_info(
+            instance_info=instance_info)
+        self.assertEqual('glance://image-uuid', info['image_source'])
+        self.assertNotIn('kernel', info)
+        self.assertNotIn('ramdisk', info)
+
+    @mock.patch.object(utils, 'get_boot_option', autospec=True,
+                       return_value='ramdisk')
+    def test__get_img_instance_info_ramdisk_with_kernel_ramdisk(
+            self, mock_boot_opt):
+        """Ramdisk boot with kernel+ramdisk takes precedence."""
+        instance_info = {
+            'image_source': 'glance://image-uuid',
+            'kernel': 'http://kernel',
+            'ramdisk': 'http://ramdisk',
+        }
+
+        info = self._test__get_img_instance_info(
+            instance_info=instance_info)
+        self.assertEqual('http://kernel', info['kernel'])
+        self.assertEqual('http://ramdisk', info['ramdisk'])
+        self.assertNotIn('image_source', info)
+
+    @mock.patch.object(utils, 'get_boot_option', autospec=True,
+                       return_value='ramdisk')
+    def test__get_img_instance_info_ramdisk_nothing(
+            self, mock_boot_opt):
+        """Ramdisk boot with nothing set raises error."""
+        instance_info = {}
+
+        self.assertRaises(
+            exception.MissingParameterValue,
+            self._test__get_img_instance_info,
+            instance_info=instance_info)
 
 
 class InstanceInfoTestCase(db_base.DbTestCase):
