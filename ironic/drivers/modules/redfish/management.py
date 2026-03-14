@@ -1798,7 +1798,6 @@ class RedfishManagement(base.ManagementInterface):
             LOG.error(msg)
             raise exception.RedfishError(error=msg)
 
-    @task_manager.require_exclusive_lock
     def get_virtual_media(self, task):
         """Get all virtual media devices from the node.
 
