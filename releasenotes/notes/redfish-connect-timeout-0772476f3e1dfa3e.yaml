@@ -1,0 +1,13 @@
+---
+fixes:
+  - |
+    Sets a default ``[redfish]connect_timeout`` of 30 seconds for the TCP
+    connection timeout when connecting to Redfish BMCs. Previously, the connect
+    timeout was tied to the 60-second read timeout, meaning each connection
+    attempt to an unreachable BMC would block for 60 seconds. Combined with
+    the default 5 retry attempts, this could block a conductor worker for over
+    5 minutes per unreachable node, leading to resource exhaustion. The new
+    default separates connect and read timeouts, allowing faster failure
+    detection for unreachable BMCs while preserving the 60-second read timeout
+    for slow but responsive BMCs.
+    Requires sushy >= 5.10.0 which added separate ``connect_timeout`` support.

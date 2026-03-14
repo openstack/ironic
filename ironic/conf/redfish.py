@@ -28,6 +28,16 @@ opts = [
                default=4,
                help=_('Number of seconds to wait between attempts to '
                       'connect to Redfish')),
+    cfg.IntOpt('connect_timeout',
+               min=1,
+               default=30,
+               help=_('TCP connection timeout in seconds when connecting '
+                      'to the Redfish BMC. This controls how long to wait '
+                      'for the initial TCP connection to be established. '
+                      'A lower value allows faster failure when a BMC is '
+                      'unreachable, while the default read timeout '
+                      '(60 seconds) still applies for waiting on response '
+                      'data from responsive BMCs.')),
     cfg.IntOpt('connection_cache_size',
                min=0,
                default=1000,

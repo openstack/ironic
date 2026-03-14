@@ -363,6 +363,7 @@ class RedfishUtilsAuthTestCase(db_base.DbTestCase):
         mock_sushy.assert_called_with(
             mock.ANY, verify=mock.ANY,
             auth=mock_session_or_basic_auth.return_value,
+            connect_timeout=30,
         )
         self.assertEqual(len(redfish_utils.SessionCache._sessions), 1)
 
@@ -403,7 +404,8 @@ class RedfishUtilsAuthTestCase(db_base.DbTestCase):
         mock_sushy.assert_called_with(
             self.parsed_driver_info['address'],
             auth=mock_session_or_basic_auth.return_value,
-            verify=True)
+            verify=True,
+            connect_timeout=30)
 
     @mock.patch.object(sushy, 'Sushy', autospec=True)
     @mock.patch('ironic.drivers.modules.redfish.utils.'
@@ -420,7 +422,8 @@ class RedfishUtilsAuthTestCase(db_base.DbTestCase):
         )
         mock_sushy.assert_called_with(
             mock.ANY, verify=mock.ANY,
-            auth=mock_session_auth.return_value
+            auth=mock_session_auth.return_value,
+            connect_timeout=30,
         )
 
     @mock.patch.object(sushy, 'Sushy', autospec=True)
@@ -438,8 +441,56 @@ class RedfishUtilsAuthTestCase(db_base.DbTestCase):
         )
         sushy.Sushy.assert_called_with(
             mock.ANY, verify=mock.ANY,
-            auth=mock_basic_auth.return_value
+            auth=mock_basic_auth.return_value,
+            connect_timeout=30,
         )
+
+    @mock.patch.object(sushy, 'Sushy', autospec=True)
+    @mock.patch('ironic.drivers.modules.redfish.utils.'
+                'SessionCache.AUTH_CLASSES', autospec=True)
+    @mock.patch('ironic.drivers.modules.redfish.utils.'
+                'SessionCache._sessions', {})
+    def test_connect_timeout_passed(self, mock_auth, mock_sushy):
+        cfg.CONF.set_override('connect_timeout', 10, 'redfish')
+        mock_session_or_basic_auth = mock_auth['auto']
+        redfish_utils.get_system(self.node)
+        mock_sushy.assert_called_with(
+            self.parsed_driver_info['address'],
+            auth=mock_session_or_basic_auth.return_value,
+            verify=True,
+            connect_timeout=10)
+
+    @mock.patch.object(sushy, 'Sushy', autospec=True)
+    @mock.patch('ironic.drivers.modules.redfish.utils.'
+                'SessionCache.AUTH_CLASSES', autospec=True)
+    @mock.patch('ironic.drivers.modules.redfish.utils.'
+                'SessionCache._sessions', {})
+    def test_connect_timeout_default(self, mock_auth, mock_sushy):
+        mock_session_or_basic_auth = mock_auth['auto']
+        redfish_utils.get_system(self.node)
+        mock_sushy.assert_called_with(
+            self.parsed_driver_info['address'],
+            auth=mock_session_or_basic_auth.return_value,
+            verify=True,
+            connect_timeout=30)
+
+    @mock.patch.object(sushy, 'Sushy', autospec=True)
+    @mock.patch('ironic.drivers.modules.redfish.utils.'
+                'SessionCache.AUTH_CLASSES', autospec=True)
+    @mock.patch('ironic.drivers.modules.redfish.utils.'
+                'SessionCache._sessions', {})
+    def test_connect_timeout_with_root_prefix(self, mock_auth, mock_sushy):
+        cfg.CONF.set_override('connect_timeout', 15, 'redfish')
+        self.node.driver_info['redfish_address'] = (
+            'https://example.com/custom/redfish/v1/')
+        mock_session_or_basic_auth = mock_auth['auto']
+        redfish_utils.get_system(self.node)
+        mock_sushy.assert_called_with(
+            'https://example.com',
+            auth=mock_session_or_basic_auth.return_value,
+            verify=True,
+            root_prefix='/custom/redfish/v1/',
+            connect_timeout=15)
 
 
 class RedfishUtilsSystemTestCase(db_base.DbTestCase):
