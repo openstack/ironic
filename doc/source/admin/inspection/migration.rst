@@ -97,9 +97,9 @@ clarity and consistency.
      - **Yes**
      -
    * - ``scheduler``
-     - ``architecture``, ``memory``
+     - ``architecture``, ``memory``, ``cpus``
      - Only ``architecture``
-     - Split, dropped ``local_gb`` and ``vcpus`` support.
+     - Split, ``local_gb`` is enabled by the ``root-device`` hook.
    * - ``validate_interfaces``
      - ``validate-interfaces``, ``ports``
      - **Yes**
