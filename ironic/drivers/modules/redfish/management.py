@@ -50,6 +50,12 @@ METRICS = metrics_utils.get_metrics_logger(__name__)
 
 BOOT_MODE_CONFIG_INTERVAL = 15
 
+BOOT_OVERRIDE_ENABLED = 'enabled'
+
+BOOT_OVERRIDE_TARGET = 'target'
+
+BOOT_OVERRIDE_MODE = 'mode'
+
 BOOT_DEVICE_MAP = {
     sushy.BOOT_SOURCE_TARGET_PXE: boot_devices.PXE,
     sushy.BOOT_SOURCE_TARGET_HDD: boot_devices.DISK,
@@ -183,8 +189,7 @@ def _set_boot_device(task, system, device, persistent=False,
                   {'enable': enabled, 'node': task.node.uuid})
     else:
         desired_enabled = BOOT_DEVICE_PERSISTENT_MAP_REV[persistent]
-        current_enabled = system.boot.get('enabled')
-
+        current_enabled = system.boot.get(BOOT_OVERRIDE_ENABLED)
         # NOTE(etingof): this can be racy, esp if BMC is not RESTful
         enabled = (desired_enabled
                    if desired_enabled != current_enabled else None)
@@ -213,7 +218,7 @@ def _set_boot_device(task, system, device, persistent=False,
         # in the standard. URL is used internally in ironic.
         if requires_full_boot_request:
             # Some vendors require sending all boot parameters every time
-            desired_mode = system.boot.get('mode') \
+            desired_mode = system.boot.get(BOOT_OVERRIDE_MODE) \
                 or sushy.BOOT_SOURCE_MODE_UEFI
 
             LOG.debug('Vendor "%(vendor)s" requires full boot settings. '
@@ -391,9 +396,12 @@ class RedfishManagement(base.ManagementInterface):
 
         """
         system = redfish_utils.get_system(task.node)
-        return {'boot_device': BOOT_DEVICE_MAP.get(system.boot.get('target')),
-                'persistent': BOOT_DEVICE_PERSISTENT_MAP.get(
-                    system.boot.get('enabled'))}
+        return {
+            'boot_device': BOOT_DEVICE_MAP.get(
+                system.boot.get(BOOT_OVERRIDE_TARGET)),
+            'persistent': BOOT_DEVICE_PERSISTENT_MAP.get(
+                system.boot.get(BOOT_OVERRIDE_ENABLED))
+        }
 
     def get_supported_boot_modes(self, task):
         """Get a list of the supported boot modes.
@@ -437,7 +445,7 @@ class RedfishManagement(base.ManagementInterface):
         # NOTE(dtantsur): check the readability of the current mode before
         # modifying anything. I suspect it can become None transiently after
         # the update, while we need to know if it is supported *at all*.
-        get_mode_unsupported = (system.boot.get('mode') is None)
+        get_mode_unsupported = (system.boot.get(BOOT_OVERRIDE_MODE) is None)
 
         desired_mode = BOOT_MODE_MAP_REV[mode]
         LOG.debug('Current boot mode read from Redfish for '
@@ -448,9 +456,9 @@ class RedfishManagement(base.ManagementInterface):
         try:
 
             if requires_full_boot_request:
-                current_enabled = system.boot.get('enabled') \
+                current_enabled = system.boot.get(BOOT_OVERRIDE_ENABLED) \
                     or sushy.BOOT_SOURCE_ENABLED_ONCE
-                current_target = system.boot.get('target') \
+                current_target = system.boot.get(BOOT_OVERRIDE_TARGET) \
                     or sushy.BOOT_SOURCE_TARGET_PXE
 
                 LOG.debug('Vendor "%(vendor)s" requires full boot settings. '
@@ -513,7 +521,7 @@ class RedfishManagement(base.ManagementInterface):
 
         # NOTE(dtantsur/janders): at least Dell machines change boot mode via
         # a BIOS configuration job. A reboot is needed to apply it.
-        if system.boot.get('mode') == BOOT_MODE_MAP_REV[mode]:
+        if system.boot.get(BOOT_OVERRIDE_MODE) == BOOT_MODE_MAP_REV[mode]:
             LOG.debug('Node %(node)s is already configured with requested '
                       'boot mode %(new_value)s.',
                       {'node': task.node.uuid,
@@ -523,7 +531,7 @@ class RedfishManagement(base.ManagementInterface):
         LOG.info('Rebooting node %(node)s to change boot mode from '
                  '%(old_value)s to %(new_value)s',
                  {'node': task.node.uuid,
-                  'old_value': system.boot.get('mode'),
+                  'old_value': system.boot.get(BOOT_OVERRIDE_MODE),
                   'new_value': BOOT_MODE_MAP_REV[mode]})
 
         old_power_state = task.driver.power.get_power_state(task)
@@ -532,22 +540,23 @@ class RedfishManagement(base.ManagementInterface):
         if CONF.redfish.boot_mode_config_timeout:
             threshold = time.time() + CONF.redfish.boot_mode_config_timeout
             while (time.time() <= threshold
-                   and system.boot.get('mode') != BOOT_MODE_MAP_REV[mode]):
+                   and system.boot.get(BOOT_OVERRIDE_MODE)
+                   != BOOT_MODE_MAP_REV[mode]):
                 LOG.debug('Still waiting for boot mode of node %(node)s '
                           'to become %(value)s, current is %(current)s',
                           {'node': task.node.uuid,
                            'value': BOOT_MODE_MAP_REV[mode],
-                           'current': system.boot.get('mode')})
+                           'current': system.boot.get(BOOT_OVERRIDE_MODE)})
                 time.sleep(BOOT_MODE_CONFIG_INTERVAL)
                 system.refresh(force=True)
 
-            if system.boot.get('mode') != BOOT_MODE_MAP_REV[mode]:
+            if system.boot.get(BOOT_OVERRIDE_MODE) != BOOT_MODE_MAP_REV[mode]:
                 msg = (_('Timeout reached while waiting for boot mode of '
                          'node %(node)s to become %(value)s, '
                          'current is %(current)s')
                        % {'node': task.node.uuid,
                           'value': BOOT_MODE_MAP_REV[mode],
-                          'current': system.boot.get('mode')})
+                          'current': system.boot.get(BOOT_OVERRIDE_MODE)})
                 LOG.error(msg)
                 raise exception.RedfishError(error=msg)
 
@@ -567,7 +576,7 @@ class RedfishManagement(base.ManagementInterface):
         """
         system = redfish_utils.get_system(task.node)
 
-        return BOOT_MODE_MAP.get(system.boot.get('mode'))
+        return BOOT_MODE_MAP.get(system.boot.get(BOOT_OVERRIDE_MODE))
 
     @staticmethod
     def _sensor2dict(resource, *fields):
@@ -1663,7 +1672,7 @@ class RedfishManagement(base.ManagementInterface):
                      '%(value)s', {'node': task.node.uuid, 'value': state})
             return
 
-        boot_mode = system.boot.get('mode')
+        boot_mode = system.boot.get(BOOT_OVERRIDE_MODE)
         if boot_mode == sushy.BOOT_SOURCE_MODE_BIOS:
             # NOTE(dtantsur): the case of disabling secure boot when boot mode
             # is legacy should be covered by the check above.
