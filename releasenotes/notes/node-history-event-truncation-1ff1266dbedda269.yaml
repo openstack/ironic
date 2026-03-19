@@ -1,0 +1,9 @@
+---
+fixes:
+  - |
+    Fixed an issue where inserting into the ``node_history`` table could
+    fail when the event string exceeded the database column's 64KiB
+    limit. Long events are now safely truncated based on UTF-8
+    encoded byte length, preserving an equal distribution of the
+    beginning and the end of the event message to maintain
+    troubleshooting context.
