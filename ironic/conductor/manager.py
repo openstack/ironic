@@ -3579,7 +3579,15 @@ class ConductorManager(base_manager.BaseConductorManager):
             # method provided by the driver to raise an appropriate
             # exception should it identify an error which would apply
             # in *its* context of execution.
-            task.driver.network.vif_attach(task, vif_info)
+            try:
+                task.driver.network.vif_attach(task, vif_info)
+            except Exception as e:
+                msg = (f"Failed to attach VIF {vif_info['id']} "
+                       f"to node {node_id}. Error: {e}")
+                utils.node_history_record(task.node, event=msg,
+                                          event_type=task.node.provision_state,
+                                          error=True)
+                raise
         LOG.info("VIF %(vif_id)s successfully attached to node %(node_id)s",
                  {'vif_id': vif_info['id'], 'node_id': node_id})
 
@@ -3605,7 +3613,15 @@ class ConductorManager(base_manager.BaseConductorManager):
         with task_manager.acquire(context, node_id,
                                   purpose='detach vif') as task:
             task.driver.network.validate(task)
-            task.driver.network.vif_detach(task, vif_id)
+            try:
+                task.driver.network.vif_detach(task, vif_id)
+            except Exception as e:
+                msg = (f"Failed to detach VIF {vif_id} "
+                       f"from node {node_id}, Error: {e}")
+                utils.node_history_record(task.node, event=msg,
+                                          event_type=task.node.provision_state,
+                                          error=True)
+                raise
         LOG.info("VIF %(vif_id)s successfully detached from node %(node_id)s",
                  {'vif_id': vif_id, 'node_id': node_id})
 
