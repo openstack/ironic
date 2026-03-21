@@ -1,0 +1,5 @@
+---
+fixes:
+  - |
+    Fixes an issue where immediate reboots can interrupt the
+    initialization of NIC firmware update.

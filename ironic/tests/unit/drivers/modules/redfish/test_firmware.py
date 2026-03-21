@@ -2178,10 +2178,11 @@ class RedfishFirmwareTestCase(db_base.DbTestCase):
                                       'interface': 'firmware'}
             result = task.driver.firmware.update(task, settings)
 
-            # Verify reboot=True for NIC updates (reboot is conditional)
+            # Verify reboot=False for NIC updates (task monitoring logic
+            # will decide whether to trigger a reboot)
             mock_set_async_flags.assert_called_once_with(
                 task.node,
-                reboot=True,
+                reboot=False,
                 polling=True
             )
             # Verify we return wait state to keep step active
