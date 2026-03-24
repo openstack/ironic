@@ -1,0 +1,11 @@
+fixes:
+  - |
+    Issue a soft power off before ejecting virtual media after inspection,
+    regardless of the value of the ``[inspector]power_off`` configuration
+    option.
+    Powering off before ejecting virtual media is needed to avoid filesystem
+    corruption errors on nodes (particularly visible on iDRAC consoles) when
+    the operating system loses access to its boot media during shutdown. This
+    power off is needed regardless of the value of the
+    ``[inspector]power_off`` configuration option, which is about whether a
+    node should be powered off after inspection.
