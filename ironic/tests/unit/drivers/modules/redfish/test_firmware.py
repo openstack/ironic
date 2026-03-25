@@ -2314,6 +2314,151 @@ class RedfishFirmwareTestCase(db_base.DbTestCase):
             # Verify _continue_updates was called
             mock_continue_updates.assert_called_once()
 
+    @mock.patch.object(redfish_fw.RedfishFirmware, '_continue_updates',
+                       autospec=True)
+    @mock.patch.object(deploy_utils, 'set_async_step_flags', autospec=True)
+    @mock.patch.object(redfish_fw.RedfishFirmware,
+                       '_validate_resources_stability', autospec=True)
+    @mock.patch.object(redfish_utils, 'get_update_service', autospec=True)
+    @mock.patch.object(redfish_utils, 'get_task_monitor', autospec=True)
+    def test_nic_completion_reboot_already_triggered(
+            self, mock_get_task_monitor, mock_get_update_service,
+            mock_validate_resources, mock_set_async_flags,
+            mock_continue_updates):
+        """Test NIC completion when reboot was triggered during Starting."""
+        settings = [{'component': 'nic:BCM57414',
+                     'url': 'http://nic/v1.0.0',
+                     'task_monitor': '/tasks/1',
+                     'nic_reboot_triggered': True,
+                     'nic_starting_timestamp': '2025-01-01T00:00:00',
+                     'nic_needs_post_completion_reboot': True}]
+
+        with task_manager.acquire(self.context, self.node.uuid,
+                                  shared=False) as task:
+            task.node.set_driver_internal_info(
+                'redfish_fw_updates', settings)
+
+            mock_task_monitor = mock.Mock()
+            mock_task_monitor.is_processing = False
+            mock_task = mock.Mock()
+            mock_task.task_state = sushy.TASK_STATE_COMPLETED
+            mock_task.task_status = sushy.HEALTH_OK
+            mock_task.messages = []
+            mock_task_monitor.get_task.return_value = mock_task
+            mock_get_task_monitor.return_value = mock_task_monitor
+
+            firmware_interface = redfish_fw.RedfishFirmware()
+            firmware_interface._check_node_redfish_firmware_update(task)
+
+            # Reboot already happened - no reboot flag should be set
+            info = task.node.driver_internal_info
+            self.assertIsNone(info.get('firmware_reboot_requested'))
+
+            # All NIC-specific flags should be cleaned up
+            updated_settings = info['redfish_fw_updates']
+            self.assertNotIn('nic_reboot_triggered', updated_settings[0])
+            self.assertNotIn('nic_starting_timestamp', updated_settings[0])
+            self.assertNotIn('nic_needs_post_completion_reboot',
+                             updated_settings[0])
+
+            mock_continue_updates.assert_called_once()
+
+    @mock.patch.object(redfish_fw, 'LOG', autospec=True)
+    @mock.patch.object(redfish_fw.RedfishFirmware, '_continue_updates',
+                       autospec=True)
+    @mock.patch.object(deploy_utils, 'set_async_step_flags', autospec=True)
+    @mock.patch.object(redfish_fw.RedfishFirmware,
+                       '_validate_resources_stability', autospec=True)
+    @mock.patch.object(redfish_utils, 'get_update_service', autospec=True)
+    @mock.patch.object(redfish_utils, 'get_task_monitor', autospec=True)
+    def test_nic_completion_no_flags_requests_reboot(
+            self, mock_get_task_monitor, mock_get_update_service,
+            mock_validate_resources, mock_set_async_flags,
+            mock_continue_updates, mock_log):
+        """Test NIC completion with no flags set requests reboot for safety."""
+        settings = [{'component': 'nic:BCM57414',
+                     'url': 'http://nic/v1.0.0',
+                     'task_monitor': '/tasks/1'}]
+
+        with task_manager.acquire(self.context, self.node.uuid,
+                                  shared=False) as task:
+            task.node.set_driver_internal_info(
+                'redfish_fw_updates', settings)
+
+            mock_task_monitor = mock.Mock()
+            mock_task_monitor.is_processing = False
+            mock_task = mock.Mock()
+            mock_task.task_state = sushy.TASK_STATE_COMPLETED
+            mock_task.task_status = sushy.HEALTH_OK
+            mock_task.messages = []
+            mock_task_monitor.get_task.return_value = mock_task
+            mock_get_task_monitor.return_value = mock_task_monitor
+
+            firmware_interface = redfish_fw.RedfishFirmware()
+            firmware_interface._check_node_redfish_firmware_update(task)
+
+            # Neither flag was set - reboot requested for safety
+            info = task.node.driver_internal_info
+            self.assertTrue(info.get('firmware_reboot_requested'))
+
+            # Verify warning was logged
+            mock_log.warning.assert_any_call(
+                'NIC firmware update task completed for node '
+                '%(node)s but no reboot flag was set (task may have '
+                'completed very quickly). Requesting reboot to ensure '
+                'firmware is applied.', {'node': task.node.uuid})
+
+            mock_continue_updates.assert_called_once()
+
+    @mock.patch.object(redfish_fw.RedfishFirmware, '_continue_updates',
+                       autospec=True)
+    @mock.patch.object(deploy_utils, 'set_async_step_flags', autospec=True)
+    @mock.patch.object(redfish_fw.RedfishFirmware,
+                       '_validate_resources_stability', autospec=True)
+    @mock.patch.object(redfish_utils, 'get_update_service', autospec=True)
+    @mock.patch.object(redfish_utils, 'get_task_monitor', autospec=True)
+    def test_nic_completion_cleans_up_all_flags(
+            self, mock_get_task_monitor, mock_get_update_service,
+            mock_validate_resources, mock_set_async_flags,
+            mock_continue_updates):
+        """Test NIC completion cleans up all NIC-specific flags."""
+        settings = [{'component': 'nic:BCM57414',
+                     'url': 'http://nic/v1.0.0',
+                     'task_monitor': '/tasks/1',
+                     'nic_needs_post_completion_reboot': True,
+                     'nic_starting_timestamp': '2025-01-01T00:00:00',
+                     'nic_reboot_triggered': False}]
+
+        with task_manager.acquire(self.context, self.node.uuid,
+                                  shared=False) as task:
+            task.node.set_driver_internal_info(
+                'redfish_fw_updates', settings)
+
+            mock_task_monitor = mock.Mock()
+            mock_task_monitor.is_processing = False
+            mock_task = mock.Mock()
+            mock_task.task_state = sushy.TASK_STATE_COMPLETED
+            mock_task.task_status = sushy.HEALTH_OK
+            mock_task.messages = []
+            mock_task_monitor.get_task.return_value = mock_task
+            mock_get_task_monitor.return_value = mock_task_monitor
+
+            firmware_interface = redfish_fw.RedfishFirmware()
+            firmware_interface._check_node_redfish_firmware_update(task)
+
+            # needs_post_reboot was True, so reboot flag should be set
+            info = task.node.driver_internal_info
+            self.assertTrue(info.get('firmware_reboot_requested'))
+
+            # All NIC-specific flags should be cleaned up
+            updated_settings = info['redfish_fw_updates']
+            self.assertNotIn('nic_needs_post_completion_reboot',
+                             updated_settings[0])
+            self.assertNotIn('nic_starting_timestamp', updated_settings[0])
+            self.assertNotIn('nic_reboot_triggered', updated_settings[0])
+
+            mock_continue_updates.assert_called_once()
+
     @mock.patch.object(redfish_fw.RedfishFirmware,
                        '_validate_resources_stability', autospec=True)
     @mock.patch.object(manager_utils, 'notify_conductor_resume_clean',

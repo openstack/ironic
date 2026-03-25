@@ -547,11 +547,22 @@ class RedfishFirmware(base.FirmwareInterface):
         """
         node = task.node
 
-        # Check if reboot is needed (task went to Running state)
-        needs_reboot = current_update.get(
+        # Check if reboot was actually triggered during task start
+        reboot_triggered = current_update.get(NIC_REBOOT_TRIGGERED, False)
+        needs_post_reboot = current_update.get(
             NIC_NEEDS_POST_COMPLETION_REBOOT, False)
 
-        if needs_reboot:
+        if reboot_triggered:
+            LOG.info(
+                'NIC firmware update task completed for node '
+                '%(node)s. Reboot was triggered during update start.',
+                {'node': node.uuid})
+
+            # Clean up flags
+            current_update.pop(NIC_NEEDS_POST_COMPLETION_REBOOT, None)
+            current_update.pop(NIC_STARTING_TIMESTAMP, None)
+            current_update.pop(NIC_REBOOT_TRIGGERED, None)
+        elif needs_post_reboot:
             LOG.info(
                 'NIC firmware update task completed for node '
                 '%(node)s. Reboot required to apply update.',
@@ -566,13 +577,16 @@ class RedfishFirmware(base.FirmwareInterface):
             current_update.pop(NIC_STARTING_TIMESTAMP, None)
             current_update.pop(NIC_REBOOT_TRIGGERED, None)
         else:
-            LOG.info(
+            # Neither flag was set - task completed before we could
+            # monitor it. Assume reboot is needed for safety.
+            LOG.warning(
                 'NIC firmware update task completed for node '
-                '%(node)s. Reboot already occurred during update '
-                'start.', {'node': node.uuid})
-            # Clean up all NIC-related flags
-            current_update.pop(NIC_STARTING_TIMESTAMP, None)
-            current_update.pop(NIC_REBOOT_TRIGGERED, None)
+                '%(node)s but no reboot flag was set (task may have '
+                'completed very quickly). Requesting reboot to ensure '
+                'firmware is applied.', {'node': node.uuid})
+            # Mark that reboot is needed
+            node.set_driver_internal_info(
+                FIRMWARE_REBOOT_REQUESTED, True)
 
         self._continue_updates(task, update_service, settings)
 
