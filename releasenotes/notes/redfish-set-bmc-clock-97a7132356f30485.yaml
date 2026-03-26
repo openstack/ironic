@@ -1,0 +1,12 @@
+---
+fixes:
+  - |
+    Allow the ``set_bmc_clock`` management setup in the redfish interface to
+    set the time to the conductor if the time is not explicitly provided. This
+    makes it possible to call this step and get an accurate time. For Ironic to
+    manage the BMC, the time must be inline with the conductor so this is a
+    better reasonable default. This also makes it possible to use the ``set_bmc_clock``
+    in runbooks, as originally intended, because users cannot supply a time
+    for the runbooks without this fix the runbook could only ever set the time
+    to a fixed value which isn't useful.
+    Fixes `bug 2146355 <https://bugs.launchpad.net/ironic/+bug/2146355>`_.

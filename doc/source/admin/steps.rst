@@ -175,4 +175,5 @@ node registration, before inspection and deployment.
   is not interruptible.
 
 - This is different from the manual ``clean`` step ``set_bmc_clock``
-  which allows explicit datatime setting through the API.
+  which allows explicit datetime setting through the API, but also defaults
+  to the current conductor UTC time when ``target_datetime`` is omitted.
