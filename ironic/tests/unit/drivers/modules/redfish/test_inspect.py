@@ -790,6 +790,40 @@ class RedfishInspectTestCase(db_base.DbTestCase):
             self.assertEqual(expected_properties,
                              task.driver.inspect._get_pxe_port_macs(task))
 
+    def test_get_system_vendor_info(self):
+        """Test _get_system_vendor_info returns correct vendor data."""
+        mock_system = mock.Mock()
+        mock_system.model = 'PowerEdge R1234'
+        mock_system.serial_number = '123456'
+        mock_system.manufacturer = 'Sushy Emulator'
+        mock_system.uuid = '12345678-1234-1234-1234-12345'
+
+        with task_manager.acquire(self.context, self.node.uuid,
+                                  shared=True) as task:
+            result = task.driver.inspect._get_system_vendor_info(
+                task, mock_system)
+
+        self.assertEqual('PowerEdge R1234', result['product_name'])
+        self.assertEqual('123456', result['serial_number'])
+        self.assertEqual('Sushy Emulator', result['manufacturer'])
+        self.assertEqual('12345678-1234-1234-1234-12345',
+                         result['system_uuid'])
+
+    def test_get_system_vendor_info_empty(self):
+        """Test _get_system_vendor_info with no vendor data."""
+        mock_system = mock.Mock()
+        mock_system.model = None
+        mock_system.serial_number = None
+        mock_system.manufacturer = None
+        mock_system.uuid = None
+
+        with task_manager.acquire(self.context, self.node.uuid,
+                                  shared=True) as task:
+            result = task.driver.inspect._get_system_vendor_info(
+                task, mock_system)
+
+        self.assertEqual({}, result)
+
     @mock.patch.object(redfish_utils, 'get_enabled_macs', autospec=True)
     @mock.patch.object(redfish_utils, 'get_system', autospec=True)
     def test_inspect_hardware_ignore_missing_pcie_devices(

@@ -53,29 +53,23 @@ class DracRedfishInspect(redfish_inspect.RedfishInspect):
         ethernet_interfaces_mac = list(self._get_mac_address(task).values())
         inspect_utils.create_ports_if_not_exist(task, ethernet_interfaces_mac)
 
-        # Get the SKU before calling parent - Dell uses SKU for service tag
-        # which is the actual system serial number, while serial_number
-        # contains the motherboard serial.
-        system = redfish_utils.get_system(task.node)
-        sku = system.sku
+        return super(DracRedfishInspect, self).inspect_hardware(task)
 
-        result = super(DracRedfishInspect, self).inspect_hardware(task)
+    def _get_system_vendor_info(self, task, system):
+        """Get system vendor information for Dell systems.
 
-        # Update serial_number to use SKU (Dell service tag) if available
-        if sku:
-            inspection_data = inspect_utils.get_inspection_data(
-                task.node, task.context)
-            inventory = inspection_data.get('inventory', {})
-            system_vendor = inventory.get('system_vendor', {})
-            if system_vendor:
-                system_vendor['serial_number'] = str(sku)
-                inspect_utils.store_inspection_data(task.node,
-                                                    inventory,
-                                                    inspection_data.get(
-                                                        'plugin_data', {}),
-                                                    task.context)
+        Overrides the parent to use SKU (Dell service tag) as the
+        serial number instead of the Redfish SerialNumber field,
+        which on Dell systems contains the motherboard serial.
 
-        return result
+        :param task: a TaskManager instance.
+        :param system: a Redfish system object.
+        :returns: a dictionary of system vendor information.
+        """
+        system_vendor = super()._get_system_vendor_info(task, system)
+        if system.sku:
+            system_vendor['serial_number'] = str(system.sku)
+        return system_vendor
 
     def _get_mac_address(self, task):
         """Get a list of MAC addresses
