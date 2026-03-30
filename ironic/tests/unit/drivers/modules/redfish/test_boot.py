@@ -1605,10 +1605,145 @@ class RedfishVirtualMediaBootTestCase(db_base.DbTestCase):
             self.assertIn(first_error, joined_errors)
             self.assertIn(error, joined_errors)
 
-            self.assertRaises(
+            exc = self.assertRaises(
                 exception.InvalidParameterValue,
                 redfish_boot._insert_vmedia,
                 task, [mock_manager], 'img-url', sushy.VIRTUAL_MEDIA_CD)
+
+            exc_str = str(exc)
+            self.assertIn(task.node.uuid, exc_str)
+            self.assertIn('img-url', exc_str)
+
+    @mock.patch('time.sleep', lambda *args, **kwargs: None)
+    @mock.patch.object(redfish_boot, '_has_vmedia_via_systems', autospec=True)
+    @mock.patch.object(redfish_utils, 'get_system', autospec=True)
+    def test__insert_vmedia_same_errors_dedup(self, mock_sys, mock_vmd_sys):
+        mock_vmd_sys.return_value = False
+        with task_manager.acquire(self.context, self.node.uuid,
+                                  shared=True) as task:
+            error = "Unable to locate the ISO or IMG image file"
+            mock_response = mock.MagicMock()
+            mock_response.status_code = 500
+            mock_response.json.return_value = {
+                "error": {"message": error}
+            }
+            server_error = sushy.exceptions.ServerSideError(
+                "POST", 'img-url', mock_response)
+
+            mock_vmedia_cd1 = mock.MagicMock(
+                inserted=False,
+                media_types=[sushy.VIRTUAL_MEDIA_CD])
+            mock_vmedia_cd1.insert_media.side_effect = server_error
+            mock_manager1 = mock.MagicMock()
+            mock_manager1.virtual_media.get_members.return_value = [
+                mock_vmedia_cd1]
+
+            mock_vmedia_cd2 = mock.MagicMock(
+                inserted=False,
+                media_types=[sushy.VIRTUAL_MEDIA_CD])
+            mock_vmedia_cd2.insert_media.side_effect = server_error
+            mock_manager2 = mock.MagicMock()
+            mock_manager2.virtual_media.get_members.return_value = [
+                mock_vmedia_cd2]
+
+            exc = self.assertRaises(
+                exception.InvalidParameterValue,
+                redfish_boot._insert_vmedia,
+                task, [mock_manager1, mock_manager2],
+                'img-url', sushy.VIRTUAL_MEDIA_CD)
+
+            exc_str = str(exc)
+            self.assertIn(task.node.uuid, exc_str)
+            self.assertIn('img-url', exc_str)
+            self.assertNotIn('First error', exc_str)
+            self.assertIn('Error:', exc_str)
+
+    @mock.patch('time.sleep', lambda *args, **kwargs: None)
+    @mock.patch.object(redfish_boot, '_has_vmedia_via_systems', autospec=True)
+    @mock.patch.object(redfish_utils, 'get_system', autospec=True)
+    def test__insert_vmedia_different_errors(self, mock_sys, mock_vmd_sys):
+        mock_vmd_sys.return_value = False
+        with task_manager.acquire(self.context, self.node.uuid,
+                                  shared=True) as task:
+            error1 = "Unable to locate the ISO or IMG image file"
+            mock_response1 = mock.MagicMock()
+            mock_response1.status_code = 500
+            mock_response1.json.return_value = {
+                "error": {"message": error1}
+            }
+            mock_vmedia_cd1 = mock.MagicMock(
+                inserted=False,
+                media_types=[sushy.VIRTUAL_MEDIA_CD])
+            mock_vmedia_cd1.insert_media.side_effect = (
+                sushy.exceptions.ServerSideError(
+                    "POST", 'img-url', mock_response1))
+            mock_manager1 = mock.MagicMock()
+            mock_manager1.virtual_media.get_members.return_value = [
+                mock_vmedia_cd1]
+
+            error2 = "Virtual Media is detached"
+            mock_response2 = mock.MagicMock()
+            mock_response2.status_code = 500
+            mock_response2.json.return_value = {
+                "error": {"message": error2}
+            }
+            mock_vmedia_cd2 = mock.MagicMock(
+                inserted=False,
+                media_types=[sushy.VIRTUAL_MEDIA_CD])
+            mock_vmedia_cd2.insert_media.side_effect = (
+                sushy.exceptions.ServerSideError(
+                    "POST", 'img-url', mock_response2))
+            mock_manager2 = mock.MagicMock()
+            mock_manager2.virtual_media.get_members.return_value = [
+                mock_vmedia_cd2]
+
+            exc = self.assertRaises(
+                exception.InvalidParameterValue,
+                redfish_boot._insert_vmedia,
+                task, [mock_manager1, mock_manager2],
+                'img-url', sushy.VIRTUAL_MEDIA_CD)
+
+            exc_str = str(exc)
+            self.assertIn(task.node.uuid, exc_str)
+            self.assertIn('img-url', exc_str)
+            self.assertIn('First error', exc_str)
+            self.assertIn('Last error', exc_str)
+
+    @mock.patch('time.sleep', lambda *args, **kwargs: None)
+    @mock.patch.object(redfish_boot, '_has_vmedia_via_systems', autospec=True)
+    @mock.patch.object(redfish_utils, 'get_system', autospec=True)
+    def test__insert_vmedia_all_missing_action(self, mock_sys, mock_vmd_sys):
+        mock_vmd_sys.return_value = False
+        with task_manager.acquire(self.context, self.node.uuid,
+                                  shared=True) as task:
+            mock_vmedia_cd = mock.MagicMock(
+                inserted=False,
+                identity='Slot_0',
+                media_types=[sushy.VIRTUAL_MEDIA_CD])
+            mock_vmedia_cd.insert_media.side_effect = (
+                sushy.exceptions.MissingActionError(
+                    action='#VirtualMedia.InsertMedia',
+                    resource=mock_vmedia_cd.path))
+
+            mock_manager = mock.MagicMock()
+            mock_manager.virtual_media.get_members.return_value = [
+                mock_vmedia_cd]
+
+            err_msgs = []
+            result = redfish_boot._insert_vmedia_in_resource(
+                task, mock_manager, 'img-url',
+                sushy.VIRTUAL_MEDIA_CD, err_msgs)
+
+            self.assertFalse(result)
+
+            exc = self.assertRaises(
+                exception.InvalidParameterValue,
+                redfish_boot._insert_vmedia,
+                task, [mock_manager], 'img-url', sushy.VIRTUAL_MEDIA_CD)
+
+            exc_str = str(exc)
+            self.assertIn(task.node.uuid, exc_str)
+            self.assertIn('img-url', exc_str)
 
     @mock.patch('time.sleep', lambda *args, **kwargs: None)
     @mock.patch.object(redfish_boot, '_has_vmedia_via_systems', autospec=True)
@@ -1774,6 +1909,41 @@ class RedfishVirtualMediaBootTestCase(db_base.DbTestCase):
                 exception.InvalidParameterValue,
                 redfish_boot._insert_vmedia,
                 task, [mock_manager], 'img-url', sushy.VIRTUAL_MEDIA_CD)
+
+    @mock.patch('time.sleep', lambda *args, **kwargs: None)
+    @mock.patch.object(redfish_boot, '_has_vmedia_via_systems', autospec=True)
+    @mock.patch.object(redfish_utils, 'get_system', autospec=True)
+    def test__insert_vmedia_all_devices_fail(self, mock_sys, mock_vmd_sys):
+        mock_vmd_sys.return_value = False
+        with task_manager.acquire(self.context, self.node.uuid,
+                                  shared=True) as task:
+            mock_vmedia_cd = mock.MagicMock(
+                inserted=False,
+                media_types=[sushy.VIRTUAL_MEDIA_CD])
+            mock_vmedia_cd.insert_media.side_effect = (
+                sushy.exceptions.BadRequestError(
+                    "POST", 'img-url', mock.MagicMock()))
+
+            mock_manager = mock.MagicMock()
+            mock_manager.virtual_media.get_members.return_value = [
+                mock_vmedia_cd]
+
+            err_msgs = []
+            result = redfish_boot._insert_vmedia_in_resource(
+                task, mock_manager, 'img-url',
+                sushy.VIRTUAL_MEDIA_CD, err_msgs)
+
+            self.assertFalse(result)
+            self.assertEqual(1, len(err_msgs))
+
+            exc = self.assertRaises(
+                exception.InvalidParameterValue,
+                redfish_boot._insert_vmedia,
+                task, [mock_manager], 'img-url', sushy.VIRTUAL_MEDIA_CD)
+
+            exc_str = str(exc)
+            self.assertIn(task.node.uuid, exc_str)
+            self.assertIn('img-url', exc_str)
 
     @mock.patch.object(image_utils, 'cleanup_disk_image', autospec=True)
     @mock.patch.object(image_utils, 'cleanup_iso_image', autospec=True)

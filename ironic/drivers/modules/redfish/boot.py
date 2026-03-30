@@ -297,17 +297,29 @@ def _insert_vmedia(task, managers, boot_url, boot_device,
                 return
 
     if err_msgs:
-        if len(err_msgs) == 1:
-            exc_msg = _("All virtual media mount attempts failed. "
-                        "Error encountered: %s") % err_msgs[0]
+        if len(err_msgs) == 1 or err_msgs[0] == err_msgs[-1]:
+            exc_msg = _("Virtual media mount failed for node %(node)s "
+                        "with image %(url)s. Error: %(error)s") % {
+                'node': task.node.uuid,
+                'url': boot_url,
+                'error': err_msgs[0]
+            }
         else:
-            exc_msg = _("All virtual media mount attempts failed. "
-                        "First error: %(first)s. Final error: %(final)s") % {
+            exc_msg = _("Virtual media mount failed for node %(node)s "
+                        "with image %(url)s after multiple attempts. "
+                        "First error: %(first)s. "
+                        "Last error: %(last)s") % {
+                'node': task.node.uuid,
+                'url': boot_url,
                 'first': err_msgs[0],
-                'final': err_msgs[-1]
+                'last': err_msgs[-1]
             }
     else:
-        exc_msg = 'No suitable virtual media device found'
+        exc_msg = _('No suitable virtual media device found for node '
+                    '%(node)s to mount image %(url)s') % {
+            'node': task.node.uuid,
+            'url': boot_url
+        }
     raise exception.InvalidParameterValue(exc_msg)
 
 
@@ -446,6 +458,8 @@ def _insert_vmedia_in_resource(task, resource, boot_url, boot_device,
                               'boot_url': boot_url,
                               'boot_device': boot_device})
         return True
+
+    return False
 
 
 def _eject_vmedia(task, managers, boot_device=None):
