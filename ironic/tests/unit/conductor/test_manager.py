@@ -1941,6 +1941,33 @@ class ServiceDoNodeDeployTestCase(mgr_utils.ServiceSetUpMixin,
             self.assertTrue(node.driver_internal_info['is_whole_disk_image'])
             self.assertIsNone(node.driver_internal_info['deploy_steps'])
 
+    def test_do_node_deploy_rebuild_boot_iso_cleared(self, mock_iwdi):
+        # Tests that boot_iso and original_image_source are cleared
+        # on rebuild, so the driver re-resolves them from Glance.
+        mock_iwdi.return_value = True
+        self._start_service()
+        with mock.patch.object(fake.FakeDeploy,
+                               'deploy', autospec=True) as mock_deploy:
+            mock_deploy.return_value = states.DEPLOYING
+            node = obj_utils.create_test_node(
+                self.context, driver='fake-hardware',
+                provision_state=states.ACTIVE,
+                target_provision_state=states.NOSTATE,
+                instance_info={
+                    'image_source': uuidutils.generate_uuid(),
+                    'boot_iso': 'glance://boot-iso-uuid',
+                    'original_image_source': 'glance://old-image',
+                },
+                driver_internal_info={'is_whole_disk_image': False})
+
+            self.service.do_node_deploy(
+                self.context, node.uuid, rebuild=True)
+            node.refresh()
+            # Verify boot_iso and original_image_source are cleared.
+            self.assertNotIn('boot_iso', node.instance_info)
+            self.assertNotIn(
+                'original_image_source', node.instance_info)
+
     def test_do_node_deploy_rebuild_active_state_waiting(self, mock_iwdi):
         mock_iwdi.return_value = False
         self._start_service()

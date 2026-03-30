@@ -161,6 +161,8 @@ def start_deploy(task, manager, configdrive=None, event='deploy',
             instance_info = node.instance_info
             instance_info.pop('kernel', None)
             instance_info.pop('ramdisk', None)
+            instance_info.pop('boot_iso', None)
+            instance_info.pop('original_image_source', None)
             node.instance_info = instance_info
     else:
         # NOTE(JayF): Don't apply lessee when rebuilding
