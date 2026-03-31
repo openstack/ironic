@@ -106,6 +106,9 @@ def do_node_service(task, service_steps=None, disable_ramdisk=False):
     else:
         LOG.debug('Will proceed with servicing node %(node)s '
                   'without booting the ramdisk.', {'node': node.uuid})
+        disable_ramdisk = True
+        node.set_driver_internal_info('service_disable_ramdisk', True)
+        node.save()
 
     do_next_service_step(task, step_index, disable_ramdisk=disable_ramdisk)
 

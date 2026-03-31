@@ -199,6 +199,11 @@ class DoNodeServiceTestCase(db_base.DbTestCase):
         self.assertEqual(tgt_prov_state, node.target_provision_state)
         mock_prep.assert_not_called()
         mock_validate.assert_called_once_with(mock.ANY, mock.ANY)
+        self.assertTrue(
+            node.driver_internal_info.get('service_disable_ramdisk'),
+            'service_disable_ramdisk must be True when no step requires '
+            'the ramdisk, so that mid-step reboots do not boot IPA'
+        )
 
     @mock.patch('ironic.drivers.modules.network.flat.FlatNetwork.validate',
                 autospec=True)
@@ -227,6 +232,11 @@ class DoNodeServiceTestCase(db_base.DbTestCase):
         self.assertEqual(tgt_prov_state, node.target_provision_state)
         mock_prep.assert_called_once_with(mock.ANY, mock.ANY)
         mock_validate.assert_called_once_with(mock.ANY, mock.ANY)
+        self.assertFalse(
+            node.driver_internal_info.get('service_disable_ramdisk'),
+            'service_disable_ramdisk must not be True when a step requires '
+            'the ramdisk'
+        )
 
     @mock.patch('ironic.drivers.modules.network.flat.FlatNetwork.validate',
                 autospec=True)
@@ -354,13 +364,19 @@ class DoNodeServiceTestCase(db_base.DbTestCase):
             else:
                 mock_network_valid.assert_called_once_with(mock.ANY, task)
 
+            effective_disable = disable_ramdisk or not any(
+                s.get('requires_ramdisk') for s in service_steps)
             mock_next_step.assert_called_once_with(
-                task, 0, disable_ramdisk=disable_ramdisk)
+                task, 0, disable_ramdisk=effective_disable)
             mock_steps.assert_called_once_with(
                 task, disable_ramdisk=disable_ramdisk)
             if service_steps:
                 self.assertEqual(service_steps,
                                  node.driver_internal_info['service_steps'])
+            self.assertEqual(
+                effective_disable,
+                node.driver_internal_info.get('service_disable_ramdisk',
+                                              False))
             self.assertFalse(node.maintenance)
             self.assertNotIn('agent_secret_token', node.driver_internal_info)
 
