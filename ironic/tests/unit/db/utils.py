@@ -707,6 +707,7 @@ def get_test_history(**kw):
         'severity': kw.get('severity', 'ERROR'),
         'event_type': kw.get('event_type', 'provisioning'),
         'user': kw.get('user', 'fake-user'),
+        'project': kw.get('project', 'fake-project'),
         'created_at': kw.get('created_at'),
         'updated_at': kw.get('updated_at'),
     }

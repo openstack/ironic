@@ -2,6 +2,14 @@
 REST API Version History
 ========================
 
+1.113 (Gazpacho)
+----------------
+
+Add ``project`` field to node history detail response. Clients
+requesting microversion 1.113 or higher will receive the project
+field when requesting detailed node history, enabling identification
+of which project triggered each history event.
+
 1.112 (Hibiscus)
 ----------------------
 

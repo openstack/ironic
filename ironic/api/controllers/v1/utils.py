@@ -1509,6 +1509,10 @@ def allow_node_history():
     """Check if node history access is permitted by API version."""
     return api.request.version.minor >= versions.MINOR_78_NODE_HISTORY
 
+def allow_node_history_project():
+    """Check if node history project field is available."""
+    return api.request.version.minor >= versions.MINOR_113_NODE_HISTORY_PROJECT
+
 
 def allow_node_inventory():
     """Check if node inventory is allowed."""

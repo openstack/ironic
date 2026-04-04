@@ -92,3 +92,11 @@ class DBNodeHistoryTestCase(base.DbTestCase):
         self.assertEqual(self.history.event, res[0].event)
         self.assertEqual(self.history.event_type, res[0].event_type)
         self.assertEqual(self.history.severity, res[0].severity)
+
+    def test_get_history_with_project(self):
+        history = db_utils.create_test_history(
+            id=1, uuid=uuidutils.generate_uuid(),
+            node_id=self.node.id,
+            project='test-project')
+        res = self.dbapi.get_node_history_by_uuid(history.uuid)
+        self.assertEqual('test-project', res.project)
