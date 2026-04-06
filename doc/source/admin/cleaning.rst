@@ -378,6 +378,18 @@ An example is setting the BMC clock using the Redfish management interface::
     }]
   }
 
+If ``target_datetime`` is omitted, Ironic uses the current UTC time on the
+conductor when the step executes. This makes the step suitable for automated
+cleaning runbooks without hardcoding a timestamp::
+
+  {
+    "target": "clean",
+    "clean_steps": [{
+      "interface": "management",
+      "step": "set_bmc_clock"
+    }]
+  }
+
 This step requires the node to use the ``redfish`` management interface
 and that the Redfish service exposes the ``DateTime`` and ``DateTimeLocalOffset``
 fields under the Manager Resource.

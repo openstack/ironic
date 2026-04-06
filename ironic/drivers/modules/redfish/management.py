@@ -580,8 +580,10 @@ class RedfishManagement(base.ManagementInterface):
 
     @base.clean_step(priority=0, abortable=False, argsinfo={
         'target_datetime': {
-            'description': 'The datetime to set in ISO8601 format',
-            'required': True
+            'description': ('The datetime to set in ISO8601 format. If '
+                            'omitted, the current conductor UTC time is '
+                            'used.'),
+            'required': False
         },
         'datetime_local_offset': {
             'description': 'The local time offset from UTC',
@@ -589,17 +591,22 @@ class RedfishManagement(base.ManagementInterface):
         }
     })
     @task_manager.require_exclusive_lock
-    def set_bmc_clock(self, task, target_datetime, datetime_local_offset=None):
+    def set_bmc_clock(self, task, target_datetime=None,
+                      datetime_local_offset=None):
         """Set the BMC clock using Redfish Manager resource.
 
         :param task: a TaskManager instance containing the node to act on.
-        :param target_datetime: The datetime to set in ISO8601 format
+        :param target_datetime: The datetime to set in ISO8601 format.
+                                Defaults to the current conductor UTC time.
         :param datetime_local_offset: The local time offset from UTC (optional)
         :raises: RedfishError if the operation fails
         """
         try:
             system = redfish_utils.get_system(task.node)
             manager = redfish_utils.get_manager(task.node, system)
+            if target_datetime is None:
+                target_datetime = timeutils.utcnow().replace(
+                    tzinfo=timezone.utc).isoformat()
             # if the Redfish manager interface does not have microseconds,
             # we cannot send microseconds in our update so strip them out
             if not parser.isoparse(manager.datetime).microsecond:

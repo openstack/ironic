@@ -662,6 +662,34 @@ class RedfishManagementTestCase(db_base.DbTestCase):
 
     @mock.patch.object(redfish_utils, 'get_manager', autospec=True)
     @mock.patch.object(redfish_utils, 'get_system', autospec=True)
+    def test_set_bmc_clock_defaults_to_conductor_time(self, mock_get_system,
+                                                      mock_get_manager):
+        with task_manager.acquire(self.context, self.node.uuid,
+                                  shared=False) as task:
+            current_datetime = datetime.datetime(
+                2025, 6, 27, 12, 0, 0, 123456)
+            expected_datetime = current_datetime.replace(
+                tzinfo=datetime.timezone.utc,
+                microsecond=0).isoformat()
+
+            mock_system = mock.Mock()
+            mock_manager = mock.Mock()
+            mock_manager.datetime = '2025-06-27T12:00:00+00:00'
+
+            mock_get_system.return_value = mock_system
+            mock_get_manager.return_value = mock_manager
+
+            with mock.patch.object(redfish_mgmt.timeutils, 'utcnow',
+                                   autospec=True,
+                                   return_value=current_datetime):
+                task.driver.management.set_bmc_clock(task)
+
+            mock_manager.set_datetime.assert_called_once_with(
+                expected_datetime, None)
+            mock_manager.refresh.assert_called_once()
+
+    @mock.patch.object(redfish_utils, 'get_manager', autospec=True)
+    @mock.patch.object(redfish_utils, 'get_system', autospec=True)
     def test_set_bmc_clock_datetime_mismatch_raises(self, mock_get_system,
                                                     mock_get_manager):
         with task_manager.acquire(self.context, self.node.uuid,
