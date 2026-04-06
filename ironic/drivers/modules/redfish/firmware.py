@@ -352,11 +352,12 @@ class RedfishFirmware(base.FirmwareInterface):
                  'task state to determine if reboot is needed.',
                  {'node': node.uuid})
 
-        # NIC: Set async flags with reboot enabled
-        # (reboot will be triggered conditionally if hardware needs it)
+        # NIC: Set async flags with reboot disabled
+        # The task monitoring logic (_handle_nic_task_starting) will decide
+        # whether to trigger a reboot after observing the task state.
         deploy_utils.set_async_step_flags(
             node,
-            reboot=True,
+            reboot=False,
             polling=True
         )
 
