@@ -1,0 +1,7 @@
+---
+fixes:
+  - |
+    Fixes an issue where the task for NIC firmware update completed before
+    the first poll cycle could complete. This caused firmware caching to run
+    before the OS had fully booted, preventing updated firmware information
+    from being stored in the database.
