@@ -1,0 +1,11 @@
+---
+fixes:
+  - |
+    [`Bug 2146585 <https://bugs.launchpad.net/ironic/+bug/2146585>`_]
+    iDRAC devices report their Service Tag in the Redfish SKU field,
+    which should be treated as the chassis serial number. The
+    idrac-redfish driver already overrode serial_number with the SKU
+    value, but the fix-up ran after inventory was stored and inspection
+    rules were evaluated, causing rules to see the wrong serial_number.
+    The override now happens inline via ``_get_system_vendor_info`` so
+    the correct value is present before storage and rule evaluation.
