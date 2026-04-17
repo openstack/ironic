@@ -1003,6 +1003,243 @@ class RedfishBiosTestCase(db_base.DbTestCase):
             mock_bios.set_attributes.assert_not_called()
 
 
+class RedfishBiosValidateSettingsTestCase(db_base.DbTestCase):
+
+    def setUp(self):
+        super(RedfishBiosValidateSettingsTestCase, self).setUp()
+        self.config(enabled_bios_interfaces=['redfish'],
+                    enabled_hardware_types=['redfish'],
+                    enabled_power_interfaces=['redfish'],
+                    enabled_boot_interfaces=['redfish-virtual-media'],
+                    enabled_management_interfaces=['redfish'])
+        self.node = obj_utils.create_test_node(
+            self.context, driver='redfish', driver_info=INFO_DICT)
+
+    def _make_cached(self, name, attribute_type, allowable_values,
+                     read_only=False):
+        cached = mock.Mock()
+        cached.name = name
+        cached.attribute_type = attribute_type
+        cached.allowable_values = allowable_values
+        cached.read_only = read_only
+        cached.lower_bound = None
+        cached.upper_bound = None
+        cached.min_length = None
+        cached.max_length = None
+        return cached
+
+    @mock.patch.object(objects, 'BIOSSettingList', autospec=True)
+    def test_validate_settings_valid_enumeration(self, mock_setting_list):
+        mock_setting_list.get_by_node_id.return_value = [
+            self._make_cached('HttpDev2EnDis', 'Enumeration',
+                              ['Enabled', 'Disabled']),
+        ]
+        settings = [{'name': 'HttpDev2EnDis', 'value': 'Enabled'}]
+        with task_manager.acquire(self.context, self.node.uuid,
+                                  shared=False) as task:
+            # Should not raise
+            task.driver.bios._validate_settings(task, settings)
+
+    @mock.patch.object(objects, 'BIOSSettingList', autospec=True)
+    def test_validate_settings_invalid_enumeration(self, mock_setting_list):
+        mock_setting_list.get_by_node_id.return_value = [
+            self._make_cached('HttpDev2EnDis', 'Enumeration',
+                              ['Enabled', 'Disabled']),
+        ]
+        settings = [{'name': 'HttpDev2EnDis', 'value': 'disabled'}]
+        with task_manager.acquire(self.context, self.node.uuid,
+                                  shared=False) as task:
+            self.assertRaisesRegex(
+                exception.InvalidParameterValue,
+                'HttpDev2EnDis',
+                task.driver.bios._validate_settings, task, settings)
+
+    @mock.patch.object(objects, 'BIOSSettingList', autospec=True)
+    def test_validate_settings_multiple_invalid(self, mock_setting_list):
+        mock_setting_list.get_by_node_id.return_value = [
+            self._make_cached('HttpDev1EnDis', 'Enumeration',
+                              ['Enabled', 'Disabled']),
+            self._make_cached('HttpDev2EnDis', 'Enumeration',
+                              ['Enabled', 'Disabled']),
+        ]
+        settings = [
+            {'name': 'HttpDev1EnDis', 'value': 'enabled'},
+            {'name': 'HttpDev2EnDis', 'value': 'disabled'},
+        ]
+        with task_manager.acquire(self.context, self.node.uuid,
+                                  shared=False) as task:
+            exc = self.assertRaises(
+                exception.InvalidParameterValue,
+                task.driver.bios._validate_settings, task, settings)
+            self.assertIn('HttpDev1EnDis', str(exc))
+            self.assertIn('HttpDev2EnDis', str(exc))
+
+    @mock.patch.object(objects, 'BIOSSettingList', autospec=True)
+    def test_validate_settings_non_enumeration_skipped(
+            self, mock_setting_list):
+        mock_setting_list.get_by_node_id.return_value = [
+            self._make_cached('SomeSetting', 'String', None),
+        ]
+        settings = [{'name': 'SomeSetting', 'value': 'anything'}]
+        with task_manager.acquire(self.context, self.node.uuid,
+                                  shared=False) as task:
+            # Should not raise - String type is not validated
+            task.driver.bios._validate_settings(task, settings)
+
+    @mock.patch.object(objects, 'BIOSSettingList', autospec=True)
+    def test_validate_settings_no_allowable_values_skipped(
+            self, mock_setting_list):
+        mock_setting_list.get_by_node_id.return_value = [
+            self._make_cached('SomeEnumSetting', 'Enumeration', None),
+        ]
+        settings = [{'name': 'SomeEnumSetting', 'value': 'anything'}]
+        with task_manager.acquire(self.context, self.node.uuid,
+                                  shared=False) as task:
+            # Should not raise - no allowable_values cached to check against
+            task.driver.bios._validate_settings(task, settings)
+
+    @mock.patch.object(objects, 'BIOSSettingList', autospec=True)
+    def test_validate_settings_unknown_setting_skipped(
+            self, mock_setting_list):
+        mock_setting_list.get_by_node_id.return_value = []
+        settings = [{'name': 'UnknownSetting', 'value': 'anything'}]
+        with task_manager.acquire(self.context, self.node.uuid,
+                                  shared=False) as task:
+            # Should not raise - can't validate what's not in the cache
+            task.driver.bios._validate_settings(task, settings)
+
+    @mock.patch.object(objects, 'BIOSSettingList', autospec=True)
+    def test_validate_settings_read_only_rejected(self, mock_setting_list):
+        mock_setting_list.get_by_node_id.return_value = [
+            self._make_cached('SystemModelName', 'String', None,
+                              read_only=True),
+        ]
+        settings = [{'name': 'SystemModelName', 'value': 'NewModel'}]
+        with task_manager.acquire(self.context, self.node.uuid,
+                                  shared=False) as task:
+            self.assertRaisesRegex(
+                exception.InvalidParameterValue,
+                'SystemModelName',
+                task.driver.bios._validate_settings, task, settings)
+
+    @mock.patch.object(objects, 'BIOSSettingList', autospec=True)
+    def test_validate_settings_integer_valid(self, mock_setting_list):
+        cached = self._make_cached('BootDelay', 'Integer', None)
+        cached.lower_bound = 5
+        cached.upper_bound = 30
+        mock_setting_list.get_by_node_id.return_value = [cached]
+        settings = [{'name': 'BootDelay', 'value': 10}]
+        with task_manager.acquire(self.context, self.node.uuid,
+                                  shared=False) as task:
+            # Should not raise
+            task.driver.bios._validate_settings(task, settings)
+
+    @mock.patch.object(objects, 'BIOSSettingList', autospec=True)
+    def test_validate_settings_integer_below_lower_bound(
+            self, mock_setting_list):
+        cached = self._make_cached('BootDelay', 'Integer', None)
+        cached.lower_bound = 5
+        cached.upper_bound = 30
+        mock_setting_list.get_by_node_id.return_value = [cached]
+        settings = [{'name': 'BootDelay', 'value': 1}]
+        with task_manager.acquire(self.context, self.node.uuid,
+                                  shared=False) as task:
+            self.assertRaisesRegex(
+                exception.InvalidParameterValue,
+                'BootDelay',
+                task.driver.bios._validate_settings, task, settings)
+
+    @mock.patch.object(objects, 'BIOSSettingList', autospec=True)
+    def test_validate_settings_integer_above_upper_bound(
+            self, mock_setting_list):
+        cached = self._make_cached('BootDelay', 'Integer', None)
+        cached.lower_bound = 5
+        cached.upper_bound = 30
+        mock_setting_list.get_by_node_id.return_value = [cached]
+        settings = [{'name': 'BootDelay', 'value': 60}]
+        with task_manager.acquire(self.context, self.node.uuid,
+                                  shared=False) as task:
+            self.assertRaisesRegex(
+                exception.InvalidParameterValue,
+                'BootDelay',
+                task.driver.bios._validate_settings, task, settings)
+
+    @mock.patch.object(objects, 'BIOSSettingList', autospec=True)
+    def test_validate_settings_integer_not_a_number(self, mock_setting_list):
+        cached = self._make_cached('BootDelay', 'Integer', None)
+        cached.lower_bound = 5
+        cached.upper_bound = 30
+        mock_setting_list.get_by_node_id.return_value = [cached]
+        settings = [{'name': 'BootDelay', 'value': 'fast'}]
+        with task_manager.acquire(self.context, self.node.uuid,
+                                  shared=False) as task:
+            self.assertRaisesRegex(
+                exception.InvalidParameterValue,
+                'BootDelay',
+                task.driver.bios._validate_settings, task, settings)
+
+    @mock.patch.object(objects, 'BIOSSettingList', autospec=True)
+    def test_validate_settings_integer_no_bounds(self, mock_setting_list):
+        cached = self._make_cached('BootDelay', 'Integer', None)
+        mock_setting_list.get_by_node_id.return_value = [cached]
+        settings = [{'name': 'BootDelay', 'value': 999}]
+        with task_manager.acquire(self.context, self.node.uuid,
+                                  shared=False) as task:
+            # Should not raise - no bounds to enforce
+            task.driver.bios._validate_settings(task, settings)
+
+    @mock.patch.object(objects, 'BIOSSettingList', autospec=True)
+    def test_validate_settings_string_valid(self, mock_setting_list):
+        cached = self._make_cached('AdminName', 'String', None)
+        cached.min_length = 2
+        cached.max_length = 10
+        mock_setting_list.get_by_node_id.return_value = [cached]
+        settings = [{'name': 'AdminName', 'value': 'Alice'}]
+        with task_manager.acquire(self.context, self.node.uuid,
+                                  shared=False) as task:
+            # Should not raise
+            task.driver.bios._validate_settings(task, settings)
+
+    @mock.patch.object(objects, 'BIOSSettingList', autospec=True)
+    def test_validate_settings_string_too_short(self, mock_setting_list):
+        cached = self._make_cached('AdminName', 'String', None)
+        cached.min_length = 2
+        cached.max_length = 10
+        mock_setting_list.get_by_node_id.return_value = [cached]
+        settings = [{'name': 'AdminName', 'value': 'A'}]
+        with task_manager.acquire(self.context, self.node.uuid,
+                                  shared=False) as task:
+            self.assertRaisesRegex(
+                exception.InvalidParameterValue,
+                'AdminName',
+                task.driver.bios._validate_settings, task, settings)
+
+    @mock.patch.object(objects, 'BIOSSettingList', autospec=True)
+    def test_validate_settings_string_too_long(self, mock_setting_list):
+        cached = self._make_cached('AdminName', 'String', None)
+        cached.min_length = 2
+        cached.max_length = 10
+        mock_setting_list.get_by_node_id.return_value = [cached]
+        settings = [{'name': 'AdminName', 'value': 'A' * 11}]
+        with task_manager.acquire(self.context, self.node.uuid,
+                                  shared=False) as task:
+            self.assertRaisesRegex(
+                exception.InvalidParameterValue,
+                'AdminName',
+                task.driver.bios._validate_settings, task, settings)
+
+    @mock.patch.object(objects, 'BIOSSettingList', autospec=True)
+    def test_validate_settings_string_no_length_bounds(
+            self, mock_setting_list):
+        cached = self._make_cached('AdminName', 'String', None)
+        mock_setting_list.get_by_node_id.return_value = [cached]
+        settings = [{'name': 'AdminName', 'value': 'A' * 100}]
+        with task_manager.acquire(self.context, self.node.uuid,
+                                  shared=False) as task:
+            # Should not raise - no length bounds to enforce
+            task.driver.bios._validate_settings(task, settings)
+
+
 class RedfishBiosRegistryTestCase(db_base.DbTestCase):
 
     def setUp(self):
