@@ -1,0 +1,21 @@
+---
+features:
+  - |
+    Adds TLS hardening options for outbound HTTPS connections
+    from the conductor to the ironic-python-agent (IPA). The
+    new ``[agent]tls_minimum_version`` option controls the
+    minimum TLS protocol version and defaults to TLS 1.2. The
+    new ``[agent]tls_ciphers`` option allows restricting the
+    cipher suites using OpenSSL cipher list format.
+security:
+  - |
+    Outbound HTTPS connections from the conductor to the
+    ironic-python-agent now enforce TLS 1.2 as the minimum
+    protocol version by default. This prevents TLS downgrade
+    attacks on conductor-to-agent communication.
+upgrade:
+  - |
+    When connecting to the ironic-python-agent over HTTPS, the
+    conductor now defaults to requiring TLS 1.2 or later. The
+    ironic-python-agent has supported TLS 1.2 for many years,
+    so this should not require any operator action.

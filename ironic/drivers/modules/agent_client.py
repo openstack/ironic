@@ -21,6 +21,7 @@ from oslo_log import log
 from oslo_serialization import jsonutils
 from oslo_utils import strutils
 import requests
+from requests import adapters as req_adapters
 import tenacity
 
 from ironic.common import exception
@@ -36,6 +37,54 @@ METRICS = metrics_utils.get_metrics_logger(__name__)
 DEFAULT_IPA_PORTAL_PORT = 3260
 
 REBOOT_COMMAND = 'run_image'
+
+_TLS_VERSION_MAP = {
+    '1.2': ssl.TLSVersion.TLSv1_2,
+    '1.3': ssl.TLSVersion.TLSv1_3,
+}
+
+
+class TLSHTTPAdapter(req_adapters.HTTPAdapter):
+    """HTTPS adapter with configurable TLS settings."""
+
+    def __init__(self, ssl_context=None, **kwargs):
+        self._ssl_context = ssl_context
+        super().__init__(**kwargs)
+
+    def init_poolmanager(self, *args, **kwargs):
+        if self._ssl_context:
+            kwargs['ssl_context'] = self._ssl_context
+        super().init_poolmanager(*args, **kwargs)
+
+
+def _build_ssl_context():
+    """Build an SSL context from [agent] TLS configuration.
+
+    :returns: An ssl.SSLContext with the configured TLS
+              settings, or None if no TLS options are set.
+    """
+    tls_min = CONF.agent.tls_minimum_version
+    tls_ciphers = CONF.agent.tls_ciphers
+    if not tls_min and not tls_ciphers:
+        return None
+
+    ctx = ssl.SSLContext(ssl.PROTOCOL_TLS_CLIENT)
+    # Verification is handled separately via the requests
+    # library verify parameter; default to permissive here
+    # so that _get_verify remains the single source of truth.
+    ctx.check_hostname = False
+    ctx.verify_mode = ssl.CERT_NONE
+
+    if tls_min:
+        ctx.minimum_version = _TLS_VERSION_MAP[tls_min]
+        LOG.info("Agent client TLS minimum version set "
+                 "to %s", tls_min)
+
+    if tls_ciphers:
+        ctx.set_ciphers(tls_ciphers)
+        LOG.info("Agent client TLS ciphers configured")
+
+    return ctx
 
 
 def get_client(task):
@@ -79,7 +128,12 @@ class AgentClient(object):
     @METRICS.timer('AgentClient.__init__')
     def __init__(self):
         self.session = requests.Session()
-        self.session.headers.update({'Content-Type': 'application/json'})
+        self.session.headers.update(
+            {'Content-Type': 'application/json'})
+        ssl_ctx = _build_ssl_context()
+        if ssl_ctx:
+            adapter = TLSHTTPAdapter(ssl_context=ssl_ctx)
+            self.session.mount('https://', adapter)
 
     def _get_command_url(self, node):
         """Get URL endpoint for agent command request"""
