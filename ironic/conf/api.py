@@ -109,6 +109,34 @@ opts = [
     cfg.StrOpt('key_file',
                help="Private key file to use when starting "
                     "the server securely."),
+    cfg.StrOpt(
+        'tls_minimum_version',
+        default='1.2',
+        choices=[
+            ('1.2',
+             _('Require TLS 1.2 as the minimum version.')),
+            ('1.3',
+             _('Require TLS 1.3 as the minimum version. '
+               'Recommended for Post-Quantum Cryptography '
+               'readiness as PQC key exchange is only '
+               'available in TLS 1.3.')),
+        ],
+        help=_("Set the minimum TLS protocol version for "
+               "the integrated API server when "
+               "[api]enable_ssl_api is True. Defaults to "
+               "TLS 1.2 since TLS 1.0 and 1.1 are "
+               "deprecated (RFC 8996). This option has "
+               "no effect when TLS is terminated by an "
+               "external service such as a reverse proxy "
+               "or a WSGI application container.")),
+    cfg.StrOpt(
+        'tls_ciphers',
+        help=_("Set the list of available ciphers for the "
+               "integrated API server. The value should be "
+               "a string in the OpenSSL cipher list format. "
+               "Has no effect when [api]enable_ssl_api is "
+               "False or when TLS is terminated by an "
+               "external service.")),
     cfg.ListOpt('middleware',
                 default=[],
                 help=_('Comma-separated list of WSGI middleware to load '

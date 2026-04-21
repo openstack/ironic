@@ -11,6 +11,7 @@
 # under the License.
 
 import os
+import ssl
 import threading
 
 from cheroot.ssl import builtin as cheroot_ssl
@@ -29,6 +30,41 @@ from ironic.conf import CONF
 
 LOG = logging.getLogger(__name__)
 _MAX_DEFAULT_WORKERS = 4
+
+_TLS_VERSION_MAP = {
+    '1.2': ssl.TLSVersion.TLSv1_2,
+    '1.3': ssl.TLSVersion.TLSv1_3,
+}
+
+
+def _check_tls_version_supported(version_str):
+    """Validate that the requested TLS version is available.
+
+    Checks both compile-time flags and runtime crypto policy
+    to ensure the configured TLS version can actually be used.
+    Raises RuntimeError with a clear message at startup rather
+    than letting the service fail later with an opaque SSL error.
+    """
+    version = _TLS_VERSION_MAP[version_str]
+
+    if not getattr(ssl, f'HAS_{version.name}', False):
+        raise RuntimeError(
+            _("TLS %(ver)s is not supported by the "
+              "installed version of OpenSSL "
+              "(ssl.HAS_%(attr)s is not set).")
+            % {'ver': version_str, 'attr': version.name}
+        )
+
+    ctx = ssl.SSLContext(ssl.PROTOCOL_TLS_CLIENT)
+    max_ver = ctx.maximum_version
+    if (max_ver != ssl.TLSVersion.MAXIMUM_SUPPORTED
+            and version > max_ver):
+        raise RuntimeError(
+            _("TLS %(ver)s exceeds the maximum TLS "
+              "version allowed by the system crypto "
+              "policy.")
+            % {'ver': version_str}
+        )
 
 
 def validate_cert_paths(cert_file, key_file):
@@ -91,10 +127,29 @@ class BaseWSGIService(service.ServiceBase):
 
             validate_cert_paths(cert_file, key_file)
 
+            tls_ciphers = getattr(conf, 'tls_ciphers', None)
             self.server.ssl_adapter = cheroot_ssl.BuiltinSSLAdapter(
                 certificate=cert_file,
                 private_key=key_file,
+                ciphers=tls_ciphers,
             )
+
+            tls_min = getattr(conf, 'tls_minimum_version', None)
+            if tls_min:
+                _check_tls_version_supported(tls_min)
+                version = _TLS_VERSION_MAP[tls_min]
+                self.server.ssl_adapter.context.minimum_version = (
+                    version
+                )
+                LOG.info(
+                    "TLS minimum version set to %s for %s",
+                    tls_min, name
+                )
+
+            if tls_ciphers:
+                LOG.info(
+                    "TLS ciphers configured for %s", name
+                )
 
         self._unix_socket = conf.unix_socket
         self._socket_mode = socket_mode

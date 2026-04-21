@@ -1,0 +1,30 @@
+---
+features:
+  - |
+    Adds TLS hardening options for the integrated API server.
+    The new ``[api]tls_minimum_version`` option controls the
+    minimum TLS protocol version and defaults to TLS 1.2,
+    preventing the use of deprecated TLS 1.0 and 1.1 protocols
+    (per RFC 8996). Operators can set this to ``1.3`` for
+    Post-Quantum Cryptography readiness. The new
+    ``[api]tls_ciphers`` option allows restricting the cipher
+    suites available to the server using OpenSSL cipher list
+    format. Both options only apply when
+    ``[api]enable_ssl_api`` is True and TLS is not terminated
+    by an external service.
+security:
+  - |
+    The integrated API server now enforces TLS 1.2 as the
+    minimum protocol version by default when SSL is enabled.
+    This prevents downgrade attacks to TLS 1.0 or 1.1, which
+    are deprecated and have known vulnerabilities. Previously,
+    the minimum version depended on the system OpenSSL
+    configuration.
+upgrade:
+  - |
+    When ``[api]enable_ssl_api`` is True, the API server now
+    defaults to requiring TLS 1.2 or later. Clients connecting
+    with TLS 1.0 or 1.1 will be rejected. This should not
+    affect modern deployments as TLS 1.2 has been widely
+    supported since 2008, but operators should verify that all
+    API clients support TLS 1.2 or later.
