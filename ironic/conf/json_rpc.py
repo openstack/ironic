@@ -48,6 +48,30 @@ opts = [
                       "to clients when [json_rpc]use_ssl=True.")),
     cfg.StrOpt('key_file',
                help=_("Private key file matching cert_file.")),
+    cfg.StrOpt(
+        'tls_minimum_version',
+        default='1.2',
+        choices=[
+            ('1.2',
+             _('Require TLS 1.2 as the minimum version.')),
+            ('1.3',
+             _('Require TLS 1.3 as the minimum version. '
+               'Recommended for Post-Quantum Cryptography '
+               'readiness as PQC key exchange is only '
+               'available in TLS 1.3.')),
+        ],
+        help=_("Set the minimum TLS protocol version for "
+               "the JSON-RPC server when "
+               "[json_rpc]use_ssl is True. Defaults to "
+               "TLS 1.2 since TLS 1.0 and 1.1 are "
+               "deprecated (RFC 8996).")),
+    cfg.StrOpt(
+        'tls_ciphers',
+        help=_("Set the list of available ciphers for the "
+               "JSON-RPC server. The value should be a "
+               "string in the OpenSSL cipher list format. "
+               "Has no effect when [json_rpc]use_ssl is "
+               "False.")),
     cfg.BoolOpt('client_use_ssl',
                 default=False,
                 help=_('Set to True to force TLS connections in the client '

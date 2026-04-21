@@ -1,0 +1,24 @@
+---
+features:
+  - |
+    Adds TLS hardening options for the JSON-RPC service used
+    for internal communication between API and conductor
+    services. The new ``[json_rpc]tls_minimum_version`` option
+    controls the minimum TLS protocol version and defaults to
+    TLS 1.2. The new ``[json_rpc]tls_ciphers`` option allows
+    restricting the cipher suites using OpenSSL cipher list
+    format. Both options only apply when
+    ``[json_rpc]use_ssl`` is True.
+security:
+  - |
+    The JSON-RPC service now enforces TLS 1.2 as the minimum
+    protocol version by default when ``[json_rpc]use_ssl`` is
+    True. This hardens internal service-to-service
+    communication against TLS downgrade attacks.
+upgrade:
+  - |
+    When ``[json_rpc]use_ssl`` is True, the JSON-RPC server
+    now defaults to requiring TLS 1.2 or later. Since JSON-RPC
+    is used for internal Ironic service communication, this
+    should not require any operator action as both endpoints
+    run compatible Ironic versions.
