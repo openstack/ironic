@@ -482,6 +482,96 @@ The Ironic project recommends:
 * Operators leverage good password practices by not reusing the credentials
   for other tools or systems.
 
+.. _tls-hardening:
+
+TLS Hardening
+=============
+
+When the integrated Ironic API server or JSON-RPC server
+terminates TLS directly (rather than relying on a reverse proxy),
+operators can control TLS protocol versions and cipher suites
+through configuration options.
+
+.. note::
+   These options have no effect when TLS is terminated by an
+   external service such as Apache httpd or HAProxy. In that
+   case, TLS settings should be configured in the reverse proxy.
+
+.. note::
+   These options do not currently affect BMC communications,
+   which are constrained by vendor support rather than anything
+   the Ironic project can directly control. Additional controls
+   may be added in the future.
+
+Configuring TLS for the API
+----------------------------
+
+To enable TLS with hardened settings for the API service, edit
+``/etc/ironic/ironic.conf``:
+
+.. code-block:: ini
+
+   [api]
+   enable_ssl_api = True
+   cert_file = /etc/ironic/ssl/api.crt
+   key_file = /etc/ironic/ssl/api.key
+
+   # Enforce TLS 1.3 minimum (recommended for PQC readiness)
+   tls_minimum_version = 1.3
+
+   # Optionally restrict available ciphers
+   # tls_ciphers = ECDHE+AESGCM:ECDHE+CHACHA20:DHE+AESGCM
+
+Configuring TLS for JSON-RPC
+------------------------------
+
+The same options are available for the JSON-RPC service used for
+conductor-to-conductor communication:
+
+.. code-block:: ini
+
+   [json_rpc]
+   use_ssl = True
+   cert_file = /etc/ironic/ssl/json_rpc.crt
+   key_file = /etc/ironic/ssl/json_rpc.key
+   tls_minimum_version = 1.3
+
+Configuring TLS for Agent Connections
+--------------------------------------
+
+The conductor makes outbound HTTPS connections to the
+ironic-python-agent running on nodes. TLS settings for these
+connections are configured in the ``[agent]`` section:
+
+.. code-block:: ini
+
+   [agent]
+   # Enforce TLS 1.3 minimum for agent connections
+   tls_minimum_version = 1.3
+
+   # Optionally restrict available ciphers
+   # tls_ciphers = ECDHE+AESGCM:ECDHE+CHACHA20:DHE+AESGCM
+
+.. note::
+   The ironic-python-agent must support the configured minimum
+   TLS version for connections to succeed. Operators are
+   encouraged to utilize an appropriately modern version of the
+   ironic-python-agent within the supported version window of
+   Ironic.
+
+Post-Quantum Cryptography Readiness
+-------------------------------------
+
+Post-Quantum Cryptography (PQC) key exchange mechanisms such as
+ML-KEM (Kyber) are available through TLS 1.3 hybrid key exchange
+groups. Setting ``tls_minimum_version = 1.3`` is the first step
+toward PQC readiness.
+
+PQC cipher suite availability depends on the version of OpenSSL
+installed on the system. When the system OpenSSL supports PQC key
+exchange groups, TLS 1.3 connections will be able to negotiate
+them automatically.
+
 Disk Images
 ===========
 
