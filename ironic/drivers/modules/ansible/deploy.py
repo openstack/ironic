@@ -263,6 +263,12 @@ def _add_ssl_image_options(image):
     if CONF.ansible.image_store_certfile and CONF.ansible.image_store_keyfile:
         image['client_cert'] = CONF.ansible.image_store_certfile
         image['client_key'] = CONF.ansible.image_store_keyfile
+    if CONF.webserver_tls_minimum_version:
+        image['tls_minimum_version'] = (
+            CONF.webserver_tls_minimum_version)
+    if CONF.webserver_tls_ciphers:
+        image['tls_ciphers'] = (
+            CONF.webserver_tls_ciphers)
 
 
 def _prepare_variables(task):

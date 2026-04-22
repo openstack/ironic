@@ -1,0 +1,23 @@
+---
+features:
+  - |
+    The Ansible deploy driver's ``stream_url`` module now respects
+    the ``webserver_tls_minimum_version`` and ``webserver_tls_ciphers``
+    configuration options. When set, image downloads performed by
+    the ``stream_url`` Ansible module on the target node will enforce
+    the configured minimum TLS protocol version and cipher
+    restrictions.
+security:
+  - |
+    The Ansible deploy driver now enforces a minimum TLS version of
+    1.2 by default for image downloads via the ``stream_url`` module,
+    consistent with the ``webserver_tls_minimum_version`` default.
+    This prevents downgrade attacks when images are served over HTTPS
+    to target nodes.
+upgrade:
+  - |
+    The ``webserver_tls_minimum_version`` configuration option, which
+    defaults to ``1.2``, now also applies to image downloads performed
+    by the Ansible deploy driver's ``stream_url`` module on target
+    nodes. Operators whose image servers do not support TLS 1.2 may
+    need to adjust their TLS configuration accordingly.

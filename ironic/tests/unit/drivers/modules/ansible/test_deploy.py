@@ -418,6 +418,7 @@ class TestAnsibleMethods(AnsibleDeployTestCaseBase):
                               "mem_req": 3000,
                               "disk_format": "qcow2",
                               "checksum": "md5:checksum",
+                              "tls_minimum_version": "1.2",
                               "whatever": "hello"}}
         with task_manager.acquire(self.context, self.node.uuid) as task:
             self.assertEqual(expected,
@@ -432,7 +433,8 @@ class TestAnsibleMethods(AnsibleDeployTestCaseBase):
                               "validate_certs": "yes",
                               "source": "fake-image",
                               "disk_format": "qcow2",
-                              "checksum": "md5:checksum"},
+                              "checksum": "md5:checksum",
+                              "tls_minimum_version": "1.2"},
                     "root_device_hints": {"wwn": "fake-wwn"}}
         with task_manager.acquire(self.context, self.node.uuid) as task:
             self.assertEqual(expected,
@@ -448,10 +450,63 @@ class TestAnsibleMethods(AnsibleDeployTestCaseBase):
                               "validate_certs": "no",
                               "source": "fake-image",
                               "disk_format": "qcow2",
-                              "checksum": "sha256:checksum"}}
+                              "checksum": "sha256:checksum",
+                              "tls_minimum_version": "1.2"}}
         with task_manager.acquire(self.context, self.node.uuid) as task:
             self.assertEqual(expected,
                              ansible_deploy._prepare_variables(task))
+
+    def test__prepare_variables_tls_minimum_version(self):
+        self.config(webserver_tls_minimum_version='1.3')
+        i_info = self.node.instance_info
+        i_info['image_checksum'] = 'sha256:checksum'
+        self.node.instance_info = i_info
+        self.node.save()
+        with task_manager.acquire(self.context,
+                                  self.node.uuid) as task:
+            result = ansible_deploy._prepare_variables(task)
+        self.assertEqual('1.3',
+                         result['image']['tls_minimum_version'])
+
+    def test__prepare_variables_tls_ciphers(self):
+        self.config(webserver_tls_ciphers='ECDHE+AESGCM')
+        i_info = self.node.instance_info
+        i_info['image_checksum'] = 'sha256:checksum'
+        self.node.instance_info = i_info
+        self.node.save()
+        with task_manager.acquire(self.context,
+                                  self.node.uuid) as task:
+            result = ansible_deploy._prepare_variables(task)
+        self.assertEqual('ECDHE+AESGCM',
+                         result['image']['tls_ciphers'])
+
+    def test__prepare_variables_tls_both(self):
+        self.config(webserver_tls_minimum_version='1.2')
+        self.config(webserver_tls_ciphers='ECDHE+AESGCM')
+        i_info = self.node.instance_info
+        i_info['image_checksum'] = 'sha256:checksum'
+        self.node.instance_info = i_info
+        self.node.save()
+        with task_manager.acquire(self.context,
+                                  self.node.uuid) as task:
+            result = ansible_deploy._prepare_variables(task)
+        self.assertEqual(
+            '1.2', result['image']['tls_minimum_version'])
+        self.assertEqual(
+            'ECDHE+AESGCM', result['image']['tls_ciphers'])
+
+    def test__prepare_variables_tls_defaults(self):
+        i_info = self.node.instance_info
+        i_info['image_checksum'] = 'sha256:checksum'
+        self.node.instance_info = i_info
+        self.node.save()
+        with task_manager.acquire(self.context,
+                                  self.node.uuid) as task:
+            result = ansible_deploy._prepare_variables(task)
+        self.assertEqual('1.2',
+                         result['image']['tls_minimum_version'])
+        self.assertNotIn('tls_ciphers',
+                         result['image'])
 
     def test__prepare_variables_configdrive_url(self):
         i_info = self.node.instance_info
@@ -462,7 +517,8 @@ class TestAnsibleMethods(AnsibleDeployTestCaseBase):
                               "validate_certs": "yes",
                               "source": "fake-image",
                               "disk_format": "qcow2",
-                              "checksum": "md5:checksum"},
+                              "checksum": "md5:checksum",
+                              "tls_minimum_version": "1.2"},
                     'configdrive': {'type': 'url',
                                     'location': 'http://configdrive_url'}}
         with task_manager.acquire(self.context, self.node.uuid) as task:
@@ -481,7 +537,8 @@ class TestAnsibleMethods(AnsibleDeployTestCaseBase):
                               "validate_certs": "yes",
                               "source": "fake-image",
                               "disk_format": "qcow2",
-                              "checksum": "md5:checksum"},
+                              "checksum": "md5:checksum",
+                              "tls_minimum_version": "1.2"},
                     'configdrive': {'type': 'file',
                                     'location': configdrive_path}}
         with mock.patch.object(ansible_deploy, 'open', mock.mock_open(),
@@ -510,7 +567,8 @@ class TestAnsibleMethods(AnsibleDeployTestCaseBase):
                               "validate_certs": "yes",
                               "source": "fake-image",
                               "disk_format": "qcow2",
-                              "checksum": "md5:checksum"},
+                              "checksum": "md5:checksum",
+                              "tls_minimum_version": "1.2"},
                     'configdrive': {'type': 'file',
                                     'location': configdrive_path}}
         with mock.patch.object(ansible_deploy, 'open', mock.mock_open(),
