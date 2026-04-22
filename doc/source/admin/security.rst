@@ -618,6 +618,57 @@ These settings govern connections to:
 * OCI container registries when deploying container-based
   workloads
 
+Configuring TLS for Redfish BMC Connections
+--------------------------------------------
+
+The conductor makes outbound HTTPS connections to Redfish BMCs.
+TLS settings can be configured globally in the ``[redfish]``
+section, and overridden per-node via ``driver_info``:
+
+.. code-block:: ini
+
+   [redfish]
+   # Set a global minimum TLS version for BMC connections
+   # Supported values: 1.1, 1.2, 1.3
+   tls_minimum_version = 1.2
+
+   # Optionally restrict available ciphers
+   # tls_ciphers = ECDHE+AESGCM:ECDHE+CHACHA20:DHE+AESGCM
+
+Per-node overrides can be set in the node's ``driver_info``:
+
+.. code-block:: bash
+
+   baremetal node set <node> \
+     --driver-info redfish_tls_minimum_version=1.3 \
+     --driver-info redfish_tls_ciphers=ECDHE+AESGCM
+
+Unlike the API, JSON-RPC, and image download settings, no
+default minimum TLS version is enforced for Redfish connections.
+This is because BMCs are embedded firmware on physical hardware
+where the TLS capabilities vary significantly across vendors
+and generations. Firmware updates may be difficult, risky, or
+unavailable, and the BMC is often the only management interface
+for the machine. Enforcing a default could render hardware
+unmanageable after an Ironic upgrade.
+
+Operators are strongly encouraged to set
+``tls_minimum_version = 1.2`` globally once they have confirmed
+their BMC fleet supports it. Per-node overrides can accommodate
+older hardware that requires weaker TLS:
+
+.. code-block:: bash
+
+   # Allow TLS 1.1 for a specific older BMC
+   baremetal node set <node> \
+     --driver-info redfish_tls_minimum_version=1.1
+
+.. note::
+   TLS 1.0 and 1.1 are deprecated per RFC 8996 and have known
+   vulnerabilities. The ``1.1`` option is provided solely for
+   compatibility with older BMC firmware that does not support
+   TLS 1.2.
+
 Post-Quantum Cryptography Readiness
 -----------------------------------
 

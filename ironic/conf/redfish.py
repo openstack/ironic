@@ -197,6 +197,28 @@ opts = [
     cfg.StrOpt('verify_ca',
                help=_('The default verify_ca path when redfish_verify_ca '
                       'in driver_info is missing or set to True.')),
+    cfg.StrOpt(
+        'tls_minimum_version',
+        choices=[
+            ('1.1', _('Require TLS 1.1 as the minimum version.')),
+            ('1.2', _('Require TLS 1.2 as the minimum version.')),
+            ('1.3', _('Require TLS 1.3 as the minimum version. '
+                      'Recommended for Post-Quantum Cryptography '
+                      'readiness.')),
+        ],
+        help=_('Set the minimum TLS protocol version for '
+               'connections to the Redfish BMC. When set, this '
+               'value is passed to the sushy library. Can be '
+               'overridden per-node via driver_info/'
+               'redfish_tls_minimum_version. When not set, '
+               'the system default is used.')),
+    cfg.StrOpt(
+        'tls_ciphers',
+        help=_('Set the list of available ciphers for '
+               'connections to the Redfish BMC using OpenSSL '
+               'cipher list format. Can be overridden per-node '
+               'via driver_info/redfish_tls_ciphers. When not '
+               'set, the system default ciphers are used.')),
     cfg.BoolOpt('enable_verify_bmc_clock',
                 default=False,
                 help=_('Whether to enable the automated verify step '

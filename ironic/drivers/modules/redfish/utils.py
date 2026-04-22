@@ -77,7 +77,18 @@ OPTIONAL_PROPERTIES = {
         'Number of seconds to wait to avoid the BMC becoming unresponsive '
         'during firmware updates. If not set, the default value is taken from '
         'the Ironic configuration ``firmware_update_wait_unresponsive_bmc`` '
-        'in the ``[redfish]`` section.')
+        'in the ``[redfish]`` section.'),
+    'redfish_tls_minimum_version': _(
+        'Minimum TLS protocol version for connections to the '
+        'Redfish BMC. Can be "1.1", "1.2", or "1.3". If not '
+        'set, the default value is taken from Ironic '
+        'configuration as ``[redfish]tls_minimum_version`` '
+        'option.'),
+    'redfish_tls_ciphers': _(
+        'OpenSSL cipher list to use for connections to the '
+        'Redfish BMC. If not set, the default value is taken '
+        'from Ironic configuration as '
+        '``[redfish]tls_ciphers`` option.'),
 }
 
 COMMON_PROPERTIES = REQUIRED_PROPERTIES.copy()
@@ -121,6 +132,37 @@ def get_component_type(component):
     elif component.startswith(NIC_COMPONENT_PREFIX):
         return NIC
     return None
+
+
+def _parse_tls_settings(node, driver_info):
+    """Parse TLS hardening settings from driver_info with config fallback.
+
+    :param node: an Ironic node object
+    :param driver_info: the node's driver_info dict
+    :returns: dictionary of TLS-related sushy parameters
+    :raises: InvalidParameterValue on invalid tls_minimum_version
+    """
+    tls_min = driver_info.get(
+        'redfish_tls_minimum_version',
+        CONF.redfish.tls_minimum_version)
+    if tls_min and tls_min not in ('1.1', '1.2', '1.3'):
+        raise exception.InvalidParameterValue(
+            _('Invalid value "%(value)s" set in '
+              'driver_info/redfish_tls_minimum_version on node '
+              '%(node)s. The value should be one of '
+              '"1.1", "1.2", or "1.3".') %
+            {'value': tls_min, 'node': node.uuid})
+
+    tls_ciphers = driver_info.get(
+        'redfish_tls_ciphers',
+        CONF.redfish.tls_ciphers)
+
+    params = {}
+    if tls_min:
+        params['tls_min_version'] = tls_min
+    if tls_ciphers:
+        params['tls_ciphers'] = tls_ciphers
+    return params
 
 
 def parse_driver_info(node):
@@ -231,6 +273,7 @@ def parse_driver_info(node):
                     'node_uuid': node.uuid}
     if root_prefix:
         sushy_params['root_prefix'] = root_prefix
+    sushy_params.update(_parse_tls_settings(node, driver_info))
 
     unres_bmc_wait = driver_info.get('firmware_update_unresponsive_bmc_wait')
     if unres_bmc_wait:
@@ -293,6 +336,12 @@ class SessionCache(object):
                         'auth': authenticator}
         if 'root_prefix' in self._driver_info:
             sushy_params['root_prefix'] = self._driver_info['root_prefix']
+        if 'tls_min_version' in self._driver_info:
+            sushy_params['tls_min_version'] = (
+                self._driver_info['tls_min_version'])
+        if 'tls_ciphers' in self._driver_info:
+            sushy_params['tls_ciphers'] = (
+                self._driver_info['tls_ciphers'])
         sushy_params['connect_timeout'] = CONF.redfish.connect_timeout
         conn = sushy.Sushy(
             self._driver_info['address'],
