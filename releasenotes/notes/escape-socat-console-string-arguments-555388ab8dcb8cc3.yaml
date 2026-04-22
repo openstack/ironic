@@ -1,0 +1,5 @@
+---
+fixes:
+  - |
+    Fixes an issue where console command passed to `socat`'s `EXEC:` was not
+    quoted which could have security implications.
