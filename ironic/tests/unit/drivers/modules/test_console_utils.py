@@ -260,13 +260,14 @@ class ConsoleUtilsTestCase(db_base.DbTestCase):
                        autospec=True)
     def _test_start_socat_console_check_arg(self, mock_timer_start,
                                             mock_stop, mock_dir_exists,
-                                            mock_get_pid, mock_popen):
+                                            mock_get_pid, mock_popen,
+                                            console_cmd='ls&'):
         mock_timer_start.return_value = mock.Mock()
         mock_get_pid.return_value = '/tmp/%s.pid' % self.info['uuid']
 
         console_utils.start_socat_console(self.info['uuid'],
                                           self.info['port'],
-                                          'ls&')
+                                          console_cmd)
 
         mock_stop.assert_called_once_with(self.info['uuid'])
         mock_dir_exists.assert_called_once_with()
@@ -274,6 +275,12 @@ class ConsoleUtilsTestCase(db_base.DbTestCase):
         mock_timer_start.assert_called_once_with(mock.ANY, interval=mock.ANY)
         mock_popen.assert_called_once_with(mock.ANY, stderr=subprocess.PIPE)
         return mock_popen.call_args[0][0]
+
+    def test_escape_start_socat_console_command(self):
+        command = ";cat /etc/passwd; && echo it\'s tricky"
+        quoted_command = ';cat /etc/passwd; && echo it\'"\'"\'s tricky'
+        args = self._test_start_socat_console_check_arg(console_cmd=command)
+        self.assertIn(quoted_command, args[-1])
 
     def test_start_socat_console_check_arg_default_timeout(self):
         args = self._test_start_socat_console_check_arg()
