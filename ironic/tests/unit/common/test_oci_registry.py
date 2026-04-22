@@ -15,6 +15,7 @@
 import hashlib
 import io
 import json
+import ssl
 from unittest import mock
 from urllib import parse
 
@@ -22,6 +23,7 @@ from oslo_config import cfg
 import requests
 
 from ironic.common import exception
+from ironic.common import image_service
 from ironic.common import oci_registry
 from ironic.tests import base
 
@@ -1326,3 +1328,87 @@ class TestRegistrySessionHelper(base.TestCase):
             res = oci_registry.RegistrySessionHelper.get_token_from_config(
                 'foo.fqdn')
         self.assertIsNone(res)
+
+
+class MakeSessionTLSTestCase(base.TestCase):
+
+    def test_make_session_defaults(self):
+        """Default config returns session with TLS 1.2."""
+        ms = oci_registry.MakeSession(verify=True)
+        session = ms.create()
+        adapter = session.get_adapter('https://example.com')
+        self.assertIsInstance(
+            adapter, image_service.TLSHTTPAdapter)
+        self.assertEqual(
+            ssl.TLSVersion.TLSv1_2,
+            adapter._ssl_context.minimum_version)
+
+    def test_make_session_tls_minimum_version(self):
+        CONF.set_override(
+            'webserver_tls_minimum_version', '1.3')
+        ms = oci_registry.MakeSession(verify=True)
+        session = ms.create()
+        adapter = session.get_adapter('https://example.com')
+        self.assertIsInstance(
+            adapter, image_service.TLSHTTPAdapter)
+        self.assertEqual(
+            ssl.TLSVersion.TLSv1_3,
+            adapter._ssl_context.minimum_version)
+
+    def test_make_session_tls_minimum_version_1_2(self):
+        CONF.set_override(
+            'webserver_tls_minimum_version', '1.2')
+        ms = oci_registry.MakeSession(verify=True)
+        session = ms.create()
+        adapter = session.get_adapter('https://example.com')
+        self.assertIsInstance(
+            adapter, image_service.TLSHTTPAdapter)
+        self.assertEqual(
+            ssl.TLSVersion.TLSv1_2,
+            adapter._ssl_context.minimum_version)
+
+    def test_make_session_tls_ciphers(self):
+        CONF.set_override(
+            'webserver_tls_ciphers', 'ECDHE+AESGCM')
+        with mock.patch.object(
+                ssl.SSLContext, 'set_ciphers',
+                autospec=True) as mock_set_ciphers:
+            ms = oci_registry.MakeSession(verify=True)
+            session = ms.create()
+            adapter = session.get_adapter(
+                'https://example.com')
+            self.assertIsInstance(
+                adapter, image_service.TLSHTTPAdapter)
+            mock_set_ciphers.assert_called_once_with(
+                'ECDHE+AESGCM')
+
+    def test_make_session_tls_all_options(self):
+        CONF.set_override(
+            'webserver_tls_minimum_version', '1.3')
+        CONF.set_override(
+            'webserver_tls_ciphers', 'ECDHE+AESGCM')
+        with mock.patch.object(
+                ssl.SSLContext, 'set_ciphers',
+                autospec=True) as mock_set_ciphers:
+            ms = oci_registry.MakeSession(verify=True)
+            session = ms.create()
+            adapter = session.get_adapter(
+                'https://example.com')
+            self.assertIsInstance(
+                adapter, image_service.TLSHTTPAdapter)
+            self.assertEqual(
+                ssl.TLSVersion.TLSv1_3,
+                adapter._ssl_context.minimum_version)
+            mock_set_ciphers.assert_called_once_with(
+                'ECDHE+AESGCM')
+
+    def test_make_session_verification_disabled(self):
+        """SSL context defers verification to requests lib."""
+        ms = oci_registry.MakeSession(verify=True)
+        session = ms.create()
+        adapter = session.get_adapter('https://example.com')
+        self.assertFalse(
+            adapter._ssl_context.check_hostname)
+        self.assertEqual(
+            ssl.CERT_NONE,
+            adapter._ssl_context.verify_mode)

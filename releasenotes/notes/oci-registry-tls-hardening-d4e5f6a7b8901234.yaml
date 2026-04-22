@@ -1,0 +1,13 @@
+---
+features:
+  - |
+    The OCI container registry client now respects the
+    ``webserver_tls_minimum_version`` and ``webserver_tls_ciphers``
+    configuration options. Outbound HTTPS connections to OCI
+    container registries enforce TLS 1.2 by default and can be
+    configured to require TLS 1.3.
+security:
+  - |
+    Outbound HTTPS connections to OCI container registries now
+    enforce TLS 1.2 as the minimum protocol version by default,
+    preventing TLS downgrade attacks on container image pulls.
