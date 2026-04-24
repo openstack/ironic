@@ -1,0 +1,11 @@
+---
+fixes:
+  - |
+    Fixed an unnecessary IPA boot during out-of-band service steps. When all
+    service steps declare ``requires_ramdisk=False``, the conductor correctly
+    skips the initial ramdisk boot, but ``service_disable_ramdisk`` in
+    ``driver_internal_info`` was left as ``False``. Steps that call
+    ``reboot_to_finish_step()`` internally (e.g. Redfish BIOS
+    ``apply_configuration``) would then boot IPA before the reboot, adding a
+    disruptive and unnecessary boot cycle. The flag is now set to ``True``
+    whenever all service steps are out-of-band.
