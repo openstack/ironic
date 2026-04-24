@@ -1283,6 +1283,11 @@ class RedfishManagement(base.ManagementInterface):
         firmware_utils.validate_update_firmware_args(firmware_images)
         node = task.node
 
+        LOG.warning(_(
+            "The 'management' interface is deprecated for updating firmware, "
+            "please migrate to the 'firmware' interface for updating firmware."
+        ))
+
         LOG.debug('Updating firmware on node %(node_uuid)s with firmware '
                   '%(firmware_images)s',
                   {'node_uuid': node.uuid,
