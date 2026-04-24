@@ -1,0 +1,10 @@
+---
+fixes:
+  - |
+    Add validation to the ``bios.apply_configuration`` step's data before the
+    job starts to run to avoid an indefinite hang because the step cannot set
+    the BIOS to the value that was requested because it is not valid. If the
+    BIOS has provided us with the valid values, ranges, or lengths of the
+    data then we first validate it before attempting to use it. If the data
+    is not valid then we clearly fail the step and report the field that
+    was invalid. `bug 2148675 <https://bugs.launchpad.net/ironic/+bug/2148675>`_.

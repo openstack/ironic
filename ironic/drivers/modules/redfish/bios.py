@@ -235,6 +235,8 @@ class RedfishBIOS(base.BIOSInterface):
         reboot_requested = bios_state.get(_REBOOT_REQUESTED, False)
 
         if not reboot_requested:
+            self._validate_settings(task, settings)
+
             # Check if all requested settings already match the current
             # BIOS values.  When a client of the Ironic API re-sends
             # the same request after a successful apply, this avoids an
@@ -353,6 +355,62 @@ class RedfishBIOS(base.BIOSInterface):
         :raises: MissingParameterValue on missing parameter(s)
         """
         redfish_utils.parse_driver_info(task.node)
+
+    def _validate_settings(self, task, settings):
+        """Validate requested BIOS settings against the cached registry.
+
+        :param task: a TaskManager instance containing the node to act on.
+        :param settings: a list of BIOS settings to be validated.
+        :raises: InvalidParameterValue if any setting value is invalid
+            according to the cached registry, including: read-only settings,
+            Enumeration values not in allowable_values, Integer values outside
+            lower_bound/upper_bound, and String values outside
+            min_length/max_length.
+        """
+        cached_settings = {
+            s.name: s
+            for s in objects.BIOSSettingList.get_by_node_id(
+                task.context, task.node.id)
+        }
+        invalid = []
+        for s in settings:
+            name, value = s['name'], s['value']
+            cached = cached_settings.get(name)
+            if not cached:
+                continue
+            if cached.read_only:
+                invalid.append(name)
+                continue
+            if (cached.attribute_type == 'Enumeration'
+                    and cached.allowable_values
+                    and value not in cached.allowable_values):
+                invalid.append(name)
+            elif cached.attribute_type == 'Integer':
+                try:
+                    int_value = int(value)
+                except (ValueError, TypeError):
+                    invalid.append(name)
+                    continue
+                if ((cached.lower_bound is not None
+                        and int_value < cached.lower_bound)
+                        or (cached.upper_bound is not None
+                            and int_value > cached.upper_bound)):
+                    invalid.append(name)
+            elif cached.attribute_type == 'String':
+                str_len = len(value)
+                if ((cached.min_length is not None
+                        and str_len < cached.min_length)
+                        or (cached.max_length is not None
+                            and str_len > cached.max_length)):
+                    invalid.append(name)
+        if invalid:
+            error_msg = (
+                _('Redfish BIOS apply_configuration failed for node '
+                  '%(node)s: invalid value for setting(s): %(fields)s') %
+                {'node': task.node.uuid,
+                 'fields': ', '.join(invalid)})
+            LOG.error(error_msg)
+            raise exception.InvalidParameterValue(error_msg)
 
     def _get_unapplied_bios_attrs(self, task, requested_attrs, bios):
         """Return requested BIOS attrs that have not yet been applied.
