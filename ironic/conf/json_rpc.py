@@ -54,17 +54,6 @@ opts = [
                        'even if use_ssl is set to False. Only makes sense '
                        'if server-side TLS is provided outside of Ironic '
                        '(e.g. with httpd acting as a reverse proxy).')),
-    cfg.StrOpt('http_basic_username',
-               deprecated_for_removal=True,
-               deprecated_reason=_("Use username instead"),
-               help=_("Name of the user to use for HTTP Basic authentication "
-                      "client requests.")),
-    cfg.StrOpt('http_basic_password',
-               deprecated_for_removal=True,
-               deprecated_reason=_("Use password instead"),
-               secret=True,
-               help=_("Password to use for HTTP Basic authentication "
-                      "client requests.")),
     cfg.ListOpt('allowed_roles',
                 default=['admin'],
                 help=_("List of roles allowed to use JSON RPC")),

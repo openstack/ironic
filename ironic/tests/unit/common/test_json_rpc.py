@@ -16,6 +16,7 @@ import tempfile
 from unittest import mock
 
 import fixtures
+from keystoneauth1 import loading as ks_loading
 from oslo_config import cfg
 import oslo_messaging
 import webob
@@ -29,6 +30,9 @@ from ironic.tests.base import TestCase
 CONF = cfg.CONF
 
 json_rpc.register_opts(CONF, 'some_other_json_rpc')
+CONF.register_opts(
+    ks_loading.get_auth_plugin_conf_options('http_basic'),
+    'json_rpc')
 
 
 class FakeContext(server.EmptyContext):
@@ -145,8 +149,8 @@ class TestService(TestCase):
         self.addCleanup(os.remove, f.name)
         self.config(http_basic_auth_user_file=f.name, group='json_rpc')
         self.config(auth_strategy='http_basic', group='json_rpc')
-        # self.config(http_basic_username='myUser', group='json_rpc')
-        # self.config(http_basic_password='myPassword', group='json_rpc')
+        self.config(username='myUser', group='json_rpc')
+        self.config(password='myPassword', group='json_rpc')
         self.service = server.WSGIService(FakeManager(), self.serializer,
                                           FakeContext)
         self.app = self.server_mock.call_args.kwargs['wsgi_app']
@@ -863,31 +867,11 @@ class TestSession(TestCase):
 
     def test_http_basic(self, mock_keystone):
         self.config(auth_strategy='http_basic', group='json_rpc')
+        self.config(username='myName', group='json_rpc')
+        self.config(password='myPassword', group='json_rpc')
         session = client._get_session()
 
         mock_keystone.get_auth.assert_called_once_with('json_rpc')
-        auth = mock_keystone.get_auth.return_value
-        mock_keystone.get_session.assert_called_once_with(
-            'json_rpc', auth=auth)
-
-        internal_session = mock_keystone.get_session.return_value
-
-        mock_keystone.get_adapter.assert_called_once_with(
-            'json_rpc',
-            session=internal_session,
-            additional_headers={
-                'Content-Type': 'application/json'
-            })
-        self.assertEqual(mock_keystone.get_adapter.return_value, session)
-
-    def test_http_basic_deprecated(self, mock_keystone):
-        self.config(auth_strategy='http_basic', group='json_rpc')
-        self.config(http_basic_username='myName', group='json_rpc')
-        self.config(http_basic_password='myPassword', group='json_rpc')
-        session = client._get_session()
-
-        mock_keystone.get_auth.assert_called_once_with(
-            'json_rpc', username='myName', password='myPassword')
         auth = mock_keystone.get_auth.return_value
         mock_keystone.get_session.assert_called_once_with(
             'json_rpc', auth=auth)
@@ -910,32 +894,6 @@ class TestSession(TestCase):
         mock_keystone.get_auth.assert_called_once_with('some_other_json_rpc')
         auth = mock_keystone.get_auth.return_value
 
-        mock_keystone.get_session.assert_called_once_with(
-            'some_other_json_rpc', auth=auth)
-
-        internal_session = mock_keystone.get_session.return_value
-
-        mock_keystone.get_adapter.assert_called_once_with(
-            'some_other_json_rpc',
-            session=internal_session,
-            additional_headers={
-                'Content-Type': 'application/json'
-            })
-        self.assertEqual(mock_keystone.get_adapter.return_value, session)
-
-    def test_group_http_basic_deprecated(self, mock_keystone):
-        client._SESSIONS.clear()
-        self.config(auth_strategy='http_basic',
-                    group='some_other_json_rpc')
-        self.config(http_basic_username='netUser',
-                    group='some_other_json_rpc')
-        self.config(http_basic_password='netPass',
-                    group='some_other_json_rpc')
-        session = client._get_session('some_other_json_rpc')
-
-        mock_keystone.get_auth.assert_called_once_with(
-            'some_other_json_rpc', username='netUser', password='netPass')
-        auth = mock_keystone.get_auth.return_value
         mock_keystone.get_session.assert_called_once_with(
             'some_other_json_rpc', auth=auth)
 
