@@ -19,6 +19,7 @@ from oslo_config import cfg
 import requests
 
 from ironic.common import exception
+from ironic.common import keystone
 from ironic.common import molds
 from ironic.common import swift
 from ironic.conductor import task_manager
@@ -32,15 +33,18 @@ class ConfigurationMoldTestCase(db_base.DbTestCase):
         super(ConfigurationMoldTestCase, self).setUp()
         self.node = obj_utils.create_test_node(self.context)
 
+    @mock.patch.object(keystone, 'get_endpoint', autospec=True)
     @mock.patch.object(swift, 'get_swift_session', autospec=True)
     @mock.patch.object(requests, 'put', autospec=True)
-    def test_save_configuration_swift(self, mock_put, mock_swift):
+    def test_save_configuration_swift(self, mock_put, mock_swift,
+                                      mock_endpoint):
         mock_session = mock.Mock()
         mock_session.get_token.return_value = 'token'
         mock_swift.return_value = mock_session
         cfg.CONF.set_override('storage', 'swift', 'molds')
         url = 'https://example.com/file1'
         data = {'key': 'value'}
+        mock_endpoint.return_value = 'https://example.com/v1'
 
         with task_manager.acquire(self.context, self.node.uuid) as task:
             molds.save_configuration(task, url, data)
@@ -49,15 +53,18 @@ class ConfigurationMoldTestCase(db_base.DbTestCase):
                                          headers={'X-Auth-Token': 'token'},
                                          timeout=60)
 
+    @mock.patch.object(keystone, 'get_endpoint', autospec=True)
     @mock.patch.object(swift, 'get_swift_session', autospec=True)
     @mock.patch.object(requests, 'put', autospec=True)
-    def test_save_configuration_swift_noauth(self, mock_put, mock_swift):
+    def test_save_configuration_swift_noauth(self, mock_put, mock_swift,
+                                             mock_endpoint):
         mock_session = mock.Mock()
         mock_session.get_token.return_value = None
         mock_swift.return_value = mock_session
         cfg.CONF.set_override('storage', 'swift', 'molds')
         url = 'https://example.com/file1'
         data = {'key': 'value'}
+        mock_endpoint.return_value = 'https://example.com/v1'
 
         with task_manager.acquire(self.context, self.node.uuid) as task:
             self.assertRaises(
@@ -164,9 +171,11 @@ class ConfigurationMoldTestCase(db_base.DbTestCase):
                 timeout=60)
             self.assertEqual(mock_put.call_count, 2)
 
+    @mock.patch.object(keystone, 'get_endpoint', autospec=True)
     @mock.patch.object(swift, 'get_swift_session', autospec=True)
     @mock.patch.object(requests, 'get', autospec=True)
-    def test_get_configuration_swift(self, mock_get, mock_swift):
+    def test_get_configuration_swift(self, mock_get, mock_swift,
+                                     mock_endpoint):
         mock_session = mock.Mock()
         mock_session.get_token.return_value = 'token'
         mock_swift.return_value = mock_session
@@ -177,6 +186,7 @@ class ConfigurationMoldTestCase(db_base.DbTestCase):
         response.json.return_value = {'key': 'value'}
         mock_get.return_value = response
         url = 'https://example.com/file1'
+        mock_endpoint.return_value = 'https://example.com/v1'
 
         with task_manager.acquire(self.context, self.node.uuid) as task:
             result = molds.get_configuration(task, url)
@@ -185,15 +195,45 @@ class ConfigurationMoldTestCase(db_base.DbTestCase):
                 url, headers={'X-Auth-Token': 'token'},
                 timeout=60)
             self.assertJsonEqual({'key': 'value'}, result)
+        mock_endpoint.assert_called_once_with('swift', session=mock_session)
 
+    @mock.patch.object(keystone, 'get_endpoint', autospec=True)
     @mock.patch.object(swift, 'get_swift_session', autospec=True)
     @mock.patch.object(requests, 'get', autospec=True)
-    def test_get_configuration_swift_noauth(self, mock_get, mock_swift):
+    def test_get_configuration_swift_url_mismatch(
+            self, mock_get, mock_swift, mock_endpoint):
+        mock_session = mock.Mock()
+        mock_session.get_token.return_value = 'token'
+        mock_swift.return_value = mock_session
+        cfg.CONF.set_override('storage', 'swift', 'molds')
+        response = mock.MagicMock()
+        response.status_code = 200
+        response.content = "{'key': 'value'}"
+        response.json.return_value = {'key': 'value'}
+        mock_get.return_value = response
+        url = 'https://example.com/file1'
+        mock_endpoint.return_value = 'https://cloud.foo/v1'
+
+        with task_manager.acquire(self.context, self.node.uuid) as task:
+            self.assertRaises(exception.InvalidParameterValue,
+                              molds.get_configuration,
+                              task, url)
+
+        mock_endpoint.assert_called_once_with('swift', session=mock_session)
+        mock_get.assert_not_called()
+
+
+    @mock.patch.object(keystone, 'get_endpoint', autospec=True)
+    @mock.patch.object(swift, 'get_swift_session', autospec=True)
+    @mock.patch.object(requests, 'get', autospec=True)
+    def test_get_configuration_swift_noauth(self, mock_get, mock_swift,
+                                            mock_endpoint):
         mock_session = mock.Mock()
         mock_session.get_token.return_value = None
         mock_swift.return_value = mock_session
         cfg.CONF.set_override('storage', 'swift', 'molds')
         url = 'https://example.com/file1'
+        mock_endpoint.return_value = 'https://example.com/v1'
 
         with task_manager.acquire(self.context, self.node.uuid) as task:
             self.assertRaises(
