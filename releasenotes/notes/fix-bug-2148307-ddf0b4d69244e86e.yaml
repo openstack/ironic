@@ -1,0 +1,8 @@
+---
+fixes:
+  - |
+    Fixes security issue identified in
+    `bug 2148307 <https://bugs.launchpad.net/ironic/+bug/2148307>`_
+    where users of the anaconda deployment interface could supply
+    a malicious template. The conductor process now sandboxes all
+    jinja2 rendering operations.
