@@ -13,6 +13,7 @@
 # under the License.
 
 import json
+from urllib.parse import urlparse
 
 from oslo_config import cfg
 from oslo_log import log as logging
@@ -22,6 +23,7 @@ import tenacity
 
 from ironic.common import exception
 from ironic.common.i18n import _
+from ironic.common import keystone
 from ironic.common import swift
 
 LOG = logging.getLogger(__name__)
@@ -55,7 +57,7 @@ def save_configuration(task, url, data):
             url, data=json.dumps(data, indent=2), headers=auth_header,
             timeout=CONF.webserver_connection_timeout)
 
-    auth_header = _get_auth_header(task)
+    auth_header = _get_auth_header(task, url)
     response = _request(url, data, auth_header)
     response.raise_for_status()
 
@@ -86,7 +88,7 @@ def get_configuration(task, url):
         return requests.get(url, headers=auth_header,
                             timeout=CONF.webserver_connection_timeout)
 
-    auth_header = _get_auth_header(task)
+    auth_header = _get_auth_header(task, url)
     response = _request(url, auth_header)
     if response.status_code == requests.codes.ok:
         if not response.content:
@@ -107,7 +109,7 @@ def get_configuration(task, url):
 # NOTE(TheJulia): Deprecated after the 2024.1 PTG in favor of
 # a future step templating interface.
 
-def _get_auth_header(task):
+def _get_auth_header(task, url):
     """Based on setup of configuration mold storage gets authentication header
 
     :param task: A TaskManager instance.
@@ -116,8 +118,21 @@ def _get_auth_header(task):
     """
     auth_header = None
     if CONF.molds.storage == 'swift':
+        swift_session = swift.get_swift_session()
+        # NOTE(TheJulia): First validate the URL.
+        if url:
+            endpoint = keystone.get_endpoint('swift',
+                                             session=swift_session)
+            if (not endpoint
+                    or urlparse(endpoint).netloc != urlparse(url).netloc):
+                # Raise an InvalidParameterValue should the value not
+                # match swift configuration.
+                raise exception.InvalidParameterValue(
+                    _('Supplied URL for a mold target does not match the '
+                      'swift configuration.'))
+
         # TODO(ajya) Need to update to use Swift client and context session
-        auth_token = swift.get_swift_session().get_token()
+        auth_token = swift_session.get_token()
         if auth_token:
             auth_header = {'X-Auth-Token': auth_token}
         else:

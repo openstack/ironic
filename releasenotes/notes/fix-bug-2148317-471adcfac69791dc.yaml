@@ -1,0 +1,19 @@
+---
+fixes:
+  - |
+    Fixes a security issue where the deprecated configuration molds feature
+    would allow an user invoking molds to request authorization
+    to be sent to a remote endpoint. This user supplied URL could be a
+    ``swift`` or ``http`` url. While when used with ``http``, the feature
+    was explicitly designed around a concept of just publishing to a file
+    in a limited context with authentication details provided by the
+    conductor, where as with ``swift`` the impact is greater because the
+    time limited session token for Ironic's access of swift resources could
+    be leaked, captured, and used.
+
+    The configuration molds feature now explicitly checks the swift endpoint
+    URL and raises an exception when the URL does not match the user supplied
+    the configured Swift endpoint.
+
+    More information can be found in
+    `bug 2148317 <https://bugs.launchpad.net/ironic/+bug/2148317>`_.
