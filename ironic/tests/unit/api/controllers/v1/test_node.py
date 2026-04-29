@@ -177,6 +177,100 @@ class TestListNodes(test_api_base.BaseApiTest):
             mock.call().__bool__(),
         ])
 
+    @mock.patch.object(policy, 'check', autospec=True)
+    @mock.patch.object(policy, 'check_policy', autospec=True)
+    def test_field_redaction_with_owner_not_in_fields(
+            self, mock_check_policy, mock_check):
+        """Regression test for LP#2150573.
+
+        When a node owner requests specific fields without including
+        'owner' in the list, the RBAC policy checks for fields like
+        last_error must still have access to the node's owner in the
+        target_dict. Otherwise the project-scoped ownership rule
+        (project_id == node.owner) can never match and the fields
+        are incorrectly redacted.
+        """
+        owner_id = 'test-project-id'
+        obj_utils.create_test_node(self.context,
+                                   chassis_id=self.chassis.id,
+                                   owner=owner_id,
+                                   last_error='meow',
+                                   reservation='fake-conductor')
+        # filter_threshold=False triggers extended sanitization
+        mock_check_policy.return_value = False
+
+        def check_side_effect(rule, target, creds):
+            if rule in ('baremetal:node:get:last_error',
+                        'baremetal:node:get:reservation'):
+                # The target_dict (first positional arg after rule)
+                # must contain node.owner for ownership policy rules
+                # to evaluate correctly even though 'owner' was not
+                # in the requested field list.
+                assert 'node.owner' in target, (
+                    'node.owner missing from target_dict for '
+                    'policy rule %s' % rule)
+                assert target['node.owner'] == owner_id
+                return True
+            return True
+
+        mock_check.side_effect = check_side_effect
+
+        # Request fields WITHOUT 'owner' - the bug scenario
+        data = self.get_json(
+            '/nodes?fields=uuid,last_error,reservation',
+            headers={api_base.Version.string:
+                     str(api_v1.max_version())})
+
+        # Fields must contain actual values, not redaction text
+        self.assertEqual('meow',
+                         data['nodes'][0]['last_error'])
+        self.assertEqual('fake-conductor',
+                         data['nodes'][0]['reservation'])
+        # Owner must NOT be in the response since it was not
+        # requested, ensuring no information leak.
+        self.assertNotIn('owner', data['nodes'][0])
+
+    @mock.patch.object(policy, 'check', autospec=True)
+    @mock.patch.object(policy, 'check_policy', autospec=True)
+    def test_field_redaction_get_one_owner_not_in_fields(
+            self, mock_check_policy, mock_check):
+        """Regression test for LP#2150573 on single-node GET.
+
+        Same scenario as the list test above but exercising the
+        get_one code path through node_convert_with_links with
+        sanitize=True.
+        """
+        owner_id = 'test-project-id'
+        node = obj_utils.create_test_node(
+            self.context,
+            chassis_id=self.chassis.id,
+            owner=owner_id,
+            last_error='meow',
+            reservation='fake-conductor')
+        mock_check_policy.return_value = False
+
+        def check_side_effect(rule, target, creds):
+            if rule in ('baremetal:node:get:last_error',
+                        'baremetal:node:get:reservation'):
+                assert 'node.owner' in target, (
+                    'node.owner missing from target_dict for '
+                    'policy rule %s' % rule)
+                assert target['node.owner'] == owner_id
+                return True
+            return True
+
+        mock_check.side_effect = check_side_effect
+
+        data = self.get_json(
+            '/nodes/%s?fields=uuid,last_error,reservation'
+            % node.uuid,
+            headers={api_base.Version.string:
+                     str(api_v1.max_version())})
+
+        self.assertEqual('meow', data['last_error'])
+        self.assertEqual('fake-conductor', data['reservation'])
+        self.assertNotIn('owner', data)
+
     def test_instance_name_field_with_api_version(self):
         instance_name = 'test-instance-name'
         obj_utils.create_test_node(self.context,
