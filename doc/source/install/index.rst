@@ -20,6 +20,7 @@ It contains the following sections:
    :maxdepth: 2
 
    get_started.rst
+   deployment-scenarios.rst
    refarch/index
    install.rst
    deploy-ramdisk.rst
