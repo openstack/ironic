@@ -44,7 +44,6 @@ from ironic.conf import ironic_networking
 from ironic.conf import json_rpc
 from ironic.conf import mdns
 from ironic.conf import metrics
-from ironic.conf import molds
 from ironic.conf import neutron
 from ironic.conf import nfs
 from ironic.conf import nova
@@ -89,7 +88,6 @@ json_rpc.register_opts(CONF)
 json_rpc.register_opts(CONF, group='ironic_networking_json_rpc')
 mdns.register_opts(CONF)
 metrics.register_opts(CONF)
-molds.register_opts(CONF)
 neutron.register_opts(CONF)
 nfs.register_opts(CONF)
 nova.register_opts(CONF)

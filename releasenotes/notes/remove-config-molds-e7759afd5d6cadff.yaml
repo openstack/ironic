@@ -1,0 +1,12 @@
+---
+upgrade:
+  - |
+    The configuration molds feature, deprecated since 2024.1, has been
+    removed. This includes the ``export_configuration``,
+    ``import_configuration``, and ``import_export_configuration``
+    deploy/clean steps from the ``idrac-redfish`` management interface,
+    the ``[molds]`` configuration section, and the
+    ``[drac]query_import_config_job_status_interval`` option.
+    The removal was prompted by security concerns with the feature's
+    URL handling (see `bug 2148317
+    <https://bugs.launchpad.net/ironic/+bug/2148317>`_).

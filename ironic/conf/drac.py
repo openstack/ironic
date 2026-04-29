@@ -38,11 +38,6 @@ opts = [
                help=_('Maximum number of retries for '
                       'the configuration job to complete '
                       'successfully.')),
-    cfg.IntOpt('query_import_config_job_status_interval',
-               min=0,
-               default=60,
-               help=_('Number of seconds to wait between checking for '
-                      'completed import configuration task')),
     cfg.IntOpt('bios_factory_reset_timeout',
                default=600,
                min=1,
