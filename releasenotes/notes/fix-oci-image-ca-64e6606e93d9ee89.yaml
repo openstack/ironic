@@ -1,0 +1,5 @@
+fixes:
+  - |
+    Fixes error handling in OCI image when
+    `webserver_verify_ca` is a path.
+
