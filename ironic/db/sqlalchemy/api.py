@@ -2823,7 +2823,7 @@ class Connection(api.Connection):
         # will populate the FK via the 'traits' relationship when the runbook
         # is flushed, avoiding a separate flush just to obtain runbook.id.
         values['traits'] = [
-            models.RunbookTrait(trait=t, version='1.0') for t in unique_traits
+            models.RunbookTrait(trait=t) for t in unique_traits
         ]
 
         runbook = models.Runbook()
