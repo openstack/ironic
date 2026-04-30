@@ -1316,6 +1316,8 @@ def build_instance_info_for_deploy(task):
     # and gets replaced at various points in this sequence.
     instance_info['image_url'] = None
 
+    is_file_url = image_source.startswith('file://')
+
     if service_utils.is_glance_image(image_source):
         glance = image_service.GlanceImageService(context=task.context)
         image_info = glance.show(image_source)
@@ -1357,8 +1359,7 @@ def build_instance_info_for_deploy(task):
         if not iwdi and boot_option != 'local':
             instance_info['kernel'] = image_info['properties']['kernel_id']
             instance_info['ramdisk'] = image_info['properties']['ramdisk_id']
-    elif (image_source.startswith('file://')
-          or image_download_source == 'local'):
+    elif (is_file_url or image_download_source == 'local'):
         # In this case, we're explicitly downloading (or copying a file)
         # hosted locally so IPA can download it directly from Ironic.
 
@@ -1366,7 +1367,12 @@ def build_instance_info_for_deploy(task):
         # based deploy source since we don't want to, nor should we be in
         # in the business of copying large numbers of files as it is a
         # huge performance impact.
-
+        if is_file_url:
+            # In this case, we need to validate the URL first before
+            # moving on to _cache_and_convert_image, because it's whole
+            # existence is to download, checksum, convert, etc.
+            image_service.FileImageService().validate_href(
+                image_href=image_source)
         _cache_and_convert_image(task, instance_info)
     else:
         # This is the "all other cases" logic for aspects like the user
