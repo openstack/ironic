@@ -1282,6 +1282,11 @@ def _validate_image_url(node, url, secret=False, inspect_image=None,
 def _cache_and_convert_image(task, instance_info, image_info=None):
     """Cache an image locally and convert it to RAW if needed.
 
+    Caches the supplied image as defined in the request, and converts it
+    to raw if required. This method should only be called once initial
+    first pass validation has been performed and can be called on multiple
+    code paths where the file contents must be downloaded.
+
     :param task: The Taskmanager object related to this action.
     :param instance_info: The instance_info field being used in
                           association with this method call.
@@ -1603,8 +1608,8 @@ def build_instance_info_for_deploy(task):
         check_image_size(node, image_info)
 
     if not is_glance_image:
-        if (image_source.startswith('file://')
-                or image_download_source == 'local'):
+        is_file_url = image_source.startswith('file://')
+        if (is_file_url or image_download_source == 'local'):
             # In this case, we're explicitly downloading (or copying a file)
             # hosted locally so IPA can download it directly from Ironic.
 
@@ -1612,7 +1617,13 @@ def build_instance_info_for_deploy(task):
             # based deploy source since we don't want to, nor should we be in
             # in the business of copying large numbers of files as it is a
             # huge performance impact.
-
+            if is_file_url:
+                # In this case, we need to validate the URL first before
+                # moving on to _cache_and_convert_image, because it's whole
+                # existence is to download, checksum, convert, etc.
+                image_service.FileImageService().validate_href(image_href=image_source)
+            # Either the file is local, or the file needs to be downloaded.
+            # _cache_and_convert_image handles both cases
             _cache_and_convert_image(task, instance_info)
         else:
             # This is the "all other cases" logic for aspects like the user

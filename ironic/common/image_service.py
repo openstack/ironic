@@ -956,8 +956,9 @@ class FileImageService(BaseImageService):
             doesn't exist, is in a blocked path, or is not in an allowed path.
         :returns: Path to image file if it exists and is allowed.
         """
+        # TODO(TheJulia): Validate there are *THREE* slashes in the file path
+        # URL, otherwise urlparse doesn't split it properly.
         image_path = urlparse.urlparse(image_href).path
-
         # Check if the path is in the blocklist
         rpath = os.path.abspath(image_path)
         for bad in BLOCKED_FILE_URL_PATHS:
