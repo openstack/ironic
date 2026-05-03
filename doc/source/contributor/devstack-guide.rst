@@ -195,7 +195,7 @@ enabled and use the ``ipmi`` hardware type with this config::
     # Configure networking by disabling OVN and enabling Neutron w/OVS.
     disable_service ovn-controller
     disable_service ovn-northd
-    disable_service neutron-ovn-metadata-agent
+    disable_service neutron-ovn-agent
 
     enable_service neutron-agent q-agt
     enable_service neutron-dhcp q-dhcp
