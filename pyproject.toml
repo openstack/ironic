@@ -9,7 +9,7 @@ authors = [
     {name = "OpenStack", email = "openstack-discuss@lists.openstack.org"},
 ]
 readme = {file = "README.rst", content-type = "text/x-rst"}
-license = {text = "Apache-2.0"}
+license = "Apache-2.0"
 dynamic = ["version", "dependencies"]
 requires-python = ">=3.10"
 classifiers = [
@@ -17,7 +17,6 @@ classifiers = [
   "Environment :: OpenStack",
   "Intended Audience :: Information Technology",
   "Intended Audience :: System Administrators",
-  "License :: OSI Approved :: Apache Software License",
   "Operating System :: POSIX :: Linux",
   "Programming Language :: Python",
   "Programming Language :: Python :: 3",
@@ -221,10 +220,8 @@ quiet-level = 4
 ignore-words-list = "selectin,exept,taks,ser,wit,cna,myraid,dum,assertin,checkin,authenticatin,burnin"
 skip = "AUTHORS,ChangeLog,*.pyc,*.inv,*.svg,*.png,*.sample,./doc/build/*,./api-ref/build/*,./releasenotes/build/*,./api-ref/build/*,./build/*"
 
-[tool.setuptools]
-packages = [
-    "ironic"
-]
+[tool.setuptools.packages.find]
+include = ["ironic"]
 
 [tool.setuptools.data-files]
 "share/ironic/vnc-container" = [
