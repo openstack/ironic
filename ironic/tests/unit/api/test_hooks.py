@@ -99,6 +99,7 @@ class TestNoExceptionTracebackHook(base.BaseApiTest):
              ' getattr(proxyobj, method)(ctxt, **kwargs)']
     MSG_WITHOUT_TRACE = "Test exception message."
     MSG_WITH_TRACE = MSG_WITHOUT_TRACE + "\n" + "\n".join(TRACE)
+    SKIP_TRACEBACK_OVERRIDE = True  # do not mess with the defaults
 
     def setUp(self):
         super(TestNoExceptionTracebackHook, self).setUp()
