@@ -1,0 +1,14 @@
+---
+security:
+  - |
+    Prevents changing the ``node_uuid`` of ports, port groups, volume targets,
+    and volume connectors to point to a node with a different owner from the
+    initial node. In some cases this is not normally permitted due to the
+    database model, but additional access checking was added across these
+    similar resources for consistency in the event the Ironic project fixes
+    `12150252 <https://bugs.launchpad.net/ironic/+bug/2150252>`_.
+issues:
+  - |
+    System operators should note that changing the owner field on a node does
+    not affect its child or parent nodes, potentially resulting in these nodes
+    being in different projects.
