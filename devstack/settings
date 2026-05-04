@@ -1,4 +1,10 @@
-enable_service ironic ir-api ir-cond ir-novnc ir-sw-sim
+enable_service ironic ir-api ir-cond ir-sw-sim
+
+# TODO(stevebaker): re-enable ir-novnc to enable graphical console testing
+# This can be re-enabled when PPA repos are stable, or when the base
+# container image does not require package installs.
+# enable_service ir-novnc
+# NOTE(TheJulia): In other words, re-add ir-novnc to the list above.
 
 source $DEST/ironic/devstack/common_settings
 

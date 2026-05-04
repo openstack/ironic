@@ -140,15 +140,15 @@ and the OS tarball and setting properties to refer to components can be seen bel
 .. code-block:: shell
 
         # vmlinuz
-        openstack image create --container-format bare --disk-format raw --shared \
+        openstack image create --container-format aki --disk-format aki --shared \
             --file ./vmlinuz anaconda-kernel-<version>
 
         # initrd/initramfs/ramdisk
-        openstack image create --container-format bare --disk-format raw --shared \
+        openstack image create --container-format ari --disk-format ari --shared \
             --file ./initrd.img anaconda-ramdisk-<version>
 
         # squashfs/stage2
-        openstack image create --container-format bare --disk-format raw --shared \
+        openstack image create --container-format ari --disk-format ari --shared \
             --file ./squashfs.img anaconda-stage2-<version>
 
         KERNEL_ID=$(openstack image show -f value -c id anaconda-kernel-<version>)
