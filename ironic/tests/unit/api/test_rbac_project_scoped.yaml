@@ -2468,6 +2468,30 @@ third_party_admin_cannot_modify_portgroup:
   body: *portgroup_patch_body
   assert_status: 404
 
+owner_admin_cannot_rehome_portgroup:
+  path: '/v1/portgroups/{owner_portgroup_ident}'
+  method: patch
+  headers: *owner_admin_headers
+  body: &other_node_portgroup_patch_body
+    - op: replace
+      path: /node_uuid
+      value: 573208e5-cd41-4e26-8f06-ef44022b3793
+  assert_status: 400
+
+owner_manager_cannot_rehome_portgroup:
+  path: '/v1/portgroups/{owner_portgroup_ident}'
+  method: patch
+  headers: *owner_manager_headers
+  body: *other_node_portgroup_patch_body
+  assert_status: 400
+
+owner_service_cannot_rehome_portgroup:
+  path: '/v1/portgroups/{owner_portgroup_ident}'
+  method: patch
+  headers: *service_headers_owner_project
+  body: *other_node_portgroup_patch_body
+  assert_status: 400
+
 owner_admin_can_delete_portgroup:
   path: '/v1/portgroups/{owner_portgroup_ident}'
   method: delete
@@ -2768,6 +2792,30 @@ owner_admin_can_delete_port:
   headers: *owner_admin_headers
   assert_status: 503
 
+owner_admin_cannot_rehome_port:
+  path: '/v1/ports/{owner_port_ident}'
+  method: patch
+  headers: *owner_admin_headers
+  body: &other_node_port_patch_body
+    - op: replace
+      path: /node_uuid
+      value: 573208e5-cd41-4e26-8f06-ef44022b3793
+  assert_status: 400
+
+owner_manager_cannot_rehome_port:
+  path: '/v1/ports/{owner_port_ident}'
+  method: patch
+  headers: *owner_manager_headers
+  body: *other_node_port_patch_body
+  assert_status: 400
+
+owner_service_cannot_rehome_port:
+  path: '/v1/ports/{owner_port_ident}'
+  method: patch
+  headers: *service_headers_owner_project
+  body: *other_node_port_patch_body
+  assert_status: 400
+
 owner_manager_can_delete_port:
   path: '/v1/ports/{owner_port_ident}'
   method: delete
@@ -3044,6 +3092,30 @@ third_party_admin_cannot_patch_volume_connectors:
   body: *connector_patch_body
   assert_status: 404
 
+owner_admin_cannot_rehome_volume_connector:
+  path: '/v1/volume/connectors/{volume_connector_ident}'
+  method: patch
+  headers: *owner_admin_headers
+  body: &other_node_connector_patch_body
+    - op: replace
+      path: /node_uuid
+      value: 573208e5-cd41-4e26-8f06-ef44022b3793
+  assert_status: 400
+
+owner_manager_cannot_rehome_volume_connector:
+  path: '/v1/volume/connectors/{volume_connector_ident}'
+  method: patch
+  headers: *owner_manager_headers
+  body: *other_node_connector_patch_body
+  assert_status: 400
+
+owner_service_cannot_rehome_volume_connector:
+  path: '/v1/volume/connectors/{volume_connector_ident}'
+  method: patch
+  headers: *service_headers_owner_project
+  body: *other_node_connector_patch_body
+  assert_status: 400
+
 owner_admin_can_delete_volume_connectors:
   path: '/v1/volume/connectors/{volume_connector_ident}'
   method: delete
@@ -3244,6 +3316,30 @@ service_cannot_patch_volume_target:
   body: *volume_target_patch
   headers: *service_headers
   assert_status: 404
+
+owner_admin_cannot_rehome_volume_target:
+  path: '/v1/volume/targets/{volume_target_ident}'
+  method: patch
+  headers: *owner_admin_headers
+  body: &other_node_target_patch_body
+    - op: replace
+      path: /node_uuid
+      value: 573208e5-cd41-4e26-8f06-ef44022b3793
+  assert_status: 400
+
+owner_manager_cannot_rehome_volume_target:
+  path: '/v1/volume/targets/{volume_target_ident}'
+  method: patch
+  headers: *owner_manager_headers
+  body: *other_node_target_patch_body
+  assert_status: 400
+
+owner_service_cannot_rehome_volume_target:
+  path: '/v1/volume/targets/{volume_target_ident}'
+  method: patch
+  headers: *service_headers_owner_project
+  body: *other_node_target_patch_body
+  assert_status: 400
 
 owner_admin_can_delete_volume_target:
   path: '/v1/volume/targets/{volume_target_ident}'
@@ -3962,6 +4058,35 @@ shard_patch_set_node_shard_disallowed:
       value: 'TestShard'
   assert_status: 403
 
+# Create node with parent_node field
+
+admin_can_create_node_with_parent:
+  path: '/v1/nodes'
+  method: post
+  headers: *owner_admin_headers
+  body:
+    driver: fake
+    parent_node: *owned_node_ident
+  assert_status: 503
+
+admin_cannot_create_node_with_non_existing_parent:
+  path: '/v1/nodes'
+  method: post
+  headers: *owner_admin_headers
+  body:
+    driver: fake
+    parent_node: 'f11853c7-fa9c-4db3-a477-c9d8e0dbbf13'
+  assert_status: 400
+
+admin_cannot_create_node_with_parent_they_cannot_see:
+  path: '/v1/nodes'
+  method: post
+  headers: *owner_admin_headers
+  body:
+    driver: fake
+    parent_node: '{node_ident}'
+  assert_status: 400
+
 # Update node parent_node field - baremetal:node:update:parent_node
 
 parent_node_patch_by_admin:
@@ -3996,8 +4121,7 @@ parent_node_patch_by_manager:
   assert_status: 403
 
 parent_node_patch_by_cannot_see_node:
-  # This node cannot be seen, and also just doesn't exist.
-  # Just to verify we return a 400 on a node we can change.
+  # Avoid exposing whether the node exists if not authorized
   path: '/v1/nodes/{lessee_node_ident}'
   method: patch
   headers: *owner_admin_headers
@@ -4005,7 +4129,7 @@ parent_node_patch_by_cannot_see_node:
     - op: replace
       path: /parent_node
       value: 'f11853c7-fa9c-4db3-a477-c9d8e0dbbf13'
-  assert_status: 400
+  assert_status: 403
 
 parent_node_children_can_get_list_of_children:
   path: '/v1/nodes/{owner_node_ident}/children'

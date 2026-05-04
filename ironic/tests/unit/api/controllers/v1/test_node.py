@@ -2917,6 +2917,15 @@ class TestPatch(test_api_base.BaseApiTest):
                          timeutils.parse_isotime(response.json['updated_at']))
         self.mock_update_node.assert_called_once_with(
             mock.ANY, mock.ANY, mock.ANY, 'test-topic', None)
+        # NOTE(TheJulia) As we save a hydrated database object back, we need
+        # to double check what gets saved back out to the database to validate
+        # handling is proper.
+        updated_node = self.mock_update_node.call_args.args[2]
+        self.assertEqual(updated_node.instance_uuid,
+                         'aaaaaaaa-1111-bbbb-2222-cccccccccccc')
+        # NOTE(TheJulia): Checking parent node here is to ensure we don't
+        # accidentally regress with auto-setting logic.
+        self.assertIsNone(updated_node.parent_node)
         mock_notify.assert_has_calls([mock.call(mock.ANY, mock.ANY, 'update',
                                       obj_fields.NotificationLevel.INFO,
                                       obj_fields.NotificationStatus.START,
