@@ -26,6 +26,7 @@ import jsonschema
 from jsonschema import exceptions as json_schema_exc
 import os_traits
 from oslo_config import cfg
+from oslo_log import log
 from oslo_policy import policy as oslo_policy
 from oslo_utils import uuidutils
 from pecan import rest
@@ -47,6 +48,8 @@ from ironic.objects import fields as ofields
 
 
 CONF = cfg.CONF
+
+LOG = log.getLogger(__name__)
 
 
 _JSONPATCH_EXCEPTIONS = (jsonpatch.JsonPatchConflict,
@@ -322,28 +325,6 @@ def replace_node_uuid_with_id(to_dict):
         check_owner_policy('node', 'baremetal:node:get', node['owner'],
                            node['lessee'], conceal_node=node.uuid)
 
-    except exception.NodeNotFound as e:
-        # Change error code because 404 (NotFound) is inappropriate
-        # response for requests acting on non-nodes
-        e.code = http_client.BAD_REQUEST  # BadRequest
-        raise
-    return node
-
-
-def replace_node_id_with_uuid(to_dict):
-    """Replace ``node_id`` dict value with ``node_uuid``
-
-    ``node_uuid`` is found by fetching the node by id lookup.
-
-    :param to_dict: Dict to set ``node_uuid`` value on
-    :returns: The node object from the lookup
-    :raises: NodeNotFound with status_code set to 400 BAD_REQUEST
-        when node is not found.
-    """
-    try:
-        node = objects.Node.get_by_id(api.request.context,
-                                      to_dict.pop('node_id'))
-        to_dict['node_uuid'] = node.uuid
     except exception.NodeNotFound as e:
         # Change error code because 404 (NotFound) is inappropriate
         # response for requests acting on non-nodes
@@ -1646,6 +1627,57 @@ def check_policy_true(policy_name):
     # we're comparing are coming from the same place.
     cdict = api.request.context.to_policy_values()
     return policy.check_policy(policy_name, cdict, api.request.context)
+
+
+def authorize_node_link(orig_node, new_uuid, field_name):
+    """Authorize creating or changing a link to the node on a resource.
+
+    :param orig_node: Node that currently owns the resource.
+    :param new_uuid: UUID of the new node.
+    :param field_name: Human-readable field name for logging and error message.
+    :raises: Invalid on access error
+    :returns: The new Node object
+    """
+    msg = _("Unable to apply the requested %s '%s'. "
+            "Requested value was invalid.")
+
+    try:
+        new_node = check_node_policy_and_retrieve(
+            'baremetal:node:get', new_uuid)
+    except Exception as exc:
+        LOG.debug("Rejecting %s %s: %s", field_name, new_uuid, exc)
+        # Important: do not disclose if the node exists
+        raise exception.Invalid(msg % (field_name, new_uuid))
+
+    if isinstance(orig_node, objects.Node):
+        orig_node = orig_node.as_dict()  # adjust for different callers
+
+    if orig_node.get('owner') != new_node.owner:
+        LOG.warning("Project mismatch on setting or changing %(field)s: "
+                    "current owner '%(orig)s', new %(field)s owner '%(new)s'",
+                    {'orig': orig_node.get('owner'), 'new': new_node.owner,
+                     'field': field_name})
+        # Important: same error message as when the node does not exist
+        raise exception.Invalid(msg % (field_name, new_uuid))
+
+    return new_node
+
+
+def authorize_node_link_patch(orig_node, patch, field_name):
+    """Authorize changing a link to the node on a resource.
+
+    :param orig_node: Node that currently owns the resource.
+    :param patch: JSON patch being applied.
+    :param field_name: Field names that contains the link.
+    :raises: Invalid on access error
+    :returns: The new Node object or the old one if not changed
+    """
+    new_node_id = get_patch_values(patch, f'/{field_name}')
+    if new_node_id:
+        return authorize_node_link(
+            orig_node, new_node_id[0], field_name)
+
+    return orig_node
 
 
 def duplicate_steps(name, value):

@@ -1018,24 +1018,6 @@ class TestNodeIdent(base.TestCase):
                               utils.replace_node_uuid_with_id, to_dict)
         self.assertEqual(400, e.code)
 
-    @mock.patch.object(objects.Node, 'get_by_id', autospec=True)
-    def test_replace_node_id_with_uuid(self, mock_gbi, mock_pr):
-        node = obj_utils.get_test_node(self.context, uuid=self.valid_uuid)
-        mock_gbi.return_value = node
-        to_dict = {'node_id': 1}
-
-        self.assertEqual(node, utils.replace_node_id_with_uuid(to_dict))
-        self.assertEqual({'node_uuid': self.valid_uuid}, to_dict)
-
-    @mock.patch.object(objects.Node, 'get_by_id', autospec=True)
-    def test_replace_node_id_with_uuid_not_found(self, mock_gbi, mock_pr):
-        to_dict = {'node_id': 1}
-        mock_gbi.side_effect = exception.NodeNotFound(node=1)
-
-        e = self.assertRaises(exception.NodeNotFound,
-                              utils.replace_node_id_with_uuid, to_dict)
-        self.assertEqual(400, e.code)
-
 
 class TestVendorPassthru(base.TestCase):
 

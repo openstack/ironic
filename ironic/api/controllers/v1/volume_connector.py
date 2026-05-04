@@ -349,23 +349,16 @@ class VolumeConnectorsController(rest.RestController):
                 raise exception.InvalidUUID(message=message)
 
         connector_dict = rpc_connector.as_dict()
-        # NOTE(smoriya):
-        # 1) Remove node_id because it's an internal value and
+        # NOTE(smoriya): Remove node_id because it's an internal value and
         #    not present in the API object
-        # 2) Add node_uuid
-        rpc_node = api_utils.replace_node_id_with_uuid(connector_dict)
+        connector_dict.pop('node_id', None)
+        # NOTE(dtantsur): Patch won't apply if the field does not exist.
+        connector_dict['node_uuid'] = None
 
+        rpc_node = api_utils.authorize_node_link_patch(
+            rpc_node, patch, 'node_uuid')
         connector_dict = api_utils.apply_jsonpatch(connector_dict, patch)
-
-        try:
-            if connector_dict['node_uuid'] != rpc_node.uuid:
-                rpc_node = objects.Node.get(
-                    api.request.context, connector_dict['node_uuid'])
-        except exception.NodeNotFound as e:
-            # Change error code because 404 (NotFound) is inappropriate
-            # response for a PATCH request to change a Port
-            e.code = http_client.BAD_REQUEST  # BadRequest
-            raise
+        connector_dict['node_uuid'] = rpc_node.uuid
 
         api_utils.patched_validate_with_schema(
             connector_dict, CONNECTOR_SCHEMA, CONNECTOR_VALIDATOR)

@@ -16,6 +16,7 @@ from unittest import mock
 
 from oslo_db import sqlalchemy
 from oslo_upgradecheck.upgradecheck import Code
+from oslo_utils import uuidutils
 from sqlalchemy.engine import url as sa_url
 
 from ironic.command import dbsync
@@ -172,3 +173,58 @@ class TestUpgradeChecks(db_base.DbTestCase):
                         'table engine to utilize InnoDB, and reload the '
                         'allocations table to utilize the InnoDB engine.')
         self.assertEqual(expected_msg, check_result.details)
+
+
+class TestUpgradeChecksOwnerMismatch(db_base.DbTestCase):
+
+    def setUp(self):
+        super().setUp()
+        self.cmd = status.Checks()
+
+    def test_correct_nodes(self):
+        parents = [
+            # Parent without an owner
+            {'uuid': uuidutils.generate_uuid()},
+            # Parent with an owner
+            {'uuid': uuidutils.generate_uuid(),
+             'owner': 'abcd'},
+        ]
+        children = [
+            {'parent_node': parents[0]['uuid']},
+            {'parent_node': parents[1]['uuid'],
+             'owner': parents[1]['owner']},
+        ]
+        for node in parents + children:
+            self.dbapi.create_node(node)
+
+        result = self.cmd._check_parent_child_owners()
+        self.assertEqual(Code.SUCCESS, result.code)
+
+    def test_mismatch(self):
+        parents = [
+            # Parent without an owner
+            {'uuid': uuidutils.generate_uuid()},
+            # Parent with an owner
+            {'uuid': uuidutils.generate_uuid(),
+             'owner': 'abcd'},
+        ]
+        children = [
+            # Owned child of a parent without owner
+            {'uuid': uuidutils.generate_uuid(),
+             'parent_node': parents[0]['uuid'],
+             'owner': 'abcd'},
+            # Child of an owned node without owner
+            {'uuid': uuidutils.generate_uuid(),
+             'parent_node': parents[1]['uuid']},
+            # Mismatched owners
+            {'uuid': uuidutils.generate_uuid(),
+             'parent_node': parents[1]['uuid'],
+             'owner': parents[1]['owner'] + 'bad'},
+        ]
+        for node in parents + children:
+            self.dbapi.create_node(node)
+
+        result = self.cmd._check_parent_child_owners()
+        self.assertEqual(Code.WARNING, result.code)
+        for child in children:
+            self.assertIn(child['uuid'], result.details)

@@ -765,12 +765,9 @@ class PortsController(rest.RestController):
             'baremetal:port:update', port_ident)
 
         port_dict = rpc_port.as_dict()
-        # NOTE(lucasagomes):
-        # 1) Remove node_id because it's an internal value and
+        # NOTE(lucasagomes): Remove node_id because it's an internal value and
         #    not present in the API object
-        # 2) Add node_uuid
         port_dict.pop('node_id', None)
-        port_dict['node_uuid'] = rpc_node.uuid
         # NOTE(vsaienko):
         # 1) Remove portgroup_id because it's an internal value and
         #    not present in the API object
@@ -781,7 +778,10 @@ class PortsController(rest.RestController):
                 context, port_dict.pop('portgroup_id'))
         port_dict['portgroup_uuid'] = portgroup and portgroup.uuid or None
 
+        rpc_node = api_utils.authorize_node_link_patch(
+            rpc_node, patch, 'node_uuid')
         port_dict = api_utils.apply_jsonpatch(port_dict, patch)
+        port_dict['node_uuid'] = rpc_node.uuid
 
         try:
             if api_utils.is_path_updated(patch, '/portgroup_uuid'):
@@ -791,16 +791,6 @@ class PortsController(rest.RestController):
                 else:
                     portgroup = None
         except exception.PortgroupNotFound as e:
-            # Change error code because 404 (NotFound) is inappropriate
-            # response for a PATCH request to change a Port
-            e.code = http_client.BAD_REQUEST  # BadRequest
-            raise
-
-        try:
-            if port_dict['node_uuid'] != rpc_node.uuid:
-                rpc_node = objects.Node.get(
-                    api.request.context, port_dict['node_uuid'])
-        except exception.NodeNotFound as e:
             # Change error code because 404 (NotFound) is inappropriate
             # response for a PATCH request to change a Port
             e.code = http_client.BAD_REQUEST  # BadRequest
