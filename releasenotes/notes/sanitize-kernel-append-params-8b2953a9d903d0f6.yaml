@@ -1,0 +1,13 @@
+---
+security:
+  - |
+    Fixes a security issue where a malicious 'kernel_append_params' in a node's
+    'instance_info' or 'driver_info' could cause an attacker to take control of
+    a node's initial boot through boot script injection. The fix includes
+    sanitization of 'kernel_append_params' to prevent such injection. Strict
+    parsing of kernel parameters is now in place as well and enabled by
+    default. If an operator needs to disable such strict parsing they may do
+    so by setting the configuration option
+    conductor.disable_kernel_parameter_parsing to 'True'. However, this is
+    discouraged as it weakens the security posture of Ironic. This fix
+    addresses CVE-2026-46447.

@@ -13,10 +13,14 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
+from dataclasses import dataclass
 import datetime
 import os
 from unittest import mock
 
+from ddt import data
+from ddt import ddt
+from ddt import unpack
 from oslo_config import cfg
 from oslo_utils import timeutils
 
@@ -30,6 +34,15 @@ from ironic.drivers import utils as driver_utils
 from ironic.tests import base as tests_base
 from ironic.tests.unit.db import base as db_base
 from ironic.tests.unit.objects import utils as obj_utils
+
+
+def annotate(name, *args):
+    class AnnotatedList(list):
+        pass
+
+    al = AnnotatedList([*args])
+    al.__name__ = name
+    return al
 
 
 class UtilsTestCase(db_base.DbTestCase):
@@ -232,6 +245,90 @@ class UtilsTestCase(db_base.DbTestCase):
 
         result = driver_utils.get_field(self.node, 'bootloader', use_conf=True)
         self.assertEqual('grubaa64.efi', result)
+
+
+@ddt
+class GetKernelAppendParamsTestCase(tests_base.TestCase):
+    @dataclass(frozen=True)
+    class FauxTestNode:
+        instance_info: dict
+        driver_info: dict
+
+    @data(
+        annotate(
+            "valid params in instance_info",
+            FauxTestNode({'kernel_append_params': 'quiet ro'},
+                         {}),
+            '',
+            'quiet ro',
+            False,
+            False
+        ),
+        annotate(
+            "valid params in driver_info",
+            FauxTestNode({},
+                         {'kernel_append_params': 'quiet ro'}),
+            '',
+            'quiet ro',
+            False,
+            False
+        ),
+        annotate(
+            "params in default",
+            FauxTestNode({}, {}),
+            'quiet ro',
+            'quiet ro',
+            False,
+            False
+        ),
+        annotate(
+            "invalid params in instance_info raises",
+            FauxTestNode({'kernel_append_params': 'bad\nparams'}, {}),
+            '',
+            '',
+            True,
+            False
+
+        ),
+        annotate(
+            "invalid params in driver_info raises",
+            FauxTestNode({}, {'kernel_append_params': 'bad\nparams'}),
+            '',
+            '',
+            True,
+            False
+        ),
+        annotate(
+            "parsing disabled - but newline is filtered",
+            FauxTestNode({}, {'kernel_append_params': 'quiet\n ro'}),
+            '',
+            'quiet ro',
+            False,
+            True,
+        ),
+    )
+    @unpack
+    def test_get_kernel_append_params(
+            self,
+            test_node: FauxTestNode,
+            default: str,
+            expected_result: str,
+            should_raise: bool,
+            disable_kernel_parameter_parsing: bool):
+        cfg.CONF.set_override('disable_kernel_parameter_parsing',
+                              disable_kernel_parameter_parsing,
+                              'conductor')
+        if should_raise:
+            self.assertRaises(
+                exception.InvalidParameterValue,
+                driver_utils.get_kernel_append_params,
+                test_node,
+                default)
+        else:
+            self.assertEqual(
+                expected_result,
+                driver_utils.get_kernel_append_params(test_node,
+                                                      default))
 
 
 class UtilsRamdiskLogsTestCase(tests_base.TestCase):

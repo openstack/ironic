@@ -764,6 +764,19 @@ opts = [
                        'adds one additional BMC query per node during each '
                        'power sync cycle, which may impact performance in '
                        'large deployments.')),
+
+    cfg.BoolOpt('disable_kernel_parameter_parsing',
+                default=False,
+                # Normally such an option would be mutable, but this is,
+                # a security guard and operators should not expect to change
+                # this option under normal circumstances.
+                mutable=False,
+                help=_('Disable parsing of kernel parameters. Kernel '
+                       'parameter parsing allows Ironic to detect and prevent '
+                       'malformed kernel parameters before they are passed to '
+                       'nodes. Malformed kernel parameters can pose a '
+                       'security risk therefore it is not recommended to '
+                       'disable this option unless absolutely necessary.')),
 ]
 
 
