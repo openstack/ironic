@@ -48,7 +48,6 @@ _opts = [
     ('mdns', ironic.conf.mdns.opts),
     ('metrics', ironic.conf.metrics.opts),
     ('metrics_statsd', ironic.conf.metrics.statsd_opts),
-    ('molds', ironic.conf.molds.opts),
     ('neutron', ironic.conf.neutron.list_opts()),
     ('nfs', ironic.conf.nfs.opts),
     ('nova', ironic.conf.nova.list_opts()),
