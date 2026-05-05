@@ -1,0 +1,18 @@
+---
+other:
+  - |
+    Ironic recently corrected a misunderstanding in the project documentation
+    rooted in the types of disk formats and container formats utilized for
+    ``ironic-python-agent`` service ramdisk elements. A miscommunication and
+    misunderstanding in the work related to OSSA-2025-001, led to an incorrect
+    belief that ramdisk artifacts should have the ``disk_format`` set to
+    ``raw``, and the ``container_format`` set to ``bare``. The Ironic project
+    recently learned this was incorrect when the OpenStack Glance project
+    merged changes which broke CI testing as Glance tightend controls around
+    ``bare`` containers which happened to fail on x86_64 kernel artifacts
+    due to historical capabilities with the x86_64 kernel artifacts to enable
+    alternative boot models.
+
+    The documentation has been corrected. The proper glance image format for
+    a ramdisk kernel is ``aki``, and the proper type for an initrd/initramfs
+    payload is ``ari``.
