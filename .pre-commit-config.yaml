@@ -42,7 +42,13 @@ repos:
     hooks:
       - id: hacking
         additional_dependencies: []
-        exclude: '^(doc|releasenotes|tools)/.*$'
+        exclude: |
+          (?x)^(
+           doc|
+           releasenotes|
+           tools|
+           ironic/common/kernel_parameter_parser
+          )/.*$
   - repo: https://github.com/codespell-project/codespell
     rev: v2.2.6
     hooks:
@@ -85,6 +91,7 @@ repos:
     hooks:
       - id: ruff
         args: ['--fix', '--unsafe-fixes']
+        exclude: '^ironic/common/kernel_parameter_parser/.*$'
   - repo: local
     hooks:
       - id: check-releasenotes
