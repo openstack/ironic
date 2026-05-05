@@ -5,6 +5,7 @@
     "description": "A Firefox extension that displays bare metal remote graphical consoles",
     "permissions": [
         "activeTab",
+        "tabs",
         "storage",
         "cookies",
         "http://*/*",
@@ -35,6 +36,7 @@
     ],
     "background": {
         "scripts": [
+            "background.js"
         ],
         "persistent": true
     }
