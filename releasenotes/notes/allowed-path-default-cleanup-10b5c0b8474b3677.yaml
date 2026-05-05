@@ -1,0 +1,9 @@
+upgrade:
+  - |
+    ``[conductor]/file_url_allowed_paths``, when created, had an extremely open
+    default value -- including such nonstandard paths as ``/vagrant``. This was
+    done to ensure the security patch was as nondisruptive as possible.
+
+    Now we've adjusted the default to only include ``/var/lib/ironic``.
+    Operators who wish to use file URLs for instance images that lie outside
+    of that path will need to set a non-default value for this config option.

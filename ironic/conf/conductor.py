@@ -635,8 +635,7 @@ opts = [
                        'automatically applied by the conductor should a '
                        'compressed artifact be detected.')),
     cfg.ListOpt('file_url_allowed_paths',
-                default=['/var/lib/ironic', '/shared/html', '/templates',
-                         '/opt/cache/files', '/vagrant'],
+                default=['/var/lib/ironic'],
                 item_type=ir_types.ExplicitAbsolutePath(),
                 help=_(
                     'List of paths that are allowed to be used as file:// '
