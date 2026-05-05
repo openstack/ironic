@@ -174,3 +174,5 @@
       incurred by, or claims asserted against, such Contributor by reason
       of your accepting any such warranty or additional liability.
 
+ironic/common/kernel_parameter_parser/kernel_parameter_parser.py is governed
+by the MPL v2.0 license. See that file for more information.
