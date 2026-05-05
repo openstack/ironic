@@ -962,6 +962,8 @@ def build_pxe_config_options(task, pxe_info, service=False,
                            as kernel command-line arguments.
     :returns: A dictionary of pxe options to be used in the pxe bootfile
         template.
+
+    :raises: InvalidParameterValue via get_kernel_append_params
     """
     node = task.node
     mode = deploy_utils.rescue_or_deploy_mode(node)
