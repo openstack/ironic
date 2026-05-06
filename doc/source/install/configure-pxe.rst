@@ -442,7 +442,8 @@ In the following example, since 'x86' and 'x86_64' keys are not in the
 ``pxe_bootfile_name_by_arch`` or ``pxe_config_template_by_arch`` options, x86
 and x86_64 nodes will be deployed by 'undionly.kpxe' or 'bootx64.efi', depending
 on the node's ``boot_mode`` capability ('bios' or 'uefi'). However, aarch64
-nodes will be deployed by 'grubaa64.efi', and ppc64 nodes by 'bootppc64'::
+nodes will be deployed by 'grubaa64.efi', ppc64 nodes by 'bootppc64', and
+riscv64 by 'riscv64'::
 
     [pxe]
 
@@ -461,12 +462,12 @@ nodes will be deployed by 'grubaa64.efi', and ppc64 nodes by 'bootppc64'::
     uefi_pxe_config_template=$pybasedir/drivers/modules/pxe_grub_config.template
 
     # Bootfile DHCP parameter per node architecture. (dict value)
-    pxe_bootfile_name_by_arch=aarch64:grubaa64.efi,ppc64:bootppc64
+    pxe_bootfile_name_by_arch=aarch64:grubaa64.efi,ppc64:bootppc64,riscv64:grubriscv64.efi
 
     # On ironic-conductor node, template file for PXE
     # configuration per node architecture. For example:
     # aarch64:/opt/share/grubaa64_pxe_config.template (dict value)
-    pxe_config_template_by_arch=aarch64:pxe_grubaa64_config.template,ppc64:pxe_ppc64_config.template
+    pxe_config_template_by_arch=aarch64:pxe_grubaa64_config.template,ppc64:pxe_ppc64_config.template,riscv64:pxe_riscv64_config.template
 
 .. note::
    The grub implementation may vary on different architecture, you may need to
