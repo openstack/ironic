@@ -1,0 +1,11 @@
+---
+fixes:
+  - |
+    Fixes a crash during sensor data collection for nodes using the
+    ``redfish`` management interface when ``redfish_system_id`` is not
+    set in ``driver_info``. The storage sensor methods attempted to call
+    ``.split()`` on a ``None`` value, which would appear in conductor
+    logs as::
+
+      WARNING ironic.conductor.manager Failed to get sensor data for
+      node <uuid>. Error: 'NoneType' object has no attribute 'split'

@@ -908,8 +908,7 @@ class RedfishManagement(base.ManagementInterface):
         storage_sensors = {'Drive': {}}
 
         # Get system identity from driver info
-        driver_info = redfish_utils.parse_driver_info(node)
-        system_identity = driver_info['system_id'].split('/')[-1]
+        system_identity = system.path.split('/')[-1]
 
         try:
             drives = {}
@@ -954,8 +953,7 @@ class RedfishManagement(base.ManagementInterface):
         simple_storage_sensors = {'Drive': {}}
 
         # Get system identity from driver info
-        driver_info = redfish_utils.parse_driver_info(node)
-        system_identity = driver_info['system_id'].split('/')[-1]
+        system_identity = system.path.split('/')[-1]
 
         try:
             drives = {}
