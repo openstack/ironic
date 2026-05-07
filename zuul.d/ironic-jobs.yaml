@@ -145,7 +145,7 @@
         q-svc: true
         ovn-controller: false
         ovn-northd: false
-        q-ovn-metadata-agent: false
+        q-ovn-agent: false
         c-api: False
         c-bak: False
         c-sch: False
@@ -296,7 +296,7 @@
         q-l3: False
         ovn-controller: True
         ovn-northd: True
-        q-ovn-metadata-agent: True
+        q-ovn-agent: True
 
 - job:
     name: ironic-standalone-redfish
@@ -544,7 +544,7 @@
         ovn-controller: True
         ovn-northd: True
         ovn-vswitchd: True
-        q-ovn-metadata-agent: True
+        q-ovn-agent: True
 
 - job:
     name: ironic-tempest-bfv
@@ -744,7 +744,7 @@
         q-svc: True
         ovn-controller: False
         ovn-northd: False
-        q-ovn-metadata-agent: False
+        q-ovn-agent: False
         rabbit: True
         tls-proxy: False
     group-vars:
@@ -760,7 +760,7 @@
           q-agt: True
           ovn-controller: False
           ovn-northd: False
-          q-ovn-metadata-agent: False
+          q-ovn-agent: False
           n-cpu: False
           tls-proxy: False
           ir-novnc: False
@@ -984,7 +984,7 @@
         ovn-controller: true
         ovn-northd: true
         ovsdb-server: true
-        q-ovn-metadata-agent: true
+        q-ovn-agent: true
         q-metering: false
         swift: true
       devstack_plugins:
@@ -1269,7 +1269,7 @@
         q-metering: true
         ovn-controller: false
         ovn-northd: false
-        q-ovn-metadata-agent: false
+        q-ovn-agent: false
       tempest_plugins:
         - ironic-tempest-plugin
       tempest_test_regex: ironic_tempest_plugin.tests.scenario
