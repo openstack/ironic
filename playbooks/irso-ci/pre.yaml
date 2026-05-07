@@ -14,6 +14,7 @@
       package:
         name:
           - docker.io
+          - docker-buildx
           - python3-venv
         state: present
       become: yes
@@ -94,3 +95,22 @@
       # HA tests actually use a multi-replica configuration. Unfortunately,
       # I could not make HA minikube work on OpenInfra nodes.
       command: minikube start --driver=docker
+
+    - name: Get host IP address on the minikube network
+      shell: minikube ssh -- ip route show default | awk '{print $3}'
+      register: minikube_host_ip
+
+    - name: Get HTTP cache port
+      shell: awk -F= '/IPA_SERVER_PORT/ { print $2; }' {{ irso_source }}/test/testing.env
+      register: http_cache_port
+
+    - name: Enable access to the HTTP cache in iptables
+      iptables:
+        chain: INPUT
+        protocol: tcp
+        destination: "{{ minikube_host_ip.stdout | trim }}"
+        destination_port: "{{ http_cache_port.stdout | trim }}"
+        jump: ACCEPT
+        action: insert
+        rule_num: 1
+      become: yes

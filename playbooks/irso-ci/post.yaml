@@ -30,6 +30,28 @@
         creates: "{{ logdir }}/report.html"
       when: junit_report.stat.exists
 
+    - name: Create log location
+      file:
+        path: "{{ logdir }}/system"
+        state: directory
+
+    - name: Fetch system information
+      shell: "{{ item }} > {{ logdir }}/system/{{ item | replace(' ', '-') }}.txt"
+      become: true
+      ignore_errors: true
+      loop:
+        - dmesg
+        - dpkg -l
+        - ip addr
+        - ip route
+        - iptables -L -v -n
+        - docker images
+        - docker ps --all
+        - systemctl
+        - df -h
+        - df -i
+        - lsblk -ap
+
     - name: Copy logs to the zuul location
       synchronize:
         src: "{{ logdir }}/"
