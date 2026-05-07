@@ -209,6 +209,13 @@ opts = [
                    '$pybasedir', 'drivers/modules/initial_grub_cfg.template'),
                help=_('On ironic-conductor node, the path to the initial grub'
                       'configuration template for grub network boot.')),
+    cfg.BoolOpt('enable_insecure_template_override',
+                default=False,
+                help=_('If node level pxe_template override is permitted to '
+                       'be used in this Ironic deployment. This is an '
+                       'insecure pattern filed under CVE-2026-44917 and '
+                       'the feature this guards this is expected to be '
+                       'removed in Ironic release 2027.2.')),
 ]
 
 
