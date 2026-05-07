@@ -1,0 +1,28 @@
+---
+security:
+  - |
+    A vulnerability was discovered in an minimally documented feature of
+    Ironic where an absolute path to a ``pxe_template`` override value could
+    be defined by an authenticated and privilged API user. The Ironic team has
+    chosen to immediately deprecate and remove this functionality. To provide
+    an immediate security fix, this functionality is now disabled by default.
+    The functionality can be re-enabled via the
+    ``[pxe]enable_insecure_template_override`` configuration option which
+    was added to ironic.conf with a default value of ``False``.
+    This issue is tracked as
+    `bug 2148319 <https://bugs.launchpad.net/ironic/+bug/2148319>`_.
+fixes:
+  - |
+    Fixes a vulnerability (CVE-2026-44917) which was identified inhandling
+    of pxe_template overrides where an authenticated and authorized user
+    could request an override template via direct file path which would
+    bypass file URL handling guards introduced in OSSA-2025-001. This
+    feature was minimally documented through only a release note, and
+    does not appear to have actual use. This functionality is being
+    disabled by default, and will be promptly removed from Ironic's
+    current development branch.
+deprecations:
+  - |
+    The node ``driver_info`` field value ``pxe_template`` has been
+    deprecated and is expected to be removed in the future Ironic
+    2027.2 release.

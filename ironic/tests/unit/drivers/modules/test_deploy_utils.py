@@ -425,12 +425,24 @@ class GetPxeBootConfigTestCase(db_base.DbTestCase):
         self.assertEqual('bios-template', result)
 
     def test_get_pxe_config_template_per_node(self):
+        cfg.CONF.set_override('enable_insecure_template_override', True,
+                              group='pxe')
         node = obj_utils.create_test_node(
             self.context, driver='fake-hardware',
             driver_info={"pxe_template": "fake-template"},
         )
         result = utils.get_pxe_config_template(node)
         self.assertEqual('fake-template', result)
+
+    def test_get_pxe_config_template_per_node_disabled(self):
+        self.assertFalse(cfg.CONF.pxe.enable_insecure_template_override)
+        node = obj_utils.create_test_node(
+            self.context, driver='fake-hardware',
+            driver_info={"pxe_template": "fake-template"},
+        )
+        self.assertRaisesRegex(
+            exception.InvalidParameterValue, 'CVE-2026-44917',
+            utils.get_pxe_config_template, node)
 
     def test_get_ipxe_config_template(self):
         node = obj_utils.create_test_node(
@@ -458,11 +470,22 @@ class GetPxeBootConfigTestCase(db_base.DbTestCase):
                          utils.get_ipxe_config_template(node))
 
     def test_get_ipxe_config_template_override_pxe_fallback(self):
+        cfg.CONF.set_override('enable_insecure_template_override', True,
+                              group='pxe')
         node = obj_utils.create_test_node(
             self.context, driver='fake-hardware',
             driver_info={'pxe_template': 'magical'})
         self.assertEqual('magical',
                          utils.get_ipxe_config_template(node))
+
+    def test_get_ipxe_config_template_override_pxe_fallback_disabled(self):
+        self.assertFalse(cfg.CONF.pxe.enable_insecure_template_override)
+        node = obj_utils.create_test_node(
+            self.context, driver='fake-hardware',
+            driver_info={'pxe_template': 'magical'})
+        self.assertRaisesRegex(
+            exception.InvalidParameterValue, 'CVE-2026-44917',
+            utils.get_ipxe_config_template, node)
 
 
 @mock.patch('time.sleep', lambda sec: None)
