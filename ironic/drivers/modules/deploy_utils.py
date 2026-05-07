@@ -460,9 +460,22 @@ def get_ipxe_config_template(node):
     # loaders by architecture as they are all consistent. Where as PXE
     # could need to be grub for one arch, PXELINUX for another.
     configured_template = CONF.pxe.ipxe_config_template
-    override_template = node.driver_info.get('pxe_template')
-    if override_template:
-        configured_template = override_template
+    insecure_override_template = node.driver_info.get('pxe_template')
+    if CONF.pxe.enable_insecure_template_override:
+        # TODO(TheJulia): Remove the node level pxe_template setting in
+        # a future release as it is inhernetly insecure.
+        if insecure_override_template:
+            configured_template = insecure_override_template
+    elif insecure_override_template:
+        raise exception.InvalidParameterValue(_(
+            'The node\'s driver_info field pxe_template override value is '
+            'insecure (CVE-2026-44917) and should not be used. The '
+            'appropriate approach is to utilize [pxe]ipxe_template_by_arch '
+            'configuration in ironic.conf to match the baremetal node\'s '
+            'architecture. Please work with your Ironic operator to remedy '
+            'your usage and configuration. Default templates may be '
+            'leveraged by deleting the pxe_template value in the driver_info '
+            'field.'))
     return configured_template or get_pxe_config_template(node)
 
 
@@ -477,7 +490,22 @@ def get_pxe_config_template(node):
     :param node: A single Node.
     :returns: The PXE config template file name.
     """
-    config_template = node.driver_info.get("pxe_template", None)
+    config_template = None
+    insecure_override_template = node.driver_info.get("pxe_template", None)
+    if CONF.pxe.enable_insecure_template_override:
+        # TODO(TheJulia): Remove the node level pxe_template setting in
+        # a future release as it is inhernetly insecure.
+        config_template = insecure_override_template
+    elif insecure_override_template:
+        raise exception.InvalidParameterValue(_(
+            'The node\'s driver_info field pxe_template override value is '
+            'insecure (CVE-2026-44917) and should not be used. The '
+            'appropriate approach is to utilize [pxe]pxe_template_by_arch '
+            'configuration in ironic.conf to match the baremetal node\'s '
+            'architecture. Please work with your Ironic operator to remedy '
+            'your usage and configuration. Default templates may be '
+            'leveraged by deleting the pxe_template value in the driver_info '
+            'field.'))
     if config_template is None:
         cpu_arch = node.properties.get('cpu_arch')
         config_template = CONF.pxe.pxe_config_template_by_arch.get(cpu_arch)
