@@ -1,0 +1,6 @@
+---
+fixes:
+  - |
+    Unfortunately sushy 5.10.0 was released without proper handling of a timeout
+    value which results in an exception due to invalid parameters that is
+    unavoidable for users.
