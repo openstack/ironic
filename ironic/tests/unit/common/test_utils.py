@@ -553,6 +553,11 @@ class JinjaTemplatingTestCase(base.TestCase):
         self.template = '{{ foo }} {{ bar }}'
         self.params = {'foo': 'spam', 'bar': 'ham'}
         self.expected = 'spam ham'
+        self.bogus_template = ("{{ foo }}{{ ''.__class__.__mro__[1]."
+                               "__subclasses__() }} {{ bar }}")
+        self.bogus_template2 = ("{{ foo }}{{ ''|attr('__class__')|attr('__mro"
+                                "__')|attr('__getitem__')(1)|attr('__subclass"
+                                "es__')() }} {{ bar }}")
 
     def test_render_string(self):
         self.assertEqual(self.expected,
@@ -569,6 +574,7 @@ class JinjaTemplatingTestCase(base.TestCase):
                                                self.params,
                                                is_file=False))
 
+
     @mock.patch('ironic.common.utils.jinja2.FileSystemLoader', autospec=True)
     def test_render_file(self, jinja_fsl_mock):
         path = '/path/to/template.j2'
@@ -578,6 +584,47 @@ class JinjaTemplatingTestCase(base.TestCase):
                          utils.render_template(path,
                                                self.params))
         jinja_fsl_mock.assert_called_once_with('/path/to')
+
+    def test_render_bogus_string(self):
+        """Jinja explicitly blocks access access to .__ delimited items."""
+        self.assertRaises(jinja2.exceptions.SecurityError,
+                          utils.render_template,
+                          self.bogus_template,
+                          self.params,
+                          is_file=False)
+
+    @mock.patch('ironic.common.utils.jinja2.FileSystemLoader', autospec=True)
+    def test_render_bogus_file(self, jinja_fsl_mock):
+        """Jinja explicitly blocks access access to .__ delimited items."""
+        path = '/path/to/template.j2'
+        jinja_fsl_mock.return_value = jinja2.DictLoader(
+            {'template.j2': self.bogus_template})
+        self.assertRaises(jinja2.exceptions.SecurityError,
+                          utils.render_template,
+                          path,
+                          self.params)
+        jinja_fsl_mock.assert_called_once_with('/path/to')
+
+    def test_render_bogus_string_attr(self):
+        """Jinja explicitly blocks access access to .__ delimited items."""
+        self.assertRaises(jinja2.exceptions.SecurityError,
+                          utils.render_template,
+                          self.bogus_template2,
+                          self.params,
+                          is_file=False)
+
+    @mock.patch('ironic.common.utils.jinja2.FileSystemLoader', autospec=True)
+    def test_render_bogus_file_attr(self, jinja_fsl_mock):
+        """Jinja explicitly blocks access access to .__ delimited items."""
+        path = '/path/to/template.j2'
+        jinja_fsl_mock.return_value = jinja2.DictLoader(
+            {'template.j2': self.bogus_template2})
+        self.assertRaises(jinja2.exceptions.SecurityError,
+                          utils.render_template,
+                          path,
+                          self.params)
+        jinja_fsl_mock.assert_called_once_with('/path/to')
+
 
 
 class ValidateConductorGroupTestCase(base.TestCase):

@@ -35,6 +35,7 @@ from urllib import parse as urlparse
 import warnings
 
 import jinja2
+from jinja2 import sandbox as jinja2sandbox
 from oslo_concurrency import processutils
 from oslo_log import log as logging
 from oslo_serialization import jsonutils
@@ -501,6 +502,8 @@ def render_template(template, params, is_file=True, strict=False):
     :param strict: Enable strict template rendering. Default is False
     :returns: Rendered template
     :raises: jinja2.exceptions.UndefinedError
+    :raises: jinja2.exceptions.SecurityError when the template has insecure
+             operations detected.
     """
     if is_file:
         tmpl_path, tmpl_name = os.path.split(template)
@@ -508,11 +511,9 @@ def render_template(template, params, is_file=True, strict=False):
     else:
         tmpl_name = 'template'
         loader = jinja2.DictLoader({tmpl_name: template})
-    # NOTE(pas-ha) bandit does not seem to cope with such syntaxis
-    # and still complains with B701 for that line
     # NOTE(pas-ha) not using default_for_string=False as we set the name
     # of the template above for strings too.
-    env = jinja2.Environment(  # nosec B701
+    env = jinja2sandbox.SandboxedEnvironment(
         loader=loader,
         autoescape=jinja2.select_autoescape(),
         undefined=jinja2.StrictUndefined if strict else jinja2.Undefined
