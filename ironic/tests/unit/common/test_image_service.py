@@ -1538,6 +1538,28 @@ class OciImageServiceTestCase(base.TestCase):
                           self.service._validate_url_is_specific,
                           'oci://foo/bar@baz:meow')
 
+    @mock.patch.object(ociclient, '__init__',
+                       return_value=None, autospec=True)
+    def test_init_verify_ca_path(self, mock_client):
+        cfg.CONF.set_override('webserver_verify_ca', '/some/path')
+        image_service.OciImageService()
+        mock_client.assert_called_with(
+            mock.ANY, verify='/some/path')
+
+    @mock.patch.object(ociclient, '__init__',
+                       return_value=None, autospec=True)
+    def test_init_verify_ca_true(self, mock_client):
+        cfg.CONF.set_override('webserver_verify_ca', 'True')
+        image_service.OciImageService()
+        mock_client.assert_called_with(mock.ANY, verify=True)
+
+    @mock.patch.object(ociclient, '__init__',
+                       return_value=None, autospec=True)
+    def test_init_verify_ca_false(self, mock_client):
+        cfg.CONF.set_override('webserver_verify_ca', 'False')
+        image_service.OciImageService()
+        mock_client.assert_called_with(mock.ANY, verify=False)
+
 
 class ServiceGetterTestCase(base.TestCase):
 
