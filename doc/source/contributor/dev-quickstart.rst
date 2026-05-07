@@ -109,7 +109,7 @@ manage your locales, make sure you have enabled ``en_US.UTF8`` in
 Python Prerequisites
 ====================
 
-We suggest to use at least tox 3.9, if your distribution has an older version,
+Ironic requires at least tox 4.28.0, if your distribution has an older version,
 you can install it using pip system-wise or better per user using the --user
 option that by default will install the binary under $HOME/.local/bin, so you
 need to be sure to have that path in $PATH; for example::
