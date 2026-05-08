@@ -692,8 +692,18 @@ def update_raid_config(node):
     system = redfish_utils.get_system(node)
     logical_disks = []
     vol_no_raid_type = []
+    controllers_total = 0
+    controllers_queried = 0
     for stor in system.storage.get_members():
-        for vol in stor.volumes.get_members():
+        controllers_total += 1
+        try:
+            volumes = stor.volumes.get_members()
+        except sushy.exceptions.MissingAttributeError:
+            LOG.debug('Storage controller %s has no Volumes collection, '
+                      'skipping', stor.identity)
+            continue
+        controllers_queried += 1
+        for vol in volumes:
             if vol.raid_type:
                 logical_disk = {
                     'id': vol.identity,
@@ -712,6 +722,10 @@ def update_raid_config(node):
         LOG.warning("Unable to update raid_config for volumes missing RAID "
                     "type: %(vol_no_raid_type)s",
                     {'vol_no_raid_type': ", ".join(vol_no_raid_type)})
+
+    if controllers_total and not controllers_queried:
+        LOG.warning('No storage controllers with a Volumes collection found '
+                    'for node %s', node.uuid)
 
     raid.update_raid_info(node, {'logical_disks': logical_disks})
 
@@ -1140,7 +1154,13 @@ class RedfishRAID(base.RAIDInterface):
                 controller_id = None
                 if controller:
                     controller_id = storage.identity
-                iter_volumes = iter(storage.volumes.get_members())
+                try:
+                    iter_volumes = iter(storage.volumes.get_members())
+                except sushy.exceptions.MissingAttributeError:
+                    LOG.debug('Storage controller %(ctrl)s on node %(node)s '
+                              'has no Volumes collection, skipping',
+                              {'ctrl': storage.identity, 'node': node.uuid})
+                    continue
                 for volume in iter_volumes:
                     if volume.raid_type:
                         if controller_id not in vols_to_delete:
