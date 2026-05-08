@@ -21,12 +21,12 @@ from oslo_log import log
 from oslo_serialization import jsonutils
 from oslo_utils import strutils
 import requests
-from requests import adapters as req_adapters
 import tenacity
 
 from ironic.common import exception
 from ironic.common.i18n import _
 from ironic.common import metrics_utils
+from ironic.common import tls_utils
 from ironic.common import utils
 from ironic.conf import CONF
 
@@ -38,23 +38,9 @@ DEFAULT_IPA_PORTAL_PORT = 3260
 
 REBOOT_COMMAND = 'run_image'
 
-_TLS_VERSION_MAP = {
-    '1.2': ssl.TLSVersion.TLSv1_2,
-    '1.3': ssl.TLSVersion.TLSv1_3,
-}
-
-
-class TLSHTTPAdapter(req_adapters.HTTPAdapter):
-    """HTTPS adapter with configurable TLS settings."""
-
-    def __init__(self, ssl_context=None, **kwargs):
-        self._ssl_context = ssl_context
-        super().__init__(**kwargs)
-
-    def init_poolmanager(self, *args, **kwargs):
-        if self._ssl_context:
-            kwargs['ssl_context'] = self._ssl_context
-        super().init_poolmanager(*args, **kwargs)
+# Re-export so that existing references (including tests) continue
+# to resolve via agent_client.TLSHTTPAdapter.
+TLSHTTPAdapter = tls_utils.TLSHTTPAdapter
 
 
 def _build_ssl_context():
@@ -65,24 +51,16 @@ def _build_ssl_context():
     """
     tls_min = CONF.agent.tls_minimum_version
     tls_ciphers = CONF.agent.tls_ciphers
-    if not tls_min and not tls_ciphers:
-        return None
+    ctx = tls_utils.build_ssl_context(
+        tls_minimum_version=tls_min,
+        tls_ciphers=tls_ciphers)
 
-    ctx = ssl.SSLContext(ssl.PROTOCOL_TLS_CLIENT)
-    # Verification is handled separately via the requests
-    # library verify parameter; default to permissive here
-    # so that _get_verify remains the single source of truth.
-    ctx.check_hostname = False
-    ctx.verify_mode = ssl.CERT_NONE
-
-    if tls_min:
-        ctx.minimum_version = _TLS_VERSION_MAP[tls_min]
-        LOG.info("Agent client TLS minimum version set "
-                 "to %s", tls_min)
-
-    if tls_ciphers:
-        ctx.set_ciphers(tls_ciphers)
-        LOG.info("Agent client TLS ciphers configured")
+    if ctx:
+        if tls_min:
+            LOG.info("Agent client TLS minimum version set "
+                     "to %s", tls_min)
+        if tls_ciphers:
+            LOG.info("Agent client TLS ciphers configured")
 
     return ctx
 
