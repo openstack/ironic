@@ -1,0 +1,17 @@
+---
+fixes:
+  - |
+    Fixes a bug where RBAC field redaction policy checks for ``last_error``,
+    ``reservation``, and ``driver_internal_info`` would incorrectly redact
+    values for node owners when the ``owner`` field was not explicitly
+    included in the requested field list. The root cause was the field
+    pruning logic in ``_get_fields_for_node_query()`` which aggressively
+    stripped the object down to only caller-requested fields, inadvertently
+    removing ``owner`` and ``lessee`` before the RBAC policy checks in
+    ``node_sanitize()`` could use them to evaluate project-scoped ownership
+    rules. These attributes are now always extracted from the database
+    object regardless of which fields the caller requested, and are still
+    stripped from the API response by ``sanitize_dict()`` when not
+    explicitly requested. See
+    `bug 2150573 <https://bugs.launchpad.net/ironic/+bug/2150573>`_ for
+    details.
