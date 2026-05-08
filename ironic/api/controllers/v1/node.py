@@ -1669,6 +1669,19 @@ def _get_fields_for_node_query(fields=None):
                 msg = 'Field %s is not a valid field.' % field
                 raise exception.Invalid(msg)
 
+        # NOTE(TheJulia): Bugfix for LP#2150573. owner and
+        # lessee must always be extracted from the RPC object
+        # so that node_sanitize() can populate target_dict
+        # with node.owner/node.lessee for RBAC policy checks.
+        # Without these, project-scoped owner/lessee policy
+        # rules always fail and fields like last_error get
+        # incorrectly redacted. sanitize_dict() will strip
+        # these from the response if not requested by the
+        # caller.
+        for rbac_field in ('owner', 'lessee'):
+            if rbac_field not in object_fields:
+                object_fields.append(rbac_field)
+
         return object_fields
 
 
