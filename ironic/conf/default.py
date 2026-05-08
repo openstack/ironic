@@ -478,7 +478,7 @@ webserver_opts = [
                       'timeout.')),
     cfg.StrOpt(
         'webserver_tls_minimum_version',
-        default='1.2',
+        default='1.3',
         choices=[
             ('1.2', _('Require TLS 1.2 as the minimum version.')),
             ('1.3', _('Require TLS 1.3 as the minimum version. '
@@ -488,7 +488,7 @@ webserver_opts = [
         help=_('Set the minimum TLS protocol version for '
                'outbound HTTPS connections to remote web '
                'servers hosting images or other artifacts. '
-               'Defaults to TLS 1.2 since TLS 1.0 and 1.1 '
+               'Defaults to TLS 1.3 since TLS 1.0 and 1.1 '
                'are deprecated (RFC 8996).')),
     cfg.StrOpt(
         'webserver_tls_ciphers',

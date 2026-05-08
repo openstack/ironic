@@ -974,16 +974,7 @@ class TestLockDown(base.TestCase):
 class TestAgentClientTLS(base.TestCase):
 
     def test_build_ssl_context_defaults(self):
-        """Default config returns context with TLS 1.2."""
-        ctx = agent_client._build_ssl_context()
-        self.assertIsNotNone(ctx)
-        self.assertEqual(
-            ssl.TLSVersion.TLSv1_2,
-            ctx.minimum_version
-        )
-
-    def test_build_ssl_context_minimum_version_1_3(self):
-        self.config(tls_minimum_version='1.3', group='agent')
+        """Default config returns context with TLS 1.3."""
         ctx = agent_client._build_ssl_context()
         self.assertIsNotNone(ctx)
         self.assertEqual(

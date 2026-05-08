@@ -107,9 +107,9 @@ class TestWSGIService(base.TestCase):
             ciphers=None
         )
         self.assertIsNotNone(self.server.ssl_adapter)
-        # Default TLS minimum version of 1.2 is applied
+        # Default TLS minimum version of 1.3 is applied
         self.assertEqual(
-            ssl.TLSVersion.TLSv1_2,
+            ssl.TLSVersion.TLSv1_3,
             mock_context.minimum_version
         )
 
@@ -124,7 +124,7 @@ class TestWSGIService(base.TestCase):
         self.config(enable_ssl_api=True, group='api')
         self.config(cert_file='/path/to/cert', group='api')
         self.config(key_file='/path/to/key', group='api')
-        self.config(tls_minimum_version='1.3', group='api')
+        self.config(tls_minimum_version='1.2', group='api')
 
         mock_server.return_value = self.server
         mock_context = mock.Mock()
@@ -140,7 +140,7 @@ class TestWSGIService(base.TestCase):
             ciphers=None
         )
         self.assertEqual(
-            ssl.TLSVersion.TLSv1_3,
+            ssl.TLSVersion.TLSv1_2,
             mock_context.minimum_version
         )
 
@@ -170,35 +170,9 @@ class TestWSGIService(base.TestCase):
             private_key='/path/to/key',
             ciphers='ECDHE+AESGCM'
         )
-        # Default TLS 1.2 minimum is still applied
+        # Default TLS 1.3 minimum is still applied
         self.assertEqual(
-            ssl.TLSVersion.TLSv1_2,
-            mock_context.minimum_version
-        )
-
-    @mock.patch.object(wsgi_service.wsgi, 'Server', autospec=True)
-    @mock.patch('ironic.common.wsgi_service.cheroot_ssl.BuiltinSSLAdapter',
-                autospec=True)
-    @mock.patch('ironic.common.wsgi_service.validate_cert_paths',
-                autospec=True)
-    def test_ssl_with_tls_minimum_version_1_2(
-            self, mock_validate_tls, mock_ssl_adapter,
-            mock_server):
-        self.config(enable_ssl_api=True, group='api')
-        self.config(cert_file='/path/to/cert', group='api')
-        self.config(key_file='/path/to/key', group='api')
-        self.config(tls_minimum_version='1.2', group='api')
-
-        mock_server.return_value = self.server
-        mock_context = mock.Mock()
-        mock_ssl_adapter.return_value.context = mock_context
-
-        wsgi_service.WSGIService(
-            'ironic_api', CONF.api.enable_ssl_api
-        )
-
-        self.assertEqual(
-            ssl.TLSVersion.TLSv1_2,
+            ssl.TLSVersion.TLSv1_3,
             mock_context.minimum_version
         )
 
@@ -259,9 +233,9 @@ class TestWSGIService(base.TestCase):
             private_key='/path/to/key',
             ciphers=None
         )
-        # Default TLS 1.2 minimum is always applied
+        # Default TLS 1.3 minimum is always applied
         self.assertEqual(
-            ssl.TLSVersion.TLSv1_2,
+            ssl.TLSVersion.TLSv1_3,
             mock_context.minimum_version
         )
 

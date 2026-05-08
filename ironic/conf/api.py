@@ -111,7 +111,7 @@ opts = [
                     "the server securely."),
     cfg.StrOpt(
         'tls_minimum_version',
-        default='1.2',
+        default='1.3',
         choices=[
             ('1.2',
              _('Require TLS 1.2 as the minimum version.')),
@@ -124,7 +124,7 @@ opts = [
         help=_("Set the minimum TLS protocol version for "
                "the integrated API server when "
                "[api]enable_ssl_api is True. Defaults to "
-               "TLS 1.2 since TLS 1.0 and 1.1 are "
+               "TLS 1.3 since TLS 1.0 and 1.1 are "
                "deprecated (RFC 8996). This option has "
                "no effect when TLS is terminated by an "
                "external service such as a reverse proxy "

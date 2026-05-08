@@ -622,20 +622,9 @@ class HttpImageServiceTestCase(base.TestCase):
 class HttpImageServiceTLSTestCase(base.TestCase):
 
     def test_build_webserver_session_defaults(self):
-        """Default config returns session with TLS 1.2."""
+        """Default config returns session with TLS 1.3."""
         session = image_service._build_webserver_session()
         self.assertIsInstance(session, requests.Session)
-        adapter = session.get_adapter('https://example.com')
-        self.assertIsInstance(
-            adapter, image_service.TLSHTTPAdapter)
-        self.assertEqual(
-            ssl.TLSVersion.TLSv1_2,
-            adapter._ssl_context.minimum_version)
-
-    def test_build_webserver_session_minimum_version(self):
-        cfg.CONF.set_override(
-            'webserver_tls_minimum_version', '1.3')
-        session = image_service._build_webserver_session()
         adapter = session.get_adapter('https://example.com')
         self.assertIsInstance(
             adapter, image_service.TLSHTTPAdapter)
@@ -643,7 +632,7 @@ class HttpImageServiceTLSTestCase(base.TestCase):
             ssl.TLSVersion.TLSv1_3,
             adapter._ssl_context.minimum_version)
 
-    def test_build_webserver_session_minimum_version_1_2(self):
+    def test_build_webserver_session_minimum_version(self):
         cfg.CONF.set_override(
             'webserver_tls_minimum_version', '1.2')
         session = image_service._build_webserver_session()
