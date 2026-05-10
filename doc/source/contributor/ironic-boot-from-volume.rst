@@ -38,15 +38,8 @@ description for DevStack is at :ref:`deploy_devstack`.
     # Set glance's default limit to be baremetal image friendly
     GLANCE_LIMIT_IMAGE_SIZE_TOTAL=5000
 
-    # Enable Neutron which is required by Ironic and disable nova-network.
-    disable_service n-net
+    # Disable novnc
     disable_service n-novnc
-    enable_service q-svc
-    enable_service q-agt
-    enable_service q-dhcp
-    enable_service q-l3
-    enable_service q-meta
-    enable_service neutron
 
     # Enable Swift for the direct deploy interface.
     enable_service s-proxy
@@ -56,9 +49,6 @@ description for DevStack is at :ref:`deploy_devstack`.
 
     # Disable Horizon
     disable_service horizon
-
-    # Disable Heat
-    disable_service heat h-api h-api-cfn h-api-cw h-eng
 
     # Swift temp URL's are required for the direct deploy interface.
     SWIFT_ENABLE_TEMPURLS=True
