@@ -50,14 +50,6 @@ def _get_session(group: str = 'json_rpc'):
             auth_type = 'none' if auth_strategy == 'noauth' else auth_strategy
             CONF.set_default('auth_type', auth_type, group=group)
 
-            # Deprecated, remove in W
-            group_conf = getattr(CONF, group)
-            if auth_strategy == 'http_basic':
-                if getattr(group_conf, 'http_basic_username', None):
-                    kwargs['username'] = group_conf.http_basic_username
-                if getattr(group_conf, 'http_basic_password', None):
-                    kwargs['password'] = group_conf.http_basic_password
-
         auth = keystone.get_auth(group, **kwargs)
 
         session = keystone.get_session(group, auth=auth)

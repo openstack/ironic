@@ -1,0 +1,8 @@
+---
+upgrade:
+  - |
+    The following options in the ``[json_rpc] section`` and
+    the ``[ironic_networking_json_rpc]`` section have been removed.
+
+    - ``http_basic_username``: Use the ``username`` option
+    - ``http_basic_password``: Use the ``password`` option
