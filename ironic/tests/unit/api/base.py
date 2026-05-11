@@ -43,6 +43,7 @@ class BaseApiTest(db_base.DbTestCase):
     """
 
     SOURCE_DATA = {'test_source': {'somekey': '666'}}
+    SKIP_TRACEBACK_OVERRIDE = False
 
     root_controller = 'ironic.api.controllers.root.RootController'
 
@@ -53,6 +54,8 @@ class BaseApiTest(db_base.DbTestCase):
         cfg.CONF.set_override("admin_user", "admin",
                               group='keystone_authtoken')
         cfg.CONF.set_override("auth_strategy", "noauth")
+        if not self.SKIP_TRACEBACK_OVERRIDE:
+            cfg.CONF.set_override("debug_tracebacks_in_api", True)
         self.app = self._make_app()
 
         def reset_pecan():
