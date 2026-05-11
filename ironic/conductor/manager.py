@@ -2468,7 +2468,8 @@ class ConductorManager(base_manager.BaseConductorManager):
         with task_manager.acquire(context, connector.node_id,
                                   purpose='volume connector deletion') as task:
             node = task.node
-            if node.power_state != states.POWER_OFF:
+            if (node.provision_state not in states.DELETE_ALLOWED_STATES
+                    and node.power_state != states.POWER_OFF):
                 raise exception.InvalidStateRequested(
                     action='volume connector deletion',
                     node=node.uuid,
@@ -2501,7 +2502,8 @@ class ConductorManager(base_manager.BaseConductorManager):
         with task_manager.acquire(context, target.node_id,
                                   purpose='volume target deletion') as task:
             node = task.node
-            if node.power_state != states.POWER_OFF:
+            if (node.provision_state not in states.DELETE_ALLOWED_STATES
+                    and node.power_state != states.POWER_OFF):
                 raise exception.InvalidStateRequested(
                     action='volume target deletion',
                     node=node.uuid,
