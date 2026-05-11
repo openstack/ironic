@@ -13,11 +13,11 @@
 # License for the specific language governing permissions and limitations
 # under the License.
 
-
 from oslo_config import cfg
 from oslo_log import log
 import oslo_messaging as messaging
 from oslo_service import service
+from oslo_service import threadgroup
 from oslo_utils import importutils
 
 from ironic.common import context
@@ -41,6 +41,24 @@ class BaseRPCService(service.Service):
         self.rpcserver = None
         self._started = False
         self._failure = None
+
+    def __getstate__(self):
+        """Exclude unpicklable threading objects for spawn safety.
+
+        oslo.service checks if the service is picklable to determine
+        whether to use the spawn or fork multiprocessing context. The
+        parent oslo.service.Service creates a ThreadGroup containing
+        threading objects that cannot be pickled.
+        """
+        state = self.__dict__.copy()
+        # ThreadGroup from oslo.service.Service contains threads/locks
+        state.pop('tg', None)
+        return state
+
+    def __setstate__(self, state):
+        self.__dict__.update(state)
+        # Recreate ThreadGroup; start() will use it for managing threads
+        self.tg = threadgroup.ThreadGroup()
 
     def start(self):
         self._failure = None
