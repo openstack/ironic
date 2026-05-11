@@ -220,10 +220,8 @@ quiet-level = 4
 ignore-words-list = "selectin,exept,taks,ser,wit,cna,myraid,dum,assertin,checkin,authenticatin,burnin"
 skip = "AUTHORS,ChangeLog,*.pyc,*.inv,*.svg,*.png,*.sample,./doc/build/*,./api-ref/build/*,./releasenotes/build/*,./api-ref/build/*,./build/*"
 
-[tool.setuptools]
-packages = [
-    "ironic"
-]
+[tool.setuptools.packages.find]
+include = ["ironic"]
 
 [tool.setuptools.data-files]
 "share/ironic/vnc-container" = [
