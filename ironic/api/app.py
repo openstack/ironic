@@ -145,8 +145,18 @@ def setup_app(pecan_config=None, extra_hooks=None):
     # in front of this, and WSGI works from the outside in. Requests to
     # /healthcheck will be handled and returned before the auth middleware
     # is reached.
+    # oslo_middleware.healthcheck.Healthcheck responds to every request it
+    # sees, so route only /healthcheck to it and let all other paths fall
+    # through to the API app. (LP#2151134)
     if CONF.healthcheck.enabled:
-        app = healthcheck.Healthcheck(app, CONF)
+        main_app = app
+        hc_app = healthcheck.Healthcheck(app, CONF)
+
+        def app(environ, start_response):
+            path = environ.get('PATH_INFO', '') or '/'
+            if path == '/healthcheck' or path.startswith('/healthcheck/'):
+                return hc_app(environ, start_response)
+            return main_app(environ, start_response)
 
     app = IronicRequestId(app, CONF)
 
