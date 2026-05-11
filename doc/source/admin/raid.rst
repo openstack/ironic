@@ -428,7 +428,18 @@ There are certain limitations to be aware of:
 * The final instance image must have the ``mdadm`` utility installed
   and needs to be able to detect software RAID devices at boot time
   (which is usually done by having the RAID drivers embedded in the
-  image's initrd).
+  image's initrd). Note that many minimal or cloud images do not
+  include ``mdadm`` in the initramfs even when the package is
+  installed, and may need to have the initramfs regenerated as part
+  of the image build process.
+
+* When booting in UEFI mode, the GRUB bootloader within the image
+  must include support for reading software RAID arrays (e.g. the
+  ``mdraid1x`` module). Distribution-provided GRUB binaries
+  frequently lack this module, which will cause the node to drop
+  into a ``grub rescue>`` prompt. Rebuilding GRUB to include this
+  module will break the secure boot chain of trust unless the
+  resulting binary is re-signed.
 
 * Regular cleaning will not remove RAID configuration (similarly to hardware
   RAID). To destroy RAID run the ``delete_configuration`` manual clean step.
@@ -495,6 +506,27 @@ There are certain limitations to be aware of:
 
 Image requirements
 ------------------
+
+.. warning::
+   Linux distributions have been increasingly dropping built-in
+   support for software RAID in their default images and
+   installers. As a result, deploying to software RAID may
+   require significant image customization, such as rebuilding
+   the initramfs to include RAID assembly tools and rebuilding
+   the GRUB bootloader with RAID modules (e.g. ``mdraid1x``).
+
+   Some of these modifications -- particularly replacing GRUB
+   binaries -- will break the secure boot chain of trust unless
+   the replacement binaries are re-signed with an appropriate
+   key. This makes software RAID largely incompatible with
+   secure boot when using images that do not already ship with
+   RAID-capable bootloaders.
+
+   Operators considering software RAID should carefully evaluate
+   whether their chosen distribution and image support it, and
+   should expect to invest in custom image building and testing.
+   Hardware RAID, where available, avoids these complications
+   entirely as the RAID is transparent to the operating system.
 
 Since Ironic needs to perform additional steps when deploying nodes
 with software RAID, there are some requirements the deployed images need
