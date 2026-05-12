@@ -177,3 +177,94 @@ node registration, before inspection and deployment.
 - This is different from the manual ``clean`` step ``set_bmc_clock``
   which allows explicit datetime setting through the API, but also defaults
   to the current conductor UTC time when ``target_datetime`` is omitted.
+
+Security Controls
+=================
+
+An operator may choose to disallow specific steps *OR* restrict
+certain steps to particular roles or access levels in the custom policy
+framework.
+
+Disallowing Steps
+-----------------
+
+The Ironic API configuration section contains three configuration
+options to enable the restriction of steps from being invoked.
+
+For deployment related step executions,
+the :oslo.config:option:`api.disallow_deploy_steps` option
+can be leveraged to restrict steps access in the context of
+deployment operations.
+
+Similarly, however for servicing operations, the
+:oslo.config:option:`api.disallow_service_steps` can be used
+in similar fashion.
+
+Cleaning operation step invocations have the same
+basic parameter in the form of
+:oslo.config:option:`api.disallow_clean_steps`.
+
+.. note::
+   These configurations are enforced in both the API and Conductor
+   of Ironic.
+
+Restricting steps using RBAC
+----------------------------
+
+Optionally, an operator could create a custom policy rule which
+would apply to step invocation logic in the Ironic API,
+bringing together the context of the Requester, their Access rights,
+and the step being requested.
+
+This allows for an **opt-in** policy interface where an operator
+can require a step can only be invoked by, for example, by a user
+with an ``admin`` role, where normally a user may be able to invoke
+all of the other steps for that phase of the step framework.
+
+The way this works is by mapping the step name into the policy
+framework by delimiting the step name into the generalized
+``baremetal:step:execute`` policy name space by merging it
+with the step name, resulting in
+``baremetal:step:execute:<step_interface>.<step_name>``
+
+For example, a custom policy YAML may have a line such as the line below
+to restrict creation of RAID sets::
+
+  baremetal:step:execute:raid.apply_configuration: "role:admin"
+
+Rules can also reference node ownership for fine-grained control::
+
+  baremetal:step:execute:bios.apply_configuration: "role:admin and project_id:%(node.owner)s"
+
+Enforcement points
+~~~~~~~~~~~~~~~~~~
+
+Step-level RBAC policies are enforced in the following locations:
+
+* **Direct step requests** -- When a user provides steps directly
+  via the API (deploy, clean, or service), the policy is checked
+  at the API layer with full node context, including
+  ``node.owner`` and ``node.lessee``.
+
+* **Runbook creation and update** -- When a user creates or
+  modifies a runbook, step-level policies are checked against
+  the requester's credentials. Since no specific node is
+  involved at creation time, policy rules that reference
+  ``node.owner`` or ``node.lessee`` cannot be evaluated and
+  are ignored; only role-based rules (e.g. ``role:admin``)
+  are enforced.
+
+* **Project-scoped runbook execution** -- When a runbook owned
+  by a project (i.e. not admin-approved) is used for a
+  provision action, step-level policies are re-checked with
+  full node context. This allows ownership-based rules to
+  apply at execution time.
+
+* **Admin-approved runbooks** -- Runbooks without an owner
+  (system-scoped) or marked as public are considered
+  admin-approved. Their steps are trusted at execution time
+  and step-level policies are not re-checked.
+
+* **Deploy templates** -- Deploy templates can only be created
+  by system administrators. Their steps are implicitly trusted
+  and step-level policies are not checked at execution time.

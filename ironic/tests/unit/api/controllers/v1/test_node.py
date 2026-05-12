@@ -44,6 +44,7 @@ from ironic.common import indicator_states
 from ironic.common import policy
 from ironic.common import states
 from ironic.conductor import rpcapi
+from ironic.conductor import steps as conductor_steps
 from ironic.conf import CONF
 from ironic.drivers.modules import inspect_utils
 from ironic import objects
@@ -7730,6 +7731,98 @@ ORHMKeXMO8fcK0By7CiMKwHSXCoEQgfQhWwpMdSsO8LgHCjh87DQc= """
         mock_rpcapi.assert_called_once_with(mock.ANY, mock.ANY,
                                             self.node.uuid, runbook.steps,
                                             mock.ANY, topic='test-topic')
+
+    @mock.patch.object(conductor_steps,
+                       'validate_user_steps_policy', autospec=True)
+    @mock.patch.object(rpcapi.ConductorAPI, 'do_node_clean',
+                       autospec=True)
+    @mock.patch.object(api_node, '_check_clean_steps',
+                       autospec=True)
+    def test_clean_direct_steps_policy_denied(
+            self, mock_check, mock_rpc, mock_policy):
+        mock_policy.side_effect = (
+            exception.NotAuthorized('policy'))
+        self.node.provision_state = states.MANAGEABLE
+        self.node.save()
+        clean_steps = [{'step': 'upgrade_firmware',
+                        'interface': 'deploy'}]
+        ret = self.put_json(
+            '/nodes/%s/states/provision' % self.node.uuid,
+            {'target': states.VERBS['clean'],
+             'clean_steps': clean_steps},
+            expect_errors=True,
+            headers={api_base.Version.string:
+                     str(api_v1.max_version())})
+        self.assertEqual(http_client.FORBIDDEN,
+                         ret.status_int)
+        mock_policy.assert_called_once_with(
+            mock.ANY, clean_steps, node=mock.ANY)
+        mock_rpc.assert_not_called()
+
+    @mock.patch.object(conductor_steps,
+                       'validate_user_steps_policy', autospec=True)
+    @mock.patch.object(api_utils,
+                       'check_runbook_policy_and_retrieve',
+                       autospec=True)
+    @mock.patch.object(rpcapi.ConductorAPI, 'do_node_service',
+                       autospec=True)
+    def test_runbook_admin_approved_skips_step_policy(
+            self, mock_rpc, mock_rb_policy, mock_step_policy):
+        objects.TraitList.create(
+            self.context, self.node.id, ['CUSTOM_1'])
+        self.node.provision_state = states.ACTIVE
+        self.node.save()
+        runbook = mock.Mock()
+        runbook.name = 'CUSTOM_1'
+        runbook.traits = ['CUSTOM_1']
+        runbook.owner = None
+        runbook.public = False
+        runbook.steps = [{'step': 'upgrade_firmware',
+                          'interface': 'deploy',
+                          'args': {}, 'order': 1}]
+        runbook.disable_ramdisk = None
+        mock_rb_policy.return_value = runbook
+        ret = self.put_json(
+            '/nodes/%s/states/provision' % self.node.uuid,
+            {'target': states.VERBS['service'],
+             'runbook': runbook.name},
+            headers={api_base.Version.string:
+                     str(api_v1.max_version())})
+        self.assertEqual(http_client.ACCEPTED, ret.status_code)
+        mock_step_policy.assert_not_called()
+
+    @mock.patch.object(conductor_steps,
+                       'validate_user_steps_policy', autospec=True)
+    @mock.patch.object(api_utils,
+                       'check_runbook_policy_and_retrieve',
+                       autospec=True)
+    @mock.patch.object(rpcapi.ConductorAPI, 'do_node_service',
+                       autospec=True)
+    def test_runbook_project_scoped_checks_step_policy(
+            self, mock_rpc, mock_rb_policy, mock_step_policy):
+        objects.TraitList.create(
+            self.context, self.node.id, ['CUSTOM_1'])
+        self.node.provision_state = states.ACTIVE
+        self.node.save()
+        runbook = mock.Mock()
+        runbook.name = 'CUSTOM_1'
+        runbook.traits = ['CUSTOM_1']
+        runbook.owner = 'project-123'
+        runbook.public = False
+        runbook.steps = [{'step': 'upgrade_firmware',
+                          'interface': 'deploy',
+                          'args': {}, 'order': 1}]
+        runbook.disable_ramdisk = None
+        mock_rb_policy.return_value = runbook
+        ret = self.put_json(
+            '/nodes/%s/states/provision' % self.node.uuid,
+            {'target': states.VERBS['service'],
+             'runbook': runbook.name},
+            headers={api_base.Version.string:
+                     str(api_v1.max_version())})
+        self.assertEqual(http_client.ACCEPTED, ret.status_code)
+        mock_step_policy.assert_called_once_with(
+            mock.ANY, mock.ANY, node=mock.ANY)
 
 
 class TestCheckCleanSteps(db_base.DbTestCase):

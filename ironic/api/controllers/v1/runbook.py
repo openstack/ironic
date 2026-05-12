@@ -30,6 +30,7 @@ from ironic.common import args
 from ironic.common import exception
 from ironic.common.i18n import _
 from ironic.common import metrics_utils
+from ironic.conductor import steps as conductor_steps
 import ironic.conf
 from ironic import objects
 
@@ -409,6 +410,12 @@ class RunbooksController(rest.RestController):
         validator = _get_runbook_validator()
         validator('runbook', runbook)
 
+        # Check step-level RBAC policies against the requester's
+        # credentials. Node-ownership rules cannot be evaluated
+        # here since runbook creation is not node-specific.
+        conductor_steps.validate_user_steps_policy(
+            context, runbook.get('steps', []))
+
         cdict = context.to_policy_values()
         if cdict.get('system_scope') != 'all':
             project_id = None
@@ -533,6 +540,15 @@ class RunbooksController(rest.RestController):
                 api_utils.duplicate_steps,
                 args.dict_valid(uuid=args.uuid)
             ))
+
+        # If steps were modified, re-validate step-level RBAC
+        # policies against the requester's credentials.
+        steps_changed = any(p['path'] == '/steps'
+                            or p['path'].startswith('/steps/')
+                            for p in patch)
+        if steps_changed:
+            conductor_steps.validate_user_steps_policy(
+                context, runbook.get('steps', []))
 
         api_utils.patch_update_changed_fields(
             runbook, rpc_runbook, fields=objects.Runbook.fields,

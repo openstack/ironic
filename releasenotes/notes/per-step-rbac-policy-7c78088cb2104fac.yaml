@@ -1,0 +1,38 @@
+---
+features:
+  - |
+    Adds support for per-step RBAC policy enforcement in the API layer.
+    Operators can now restrict which users are permitted to request
+    specific deploy, clean, or service steps by defining policy rules
+    in ``policy.yaml`` using the naming convention
+    ``baremetal:step:execute:<interface>.<step>``. For example, to
+    restrict RAID configuration to administrators::
+
+        baremetal:step:execute:raid.apply_configuration: "role:admin"
+
+    Rules can also reference node ownership for fine-grained control::
+
+        baremetal:step:execute:bios.apply_configuration: "role:admin and project_id:%(node.owner)s"
+
+    Steps without a matching policy rule remain unrestricted,
+    preserving full backwards compatibility.
+
+    Step policies are enforced at the following points:
+
+    * When users supply steps directly via the provision API,
+      policies are checked with full node context (including
+      ``node.owner`` and ``node.lessee``).
+
+    * When runbooks are created or updated, step policies are
+      checked against the requester's credentials. Node-ownership
+      rules cannot be evaluated at this point since no node is
+      involved.
+
+    * When a project-scoped (non-admin-approved) runbook is used
+      at execution time, step policies are re-checked with full
+      node context.
+
+    * Admin-approved runbooks (system-scoped or public) and
+      deploy templates (which require system administrator
+      privileges to create) are trusted at execution time and
+      their steps are not re-checked.
