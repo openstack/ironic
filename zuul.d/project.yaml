@@ -2,106 +2,49 @@
 - project:
     templates:
       - check-requirements
-      - openstack-cover-jobs
-      - openstack-python3-jobs
-      - openstack-python3-jobs-arm64
       - periodic-stable-jobs
       - publish-openstack-docs-pti
       - release-notes-jobs-python3
     check:
       jobs:
+        - openstack-tox-py310:
+            required-projects:
+              - name: opendev.org/openstack/requirements
+                override-checkout: stable/2026.1
+        - openstack-tox-py313:
+            required-projects:
+              - name: opendev.org/openstack/requirements
+                override-checkout: stable/2026.1
         - ironic-tox-unit-mysql-migrations
         - ironic-tox-unit-with-driver-libs
-        - ironic-cross-sushy:
-            voting: false
         - ironic-tempest-functional-python3
-        - ironic-standalone-redfish:
-            voting: false
-        - ironic-tempest-standalone-advanced:
-            voting: false
         - ironic-tempest-bios-redfish-pxe
         - ironic-tempest-uefi-redfish-vmedia
         - ironic-tempest-uefi-redfish-https
-        - ironic-tempest-ovn-uefi-ipmi-pxe:
-            voting: false
-        - ironic-tempest-ovn-uefi-ipxe-ipv6:
-            voting: false
-        # NOTE(TheJulia) Marking multinode non-voting on 20210311
-        # Due to a high failure rate on limestone where the compute1
-        # machine never appears to be able to communicate across the
-        # vxlan tunnel, possible mtu issue, but non-voting until we
-        # understand it in mind for the upcoming release.
-        - ironic-tempest-ipa-wholedisk-direct-multinode:
-            voting: false
-        - ironic-tempest-ipa-wholedisk-direct-multinode-shard:
-            voting: false
         - ironic-tempest-bios-ipmi-direct
         - ironic-tempest-bfv
         - ironic-tempest-ipa-partition-uefi-pxe-grub2
         - ironic-tempest-uefi-redfish-vmedia-4k
-        - openstacksdk-functional-devstack:
-            files:
-              - ^ironic/api/.*$
-        #####################################################################
-        # Grenade should be removed in advance of the unmaintained branches #
-        # as it doesn't know how to upgrade from an unmaintained branch.    #
-        #####################################################################
-        # NOTE(TheJulia): Non-voting as of 20250725 due to
-        # https://bugs.launchpad.net/ironic/+bug/2118780
-        - ironic-grenade:
-            voting: false
-        - ironic-grenade-skip-level:
-            voting: false
-        ###############################################################
-        # CI Jobs Below this line may be *removed* on Stable Branches #
-        ###############################################################
-        # NOTE(TheJulia): At present, metal3 doesn't leverage
-        # stable branches, and as far as we are aware these jobs
-        # can be removed once this branch is made stable.
-        # - metal3-integration
-        - metal3-ironic-standalone-operator-functional:
-            voting: false
-        # Non-voting jobs
-        - ironic-inspector-tempest:
-            voting: false
-        - ironic-standalone-aarch64:
-            voting: false
-        - ironic-tempest-ipa-wholedisk-bios-ipmi-direct-dib:
-            voting: false
-        - ironic-standalone-anaconda:
-            voting: false
-        - bifrost-integration-tinyipa-ubuntu-noble:
-            voting: false
-        - bifrost-integration-redfish-vmedia-uefi-ubuntu-noble:
-            voting: false
     gate:
       jobs:
+        - openstack-tox-py310:
+            required-projects:
+              - name: opendev.org/openstack/requirements
+                override-checkout: stable/2026.1
+        - openstack-tox-py313:
+            required-projects:
+              - name: opendev.org/openstack/requirements
+                override-checkout: stable/2026.1
         - ironic-tox-unit-mysql-migrations
         - ironic-tox-unit-with-driver-libs
         - ironic-tempest-functional-python3
-        # NOTE(TheJulia) 20250725 - Disabling ironic-grenade due to
-        # https://bugs.launchpad.net/ironic/+bug/2118780
-        # - ironic-grenade
-        # NOTE(JayF): Disabling standalone jobs on 20240228 from voting, there's a
-        # dnsmasq bug only exposed on these jobs.
-        #- ironic-standalone-redfish
         - ironic-tempest-bios-redfish-pxe
         - ironic-tempest-uefi-redfish-vmedia
         - ironic-tempest-uefi-redfish-https
-        # - ironic-tempest-ovn-uefi-ipmi-pxe
-        # - ironic-tempest-ovn-uefi-ipxe-ipv6
-        # NOTE(TheJulia): Disabled multinode on 20210311 due to Limestone
-        # seeming to be
-        # - ironic-tempest-ipa-wholedisk-direct-multinode
         - ironic-tempest-bios-ipmi-direct
         - ironic-tempest-bfv
         - ironic-tempest-ipa-partition-uefi-pxe-grub2
         - ironic-tempest-uefi-redfish-vmedia-4k
-        # NOTE(rpittau): Currently broken because of an issue with parted
-        # NOTE(TheJulia): At present, metal3 doesn't leverage
-        # stable branches, and as far as we are aware these jobs
-        # can be removed once this branch is made stable.
-        # - metal3-integration
     experimental:
       jobs:
         # NOTE(dtantsur): this job is rarely used, no need to run it always.
@@ -110,6 +53,4 @@
         # TODO(dtantsur): these jobs are useful but currently hopelessly
         # broken. Fix them and bring back to the gate.
         - ironic-grenade-multinode-multitenant:
-            voting: false
-        - ironic-inspector-tempest-discovery-fast-track:
             voting: false

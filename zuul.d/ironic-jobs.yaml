@@ -59,13 +59,19 @@
     post-run: playbooks/ci-workarounds/get_extra_logging.yaml
     timeout: 10800
     required-projects:
+      - name: opendev.org/openstack/devstack
+        override-checkout: stable/2026.1
       # TODO(TheJulia): Explicitly pull in DIB until we get a release cut.
       - opendev.org/openstack/diskimage-builder
       - opendev.org/openstack/ironic
-      - opendev.org/openstack/ironic-python-agent
-      - opendev.org/openstack/ironic-python-agent-builder
+      - name: opendev.org/openstack/ironic-python-agent
+        override-checkout: bugfix/11.3
+      - name: opendev.org/openstack/ironic-python-agent-builder
+        override-checkout: stable/2026.1
       - opendev.org/openstack/ironic-tempest-plugin
       - opendev.org/openstack/virtualbmc
+      - name: opendev.org/openstack/glance
+        override-checkout: stable/2026.1
     irrelevant-files:
       - ^.*\.rst$
       - ^api-ref/.*$
@@ -311,7 +317,6 @@
       interfaces.
     required-projects:
       - opendev.org/openstack/sushy-tools
-      - opendev.org/openstack/ironic-python-agent-builder
     vars:
       tempest_test_regex: ironic_standalone
       tempest_concurrency: 3
@@ -496,7 +501,8 @@
       our UEFI http(s) boot support.
     parent: ironic-base
     required-projects:
-      - opendev.org/openstack/sushy
+      - name: opendev.org/openstack/sushy
+        override-checkout: stable/2026.1
       - opendev.org/openstack/sushy-tools
     vars:
       tempest_test_regex: test_baremetal_server_ops_wholedisk_image
@@ -751,12 +757,17 @@
     pre-run: playbooks/ci-workarounds/pre.yaml
     post-run: playbooks/ci-workarounds/get_extra_logging.yaml
     required-projects:
+      - name: opendev.org/openstack/devstack
+        override-checkout: stable/2026.1
       - opendev.org/openstack/ironic
-      - opendev.org/openstack/ironic-python-agent
-      - opendev.org/openstack/ironic-python-agent-builder
+      - name: opendev.org/openstack/ironic-python-agent
+        override-checkout: bugfix/11.3
+      - name: opendev.org/openstack/ironic-python-agent-builder
+        override-checkout: stable/2026.1
       - opendev.org/openstack/ironic-tempest-plugin
       - opendev.org/openstack/sushy-tools
-      - opendev.org/openstack/networking-generic-switch
+      - name: opendev.org/openstack/networking-generic-switch
+        override-checkout: stable/2026.1
     irrelevant-files:
       - ^.*\.rst$
       - ^api-ref/.*$
@@ -973,6 +984,9 @@
     parent: openstack-tox
     description: |
       Run python 3 unit tests with driver dependencies installed.
+    required-projects:
+      - name: opendev.org/openstack/requirements
+        override-checkout: stable/2026.1
     vars:
       tox_envlist: unit-with-driver-libs
 
@@ -983,6 +997,9 @@
     description: |
       Run MySQL based data model migrations. These are excluded from
       typical unit test runs.
+    required-projects:
+      - name: opendev.org/openstack/requirements
+        override-checkout: stable/2026.1
     vars:
       tox_envlist: mysql-migrations
 
@@ -1054,7 +1071,8 @@
       EDK2 (VM firmware) images causing false failures in this job.
     parent: ironic-base
     required-projects:
-      - opendev.org/openstack/networking-generic-switch
+      - name: opendev.org/openstack/networking-generic-switch
+        override-checkout: stable/2026.1
     vars:
       tempest_test_timeout: 2400
       devstack_services:
@@ -1115,7 +1133,8 @@
       on qemu test vms.
     parent: ironic-base
     required-projects:
-      - opendev.org/openstack/networking-generic-switch
+      - name: opendev.org/openstack/networking-generic-switch
+        override-checkout: stable/2026.1
     vars:
       tempest_test_timeout: 2400
       devstack_services:
@@ -1175,8 +1194,8 @@
     parent: ironic-base
     required-projects:
       - opendev.org/openstack/diskimage-builder
-      - opendev.org/openstack/networking-generic-switch
-      - opendev.org/openstack/ironic-python-agent-builder
+      - name: opendev.org/openstack/networking-generic-switch
+        override-checkout: stable/2026.1
     vars:
       tempest_test_timeout: 2800
       devstack_services:
