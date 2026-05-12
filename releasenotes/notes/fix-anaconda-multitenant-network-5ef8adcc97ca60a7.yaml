@@ -1,0 +1,9 @@
+---
+fixes:
+  - |
+    The ``anaconda`` deploy interface was not switching the node to
+    the provisioning network before deploying, breaking deployments
+    with the ``neutron`` network interface in multi-tenant
+    configurations. This has been fixed by performing the network
+    switch in ``prepare()``. See bug
+    `2152068 <https://bugs.launchpad.net/ironic/+bug/2152068>`_.

@@ -94,8 +94,13 @@ class PXEAnacondaDeploy(agent_base.AgentBaseMixin, agent_base.HeartbeatMixin,
             task.driver.network.validate(task)
 
             manager_utils.node_power_action(task, states.POWER_OFF)
-            # NOTE(TheJulia): If this was any other interface, we would
-            # unconfigure tenant networks, add provisioning networks, etc.
+            # Switch to the provisioning network so anaconda can reach
+            # Ironic's HTTP server for the kickstart file and stage2 image.
+            # deploy() and reboot_to_instance() switch back to the tenant
+            # network once the installation is done.
+            with manager_utils.power_state_for_network_configuration(task):
+                task.driver.network.unconfigure_tenant_networks(task)
+                task.driver.network.add_provisioning_network(task)
             task.driver.storage.attach_volumes(task)
             node.instance_info = deploy_utils.build_instance_info_for_deploy(
                 task)

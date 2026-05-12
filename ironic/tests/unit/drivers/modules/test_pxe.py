@@ -37,6 +37,7 @@ from ironic.drivers.modules import agent_base
 from ironic.drivers.modules import boot_mode_utils
 from ironic.drivers.modules import deploy_utils
 from ironic.drivers.modules import ipxe
+from ironic.drivers.modules.network import noop as noop_network
 from ironic.drivers.modules import pxe
 from ironic.drivers.modules import pxe_base
 from ironic.drivers.modules.storage import noop as noop_storage
@@ -779,10 +780,18 @@ class PXEAnacondaDeployTestCase(db_base.DbTestCase):
             mock_prepare_ks_config.assert_called_once_with(task, image_info,
                                                            anaconda_boot=True)
 
+    @mock.patch.object(noop_network.NoopNetwork, 'add_provisioning_network',
+                       spec_set=True, autospec=True)
+    @mock.patch.object(noop_network.NoopNetwork,
+                       'unconfigure_tenant_networks',
+                       spec_set=True, autospec=True)
+    @mock.patch.object(manager_utils, 'node_power_action', autospec=True)
     @mock.patch.object(deploy_utils, 'build_instance_info_for_deploy',
                        autospec=True)
     @mock.patch.object(pxe.PXEBoot, 'prepare_instance', autospec=True)
-    def test_prepare(self, mock_prepare_instance, mock_build_instance):
+    def test_prepare(self, mock_prepare_instance, mock_build_instance,
+                     mock_power, mock_unconfigure_tenant,
+                     mock_add_provisioning):
 
         node = self.node
         node.provision_state = states.DEPLOYING
@@ -794,18 +803,35 @@ class PXEAnacondaDeployTestCase(db_base.DbTestCase):
             task.driver.deploy.prepare(task)
             self.assertFalse(mock_prepare_instance.called)
             mock_build_instance.assert_called_once_with(task)
+            mock_power.assert_called_once_with(task, states.POWER_OFF)
+            mock_unconfigure_tenant.assert_called_once_with(mock.ANY, task)
+            mock_add_provisioning.assert_called_once_with(mock.ANY, task)
             node.refresh()
             self.assertEqual(updated_instance_info, node.instance_info)
 
+    @mock.patch.object(noop_network.NoopNetwork, 'add_provisioning_network',
+                       spec_set=True, autospec=True)
+    @mock.patch.object(noop_network.NoopNetwork,
+                       'unconfigure_tenant_networks',
+                       spec_set=True, autospec=True)
     @mock.patch.object(pxe.PXEBoot, 'prepare_instance', autospec=True)
-    def test_prepare_active(self, mock_prepare_instance):
+    def test_prepare_active(self, mock_prepare_instance,
+                            mock_unconfigure_tenant, mock_add_provisioning):
         node = self.node
         node.provision_state = states.ACTIVE
         node.save()
         with task_manager.acquire(self.context, node.uuid) as task:
             task.driver.deploy.prepare(task)
             mock_prepare_instance.assert_called_once_with(mock.ANY, task)
+            # The provisioning-network switch must only happen during
+            # DEPLOYING, not on conductor takeover of an ACTIVE node.
+            mock_unconfigure_tenant.assert_not_called()
+            mock_add_provisioning.assert_not_called()
 
+    @mock.patch.object(noop_network.NoopNetwork, 'configure_tenant_networks',
+                       spec_set=True, autospec=True)
+    @mock.patch.object(noop_network.NoopNetwork, 'remove_provisioning_network',
+                       spec_set=True, autospec=True)
     @mock.patch.object(dhcp_factory.DHCPFactory, 'clean_dhcp', autospec=True)
     @mock.patch.object(boot_mode_utils, 'configure_secure_boot_if_needed',
                        autospec=True)
@@ -814,7 +840,8 @@ class PXEAnacondaDeployTestCase(db_base.DbTestCase):
     @mock.patch.object(deploy_utils, 'try_set_boot_device', autospec=True)
     def test_reboot_to_instance(self, mock_set_boot_dev, mock_image_info,
                                 mock_cleanup_pxe_env, mock_conf_sec_boot,
-                                mock_dhcp):
+                                mock_dhcp, mock_remove_provisioning,
+                                mock_configure_tenant):
         image_info = {'kernel': ('', '/path/to/kernel'),
                       'ramdisk': ('', '/path/to/ramdisk'),
                       'stage2': ('', '/path/to/stage2'),
@@ -831,6 +858,11 @@ class PXEAnacondaDeployTestCase(db_base.DbTestCase):
                                                          ipxe_enabled=False)
             mock_dhcp.assert_has_calls([
                 mock.call(mock.ANY, task)])
+            # Symmetric with the provisioning-network switch added in
+            # prepare(); both calls together return the node to the
+            # tenant network for first boot of the installed OS.
+            mock_remove_provisioning.assert_called_once_with(mock.ANY, task)
+            mock_configure_tenant.assert_called_once_with(mock.ANY, task)
 
     @mock.patch.object(objects.node.Node, 'touch_provisioning', autospec=True)
     def test_heartbeat_deploy_start(self, mock_touch):
