@@ -746,10 +746,8 @@ class RedfishBiosTestCase(db_base.DbTestCase):
              'requested_bios_attrs': {'ProcTurboMode': 'Enabled'}})
         self.node.save()
 
-        boot_progress = mock.Mock()
-        boot_progress.last_state = None
         mock_system = mock_get_system.return_value
-        mock_system.boot_progress = boot_progress
+        mock_system.boot_progress = None
         mock_bios = mock.Mock()
         mock_bios.attributes = {'ProcTurboMode': 'Disabled'}
         mock_bios.pending_attributes = {'ProcTurboMode': 'Enabled'}
@@ -761,6 +759,39 @@ class RedfishBiosTestCase(db_base.DbTestCase):
 
             mock_touch.assert_not_called()
             mock_notify.assert_not_called()
+
+    @mock.patch.object(manager_utils, 'notify_conductor_resume_clean',
+                       autospec=True)
+    @mock.patch.object(objects.Node, 'touch_provisioning', autospec=True)
+    @mock.patch.object(redfish_utils, 'get_system', autospec=True)
+    def test_check_bios_apply_no_last_state_pending_cleared(
+            self, mock_get_system, mock_touch, mock_notify):
+        self.node.clean_step = {'priority': 100, 'interface': 'bios',
+                                'step': 'apply_configuration',
+                                'argsinfo': {'settings': []}}
+        self.node.provision_state = states.CLEANWAIT
+        self.node.set_driver_internal_info('cleaning_disable_ramdisk', True)
+        self.node.set_driver_internal_info(
+            'redfish_bios_state',
+            {'reboot_requested': True,
+             'requested_bios_attrs': {'ProcTurboMode': 'Enabled'}})
+        self.node.save()
+
+        boot_progress = mock.Mock()
+        boot_progress.last_state = None
+        mock_system = mock_get_system.return_value
+        mock_system.boot_progress = boot_progress
+        mock_bios = mock.Mock()
+        mock_bios.attributes = {'ProcTurboMode': 'Enabled'}
+        mock_bios.pending_attributes = {}
+        mock_system.bios = mock_bios
+
+        with task_manager.acquire(self.context, self.node.uuid,
+                                  shared=False) as task:
+            task.driver.bios._check_node_redfish_bios_apply(task)
+
+            mock_touch.assert_not_called()
+            mock_notify.assert_called_once_with(task)
 
     @mock.patch.object(manager_utils, 'notify_conductor_resume_clean',
                        autospec=True)
