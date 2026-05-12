@@ -518,7 +518,8 @@ class RedfishBIOS(base.BIOSInterface):
                         {'node': node.uuid, 'error': e})
             return
 
-        last_state = system.boot_progress.last_state
+        last_state = (system.boot_progress.last_state
+                      if system.boot_progress is not None else None)
         if last_state is not None:
             # BootProgress is reported — touch provisioning to prevent the
             # global timeout from firing while we observe meaningful progress.
