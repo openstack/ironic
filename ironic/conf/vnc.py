@@ -17,6 +17,8 @@ import os
 from oslo_config import cfg
 from oslo_config import types
 
+from ironic.common.i18n import _
+
 
 opts = [
     cfg.BoolOpt(
@@ -146,18 +148,41 @@ opts = [
                help='For the kubernetes provider, the time (in seconds) to '
                     'wait for the console pod to start.'),
     cfg.StrOpt(
-        'ssl_cert_file',
-        help="Certificate file to use when starting the server securely."),
+        'cert_file',
+        deprecated_name='ssl_cert_file',
+        help=_("Certificate file to use when starting "
+               "the server securely.")),
     cfg.StrOpt(
-        'ssl_key_file',
-        help="Private key file to use when starting the server securely."),
+        'key_file',
+        deprecated_name='ssl_key_file',
+        help=_("Private key file to use when starting "
+               "the server securely.")),
     cfg.StrOpt(
-        'ssl_minimum_version',
-        help="The minimum SSL version to use."),
+        'tls_minimum_version',
+        deprecated_name='ssl_minimum_version',
+        default='1.2',
+        choices=[
+            ('1.2',
+             _('Require TLS 1.2 as the minimum version.')),
+            ('1.3',
+             _('Require TLS 1.3 as the minimum version. '
+               'Recommended for Post-Quantum Cryptography '
+               'readiness as PQC key exchange is only '
+               'available in TLS 1.3.')),
+        ],
+        help=_("Set the minimum TLS protocol version for "
+               "the noVNC proxy server when "
+               "[vnc]enable_ssl is True. Defaults to "
+               "TLS 1.2 since TLS 1.0 and 1.1 are "
+               "deprecated (RFC 8996).")),
     cfg.StrOpt(
-        'ssl_ciphers',
-        help="Sets the list of available ciphers. value should be a "
-             "string in the OpenSSL cipher list format."),
+        'tls_ciphers',
+        deprecated_name='ssl_ciphers',
+        help=_("Set the list of available ciphers for "
+               "the noVNC proxy server. The value should "
+               "be a string in the OpenSSL cipher list "
+               "format. Has no effect when "
+               "[vnc]enable_ssl is False.")),
     cfg.IntOpt(
         'wait_for_ready_timeout',
         default=10,

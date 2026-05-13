@@ -559,6 +559,39 @@ connections are configured in the ``[agent]`` section:
    ironic-python-agent within the supported version window of
    Ironic.
 
+Configuring TLS for the noVNC Proxy
+-------------------------------------
+
+When Ironic's integrated ``ironic-novncproxy`` service is used to
+provide browser-based console access, TLS settings can be
+configured in the ``[vnc]`` section:
+
+.. code-block:: ini
+
+   [vnc]
+   enable_ssl = True
+   cert_file = /etc/ironic/ssl/novncproxy.crt
+   key_file = /etc/ironic/ssl/novncproxy.key
+
+   # Enforce TLS 1.3 minimum (recommended for PQC readiness)
+   tls_minimum_version = 1.3
+
+   # Optionally restrict available ciphers
+   # tls_ciphers = ECDHE+AESGCM:ECDHE+CHACHA20:DHE+AESGCM
+
+.. note::
+   The TLS settings above apply to connections between the
+   browser client and the ``ironic-novncproxy`` service. These
+   TLS controls do not extend into the backend VNC console
+   containers, nor do these settings propagate to the overall
+   interaction with the BMC by the container. Operators should
+   ensure that ``ironic-novncproxy`` or ``nova-novncproxy`` can
+   reach the containers over a private management network that
+   is not exposed to end users. The
+   ``[vnc]systemd_container_publish_port`` configuration option
+   controls the IP address and port mapping used to expose the
+   container VNC port to the host.
+
 Post-Quantum Cryptography Readiness
 -------------------------------------
 
