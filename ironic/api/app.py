@@ -95,7 +95,6 @@ def setup_app(pecan_config=None, extra_hooks=None):
         pecan_config.app.root,
         debug=CONF.pecan_debug,
         static_root=pecan_config.app.static_root if CONF.pecan_debug else None,
-        force_canonical=getattr(pecan_config.app, 'force_canonical', True),
         hooks=app_hooks,
         wrap_app=middleware.ParsableErrorMiddleware,
         # NOTE(dtantsur): enabling this causes weird issues with nodes named
