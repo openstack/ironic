@@ -1,0 +1,5 @@
+---
+fixes:
+  - |
+    Fixes a regression in the Redfish BIOS settings code that would cause
+    applying settings to get stuck on implementations without BootProgress.
