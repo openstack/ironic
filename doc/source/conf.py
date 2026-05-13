@@ -61,6 +61,15 @@ autodoc_default_options = {
     'special-members': '__call__',
 }
 
+# NOTE: Disable rendering of type annotations in autodoc signatures. The
+# bare `type[...]` annotations introduced in oslo.versionedobjects produce
+# ambiguous Python cross-references (the unqualified `type` resolves to
+# several legitimate ironic attributes named `type`), which `-W` then
+# escalates to errors. Stripping annotations from rendered signatures is
+# the most targeted mitigation until the upstream library qualifies its
+# annotations.
+autodoc_typehints = 'none'
+
 autosummary_mock_imports = [
     'ironic.wsgi',
 ]
