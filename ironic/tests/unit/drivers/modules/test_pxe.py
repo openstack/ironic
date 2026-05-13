@@ -751,6 +751,8 @@ class PXEAnacondaDeployTestCase(db_base.DbTestCase):
                                                node_id=self.node.id)
         self.deploy = pxe.PXEAnacondaDeploy()
 
+    @mock.patch.object(noop_network.NoopNetwork, 'configure_tenant_networks',
+                       spec_set=True, autospec=True)
     @mock.patch.object(pxe_utils, 'prepare_instance_kickstart_config',
                        autospec=True)
     @mock.patch.object(pxe_utils, 'validate_kickstart_file', autospec=True)
@@ -761,7 +763,8 @@ class PXEAnacondaDeployTestCase(db_base.DbTestCase):
     @mock.patch.object(pxe_utils, 'get_instance_image_info', autospec=True)
     def test_deploy(self, mock_image_info, mock_cache,
                     mock_dhcp_factory, mock_switch_config, mock_ks_tmpl,
-                    mock_ks_file, mock_prepare_ks_config):
+                    mock_ks_file, mock_prepare_ks_config,
+                    mock_configure_tenant):
         image_info = {'kernel': ('', '/path/to/kernel'),
                       'ramdisk': ('', '/path/to/ramdisk'),
                       'stage2': ('', '/path/to/stage2'),
@@ -779,6 +782,7 @@ class PXEAnacondaDeployTestCase(db_base.DbTestCase):
             mock_ks_file.assert_called_once_with(mock_ks_tmpl.return_value)
             mock_prepare_ks_config.assert_called_once_with(task, image_info,
                                                            anaconda_boot=True)
+            mock_configure_tenant.assert_not_called()
 
     @mock.patch.object(noop_network.NoopNetwork, 'add_provisioning_network',
                        spec_set=True, autospec=True)

@@ -70,8 +70,6 @@ class PXEAnacondaDeploy(agent_base.AgentBaseMixin, agent_base.HeartbeatMixin,
     @task_manager.require_exclusive_lock
     def deploy(self, task):
         manager_utils.node_power_action(task, states.POWER_OFF)
-        with manager_utils.power_state_for_network_configuration(task):
-            task.driver.network.configure_tenant_networks(task)
 
         # calling boot.prepare_instance will also set the node
         # to PXE boot, and update PXE templates accordingly
@@ -96,8 +94,8 @@ class PXEAnacondaDeploy(agent_base.AgentBaseMixin, agent_base.HeartbeatMixin,
             manager_utils.node_power_action(task, states.POWER_OFF)
             # Switch to the provisioning network so anaconda can reach
             # Ironic's HTTP server for the kickstart file and stage2 image.
-            # deploy() and reboot_to_instance() switch back to the tenant
-            # network once the installation is done.
+            # reboot_to_instance() switches back to the tenant network
+            # once the installation is done.
             with manager_utils.power_state_for_network_configuration(task):
                 task.driver.network.unconfigure_tenant_networks(task)
                 task.driver.network.add_provisioning_network(task)
