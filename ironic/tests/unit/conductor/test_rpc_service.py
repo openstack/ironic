@@ -323,6 +323,13 @@ class TestRPCService(db_base.DbTestCase):
         self.assertEqual(self.rpc_svc.manager.topic, restored.manager.topic)
         # threading.Event should be recreated as unset
         self.assertFalse(restored.manager._shutdown.is_set())
+        # Thread pool executors and periodic tasks should be excluded
+        # from pickle and set to None after unpickling (to be recreated
+        # during startup)
+        self.assertIsNone(restored.manager._executor)
+        self.assertIsNone(restored.manager._reserved_executor)
+        self.assertIsNone(restored.manager._periodic_tasks)
+        self.assertIsNone(restored.manager._periodic_tasks_worker)
 
     def test_getstate_includes_argv(self):
         """__getstate__ saves sys.argv so __setstate__ can restore CONF."""
@@ -332,6 +339,25 @@ class TestRPCService(db_base.DbTestCase):
         self.assertEqual(sys.argv[:], state['_argv'])
         # tg must be excluded (contains un-picklable threading objects)
         self.assertNotIn('tg', state)
+
+    def test_manager_getstate_excludes_unpicklable(self):
+        """Manager __getstate__ excludes thread pools and periodic tasks.
+
+        Thread pool executors and periodic task objects contain threading
+        primitives that cannot be pickled. Verify they are excluded from
+        the pickled state and will be recreated during startup.
+        """
+        state = self.rpc_svc.manager.__getstate__()
+        # Threading objects must be excluded
+        self.assertNotIn('_executor', state)
+        self.assertNotIn('_reserved_executor', state)
+        self.assertNotIn('_periodic_tasks', state)
+        self.assertNotIn('_periodic_tasks_worker', state)
+        self.assertNotIn('sensors_notifier', state)
+        self.assertNotIn('dbapi', state)
+        # _shutdown should be converted to bool
+        self.assertIn('_shutdown', state)
+        self.assertIsInstance(state['_shutdown'], bool)
 
     @mock.patch('ironic.common.service.prepare_command', autospec=True)
     def test_setstate_calls_prepare_command(self, mock_prepare):
