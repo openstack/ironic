@@ -221,7 +221,7 @@ ignore-words-list = "selectin,exept,taks,ser,wit,cna,myraid,dum,assertin,checkin
 skip = "AUTHORS,ChangeLog,*.pyc,*.inv,*.svg,*.png,*.sample,./doc/build/*,./api-ref/build/*,./releasenotes/build/*,./api-ref/build/*,./build/*"
 
 [tool.setuptools.packages.find]
-include = ["ironic"]
+include = ["ironic*"]
 
 [tool.setuptools.data-files]
 "share/ironic/vnc-container" = [
