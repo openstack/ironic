@@ -49,10 +49,6 @@ class BaseApiTest(db_base.DbTestCase):
 
     def setUp(self):
         super(BaseApiTest, self).setUp()
-        cfg.CONF.set_override("auth_version", "v3",
-                              group='keystone_authtoken')
-        cfg.CONF.set_override("admin_user", "admin",
-                              group='keystone_authtoken')
         cfg.CONF.set_override("auth_strategy", "noauth")
         if not self.SKIP_TRACEBACK_OVERRIDE:
             cfg.CONF.set_override("debug_tracebacks_in_api", True)
