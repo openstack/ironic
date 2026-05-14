@@ -66,7 +66,7 @@ issue, but is ultimately only responsible for documenting it.
 
 * `Periodic Zuul build failures for Ironic/IPA/Ironic-Prom-Exp/Bifrost <https://zuul.opendev.org/t/openstack/builds?project=openstack%2Fironic&project=openstack%2Fironic-python-agent&project=openstack%2Fironic-lib&project=openstack%2Fironic-prometheus-exporter&project=openstack%2Fbifrost&pipeline=periodic&pipeline=periodic-stable&result=FAILURE&result=RETRY_LIMIT&result=POST_FAILURE&result=ERROR&skip=0>`_
 * `Periodic Zuul build failures for Ironic UI/NBM/NGS <https://zuul.opendev.org/t/openstack/builds?project=openstack%2Fnetworking-generic-switch&project=openstack%2Fironic-ui&project=openstack%2Fnetworking-baremetal&pipeline=periodic&pipeline=periodic-stable&result=FAILURE&result=RETRY_LIMIT&result=POST_FAILURE&result=ERROR&skip=0>`_
-* `Periodic Zuul build failures for inspector-client/sushy/sushy-tools/vbmc/vpdu/ <https://zuul.opendev.org/t/openstack/builds?project=openstack%2Fpython-ironic-inspector-client&project=openstack%2Fsushy&project=openstack%2Fsushy-tools&project=openstack%2Fvirtualbmc&project=openstack%2Fvirtualpdu&pipeline=periodic&pipeline=periodic-stable&result=FAILURE&result=RETRY_LIMIT&result=POST_FAILURE&result=ERROR&skip=0>`_
+* `Periodic Zuul build failures for inspector-client/sushy/sushy-tools/vbmc/ <https://zuul.opendev.org/t/openstack/builds?project=openstack%2Fpython-ironic-inspector-client&project=openstack%2Fsushy&project=openstack%2Fsushy-tools&project=openstack%2Fvirtualbmc&pipeline=periodic&pipeline=periodic-stable&result=FAILURE&result=RETRY_LIMIT&result=POST_FAILURE&result=ERROR&skip=0>`_
 
 As of this writing, no other projects under Ironic governance run periodic
 jobs.
