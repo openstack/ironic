@@ -300,6 +300,8 @@ class TestService(TestCase):
 
     def test_authenticated(self):
         self.config(auth_strategy='keystone', group='json_rpc')
+        self.config(www_authenticate_uri='http://localhost:5000',
+                    group='keystone_authtoken')
         self.service = server.WSGIService(FakeManager(), self.serializer,
                                           FakeContext)
         self.app = self.server_mock.call_args.kwargs['wsgi_app']
@@ -308,6 +310,8 @@ class TestService(TestCase):
 
     def test_authenticated_with_allowed_role(self):
         self.config(auth_strategy='keystone', group='json_rpc')
+        self.config(www_authenticate_uri='http://localhost:5000',
+                    group='keystone_authtoken')
         self.config(allowed_roles=['allowed', 'ignored'], group='json_rpc')
         self.service = server.WSGIService(FakeManager(), self.serializer,
                                           FakeContext)
@@ -319,11 +323,15 @@ class TestService(TestCase):
 
     def test_authenticated_no_admin_role(self):
         self.config(auth_strategy='keystone', group='json_rpc')
+        self.config(www_authenticate_uri='http://localhost:5000',
+                    group='keystone_authtoken')
         self._request('success', {'context': self.ctx, 'x': 42},
                       expected_error=403)
 
     def test_authenticated_no_allowed_role(self):
         self.config(auth_strategy='keystone', group='json_rpc')
+        self.config(www_authenticate_uri='http://localhost:5000',
+                    group='keystone_authtoken')
         self.config(allowed_roles=['allowed', 'ignored'], group='json_rpc')
         self._request('success', {'context': self.ctx, 'x': 42},
                       expected_error=403,
