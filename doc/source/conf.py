@@ -49,11 +49,13 @@ extensions = ['sphinx.ext.autodoc',
 apidoc_module_dir = '../../ironic'
 apidoc_output_dir = 'contributor/api'
 apidoc_excluded_paths = [
-    'db/sqlalchemy/alembic/env',
-    'db/sqlalchemy/alembic/versions/*',
+    'db/sqlalchemy/alembic/*',
     'drivers/modules/ansible/playbooks*',
     'hacking',
     'tests',
+    'tests/*',
+    # ironic.wsgi has side effects on import
+    'wsgi',
 ]
 apidoc_separate_modules = True
 
