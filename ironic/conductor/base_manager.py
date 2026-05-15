@@ -71,12 +71,18 @@ class BaseConductorManager(object):
         ``_shutdown`` is a threading.Event (contains ``_thread.lock``);
         ``sensors_notifier`` and ``dbapi`` may contain unpicklable
         transport objects and connection-pool locks respectively.
-        All three are recreated during startup.
+        ``_executor``, ``_reserved_executor``, ``_periodic_tasks``, and
+        ``_periodic_tasks_worker`` contain thread pools and futures.
+        All are recreated during startup.
         """
         state = self.__dict__.copy()
         state['_shutdown'] = self._shutdown.is_set()
         state.pop('sensors_notifier', None)
         state.pop('dbapi', None)
+        state.pop('_executor', None)
+        state.pop('_reserved_executor', None)
+        state.pop('_periodic_tasks', None)
+        state.pop('_periodic_tasks_worker', None)
         return state
 
     def __setstate__(self, state):
@@ -87,6 +93,10 @@ class BaseConductorManager(object):
             self._shutdown.set()
         self.sensors_notifier = None  # recreated in init_host()
         self.dbapi = None  # recreated in prepare_host()/init_host()
+        self._executor = None  # recreated in prepare_host()
+        self._reserved_executor = None  # recreated in prepare_host()
+        self._periodic_tasks = None  # recreated in init_host()
+        self._periodic_tasks_worker = None  # recreated in init_host()
 
     def prepare_host(self):
         """Prepares host for initialization
