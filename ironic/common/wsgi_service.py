@@ -108,8 +108,8 @@ class BaseWSGIService(service.ServiceBase):
             server_name=name)
 
         if use_ssl:
-            cert_file = getattr(conf, "cert_file", None)
-            key_file = getattr(conf, "key_file", None)
+            cert_file = conf.cert_file
+            key_file = conf.key_file
 
             if not (cert_file and key_file):
                 LOG.warning(
@@ -127,14 +127,14 @@ class BaseWSGIService(service.ServiceBase):
 
             validate_cert_paths(cert_file, key_file)
 
-            tls_ciphers = getattr(conf, 'tls_ciphers', None)
+            tls_ciphers = conf.tls_ciphers
             self.server.ssl_adapter = cheroot_ssl.BuiltinSSLAdapter(
                 certificate=cert_file,
                 private_key=key_file,
                 ciphers=tls_ciphers,
             )
 
-            tls_min = getattr(conf, 'tls_minimum_version', None)
+            tls_min = conf.tls_minimum_version
             if tls_min:
                 _check_tls_version_supported(tls_min)
                 version = _TLS_VERSION_MAP[tls_min]
