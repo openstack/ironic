@@ -4,13 +4,16 @@
 Metal3 Continuous Integration
 =============================
 
-There are two jobs that use Metal3_ project to test Ironic:
+There are three jobs that use Metal3_ project to test Ironic:
 
 - `Metal3 Integration Job`_ tests the entire Metal3 flow from creating a
   cluster with *Cluster API* to provisioning nodes.
 
 - `Ironic Standalone Operator Functional Tests`_ check how Ironic is installed
   in Metal3.
+
+- `Bare Metal Operator Functional Tests`_ check various scenarios of using
+  Ironic through Metal3 API.
 
 Metal3 Integration Job
 ======================
@@ -146,6 +149,76 @@ The logs inside ``controller`` root are organized as follows:
   .. note:: The repeated ``test-ironic`` bit is the name of the Ironic
             resource, that is used in all tests.
 
+Bare Metal Operator Functional Tests
+====================================
+
+`Bare Metal Operator`_ (BMO) is the core component of Metal3. It exposes
+several Kubernetes resources for managing hardware, using Ironic as its
+backend.
+
+The job does not use metal3-dev-env. Instead, the scripts are shared between
+two Metal3 repositories:
+
+- `hack/prepare-bmo-tests.sh`_ script in ironic-image_ builds a custom
+  container image with the Ironic source from Zuul, and runs the next script:
+- `hack/ci-e2e.sh`_ in BMO installs dependencies, configures networking,
+  installs the BMC emulator (sushy-tools_ in case of the job running on
+  Ironic), creates a testing image, and runs the test suite.
+
+How It Works
+------------
+
+The test suite itself is responsible for the rest of the configuration. It
+creates a Kind_ cluster, installs `Ironic Standalone Operator`_, installs
+Ironic using the operator and the previously built Ironic image, and deploys
+BMO itself.
+
+After the bootstrapping phase, all tests are run in two threads, each
+corresponding to one of the two fake bare-metal machines. Tests normally
+involve creating a BareMetalHost resource with its BMC credentials secret and
+observing it walking through expected states_.
+
+Each group of tests run in their own namespace.
+
+Troubleshooting Guide
+---------------------
+
+Typical causes of failures that are not caused by BMO itself include:
+
+- Bugs in any major provisioning process: enrollment, inspection, manual
+  cleaning, deployment, automated cleaning, or servicing (but not rescuing).
+- Bugs in the ramdisk deploy feature or virtual media support.
+- Bugs in general standalone Ironic support (e.g. basic auth).
+- Transient failures when building the image (Quay, GitHub or CentOS Stream
+  mirrors availability).
+
+Logs Layout
+~~~~~~~~~~~
+
+In the end of a test run, a jUnit report is rendered and published in the job
+artifacts. There you can see which tests have failed.
+
+The logs inside ``controller`` root are organized as follows:
+
+- ``system/`` contains various system resources: processes, firewall rules, etc.
+- ``logs/baremetal-operator-system/baremetal-operator-controller-manager/``
+  contains BMO logs shared between all tests.
+- ``logs/baremetal-operator-system/ironic-service/`` contains logs from all
+  Ironic services.
+- ``logs/qemu/`` contains QEMU logs and serial console output from testing VMs.
+- ``resources/`` contains Kubernetes events per each testing namespace.
+- the remaining directories contain resources from each testing namespace:
+
+  - ``crd/`` contains Kubernetes resources in YAML format. Particularly of
+    interest are *BareMetalHosts* (correspond to Ironic nodes and their ports),
+    *HostFirmwareSettings* (correspond to BIOS settings),
+    *HostFirmwareComponents* (correspond to firmware operations) and
+    *HardwareData* (stores inspection inventory).
+  - ``bmo-e2e-<index>-serial0.log`` serial console output for corresponding
+    VM(s).
+
+- ``redfish-emulator.log`` contains sushy-tools_ logs.
+
 .. _Metal3: https://metal3.io/
 .. _Metal3 Development Environment (metal3-dev-env): https://github.com/metal3-io/metal3-dev-env
 .. _metal3 job definition yaml file: https://opendev.org/openstack/ironic/src/branch/master/zuul.d/metal3-jobs.yaml
@@ -163,3 +236,8 @@ The logs inside ``controller`` root are organized as follows:
 .. _minikube: https://minikube.sigs.k8s.io/docs/
 .. _Ironic resource: https://github.com/metal3-io/ironic-standalone-operator/blob/main/docs/api.md#ironic
 .. _IrSO testing guide: https://github.com/metal3-io/ironic-standalone-operator/blob/main/docs/testing.md#functional-tests
+.. _hack/prepare-bmo-tests.sh: https://github.com/metal3-io/ironic-image/blob/main/hack/prepare-bmo-tests.sh
+.. _hack/ci-e2e.sh: https://github.com/metal3-io/baremetal-operator/blob/main/hack/ci-e2e.sh
+.. _Kind: https://kind.sigs.k8s.io/
+.. _sushy-tools: https://opendev.org/openstack/sushy-tools/
+.. _states: https://book.metal3.io/bmo/state_machine.html

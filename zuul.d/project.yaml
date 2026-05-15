@@ -63,6 +63,8 @@
         # 502 Bad Gateway errors when accessing containers.
         - metal3-integration:
             voting: false
+        - metal3-baremetal-operator-functional:
+            voting: false
         - metal3-ironic-standalone-operator-functional:
             voting: false
         # Non-voting jobs
