@@ -89,18 +89,25 @@ echo $CONTENT | /usr/bin/base64 --decode > {file_path}\n\
             task.node.save()
             self.assertEqual(expected, ks_utils.prepare_config_drive(task))
 
-    @mock.patch('requests.get', autospec=True)
-    def test_prepare_config_drive_in_swift(self, mock_get):
+    @mock.patch('ironic.common.image_service._build_webserver_session',
+                autospec=True)
+    def test_prepare_config_drive_in_swift(self, mock_build):
         expected = self._get_expected_ks_config_drive(self.config_drive_dict)
-        mock_get.return_value = mock.MagicMock(content=CONFIG_DRIVE)
+        mock_session = mock.MagicMock()
+        mock_build.return_value = mock_session
+        mock_session.get.return_value = mock.MagicMock(
+            content=CONFIG_DRIVE)
         with task_manager.acquire(self.context, self.node.uuid) as task:
             i_info = task.node.instance_info
             i_info['configdrive'] = 'http://server/fake-configdrive-url'
             task.node.instance_info = i_info
             task.node.save()
             self.assertEqual(expected, ks_utils.prepare_config_drive(task))
-            mock_get.assert_called_with('http://server/fake-configdrive-url',
-                                        timeout=60)
+            mock_build.assert_called_once()
+            mock_session.get.assert_called_with(
+                'http://server/fake-configdrive-url',
+                verify=True,
+                timeout=60)
 
     @mock.patch.object(pycdlib, 'PyCdlib', autospec=True)
     def test_read_iso9600_config_drive(self, mock_pycdlib_cls):

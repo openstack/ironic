@@ -851,24 +851,25 @@ class TestActions(TestInspectionRules):
                              task.node.driver_info['ipmi_address'])
 
     @mock.patch(
-        'ironic.common.inspection_rules.actions.requests.Session',
+        'ironic.common.image_service._build_webserver_session',
         autospec=True)
-    def test_call_api_hook_action_success(self, mock_session):
+    def test_call_api_hook_action_success(self, mock_build):
         """Test CallAPIHookAction successfully calls an API."""
-        mock_session_instance = mock_session.return_value
+        mock_session = mock.MagicMock()
+        mock_build.return_value = mock_session
         mock_response = mock.Mock()
         mock_response.status_code = 200
         mock_response.raise_for_status.return_value = None
-        mock_session_instance.get.return_value = mock_response
+        mock_session.get.return_value = mock_response
 
         with task_manager.acquire(self.context, self.node.uuid) as task:
             action = inspection_rules.actions.CallAPIHookAction()
             test_url = 'http://example.com/simple_hook'
             action(task, url=test_url)
-            mock_session_instance.mount.assert_any_call("http://", mock.ANY)
-            mock_session_instance.mount.assert_any_call("https://", mock.ANY)
-            mock_session_instance.get.assert_called_once_with(
-                test_url, timeout=5)
+            mock_build.assert_called_once()
+            mock_session.mount.assert_any_call("http://", mock.ANY)
+            mock_session.get.assert_called_once_with(
+                test_url, timeout=5, verify=True)
             mock_response.raise_for_status.assert_called_once()
 
 

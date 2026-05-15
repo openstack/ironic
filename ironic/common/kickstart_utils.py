@@ -18,10 +18,12 @@ import os
 import tempfile
 
 from oslo_log import log as logging
+from oslo_utils import strutils
 import pycdlib
 import requests
 
 from ironic.common import exception
+from ironic.common import image_service
 from ironic.common import utils
 from ironic.conf import CONF
 
@@ -113,8 +115,16 @@ def decode_and_extract_config_drive_iso(config_drive_iso_gz):
 
 def _fetch_config_drive_from_url(url):
     try:
-        config_drive = requests.get(
-            url, timeout=CONF.webserver_connection_timeout).content
+        verify = strutils.bool_from_string(
+            CONF.webserver_verify_ca, strict=True)
+    except ValueError:
+        verify = CONF.webserver_verify_ca
+
+    try:
+        session = image_service._build_webserver_session()
+        config_drive = session.get(
+            url, verify=verify,
+            timeout=CONF.webserver_connection_timeout).content
     except requests.exceptions.RequestException as e:
         raise exception.InstanceDeployFailure(
             "Can't download the configdrive content from '%(url)s'. "

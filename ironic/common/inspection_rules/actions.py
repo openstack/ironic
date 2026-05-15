@@ -12,15 +12,17 @@
 
 import abc
 import requests
-from requests.adapters import HTTPAdapter
 from urllib3.util.retry import Retry
 
 from oslo_log import log
+from oslo_utils import strutils
 
 from ironic.common import exception
 from ironic.common.i18n import _
+from ironic.common import image_service
 from ironic.common.inspection_rules import base
 from ironic.common.inspection_rules import utils
+from ironic.conf import CONF
 from ironic.drivers import utils as driver_utils
 from ironic import objects
 
@@ -447,16 +449,26 @@ class CallAPIHookAction(ActionBase):
                 allowed_methods=["GET"],
                 raise_on_status=False
             )
-            adapter = HTTPAdapter(max_retries=retry_strategy)
-            session = requests.Session()
-            session.mount("http://", adapter)
-            session.mount("https://", adapter)
-            request_kwargs = {}
+            session = image_service._build_webserver_session()
+            adapter = session.get_adapter('https://')
+            adapter.max_retries = retry_strategy
+            http_adapter = image_service.TLSHTTPAdapter(
+                max_retries=retry_strategy)
+            session.mount("http://", http_adapter)
+
+            try:
+                verify = strutils.bool_from_string(
+                    CONF.webserver_verify_ca, strict=True)
+            except ValueError:
+                verify = CONF.webserver_verify_ca
+
+            request_kwargs = {'verify': verify}
             if headers:
                 request_kwargs['headers'] = headers
             if proxies:
                 request_kwargs['proxies'] = proxies
-            response = session.get(url, timeout=timeout, **request_kwargs)
+            response = session.get(
+                url, timeout=timeout, **request_kwargs)
             response.raise_for_status()
         except ValueError as exc:
             msg = _("Invalid parameter: %s") % exc
