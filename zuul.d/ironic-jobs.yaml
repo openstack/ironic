@@ -281,7 +281,7 @@
         SWIFT_TEMPURL_KEY: ''
         # Parent job has a longer timeout due to vmedia usage,
         # Reset the callback to a normal-ish value.
-        IRONIC_CALLBACK_TIMEOUT: 600
+        IRONIC_CALLBACK_TIMEOUT: 1800
         IRONIC_BOOT_MODE: bios
         # Make sure this feature works even with the minimum implementation
         IRONIC_REDFISH_EMULATOR_FEATURE_SET: minimum
@@ -314,7 +314,7 @@
         # Ironic has to master a new image, and this CAN take longer as a
         # result and makes this job VERY sensitive to heavy disk IO of the
         # underlying hypervisor/cloud.
-        IRONIC_CALLBACK_TIMEOUT: 800
+        IRONIC_CALLBACK_TIMEOUT: 1800
         IRONIC_GRUB2_SHIM_FILE: https://mirror.stream.centos.org/9-stream/BaseOS/x86_64/os/EFI/BOOT/BOOTX64.EFI
         IRONIC_GRUB2_FILE: https://mirror.stream.centos.org/9-stream/BaseOS/x86_64/os/EFI/BOOT/grubx64.efi
         IRONIC_GRUB2_CONFIG_PATH: EFI/BOOT/grub.cfg
@@ -632,7 +632,7 @@
         HOST_TOPOLOGY_SUBNODES: "{{ hostvars['compute1']['nodepool']['public_ipv4'] }}"
         IRONIC_BAREMETAL_BASIC_OPS: True
         IRONIC_BUILD_DEPLOY_RAMDISK: False
-        IRONIC_CALLBACK_TIMEOUT: 600
+        IRONIC_CALLBACK_TIMEOUT: 1800
         IRONIC_DEPLOY_DRIVER: ipmi
         IRONIC_ENABLED_NETWORK_INTERFACES: flat,neutron
         IRONIC_INSPECTOR_BUILD_RAMDISK: False
@@ -985,7 +985,7 @@
           IRONIC_TEMPEST_BUILD_TIMEOUT: 1200
           IRONIC_BAREMETAL_BASIC_OPS: True
           IRONIC_BUILD_DEPLOY_RAMDISK: False
-          IRONIC_CALLBACK_TIMEOUT: 600
+          IRONIC_CALLBACK_TIMEOUT: 1800
           IRONIC_DEPLOY_DRIVER: ipmi
           IRONIC_INSPECTOR_BUILD_RAMDISK: False
           IRONIC_RAMDISK_TYPE: tinyipa
@@ -1085,7 +1085,7 @@
           IRONIC_BAREMETAL_BASIC_OPS: True
           IRONIC_AUTOMATED_CLEAN_ENABLED: False
           IRONIC_BUILD_DEPLOY_RAMDISK: False
-          IRONIC_CALLBACK_TIMEOUT: 700
+          IRONIC_CALLBACK_TIMEOUT: 1800
           IRONIC_DEFAULT_DEPLOY_INTERFACE: direct
           IRONIC_DEPLOY_DRIVER: ipmi
           IRONIC_VM_COUNT: 4
@@ -1167,7 +1167,7 @@
             IRONIC_BAREMETAL_BASIC_OPS: True
             IRONIC_BUILD_DEPLOY_RAMDISK: False
             BUILD_TIMEOUT: 1200
-            IRONIC_CALLBACK_TIMEOUT: 700
+            IRONIC_CALLBACK_TIMEOUT: 1800
             IRONIC_TEMPEST_BUILD_TIMEOUT: 1200
             IRONIC_DEFAULT_DEPLOY_INTERFACE: direct
             IRONIC_DEPLOY_DRIVER: ipmi

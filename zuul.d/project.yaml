@@ -7,7 +7,6 @@
       - openstack-python3-jobs-arm64
       - periodic-stable-jobs
       - publish-openstack-docs-pti
-      - release-notes-jobs-python3
     check:
       jobs:
         - ironic-tox-bandit
@@ -16,29 +15,13 @@
         - ironic-cross-sushy:
             voting: false
         - ironic-tempest-functional-python3
-        # NOTE(rpittau) moving to non-voting until we fix the tests
-        # see also https://review.opendev.org/c/openstack/ironic-tempest-plugin/+/882312
-        - ironic-tempest-functional-rbac-scope-enforced:
-            voting: false
-        # NOTE(TheJulia): Disabling grenade job on 20240227 from voting
-        # because we need to backport the same fix to the prior release branch.
-        - ironic-grenade:
-            voting: false
-        - ironic-grenade-skip-level:
-            voting: false
+        - ironic-tempest-functional-rbac-scope-enforced
         - ironic-standalone-redfish:
             voting: false
         - ironic-tempest-bios-redfish-pxe
         - ironic-tempest-uefi-redfish-vmedia
         - ironic-tempest-ramdisk-bios-snmp-pxe
         - ironic-tempest-ovn-uefi-ipmi-pxe
-        # NOTE(TheJulia) Marking multinode non-voting on 20210311
-        # Due to a high failure rate on limestone where the compute1
-        # machine never appears to be able to communicate across the
-        # vxlan tunnel, possible mtu issue, but non-voting until we
-        # understand it in mind for the upcoming release.
-        - ironic-tempest-ipa-wholedisk-direct-tinyipa-multinode:
-            voting: false
         - ironic-tempest-ipa-wholedisk-direct-tinyipa-multinode-shard:
             voting: false
         - ironic-tempest-bios-ipmi-direct-tinyipa
@@ -47,10 +30,6 @@
         # NOTE(rpittau): Currently broken because of an issue with parted
         - metalsmith-integration-glance-centos9-legacy:
             voting: false
-        # NOTE(TheJulia): At present, metal3 doesn't leverage
-        # stable branches, and as far as we are aware these jobs
-        # can be removed once this branch is made stable.
-        # - metal3-integration
         # Non-voting jobs
         - ironic-inspector-tempest:
             voting: false
@@ -65,8 +44,6 @@
         - ironic-inspector-tempest-rbac-scope-enforced:
             voting: false
         - bifrost-integration-tinyipa-ubuntu-jammy:
-            voting: false
-        - bifrost-integration-redfish-vmedia-uefi-centos-9:
             voting: false
         - ironic-tempest-pxe_ipmitool-postgres:
             voting: false
