@@ -1,0 +1,7 @@
+---
+fixes:
+  - |
+    Fixes the healthcheck middleware to no longer intercept all API
+    requests when enabled. It is now only invoked for requests under
+    ``/healthcheck``. See `bug 2151134
+    <https://bugs.launchpad.net/ironic/+bug/2151134>`_ for details.

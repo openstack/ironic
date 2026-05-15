@@ -38,3 +38,11 @@ class TestHealthcheckMiddleware(base.BaseApiTest):
         CONF.set_override('enabled', False, group='healthcheck')
         self._make_app()
         self.assertFalse(mock_healthcheck.called)
+
+    def test_non_healthcheck_route_reaches_api(self):
+        CONF.set_override('enabled', True, group='healthcheck')
+        app = self._make_app()
+        resp = app.get('/v1')
+        self.assertEqual(200, resp.status_int)
+        self.assertEqual('application/json', resp.content_type)
+        self.assertEqual('v1', resp.json['id'])
