@@ -227,15 +227,15 @@ class RedfishBIOS(base.BIOSInterface):
             LOG.error(error_msg)
             raise exception.RedfishError(error=error_msg)
 
-        # Convert Ironic BIOS settings to Redfish BIOS attributes
-        attributes = {s['name']: s['value'] for s in settings}
-
         info = task.node.driver_internal_info
         bios_state = info.get(_DII_STATE) or {}
         reboot_requested = bios_state.get(_REBOOT_REQUESTED, False)
 
         if not reboot_requested:
-            self._validate_settings(task, settings)
+            self._validate_and_convert_settings(task, settings)
+
+            # Convert Ironic BIOS settings to Redfish BIOS attributes
+            attributes = {s['name']: s['value'] for s in settings}
 
             # Check if all requested settings already match the current
             # BIOS values.  When a client of the Ironic API re-sends
@@ -356,11 +356,17 @@ class RedfishBIOS(base.BIOSInterface):
         """
         redfish_utils.parse_driver_info(task.node)
 
-    def _validate_settings(self, task, settings):
-        """Validate requested BIOS settings against the cached registry.
+    def _validate_and_convert_settings(self, task, settings):
+        """Validate and convert BIOS settings using the cached registry.
+
+        Validates each setting against the cached BIOS registry, then
+        converts values to the types expected by the Redfish API.
+        Settings arrive as strings but the Redfish BIOS API expects
+        typed JSON values (integers for Integer attributes, booleans
+        for Boolean attributes).
 
         :param task: a TaskManager instance containing the node to act on.
-        :param settings: a list of BIOS settings to be validated.
+        :param settings: a list of BIOS settings (modified in place).
         :raises: InvalidParameterValue if any setting value is invalid
             according to the cached registry, including: read-only settings,
             Enumeration values not in allowable_values, Integer values outside
@@ -396,6 +402,11 @@ class RedfishBIOS(base.BIOSInterface):
                         or (cached.upper_bound is not None
                             and int_value > cached.upper_bound)):
                     invalid.append(name)
+                else:
+                    s['value'] = int_value
+            elif cached.attribute_type == 'Boolean':
+                if isinstance(value, str):
+                    s['value'] = value.lower() == 'true'
             elif cached.attribute_type == 'String':
                 str_len = len(value)
                 if ((cached.min_length is not None
