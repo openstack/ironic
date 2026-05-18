@@ -1,0 +1,6 @@
+---
+fixes:
+  - |
+    Neutron port operations now always use service credentials from config,
+    rather than the user's token context. This prevents ports being created
+    with an unexpected project id (e.g. the project id of the user's context).
