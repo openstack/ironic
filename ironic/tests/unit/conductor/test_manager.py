@@ -2151,6 +2151,49 @@ class ServiceDoNodeDeployTestCase(mgr_utils.ServiceSetUpMixin,
             mock_iwdi.assert_called_once_with(self.context, node.instance_info)
             self.assertFalse(node.driver_internal_info['is_whole_disk_image'])
 
+    @mock.patch.object(deployments, 'start_deploy', autospec=True)
+    def test_do_node_deploy_disallowed_step_raises(self, mock_start,
+                                                   mock_iwdi):
+        """Disallowed deploy step raises before state transition."""
+        self.config(disallow_deploy_steps=['bios.factory_reset'], group='api')
+        mock_iwdi.return_value = False
+        self._start_service()
+        deploy_steps = [{'interface': 'bios', 'step': 'factory_reset',
+                         'priority': 95}]
+        node = obj_utils.create_test_node(
+            self.context, driver='fake-hardware',
+            provision_state=states.AVAILABLE,
+            target_provision_state=states.NOSTATE)
+        exc = self.assertRaises(messaging.rpc.ExpectedException,
+                                self.service.do_node_deploy,
+                                self.context, node.uuid,
+                                deploy_steps=deploy_steps)
+        self.assertEqual(exception.StepNotAllowed, exc.exc_info[0])
+        # start_deploy must NOT have been called
+        self.assertFalse(mock_start.called)
+        node.refresh()
+        self.assertEqual(states.AVAILABLE, node.provision_state)
+
+    @mock.patch.object(deployments, 'start_deploy', autospec=True)
+    def test_do_node_deploy_allowed_step_proceeds(self, mock_start,
+                                                  mock_iwdi):
+        """Allowed deploy step proceeds normally."""
+        self.config(disallow_deploy_steps=['raid.create_configuration'],
+                    group='api')
+        mock_iwdi.return_value = False
+        self._start_service()
+        deploy_steps = [{'interface': 'bios', 'step': 'factory_reset',
+                         'priority': 95}]
+        node = obj_utils.create_test_node(
+            self.context, driver='fake-hardware',
+            provision_state=states.AVAILABLE,
+            target_provision_state=states.NOSTATE)
+        self.service.do_node_deploy(self.context, node.uuid,
+                                    deploy_steps=deploy_steps)
+        mock_start.assert_called_once_with(
+            mock.ANY, mock.ANY, None, event='deploy',
+            deploy_steps=deploy_steps)
+
 
 @mgr_utils.mock_record_keepalive
 class ContinueNodeDeployTestCase(mgr_utils.ServiceSetUpMixin,
@@ -3220,6 +3263,60 @@ class DoNodeCleanTestCase(mgr_utils.ServiceSetUpMixin, db_base.DbTestCase):
         self.assertEqual(states.DEPLOYING, node.provision_state)
         self._stop_service()
 
+    @mock.patch('ironic.conductor.task_manager.TaskManager.process_event',
+                autospec=True)
+    @mock.patch('ironic.drivers.modules.network.flat.FlatNetwork.validate',
+                autospec=True)
+    @mock.patch('ironic.drivers.modules.fake.FakePower.validate',
+                autospec=True)
+    def test_do_node_clean_disallowed_step_raises(self, mock_power_valid,
+                                                  mock_network_valid,
+                                                  mock_process):
+        """Disallowed manual clean step raises before state transition."""
+        self.config(disallow_clean_steps=['deploy.build_raid'], group='api')
+        node = obj_utils.create_test_node(
+            self.context, driver='fake-hardware',
+            provision_state=states.MANAGEABLE,
+            target_provision_state=states.NOSTATE)
+        self._start_service()
+        clean_steps = [self.deploy_raid]
+        exc = self.assertRaises(messaging.rpc.ExpectedException,
+                                self.service.do_node_clean,
+                                self.context, node.uuid, clean_steps)
+        self.assertEqual(exception.StepNotAllowed, exc.exc_info[0])
+        # process_event must NOT have been called
+        self.assertFalse(mock_process.called)
+        node.refresh()
+        # Node stays in original state
+        self.assertEqual(states.MANAGEABLE, node.provision_state)
+
+    @mock.patch('ironic.conductor.task_manager.TaskManager.process_event',
+                autospec=True)
+    @mock.patch('ironic.drivers.modules.network.flat.FlatNetwork.validate',
+                autospec=True)
+    @mock.patch('ironic.drivers.modules.fake.FakePower.validate',
+                autospec=True)
+    def test_do_node_clean_allowed_step_proceeds(self, mock_power_valid,
+                                                 mock_network_valid,
+                                                 mock_process):
+        """Allowed clean step proceeds normally."""
+        self.config(disallow_clean_steps=['raid.create_configuration'],
+                    group='api')
+        node = obj_utils.create_test_node(
+            self.context, driver='fake-hardware',
+            provision_state=states.MANAGEABLE,
+            target_provision_state=states.NOSTATE)
+        self._start_service()
+        clean_steps = [self.deploy_raid]
+        self.service.do_node_clean(self.context, node.uuid, clean_steps)
+        mock_process.assert_called_once_with(
+            mock.ANY,
+            'clean',
+            callback=mock.ANY,
+            call_args=(cleaning.do_node_clean, mock.ANY,
+                       clean_steps, False),
+            err_handler=mock.ANY, target_state='manageable')
+
 
 @mgr_utils.mock_record_keepalive
 class DoNodeServiceTestCase(mgr_utils.ServiceSetUpMixin, db_base.DbTestCase):
@@ -3442,6 +3539,57 @@ class DoNodeServiceTestCase(mgr_utils.ServiceSetUpMixin, db_base.DbTestCase):
         mock_spawn.assert_called_with(
             self.service, servicing.continue_node_service, mock.ANY)
         self._stop_service()
+
+    @mock.patch('ironic.conductor.task_manager.TaskManager.process_event',
+                autospec=True)
+    @mock.patch('ironic.drivers.modules.network.flat.FlatNetwork.validate',
+                autospec=True)
+    @mock.patch('ironic.drivers.modules.fake.FakePower.validate',
+                autospec=True)
+    def test_do_node_service_disallowed_step_raises(self, mock_pv, mock_nv,
+                                                    mock_event):
+        """Disallowed service step raises before state transition."""
+        self.config(disallow_service_steps=['deploy.update_firmware'],
+                    group='api')
+        node = obj_utils.create_test_node(
+            self.context, driver='fake-hardware',
+            provision_state=states.ACTIVE,
+            target_provision_state=states.NOSTATE)
+        self._start_service()
+        service_steps = [self.deploy_update]
+        exc = self.assertRaises(messaging.rpc.ExpectedException,
+                                self.service.do_node_service,
+                                self.context, node.uuid, service_steps)
+        self.assertEqual(exception.StepNotAllowed, exc.exc_info[0])
+        self.assertFalse(mock_event.called)
+        node.refresh()
+        self.assertEqual(states.ACTIVE, node.provision_state)
+
+    @mock.patch('ironic.conductor.task_manager.TaskManager.process_event',
+                autospec=True)
+    @mock.patch('ironic.drivers.modules.network.flat.FlatNetwork.validate',
+                autospec=True)
+    @mock.patch('ironic.drivers.modules.fake.FakePower.validate',
+                autospec=True)
+    def test_do_node_service_allowed_step_proceeds(self, mock_pv, mock_nv,
+                                                   mock_event):
+        """Allowed service step proceeds normally."""
+        self.config(disallow_service_steps=['raid.create_configuration'],
+                    group='api')
+        node = obj_utils.create_test_node(
+            self.context, driver='fake-hardware',
+            provision_state=states.ACTIVE,
+            target_provision_state=states.NOSTATE)
+        self._start_service()
+        service_steps = [self.deploy_update]
+        self.service.do_node_service(self.context, node.uuid, service_steps)
+        mock_event.assert_called_once_with(
+            mock.ANY,
+            'service',
+            callback=mock.ANY,
+            call_args=(servicing.do_node_service, mock.ANY,
+                       service_steps, False),
+            err_handler=mock.ANY, target_state='active')
 
 
 class DoNodeRescueTestCase(mgr_utils.CommonMixIn, mgr_utils.ServiceSetUpMixin,
