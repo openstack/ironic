@@ -7872,6 +7872,114 @@ class TestCheckCleanSteps(db_base.DbTestCase):
         self.assertEqual(3, check_mock.call_count)
 
 
+class TestCheckDisallowedSteps(db_base.DbTestCase):
+
+    def test__check_clean_steps_disallowed(self):
+        self.config(disallow_clean_steps=['raid.create_configuration'],
+                    group='api')
+        clean_steps = [{"interface": "raid", "step": "create_configuration"}]
+        self.assertRaisesRegex(exception.StepNotAllowed,
+                               "clean step 'raid.create_configuration' "
+                               "is not allowed",
+                               api_node._check_clean_steps, clean_steps)
+
+    def test__check_clean_steps_disallowed_not_in_list(self):
+        self.config(disallow_clean_steps=['raid.create_configuration'],
+                    group='api')
+        clean_steps = [{"interface": "raid", "step": "delete_configuration"}]
+        api_node._check_clean_steps(clean_steps)
+
+    def test__check_clean_steps_disallowed_empty(self):
+        self.config(disallow_clean_steps=[], group='api')
+        clean_steps = [{"interface": "raid", "step": "create_configuration"}]
+        api_node._check_clean_steps(clean_steps)
+
+    def test__check_clean_steps_disallowed_multiple(self):
+        self.config(disallow_clean_steps=['raid.create_configuration',
+                                          'bios.factory_reset'],
+                    group='api')
+        clean_steps = [{"interface": "bios", "step": "factory_reset"}]
+        self.assertRaisesRegex(exception.StepNotAllowed,
+                               "clean step 'bios.factory_reset' "
+                               "is not allowed",
+                               api_node._check_clean_steps, clean_steps)
+
+    def test__check_deploy_steps_disallowed(self):
+        self.config(disallow_deploy_steps=['raid.create_configuration'],
+                    group='api')
+        deploy_steps = [{"interface": "raid", "step": "create_configuration",
+                         "args": {}, "priority": 100}]
+        self.assertRaisesRegex(exception.StepNotAllowed,
+                               "deploy step 'raid.create_configuration' "
+                               "is not allowed",
+                               api_node._check_deploy_steps, deploy_steps)
+
+    def test__check_deploy_steps_disallowed_not_in_list(self):
+        self.config(disallow_deploy_steps=['raid.create_configuration'],
+                    group='api')
+        deploy_steps = [{"interface": "raid", "step": "delete_configuration",
+                         "args": {}, "priority": 100}]
+        api_node._check_deploy_steps(deploy_steps)
+
+    def test__check_deploy_steps_disallowed_empty(self):
+        self.config(disallow_deploy_steps=[], group='api')
+        deploy_steps = [{"interface": "raid", "step": "create_configuration",
+                         "args": {}, "priority": 100}]
+        api_node._check_deploy_steps(deploy_steps)
+
+    def test__check_service_steps_disallowed(self):
+        self.config(disallow_service_steps=['bios.apply_configuration'],
+                    group='api')
+        service_steps = [{"interface": "bios",
+                          "step": "apply_configuration"}]
+        self.assertRaisesRegex(exception.StepNotAllowed,
+                               "service step 'bios.apply_configuration' "
+                               "is not allowed",
+                               api_node._check_service_steps, service_steps)
+
+    def test__check_service_steps_disallowed_not_in_list(self):
+        self.config(disallow_service_steps=['bios.apply_configuration'],
+                    group='api')
+        service_steps = [{"interface": "bios", "step": "factory_reset"}]
+        api_node._check_service_steps(service_steps)
+
+    def test__check_service_steps_disallowed_empty(self):
+        self.config(disallow_service_steps=[], group='api')
+        service_steps = [{"interface": "bios",
+                          "step": "apply_configuration"}]
+        api_node._check_service_steps(service_steps)
+
+    def test__check_disallowed_steps_independent_per_type(self):
+        """Disallow lists are independent per step type."""
+        self.config(disallow_clean_steps=['bios.factory_reset'],
+                    disallow_deploy_steps=[],
+                    disallow_service_steps=[],
+                    group='api')
+        # Disallowed for clean
+        clean_steps = [{"interface": "bios", "step": "factory_reset"}]
+        self.assertRaisesRegex(exception.StepNotAllowed,
+                               "clean step",
+                               api_node._check_clean_steps, clean_steps)
+        # Same step is allowed for deploy
+        deploy_steps = [{"interface": "bios", "step": "factory_reset",
+                         "args": {}, "priority": 100}]
+        api_node._check_deploy_steps(deploy_steps)
+        # Same step is allowed for service
+        service_steps = [{"interface": "bios", "step": "factory_reset"}]
+        api_node._check_service_steps(service_steps)
+
+    def test__check_clean_steps_disallowed_schema_validated_first(self):
+        """Schema validation runs before the disallow check."""
+        self.config(disallow_clean_steps=['raid.create_configuration'],
+                    group='api')
+        # Bad schema: missing 'step' key. Should raise InvalidParameterValue
+        # from schema validation, not StepNotAllowed.
+        clean_steps = [{"interface": "raid"}]
+        self.assertRaisesRegex(exception.InvalidParameterValue,
+                               'step',
+                               api_node._check_clean_steps, clean_steps)
+
+
 class TestAttachDetachVif(test_api_base.BaseApiTest):
 
     def setUp(self):

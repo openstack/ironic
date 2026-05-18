@@ -638,6 +638,7 @@ class DoNodeDeployTestCase(mgr_utils.ServiceSetUpMixin, db_base.DbTestCase):
             callback=mock.ANY, err_handler=mock.ANY)
 
 
+
 @mgr_utils.mock_record_keepalive
 class DoNextDeployStepTestCase(mgr_utils.ServiceSetUpMixin,
                                db_base.DbTestCase):
