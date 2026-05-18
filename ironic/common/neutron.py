@@ -257,7 +257,7 @@ def add_ports_to_network(task, network_uuid, security_groups=None):
     :raises: NetworkError
     :returns: a dictionary in the form {port.uuid: neutron_port['id']}
     """
-    client = get_client(context=task.context)
+    client = get_client(context=task.context, auth_from_config=True)
     node = task.node
     add_all_ports = CONF.neutron.add_all_ports
 
@@ -444,7 +444,7 @@ def remove_neutron_ports(task, params):
     :param params: Dict of params to filter ports.
     :raises: NetworkError
     """
-    client = get_client(context=task.context)
+    client = get_client(context=task.context, auth_from_config=True)
     node_uuid = task.node.uuid
 
     try:
