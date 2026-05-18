@@ -356,6 +356,12 @@ def set_node_cleaning_steps(task, disable_ramdisk=False,
         # Get the prioritized steps for automated cleaning
         steps = _get_cleaning_steps(task, enabled=True)
 
+    # Filter out operator-disallowed clean steps
+    disallowed = CONF.api.disallow_clean_steps
+    if disallowed:
+        steps = [s for s in steps
+                 if step_id(s) not in disallowed]
+
     # For manual cleaning, the target provision state is MANAGEABLE, whereas
     # for automated cleaning, it is AVAILABLE.
     manual_clean = node.target_provision_state == states.MANAGEABLE
@@ -499,8 +505,15 @@ def set_node_deployment_steps(task, reset_current=True, skip_missing=False):
              deployment steps.
     """
     node = task.node
-    node.set_driver_internal_info('deploy_steps', _get_all_deployment_steps(
-        task, skip_missing=skip_missing))
+    steps = _get_all_deployment_steps(task, skip_missing=skip_missing)
+
+    # Filter out operator-disallowed deploy steps
+    disallowed = CONF.api.disallow_deploy_steps
+    if disallowed:
+        steps = [s for s in steps
+                 if step_id(s) not in disallowed]
+
+    node.set_driver_internal_info('deploy_steps', steps)
 
     if not CONF.conductor.log_step_flows_to_syslog:
         LOG.debug('List of the deploy steps for node %(node)s: %(steps)s', {
@@ -533,6 +546,13 @@ def set_node_service_steps(task, disable_ramdisk=False):
     steps = _validate_user_service_steps(
         task, node.driver_internal_info.get('service_steps', []),
         disable_ramdisk=disable_ramdisk)
+
+    # Filter out operator-disallowed service steps
+    disallowed = CONF.api.disallow_service_steps
+    if disallowed:
+        steps = [s for s in steps
+                 if step_id(s) not in disallowed]
+
     if not CONF.conductor.log_step_flows_to_syslog:
         LOG.debug('List of the steps for service of node %(node)s: '
                   '%(steps)s', {'node': node.uuid, 'steps': steps})
@@ -552,6 +572,40 @@ def step_id(step):
     :return: the step's ID string.
     """
     return '.'.join([step['interface'], step['step']])
+
+
+def check_disallowed_steps(steps, step_type, raise_on_disallowed=True):
+    """Check and optionally filter steps against the operator disallow list.
+
+    When raise_on_disallowed is True (user-provided steps), raises
+    StepNotAllowed for the first disallowed step found.  When False
+    (automated / runbook steps), silently filters them out.
+
+    :param steps: list of step dicts, or None.
+    :param step_type: one of 'clean', 'deploy', 'service'.
+    :param raise_on_disallowed: if True, raise on first disallowed step;
+        if False, silently remove disallowed steps.
+    :returns: the (possibly filtered) list of steps, or None.
+    :raises: StepNotAllowed if raise_on_disallowed and a step is disallowed.
+    """
+    if steps is None:
+        return None
+    config_map = {
+        'clean': CONF.api.disallow_clean_steps,
+        'deploy': CONF.api.disallow_deploy_steps,
+        'service': CONF.api.disallow_service_steps,
+    }
+    disallowed = config_map[step_type]
+    if not disallowed:
+        return steps
+    if raise_on_disallowed:
+        for step in steps:
+            sid = step_id(step)
+            if sid in disallowed:
+                raise exception.StepNotAllowed(step=sid, step_type=step_type)
+        return steps
+    else:
+        return [s for s in steps if step_id(s) not in disallowed]
 
 
 def _validate_deploy_steps_unique(user_steps):

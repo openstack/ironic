@@ -1537,3 +1537,291 @@ class NodeServiceStepsTestCase(db_base.DbTestCase):
             self.assertEqual('reattach_networking',
                              network_steps_found[0]['step'])
             mock_network_steps.assert_called_once_with(mock.ANY, task)
+
+
+class DisallowStepFilteringTestCase(db_base.DbTestCase):
+    """Tests for conductor-level disallow step filtering."""
+
+    def setUp(self):
+        super(DisallowStepFilteringTestCase, self).setUp()
+        self.node = obj_utils.create_test_node(
+            self.context, driver='fake-hardware')
+
+        # Clean steps
+        self.clean_erase = {
+            'step': 'erase_disks', 'priority': 20, 'interface': 'deploy',
+            'abortable': True}
+        self.clean_update = {
+            'step': 'update_firmware', 'priority': 10, 'interface': 'power'}
+        self.clean_steps = [self.clean_erase, self.clean_update]
+
+        # Deploy steps
+        self.deploy_start = {
+            'step': 'deploy_start', 'priority': 50, 'interface': 'deploy'}
+        self.deploy_raid = {
+            'step': 'create_configuration', 'priority': 40,
+            'interface': 'raid'}
+        self.deploy_steps = [self.deploy_start, self.deploy_raid]
+
+    @mock.patch.object(conductor_steps, '_validate_user_clean_steps',
+                       autospec=True)
+    @mock.patch.object(conductor_steps, '_get_cleaning_steps', autospec=True)
+    def test_set_node_cleaning_steps_automated_filters_disallowed(
+            self, mock_steps, mock_validate):
+        """Automated clean filters out disallowed steps."""
+        self.config(disallow_clean_steps=['deploy.erase_disks'], group='api')
+        mock_steps.return_value = self.clean_steps
+
+        node = obj_utils.create_test_node(
+            self.context, driver='fake-hardware',
+            uuid=uuidutils.generate_uuid(),
+            provision_state=states.CLEANING,
+            target_provision_state=states.AVAILABLE)
+
+        with task_manager.acquire(
+                self.context, node.uuid, shared=False) as task:
+            conductor_steps.set_node_cleaning_steps(
+                task, use_existing_steps=False)
+            node.refresh()
+            stored = node.driver_internal_info['clean_steps']
+            self.assertEqual([self.clean_update], stored)
+            mock_steps.assert_called_once_with(task, enabled=True)
+
+    @mock.patch.object(conductor_steps, '_validate_user_clean_steps',
+                       autospec=True)
+    @mock.patch.object(conductor_steps, '_get_cleaning_steps', autospec=True)
+    def test_set_node_cleaning_steps_manual_filters_disallowed(
+            self, mock_steps, mock_validate):
+        """Manual clean also filters disallowed steps (defense-in-depth)."""
+        self.config(disallow_clean_steps=['power.update_firmware'],
+                    group='api')
+        clean_steps = [self.clean_update]
+        mock_validate.return_value = clean_steps
+
+        node = obj_utils.create_test_node(
+            self.context, driver='fake-hardware',
+            uuid=uuidutils.generate_uuid(),
+            provision_state=states.CLEANING,
+            target_provision_state=states.MANAGEABLE,
+            driver_internal_info={'clean_steps': clean_steps})
+
+        with task_manager.acquire(
+                self.context, node.uuid, shared=False) as task:
+            conductor_steps.set_node_cleaning_steps(
+                task, use_existing_steps=True)
+            node.refresh()
+            stored = node.driver_internal_info['clean_steps']
+            self.assertEqual([], stored)
+
+    @mock.patch.object(conductor_steps, '_validate_user_clean_steps',
+                       autospec=True)
+    @mock.patch.object(conductor_steps, '_get_cleaning_steps', autospec=True)
+    def test_set_node_cleaning_steps_empty_disallow_passes_all(
+            self, mock_steps, mock_validate):
+        """Empty disallow list passes all steps through."""
+        self.config(disallow_clean_steps=[], group='api')
+        mock_steps.return_value = self.clean_steps
+
+        node = obj_utils.create_test_node(
+            self.context, driver='fake-hardware',
+            uuid=uuidutils.generate_uuid(),
+            provision_state=states.CLEANING,
+            target_provision_state=states.AVAILABLE)
+
+        with task_manager.acquire(
+                self.context, node.uuid, shared=False) as task:
+            conductor_steps.set_node_cleaning_steps(
+                task, use_existing_steps=False)
+            node.refresh()
+            stored = node.driver_internal_info['clean_steps']
+            self.assertEqual(self.clean_steps, stored)
+
+    @mock.patch.object(conductor_steps, '_validate_user_clean_steps',
+                       autospec=True)
+    @mock.patch.object(conductor_steps, '_get_cleaning_steps', autospec=True)
+    def test_set_node_cleaning_steps_disallow_multiple(
+            self, mock_steps, mock_validate):
+        """Multiple disallowed steps are all filtered."""
+        self.config(disallow_clean_steps=['deploy.erase_disks',
+                                          'power.update_firmware'],
+                    group='api')
+        mock_steps.return_value = self.clean_steps
+
+        node = obj_utils.create_test_node(
+            self.context, driver='fake-hardware',
+            uuid=uuidutils.generate_uuid(),
+            provision_state=states.CLEANING,
+            target_provision_state=states.AVAILABLE)
+
+        with task_manager.acquire(
+                self.context, node.uuid, shared=False) as task:
+            conductor_steps.set_node_cleaning_steps(
+                task, use_existing_steps=False)
+            node.refresh()
+            stored = node.driver_internal_info['clean_steps']
+            self.assertEqual([], stored)
+
+    @mock.patch.object(conductor_steps, '_get_all_deployment_steps',
+                       autospec=True)
+    def test_set_node_deployment_steps_filters_disallowed(self, mock_steps):
+        """Disallowed deploy steps are filtered before storing."""
+        self.config(disallow_deploy_steps=['raid.create_configuration'],
+                    group='api')
+        mock_steps.return_value = self.deploy_steps
+
+        with task_manager.acquire(
+                self.context, self.node.uuid, shared=False) as task:
+            conductor_steps.set_node_deployment_steps(task)
+            self.node.refresh()
+            stored = self.node.driver_internal_info['deploy_steps']
+            self.assertEqual([self.deploy_start], stored)
+
+    @mock.patch.object(conductor_steps, '_get_all_deployment_steps',
+                       autospec=True)
+    def test_set_node_deployment_steps_empty_disallow_passes_all(
+            self, mock_steps):
+        """Empty disallow list passes all steps through."""
+        self.config(disallow_deploy_steps=[], group='api')
+        mock_steps.return_value = self.deploy_steps
+
+        with task_manager.acquire(
+                self.context, self.node.uuid, shared=False) as task:
+            conductor_steps.set_node_deployment_steps(task)
+            self.node.refresh()
+            stored = self.node.driver_internal_info['deploy_steps']
+            self.assertEqual(self.deploy_steps, stored)
+
+    @mock.patch.object(conductor_steps, '_get_all_deployment_steps',
+                       autospec=True)
+    def test_set_node_deployment_steps_nonmatching_disallow(self, mock_steps):
+        """Non-matching disallow list leaves steps unchanged."""
+        self.config(disallow_deploy_steps=['bios.factory_reset'], group='api')
+        mock_steps.return_value = self.deploy_steps
+
+        with task_manager.acquire(
+                self.context, self.node.uuid, shared=False) as task:
+            conductor_steps.set_node_deployment_steps(task)
+            self.node.refresh()
+            stored = self.node.driver_internal_info['deploy_steps']
+            self.assertEqual(self.deploy_steps, stored)
+
+    @mock.patch.object(conductor_steps, '_validate_user_service_steps',
+                       autospec=True)
+    def test_set_node_service_steps_filters_disallowed(self, mock_validate):
+        """Disallowed service steps are filtered before storing."""
+        self.config(disallow_service_steps=['bios.apply_configuration'],
+                    group='api')
+        service_steps = [
+            {'step': 'apply_configuration', 'priority': 50,
+             'interface': 'bios'},
+            {'step': 'factory_reset', 'priority': 40, 'interface': 'bios'},
+        ]
+        mock_validate.return_value = service_steps
+
+        node = obj_utils.create_test_node(
+            self.context, driver='fake-hardware',
+            uuid=uuidutils.generate_uuid(),
+            driver_internal_info={'service_steps': service_steps})
+
+        with task_manager.acquire(
+                self.context, node.uuid, shared=False) as task:
+            conductor_steps.set_node_service_steps(task)
+            node.refresh()
+            stored = node.driver_internal_info['service_steps']
+            self.assertEqual([service_steps[1]], stored)
+
+
+class CheckDisallowedStepsTestCase(db_base.DbTestCase):
+    """Tests for the check_disallowed_steps() helper."""
+
+    def setUp(self):
+        super(CheckDisallowedStepsTestCase, self).setUp()
+        self.steps = [
+            {'interface': 'deploy', 'step': 'erase_disks'},
+            {'interface': 'power', 'step': 'update_firmware'},
+            {'interface': 'bios', 'step': 'factory_reset'},
+        ]
+
+    def test_none_steps_returns_none(self):
+        result = conductor_steps.check_disallowed_steps(
+            None, 'clean', raise_on_disallowed=True)
+        self.assertIsNone(result)
+
+    def test_empty_disallow_list_passes_all(self):
+        self.config(disallow_clean_steps=[], group='api')
+        result = conductor_steps.check_disallowed_steps(
+            self.steps, 'clean', raise_on_disallowed=True)
+        self.assertEqual(self.steps, result)
+
+    def test_raise_on_disallowed_clean(self):
+        self.config(disallow_clean_steps=['deploy.erase_disks'], group='api')
+        self.assertRaises(
+            exception.StepNotAllowed,
+            conductor_steps.check_disallowed_steps,
+            self.steps, 'clean', raise_on_disallowed=True)
+
+    def test_raise_on_disallowed_deploy(self):
+        self.config(disallow_deploy_steps=['power.update_firmware'],
+                    group='api')
+        self.assertRaises(
+            exception.StepNotAllowed,
+            conductor_steps.check_disallowed_steps,
+            self.steps, 'deploy', raise_on_disallowed=True)
+
+    def test_raise_on_disallowed_service(self):
+        self.config(disallow_service_steps=['bios.factory_reset'],
+                    group='api')
+        self.assertRaises(
+            exception.StepNotAllowed,
+            conductor_steps.check_disallowed_steps,
+            self.steps, 'service', raise_on_disallowed=True)
+
+    def test_filter_silently(self):
+        self.config(disallow_clean_steps=['deploy.erase_disks'], group='api')
+        result = conductor_steps.check_disallowed_steps(
+            self.steps, 'clean', raise_on_disallowed=False)
+        self.assertEqual(
+            [self.steps[1], self.steps[2]], result)
+
+    def test_filter_silently_multiple(self):
+        self.config(disallow_clean_steps=['deploy.erase_disks',
+                                          'bios.factory_reset'],
+                    group='api')
+        result = conductor_steps.check_disallowed_steps(
+            self.steps, 'clean', raise_on_disallowed=False)
+        self.assertEqual([self.steps[1]], result)
+
+    def test_filter_silently_all_disallowed(self):
+        self.config(disallow_clean_steps=['deploy.erase_disks',
+                                          'power.update_firmware',
+                                          'bios.factory_reset'],
+                    group='api')
+        result = conductor_steps.check_disallowed_steps(
+            self.steps, 'clean', raise_on_disallowed=False)
+        self.assertEqual([], result)
+
+    def test_nonmatching_disallow_passes_all(self):
+        self.config(disallow_clean_steps=['raid.create_configuration'],
+                    group='api')
+        result = conductor_steps.check_disallowed_steps(
+            self.steps, 'clean', raise_on_disallowed=True)
+        self.assertEqual(self.steps, result)
+
+    def test_raise_reports_first_disallowed(self):
+        self.config(disallow_clean_steps=['deploy.erase_disks',
+                                          'power.update_firmware'],
+                    group='api')
+        exc = self.assertRaises(
+            exception.StepNotAllowed,
+            conductor_steps.check_disallowed_steps,
+            self.steps, 'clean', raise_on_disallowed=True)
+        self.assertIn('deploy.erase_disks', str(exc))
+
+    def test_disallow_lists_independent_per_type(self):
+        """Disallow list for one type does not affect another."""
+        self.config(disallow_clean_steps=['deploy.erase_disks'], group='api')
+        self.config(disallow_deploy_steps=[], group='api')
+        # Should pass for deploy type even though clean disallows it
+        result = conductor_steps.check_disallowed_steps(
+            self.steps, 'deploy', raise_on_disallowed=True)
+        self.assertEqual(self.steps, result)
