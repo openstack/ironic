@@ -1,0 +1,8 @@
+---
+fixes:
+  - |
+    Fixes an issue where closing a Dell iDRAC graphical console session
+    would leave a stale KVM session on the BMC. Subsequent attempts to
+    open a new console would show a "Confirm Session Sharing" dialog
+    that could not be dismissed. The browser's websocket connections are
+    now closed gracefully before the browser process is terminated.
