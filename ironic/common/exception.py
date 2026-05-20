@@ -1140,3 +1140,9 @@ class RuleActionExecutionFailure(InspectionRuleExecutionFailure):
 class RuleConditionCheckFailure(InspectionRuleExecutionFailure):
     """Raised when an inspection rule condition fails during execution."""
     _msg_fmt = _("Inspection rule condition check failed. Reason: %(reason)s")
+
+
+class InvalidContent(Invalid):
+    """Invalid or malicious content has been provided to the conductor."""
+    _msg_fmt = _("Invalid or potentially malicious content has been provided "
+                 "to the conductor and the conductor will not proceed.")
