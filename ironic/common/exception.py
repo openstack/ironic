@@ -1131,3 +1131,9 @@ class ConfigDriveRegenerationFailure(IronicException):
     """Raised when we fail to handle configuration drive corrections."""
     # NOTE(TheJulia): This is not intended to get raised to a user, but more
     # so we handle known possible failure cases and don't fail horribly.
+
+
+class InvalidContent(Invalid):
+    """Invalid or malicious content has been provided to the conductor."""
+    _msg_fmt = _("Invalid or potentially malicious content has been provided "
+                 "to the conductor and the conductor will not proceed.")
