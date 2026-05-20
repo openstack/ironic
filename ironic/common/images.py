@@ -843,15 +843,22 @@ def _extract_iso(extract_iso, extract_dir):
     iso.open(extract_iso)
 
     for dirname, dirlist, filelist in iso.walk(iso_path='/'):
+        # NOTE(TheJulia): This code is confusing because the way the
+        # walk method returns data, basically a list of tuples to
+        # provide a structural mapping which a consumer of the walk
+        # data can use to understand the structure.
         dir_path = dirname.lstrip('/')
+        utils.check_iso_path(extract_dir, dir_path)
         for dir_iso in dirlist:
+            utils.check_iso_path(extract_dir,
+                                 os.path.join(dir_path, dir_iso))
             os.makedirs(os.path.join(extract_dir, dir_path, dir_iso))
         for file in filelist:
-            file_path = os.path.join(extract_dir, dirname, file)
+            utils.check_iso_path(extract_dir, dir_path, file)
+            file_path = os.path.join(dirname, file)
             iso.get_file_from_iso(
                 os.path.join(extract_dir, dir_path, file),
                 iso_path=file_path)
-
     iso.close()
 
 
