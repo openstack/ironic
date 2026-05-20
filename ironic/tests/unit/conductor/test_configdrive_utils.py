@@ -627,6 +627,63 @@ class MetadataUtilsTestCase(db_base.DbTestCase):
         fake_pycd.full_path_from_dirrecord.assert_called_once_with(
             'boop', rockridge=True)
 
+    @mock.patch('builtins.open', autospec=True)
+    @mock.patch.object(os, 'makedirs', autospec=True)
+    @mock.patch.object(tempfile, 'TemporaryDirectory', autospec=True)
+    @mock.patch.object(processutils, 'execute', autospec=True)
+    def test_regenerate_iso_invalid_file(
+            self, mock_exec, mock_tempdir, mock_mkdirs,
+            mock_open):
+        fake_pycd = mock.Mock()
+        fake_pycd.walk.return_value = [('/', ['path'], []),
+                                       ('/path', [], ['file', '../../evil']),
+                                       ('/path/path2', [], [])]
+        fake_pycd.get_record.return_value = 'boop'
+        fake_pycd.full_path_from_dirrecord.return_value = 'foo'
+        mock_tempdir.return_value.__enter__.return_value = '/tmp/temp_folder'
+        mock_write = mock.Mock()
+        mock_open.return_value.__enter__.return_value.write = mock_write
+        self.assertRaises(exception.InvalidContent,
+                          cd_utils.regenerate_iso,
+                          fake_pycd, '/tmp/foo_file',
+                          {'/path/foo.txt': 'meow'})
+        mock_exec.assert_not_called()
+        mock_mkdirs.assert_has_calls([
+            mock.call('/tmp/temp_folder/path', exist_ok=True)])
+        mock_write.assert_not_called()
+        mock_open.assert_not_called()
+        fake_pycd.get_record.assert_has_calls([
+            mock.call(rr_path='/path/file')])
+        fake_pycd.full_path_from_dirrecord.assert_called_once_with(
+            'boop', rockridge=True)
+
+    @mock.patch('builtins.open', autospec=True)
+    @mock.patch.object(os, 'makedirs', autospec=True)
+    @mock.patch.object(tempfile, 'TemporaryDirectory', autospec=True)
+    @mock.patch.object(processutils, 'execute', autospec=True)
+    def test_regenerate_iso_invalid_dir(
+            self, mock_exec, mock_tempdir, mock_mkdirs,
+            mock_open):
+        fake_pycd = mock.Mock()
+        fake_pycd.walk.return_value = [('/', ['path'], []),
+                                       ('/../path', [], ['file', 'evil']),
+                                       ('/path/path2', [], [])]
+        fake_pycd.get_record.return_value = 'boop'
+        fake_pycd.full_path_from_dirrecord.return_value = 'foo'
+        mock_tempdir.return_value.__enter__.return_value = '/tmp/temp_folder'
+        mock_write = mock.Mock()
+        mock_open.return_value.__enter__.return_value.write = mock_write
+        self.assertRaises(exception.InvalidContent,
+                          cd_utils.regenerate_iso,
+                          fake_pycd, '/tmp/foo_file',
+                          {'/path/foo.txt': 'meow'})
+        mock_exec.assert_not_called()
+        mock_mkdirs.assert_not_called()
+        mock_write.assert_not_called()
+        mock_open.assert_not_called()
+        fake_pycd.get_record.assert_not_called()
+        fake_pycd.full_path_from_dirrecord.assert_not_called()
+
 
 @mock.patch.object(cd_utils, 'is_invalid_network_metadata',
                    autospec=True)

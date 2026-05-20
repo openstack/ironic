@@ -1155,3 +1155,8 @@ class TBNNoPortMatchesFound(TraitBasedNetworkingException):
     """No matching ports were found when planning the network for this node"""
     _msg_fnt = _("No matching ports where found when planning the networking "
                  "for node %(node)s and network %(vif_id)s")
+
+class InvalidContent(Invalid):
+    """Invalid or malicious content has been provided to the conductor."""
+    _msg_fmt = _("Invalid or potentially malicious content has been provided "
+                 "to the conductor and the conductor will not proceed.")
