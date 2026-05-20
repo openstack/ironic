@@ -51,6 +51,11 @@ def _get_config_drive_dict_from_iso(
             # server.
             posix_file_path = posix_file_path.lstrip('/')
             target_file_path = os.path.join(target_path, posix_file_path)
+            real_target_file_path = os.path.realpath(target_file_path)
+            if not target_file_path.startswith(real_target_file_path):
+                LOG.error('Discovered transversal attempt while reading '
+                          'the configuration drive contents.')
+                raise exception.InvalidContent()
             b_buf = io.BytesIO()
             iso_reader.get_file_from_iso_fp(
                 iso_path=iso_file_path, outfp=b_buf
