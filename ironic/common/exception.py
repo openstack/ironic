@@ -1153,3 +1153,9 @@ class TBNAttributeRetrievalException(TraitBasedNetworkingException):
     """Specified attribute could not be found."""
     _msg_fmt = _("Could not retrieve attribute %(attr_name)s from "
                  "passed object")
+
+
+class InvalidContent(Invalid):
+    """Invalid or malicious content has been provided to the conductor."""
+    _msg_fmt = _("Invalid or potentially malicious content has been provided "
+                 "to the conductor and the conductor will not proceed.")

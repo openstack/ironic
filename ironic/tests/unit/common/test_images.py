@@ -25,6 +25,7 @@ from oslo_concurrency import processutils
 from oslo_config import cfg
 from oslo_utils import fileutils
 from oslo_utils.imageutils import format_inspector
+import pycdlib
 
 from ironic.common import exception
 from ironic.common.glance_service import service_utils as glance_utils
@@ -863,6 +864,116 @@ class FsImageTestCase(base.TestCase):
                                    CONF.grub_config_template,
                                    options)
         self.assertEqual(expected_cfg, cfg)
+
+    @mock.patch.object(os, 'makedirs', autospec=True)
+    @mock.patch('pycdlib.PyCdlib', autospec=True)
+    def test__extract_iso(self, mock_pycdlib_cls, mock_makedirs):
+        mock_iso = mock_pycdlib_cls.return_value
+        mock_iso.walk.return_value = [
+            ('/', ['BOOT'], ['README.TXT']),
+            ('/BOOT', ['GRUB'], ['BOOTX64.EFI']),
+            ('/BOOT/GRUB', [], ['GRUB.CFG']),
+        ]
+
+        images._extract_iso('/path/to/image.iso', '/extract')
+
+        mock_iso.open.assert_called_once_with('/path/to/image.iso')
+        mock_iso.walk.assert_called_once_with(iso_path='/')
+        mock_makedirs.assert_any_call(
+            os.path.join('/extract', '', 'BOOT'))
+        mock_makedirs.assert_any_call(
+            os.path.join('/extract', 'BOOT', 'GRUB'))
+        mock_iso.get_file_from_iso.assert_any_call(
+            os.path.join('/extract', '', 'README.TXT'),
+            iso_path=os.path.join('/extract', '/', 'README.TXT'))
+        mock_iso.get_file_from_iso.assert_any_call(
+            os.path.join('/extract', 'BOOT', 'BOOTX64.EFI'),
+            iso_path=os.path.join('/extract', '/BOOT',
+                                  'BOOTX64.EFI'))
+        mock_iso.get_file_from_iso.assert_any_call(
+            os.path.join('/extract', 'BOOT/GRUB', 'GRUB.CFG'),
+            iso_path=os.path.join('/extract', '/BOOT/GRUB',
+                                  'GRUB.CFG'))
+        self.assertEqual(3, mock_iso.get_file_from_iso.call_count)
+        mock_iso.close.assert_called_once()
+
+    @mock.patch('pycdlib.PyCdlib', autospec=True)
+    def test__extract_iso_empty(self, mock_pycdlib_cls):
+        mock_iso = mock_pycdlib_cls.return_value
+        mock_iso.walk.return_value = [
+            ('/', [], []),
+        ]
+
+        images._extract_iso('/path/to/empty.iso', '/extract')
+
+        mock_iso.open.assert_called_once_with('/path/to/empty.iso')
+        mock_iso.walk.assert_called_once_with(iso_path='/')
+        mock_iso.get_file_from_iso.assert_not_called()
+        mock_iso.close.assert_called_once()
+
+    @mock.patch('pycdlib.PyCdlib', autospec=True)
+    def test__extract_iso_open_fails(self, mock_pycdlib_cls):
+        mock_iso = mock_pycdlib_cls.return_value
+        mock_iso.open.side_effect = (
+            pycdlib.pycdlibexception.PyCdlibInvalidInput(
+                msg='Could not open file'))
+
+        self.assertRaises(
+            pycdlib.pycdlibexception.PyCdlibInvalidInput,
+            images._extract_iso,
+            '/path/to/bad.iso', '/extract')
+        mock_iso.walk.assert_not_called()
+        mock_iso.close.assert_not_called()
+
+    @mock.patch.object(os, 'makedirs', autospec=True)
+    @mock.patch('pycdlib.PyCdlib', autospec=True)
+    def test__extract_iso_invalid_file(self, mock_pycdlib_cls, mock_makedirs):
+        mock_iso = mock_pycdlib_cls.return_value
+        mock_iso.walk.return_value = [
+            ('/', ['BOOT'], ['README.TXT']),
+            ('/BOOT', ['GRUB'], ['../TX64.EFI']),
+            ('/BOOT/GRUB', [], ['GRUB.CFG']),
+        ]
+
+        self.assertRaises(exception.InvalidContent,
+                          images._extract_iso,
+                          '/path/to/image.iso', '/extract')
+
+        mock_iso.open.assert_called_once_with('/path/to/image.iso')
+        mock_iso.walk.assert_called_once_with(iso_path='/')
+        mock_makedirs.assert_any_call(
+            os.path.join('/extract', '', 'BOOT'))
+        mock_makedirs.assert_any_call(
+            os.path.join('/extract', 'BOOT', 'GRUB'))
+        mock_iso.get_file_from_iso.assert_any_call(
+            os.path.join('/extract', '', 'README.TXT'),
+            iso_path=os.path.join('/extract', '/', 'README.TXT'))
+        self.assertEqual(1, mock_iso.get_file_from_iso.call_count)
+
+    @mock.patch.object(os, 'makedirs', autospec=True)
+    @mock.patch('pycdlib.PyCdlib', autospec=True)
+    def test__extract_iso_invalid_folder(self, mock_pycdlib_cls,
+                                         mock_makedirs):
+        mock_iso = mock_pycdlib_cls.return_value
+        mock_iso.walk.return_value = [
+            ('/', ['BOOT'], ['README.TXT']),
+            ('/../T', ['GRUB'], ['BOOTX64.EFI']),
+            ('/BOOT/GRUB', [], ['GRUB.CFG']),
+        ]
+
+        self.assertRaises(exception.InvalidContent,
+                          images._extract_iso,
+                          '/path/to/image.iso', '/extract')
+
+        mock_iso.open.assert_called_once_with('/path/to/image.iso')
+        mock_iso.walk.assert_called_once_with(iso_path='/')
+        mock_makedirs.assert_any_call(
+            os.path.join('/extract', '', 'BOOT'))
+        self.assertEqual(1, mock_makedirs.call_count)
+        mock_iso.get_file_from_iso.assert_any_call(
+            os.path.join('/extract', '', 'README.TXT'),
+            iso_path=os.path.join('/extract', '/', 'README.TXT'))
+        self.assertEqual(1, mock_iso.get_file_from_iso.call_count)
 
     @mock.patch.object(os.path, 'relpath', autospec=True)
     @mock.patch.object(os, 'walk', autospec=True)
