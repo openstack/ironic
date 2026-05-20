@@ -900,3 +900,9 @@ class ImageChecksumFileReadFailure(InvalidImage):
     _msg_fmt = _("Failed to read the file from local storage "
                  "to perform a checksum operation.")
     code = http_client.SERVICE_UNAVAILABLE
+
+
+class InvalidContent(Invalid):
+    """Invalid or malicious content has been provided to the conductor."""
+    _msg_fmt = _("Invalid or potentially malicious content has been provided "
+                 "to the conductor and the conductor will not proceed.")
