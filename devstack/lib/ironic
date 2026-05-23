@@ -1079,7 +1079,7 @@ function configure_virtualbmc {
         mkdir -p $(dirname $IRONIC_VBMC_CONFIG_FILE)
     fi
 
-    iniset -sudo $IRONIC_VBMC_CONFIG_FILE log debug True
+    iniset -sudo $IRONIC_VBMC_CONFIG_FILE log debug $ENABLE_DEBUG_LOG_LEVEL
 }
 
 function start_redfish {
@@ -1675,7 +1675,7 @@ function configure_ironic {
     # (re)create ironic configuration file and configure common parameters.
     rm -f $IRONIC_CONF_FILE
 
-    iniset $IRONIC_CONF_FILE DEFAULT debug True
+    iniset $IRONIC_CONF_FILE DEFAULT debug $ENABLE_DEBUG_LOG_LEVEL
     iniset $IRONIC_CONF_FILE api response_validation error
     inicomment $IRONIC_CONF_FILE DEFAULT log_file
     iniset $IRONIC_CONF_FILE database connection `database_connection_url ironic`
