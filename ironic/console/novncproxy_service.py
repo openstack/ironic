@@ -58,11 +58,11 @@ class NoVNCProxyService(service.Service):
         }
         if CONF.vnc.enable_ssl:
             kwargs.update({
-                'cert': CONF.vnc.ssl_cert_file,
-                'key': CONF.vnc.ssl_key_file,
+                'cert': CONF.vnc.cert_file,
+                'key': CONF.vnc.key_file,
                 'ssl_only': CONF.vnc.enable_ssl,
-                'ssl_ciphers': CONF.vnc.ssl_ciphers,
-                'ssl_minimum_version': CONF.vnc.ssl_minimum_version,
+                'ssl_ciphers': CONF.vnc.tls_ciphers,
+                'ssl_minimum_version': CONF.vnc.tls_minimum_version,
             })
 
         # Check to see if tty html/js/css files are present

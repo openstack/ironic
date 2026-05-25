@@ -1,0 +1,31 @@
+---
+deprecations:
+  - |
+    The following ``[vnc]`` configuration options have been
+    renamed. The old names are deprecated and will be removed
+    in a future release:
+
+    * ``ssl_cert_file`` is now ``cert_file``
+    * ``ssl_key_file`` is now ``key_file``
+    * ``ssl_minimum_version`` is now ``tls_minimum_version``
+    * ``ssl_ciphers`` is now ``tls_ciphers``
+
+    The old names continue to work but will emit a deprecation
+    warning in the logs. Operators should update their
+    configuration files to use the new names.
+security:
+  - |
+    The noVNC proxy server now enforces TLS 1.2 as the minimum
+    protocol version by default when ``[vnc]enable_ssl`` is
+    True. This prevents TLS downgrade attacks by rejecting
+    connections using TLS 1.0 or 1.1, which are deprecated
+    per RFC 8996.
+upgrade:
+  - |
+    When ``[vnc]enable_ssl`` is True, the noVNC proxy server
+    now defaults to requiring TLS 1.2 or later. Operators
+    using the old ``ssl_*`` option names in their configuration
+    files do not need to make changes immediately, but should
+    migrate to the new names (``cert_file``, ``key_file``,
+    ``tls_minimum_version``, ``tls_ciphers``) before the old
+    names are removed in a future release.
