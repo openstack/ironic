@@ -1051,7 +1051,7 @@ RELEASE_MAPPING = {
             'Allocation': ['1.3', '1.2', '1.1'],
             'BIOSSetting': ['1.2', '1.1'],
             'Node': ['1.44', '1.43', '1.42', '1.41'],
-            'NodeHistory': ['1.2', '1.1', '1.0'],
+            'NodeHistory': ['1.3', '1.2', '1.1', '1.0'],
             'NodeInventory': ['1.1', '1.0'],
             'Conductor': ['1.6', '1.5', '1.4'],
             'Chassis': ['1.4', '1.3'],

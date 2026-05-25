@@ -542,6 +542,9 @@ class NodeHistory(Base):
     user = Column(String(64), nullable=True)
     project = Column(String(80), nullable=True)
     node_id = Column(Integer, ForeignKey('nodes.id'), nullable=True)
+    state = Column(String(255), nullable=True)
+    target_provision_state = Column(String(255), nullable=True)
+    duration_seconds = Column(Integer, nullable=True)
 
 
 class NodeInventory(Base):
