@@ -969,3 +969,108 @@ class TestLockDown(base.TestCase):
         mock_status.assert_called_with(self.client, self.node,
                                        expect_errors=True)
         mock_sleep.assert_called_with(5)
+
+
+class TestAgentClientTLS(base.TestCase):
+
+    def test_build_ssl_context_defaults(self):
+        """Default config returns context with TLS 1.2."""
+        ctx = agent_client._build_ssl_context()
+        self.assertIsNotNone(ctx)
+        self.assertEqual(
+            ssl.TLSVersion.TLSv1_2,
+            ctx.minimum_version
+        )
+
+    def test_build_ssl_context_minimum_version_1_3(self):
+        self.config(tls_minimum_version='1.3', group='agent')
+        ctx = agent_client._build_ssl_context()
+        self.assertIsNotNone(ctx)
+        self.assertEqual(
+            ssl.TLSVersion.TLSv1_3,
+            ctx.minimum_version
+        )
+
+    def test_build_ssl_context_minimum_version_1_2(self):
+        self.config(tls_minimum_version='1.2', group='agent')
+        ctx = agent_client._build_ssl_context()
+        self.assertIsNotNone(ctx)
+        self.assertEqual(
+            ssl.TLSVersion.TLSv1_2,
+            ctx.minimum_version
+        )
+
+    def test_build_ssl_context_ciphers(self):
+        self.config(tls_ciphers='ECDHE+AESGCM',
+                    group='agent')
+        ctx = agent_client._build_ssl_context()
+        self.assertIsNotNone(ctx)
+
+    def test_build_ssl_context_all_options(self):
+        self.config(tls_minimum_version='1.3',
+                    group='agent')
+        self.config(tls_ciphers='ECDHE+AESGCM',
+                    group='agent')
+        ctx = agent_client._build_ssl_context()
+        self.assertIsNotNone(ctx)
+        self.assertEqual(
+            ssl.TLSVersion.TLSv1_3,
+            ctx.minimum_version
+        )
+
+    def test_build_ssl_context_verification_disabled(self):
+        """SSL context defers verification to requests lib."""
+        self.config(tls_minimum_version='1.2',
+                    group='agent')
+        ctx = agent_client._build_ssl_context()
+        self.assertFalse(ctx.check_hostname)
+        self.assertEqual(ssl.CERT_NONE, ctx.verify_mode)
+
+    def test_build_ssl_context_min_version_logged(self):
+        """LOG.info is emitted when TLS min version is set."""
+        self.config(tls_minimum_version='1.3',
+                    group='agent')
+        with mock.patch.object(
+            agent_client.LOG, 'info', autospec=True
+        ) as mock_log:
+            agent_client._build_ssl_context()
+            mock_log.assert_any_call(
+                "Agent client TLS minimum version set "
+                "to %s", '1.3'
+            )
+
+    def test_build_ssl_context_ciphers_logged(self):
+        """LOG.info is emitted when TLS ciphers are set."""
+        self.config(tls_ciphers='ECDHE+AESGCM',
+                    group='agent')
+        with mock.patch.object(
+            agent_client.LOG, 'info', autospec=True
+        ) as mock_log:
+            agent_client._build_ssl_context()
+            mock_log.assert_any_call(
+                "Agent client TLS ciphers configured"
+            )
+
+    @mock.patch.object(agent_client, '_build_ssl_context',
+                       autospec=True)
+    def test_agent_client_mounts_adapter(
+            self, mock_build_ctx):
+        mock_ctx = mock.Mock()
+        mock_build_ctx.return_value = mock_ctx
+        client = agent_client.AgentClient()
+        adapter = client.session.get_adapter('https://x')
+        self.assertIsInstance(
+            adapter, agent_client.TLSHTTPAdapter
+        )
+        self.assertEqual(mock_ctx, adapter._ssl_context)
+
+    @mock.patch.object(agent_client, '_build_ssl_context',
+                       autospec=True)
+    def test_agent_client_no_adapter_when_no_ctx(
+            self, mock_build_ctx):
+        mock_build_ctx.return_value = None
+        client = agent_client.AgentClient()
+        adapter = client.session.get_adapter('https://x')
+        self.assertNotIsInstance(
+            adapter, agent_client.TLSHTTPAdapter
+        )

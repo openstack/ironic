@@ -174,6 +174,36 @@ opts = [
                help=_('Path to the TLS CA that is used to start the bare '
                       'metal API. In some boot methods this file can be '
                       'passed to the ramdisk.')),
+    cfg.StrOpt(
+        'tls_minimum_version',
+        default='1.2',
+        choices=[
+            ('1.2',
+             _('Require TLS 1.2 as the minimum version.')),
+            ('1.3',
+             _('Require TLS 1.3 as the minimum version. '
+               'Recommended for Post-Quantum Cryptography '
+               'readiness as PQC key exchange is only '
+               'available in TLS 1.3.')),
+        ],
+        help=_("Set the minimum TLS protocol version for "
+               "outbound HTTPS connections from the "
+               "conductor to the ironic-python-agent. "
+               "Defaults to TLS 1.2 since TLS 1.0 and "
+               "1.1 are deprecated (RFC 8996). "
+               "Note: the agent must support the configured "
+               "minimum version for connections to "
+               "succeed. Generally, modern agents should "
+               "support this without issues as long as "
+               "they utliize a modern version of python "
+               "greater than Python 3.6.")),
+    cfg.StrOpt(
+        'tls_ciphers',
+        help=_("Set the list of available ciphers for "
+               "outbound HTTPS connections from the "
+               "conductor to the ironic-python-agent. The "
+               "value should be a string in the OpenSSL "
+               "cipher list format.")),
     cfg.BoolOpt('allow_md5_checksum',
                 default=True,
                 help=_('When enabled, the agent will be notified it is '
