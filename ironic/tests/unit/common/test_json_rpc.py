@@ -12,6 +12,7 @@
 
 import copy
 import os
+import ssl
 import tempfile
 from unittest import mock
 
@@ -24,6 +25,7 @@ import webob
 from ironic.common import exception
 from ironic.common.json_rpc import client
 from ironic.common.json_rpc import server
+from ironic.common import wsgi_service
 from ironic.conf import json_rpc
 from ironic.tests.base import TestCase
 
@@ -354,6 +356,296 @@ class TestService(TestCase):
                          logged_resp)
         # The result is not affected, only logging
         self.assertEqual(data, node)
+
+
+class TestServiceTLS(TestCase):
+
+    def setUp(self):
+        super(TestServiceTLS, self).setUp()
+        self.config(auth_strategy='noauth', group='json_rpc')
+        self.server_mock = self.useFixture(fixtures.MockPatch(
+            'cheroot.wsgi.Server', autospec=True)).mock
+        server_instance = self.server_mock.return_value
+        server_instance.requests = mock.MagicMock()
+        self.serializer = FakeSerializer()
+
+    @mock.patch.object(wsgi_service, 'validate_cert_paths',
+                       autospec=True)
+    @mock.patch.object(wsgi_service.cheroot_ssl,
+                       'BuiltinSSLAdapter', autospec=True)
+    def test_json_rpc_tls_minimum_version(
+            self, mock_ssl_adapter, mock_validate):
+        self.config(use_ssl=True, group='json_rpc')
+        self.config(cert_file='/path/to/cert',
+                    group='json_rpc')
+        self.config(key_file='/path/to/key',
+                    group='json_rpc')
+        self.config(tls_minimum_version='1.3',
+                    group='json_rpc')
+
+        mock_context = mock.Mock()
+        mock_ssl_adapter.return_value.context = mock_context
+
+        server.WSGIService(
+            FakeManager(), self.serializer, FakeContext
+        )
+
+        mock_ssl_adapter.assert_called_once_with(
+            certificate='/path/to/cert',
+            private_key='/path/to/key',
+            ciphers=None
+        )
+        self.assertEqual(
+            ssl.TLSVersion.TLSv1_3,
+            mock_context.minimum_version
+        )
+
+    @mock.patch.object(wsgi_service, 'validate_cert_paths',
+                       autospec=True)
+    @mock.patch.object(wsgi_service.cheroot_ssl,
+                       'BuiltinSSLAdapter', autospec=True)
+    def test_json_rpc_tls_ciphers(self, mock_ssl_adapter,
+                                  mock_validate):
+        self.config(use_ssl=True, group='json_rpc')
+        self.config(cert_file='/path/to/cert',
+                    group='json_rpc')
+        self.config(key_file='/path/to/key',
+                    group='json_rpc')
+        self.config(tls_ciphers='ECDHE+AESGCM',
+                    group='json_rpc')
+
+        mock_context = mock.Mock()
+        mock_ssl_adapter.return_value.context = mock_context
+
+        server.WSGIService(
+            FakeManager(), self.serializer, FakeContext
+        )
+
+        mock_ssl_adapter.assert_called_once_with(
+            certificate='/path/to/cert',
+            private_key='/path/to/key',
+            ciphers='ECDHE+AESGCM'
+        )
+        # Default TLS 1.2 minimum is still applied
+        self.assertEqual(
+            ssl.TLSVersion.TLSv1_2,
+            mock_context.minimum_version
+        )
+
+    @mock.patch.object(wsgi_service, 'validate_cert_paths',
+                       autospec=True)
+    @mock.patch.object(wsgi_service.cheroot_ssl,
+                       'BuiltinSSLAdapter', autospec=True)
+    def test_json_rpc_tls_all_options(
+            self, mock_ssl_adapter, mock_validate):
+        self.config(use_ssl=True, group='json_rpc')
+        self.config(cert_file='/path/to/cert',
+                    group='json_rpc')
+        self.config(key_file='/path/to/key',
+                    group='json_rpc')
+        self.config(tls_minimum_version='1.3',
+                    group='json_rpc')
+        self.config(tls_ciphers='ECDHE+AESGCM',
+                    group='json_rpc')
+
+        mock_context = mock.Mock()
+        mock_ssl_adapter.return_value.context = mock_context
+
+        server.WSGIService(
+            FakeManager(), self.serializer, FakeContext
+        )
+
+        mock_ssl_adapter.assert_called_once_with(
+            certificate='/path/to/cert',
+            private_key='/path/to/key',
+            ciphers='ECDHE+AESGCM'
+        )
+        self.assertEqual(
+            ssl.TLSVersion.TLSv1_3,
+            mock_context.minimum_version
+        )
+
+    @mock.patch.object(wsgi_service, 'validate_cert_paths',
+                       autospec=True)
+    @mock.patch.object(wsgi_service.cheroot_ssl,
+                       'BuiltinSSLAdapter', autospec=True)
+    def test_json_rpc_tls_minimum_version_1_2(
+            self, mock_ssl_adapter, mock_validate):
+        self.config(use_ssl=True, group='json_rpc')
+        self.config(cert_file='/path/to/cert',
+                    group='json_rpc')
+        self.config(key_file='/path/to/key',
+                    group='json_rpc')
+        self.config(tls_minimum_version='1.2',
+                    group='json_rpc')
+
+        mock_context = mock.Mock()
+        mock_ssl_adapter.return_value.context = mock_context
+
+        server.WSGIService(
+            FakeManager(), self.serializer, FakeContext
+        )
+
+        self.assertEqual(
+            ssl.TLSVersion.TLSv1_2,
+            mock_context.minimum_version
+        )
+
+    @mock.patch.object(wsgi_service, 'validate_cert_paths',
+                       autospec=True)
+    @mock.patch.object(wsgi_service.cheroot_ssl,
+                       'BuiltinSSLAdapter', autospec=True)
+    def test_json_rpc_tls_defaults_with_ssl(
+            self, mock_ssl_adapter, mock_validate):
+        """Default TLS 1.2 minimum is applied with SSL on."""
+        self.config(use_ssl=True, group='json_rpc')
+        self.config(cert_file='/path/to/cert',
+                    group='json_rpc')
+        self.config(key_file='/path/to/key',
+                    group='json_rpc')
+
+        mock_context = mock.Mock()
+        mock_ssl_adapter.return_value.context = mock_context
+
+        server.WSGIService(
+            FakeManager(), self.serializer, FakeContext
+        )
+
+        mock_ssl_adapter.assert_called_once_with(
+            certificate='/path/to/cert',
+            private_key='/path/to/key',
+            ciphers=None
+        )
+        # Default TLS 1.2 minimum is always applied
+        self.assertEqual(
+            ssl.TLSVersion.TLSv1_2,
+            mock_context.minimum_version
+        )
+
+    @mock.patch.object(wsgi_service.cheroot_ssl,
+                       'BuiltinSSLAdapter', autospec=True)
+    def test_json_rpc_tls_options_ignored_when_ssl_disabled(
+            self, mock_ssl_adapter):
+        """TLS hardening options have no effect with SSL off."""
+        self.config(use_ssl=False, group='json_rpc')
+        self.config(tls_minimum_version='1.3',
+                    group='json_rpc')
+        self.config(tls_ciphers='ECDHE+AESGCM',
+                    group='json_rpc')
+
+        server.WSGIService(
+            FakeManager(), self.serializer, FakeContext
+        )
+
+        # SSL adapter should never be created when SSL is off
+        mock_ssl_adapter.assert_not_called()
+
+    @mock.patch.object(wsgi_service, 'validate_cert_paths',
+                       autospec=True)
+    @mock.patch.object(wsgi_service.cheroot_ssl,
+                       'BuiltinSSLAdapter', autospec=True)
+    def test_json_rpc_tls_min_version_logged(
+            self, mock_ssl_adapter, mock_validate):
+        """LOG.info is emitted when TLS min version is set."""
+        self.config(use_ssl=True, group='json_rpc')
+        self.config(cert_file='/path/to/cert',
+                    group='json_rpc')
+        self.config(key_file='/path/to/key',
+                    group='json_rpc')
+        self.config(tls_minimum_version='1.3',
+                    group='json_rpc')
+
+        mock_context = mock.Mock()
+        mock_ssl_adapter.return_value.context = mock_context
+
+        with mock.patch.object(
+            wsgi_service.LOG, 'info', autospec=True
+        ) as mock_log:
+            server.WSGIService(
+                FakeManager(), self.serializer, FakeContext
+            )
+            mock_log.assert_any_call(
+                "TLS minimum version set to %s for %s",
+                '1.3', 'ironic-json-rpc'
+            )
+
+    @mock.patch.object(wsgi_service, 'validate_cert_paths',
+                       autospec=True)
+    @mock.patch.object(wsgi_service.cheroot_ssl,
+                       'BuiltinSSLAdapter', autospec=True)
+    def test_json_rpc_tls_ciphers_logged(
+            self, mock_ssl_adapter, mock_validate):
+        """LOG.info is emitted when TLS ciphers are set."""
+        self.config(use_ssl=True, group='json_rpc')
+        self.config(cert_file='/path/to/cert',
+                    group='json_rpc')
+        self.config(key_file='/path/to/key',
+                    group='json_rpc')
+        self.config(tls_ciphers='ECDHE+AESGCM',
+                    group='json_rpc')
+
+        mock_context = mock.Mock()
+        mock_ssl_adapter.return_value.context = mock_context
+
+        with mock.patch.object(
+            wsgi_service.LOG, 'info', autospec=True
+        ) as mock_log:
+            server.WSGIService(
+                FakeManager(), self.serializer, FakeContext
+            )
+            mock_log.assert_any_call(
+                "TLS ciphers configured for %s",
+                'ironic-json-rpc'
+            )
+
+    @mock.patch.object(wsgi_service, 'validate_cert_paths',
+                       autospec=True)
+    @mock.patch.object(wsgi_service.cheroot_ssl,
+                       'BuiltinSSLAdapter', autospec=True)
+    @mock.patch('oslo_service.sslutils.is_enabled',
+                return_value=True, autospec=True)
+    def test_json_rpc_ssl_legacy_group_with_tls_options(
+            self, mock_is_enabled, mock_ssl_adapter,
+            mock_validate):
+        """TLS options work with legacy [ssl] cert path."""
+        self.config(use_ssl=True, group='json_rpc')
+        self.config(tls_minimum_version='1.3',
+                    group='json_rpc')
+        self.config(tls_ciphers='ECDHE+AESGCM',
+                    group='json_rpc')
+        from oslo_service import sslutils
+        sslutils.register_opts(cfg.CONF)
+        self.config(cert_file='/path/to/cert',
+                    group='ssl')
+        self.config(key_file='/path/to/key',
+                    group='ssl')
+
+        mock_context = mock.Mock()
+        mock_ssl_adapter.return_value.context = mock_context
+
+        server.WSGIService(
+            FakeManager(), self.serializer, FakeContext
+        )
+
+        mock_ssl_adapter.assert_called_once_with(
+            certificate='/path/to/cert',
+            private_key='/path/to/key',
+            ciphers='ECDHE+AESGCM'
+        )
+        self.assertEqual(
+            ssl.TLSVersion.TLSv1_3,
+            mock_context.minimum_version
+        )
+
+    def test_json_rpc_ssl_missing_cert_raises(self):
+        """use_ssl=True without cert/key raises RuntimeError."""
+        self.config(use_ssl=True, group='json_rpc')
+
+        self.assertRaises(
+            RuntimeError,
+            server.WSGIService,
+            FakeManager(), self.serializer, FakeContext
+        )
 
 
 @mock.patch.object(client, '_get_session', autospec=True)
