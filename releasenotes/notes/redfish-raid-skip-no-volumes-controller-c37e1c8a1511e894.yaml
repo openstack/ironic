@@ -1,0 +1,10 @@
+---
+fixes:
+  - |
+    Fixed a ``MissingAttributeError`` crash in the Redfish RAID interface
+    when a server exposes multiple storage controllers and at least one
+    controller does not include a ``Volumes`` link in its Redfish resource.
+    Both ``delete_configuration`` and ``update_raid_config`` now skip
+    controllers that do not expose a Volumes collection instead of raising
+    a fatal error.
+    Fixes `bug 2151881 <https://bugs.launchpad.net/ironic/+bug/2151881>`_.
