@@ -4,3 +4,4 @@
 
 .. release-notes::
    :branch: unmaintained/2024.1
+   :earliest-version: 23.1.0
