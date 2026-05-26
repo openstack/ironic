@@ -116,7 +116,7 @@ specification of any logical disk.
   yourself.
 
   For software RAID (since the Gazpacho release - through the change
-  `962670 <https://review.opendev.org/c/openstack/ironic/+/962670/>`_),
+  `963200 <https://review.opendev.org/c/openstack/ironic-python-agent/+/963200/>`_),
   setting the parameter to ``false``, prevents it from being
   picked up as the root volume. If both ``root device hint``, and the
   ``is_root_volume`` (set to ``true``) parameters are set, the
