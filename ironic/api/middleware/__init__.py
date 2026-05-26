@@ -12,14 +12,17 @@
 # under the License.
 
 from ironic.api.middleware import auth_public_routes
+from ironic.api.middleware import json_depth
 from ironic.api.middleware import json_ext
 from ironic.api.middleware import parsable_error
 
 
 ParsableErrorMiddleware = parsable_error.ParsableErrorMiddleware
 AuthPublicRoutes = auth_public_routes.AuthPublicRoutes
+JsonDepthMiddleware = json_depth.JsonDepthMiddleware
 JsonExtensionMiddleware = json_ext.JsonExtensionMiddleware
 
 __all__ = ('ParsableErrorMiddleware',
            'AuthPublicRoutes',
+           'JsonDepthMiddleware',
            'JsonExtensionMiddleware')
