@@ -1,0 +1,26 @@
+---
+features:
+  - |
+    Adds middleware to reject oversized or excessively nested
+    JSON request bodies before they reach the JSON parser.
+    Deeply nested payloads can crash API worker processes via
+    ``RecursionError`` in ``json.loads()``, and oversized
+    payloads can exhaust memory. Three new configuration
+    options in ``[api]`` control the body size limits (in
+    KiB): ``max_json_body_size`` (default 1 MiB),
+    ``max_json_body_size_provision`` (default 64 MiB), and
+    ``max_json_body_size_inspection`` (default 16 MiB). A
+    fourth option ``max_json_body_depth`` (default 25) limits
+    JSON nesting depth. All options are mutable and can be
+    changed without restarting the service.
+security:
+  - |
+    The API now rejects JSON request bodies that exceed
+    configurable size and nesting depth limits. Previously,
+    a maliciously crafted deeply-nested JSON payload could
+    crash an API worker process via ``RecursionError``, and
+    an extremely large payload could exhaust process memory.
+    The new ``JsonDepthMiddleware`` runs before any JSON
+    parsing occurs, scanning raw bytes iteratively with no
+    recursion. The JSON-RPC internal service also applies
+    the depth check.

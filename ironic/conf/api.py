@@ -137,6 +137,50 @@ opts = [
                "Has no effect when [api]enable_ssl_api is "
                "False or when TLS is terminated by an "
                "external service.")),
+    cfg.IntOpt('max_json_body_depth',
+               default=25,
+               min=8,
+               mutable=True,
+               help=_('Maximum JSON nesting depth allowed in API '
+                      'request bodies. Requests exceeding this '
+                      'depth are rejected with HTTP 400 to prevent '
+                      'recursion-based crashes in the JSON parser. '
+                      'The deepest known legitimate structure in '
+                      'the Ironic API is approximately 7 levels '
+                      '(configdrive network_data).')),
+    cfg.IntOpt('max_json_body_size',
+               default=1024,
+               min=4,
+               mutable=True,
+               help=_('Maximum size of a JSON request body, '
+                      'in KiB. Requests with a Content-Length '
+                      'exceeding this value are rejected with '
+                      'HTTP 413 before the body is read into '
+                      'memory. The node provision and inspection '
+                      'endpoints use the separate '
+                      '[api]max_json_body_size_provision and '
+                      '[api]max_json_body_size_inspection limits '
+                      'respectively. Defaults to 1 MiB.')),
+    cfg.IntOpt('max_json_body_size_provision',
+               default=65536,
+               min=4,
+               mutable=True,
+               help=_('Maximum size of a JSON request body '
+                      'for the node provision state endpoint, '
+                      'in KiB. This endpoint may carry '
+                      'configdrive data and deploy steps. '
+                      'Defaults to 64 MiB.')),
+    cfg.IntOpt('max_json_body_size_inspection',
+               default=16384,
+               min=4,
+               mutable=True,
+               help=_('Maximum size of a JSON request body '
+                      'for the continue_inspection endpoint, '
+                      'in KiB. Inspection data from the '
+                      'ramdisk may include system logs such '
+                      'as the journal, making the payload '
+                      'significantly larger than normal API '
+                      'requests. Defaults to 16 MiB.')),
     cfg.ListOpt('middleware',
                 default=[],
                 help=_('Comma-separated list of WSGI middleware to load '

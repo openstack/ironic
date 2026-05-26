@@ -28,6 +28,7 @@ import oslo_messaging
 from oslo_utils import strutils
 import webob
 
+from ironic.api.middleware import json_depth
 from ironic.common import auth_basic
 from ironic.common import exception
 from ironic.common.i18n import _
@@ -113,16 +114,21 @@ class WSGIService(wsgi_service.BaseWSGIService):
         self.context_class = context_class
         self._method_map = _build_method_map(manager)
         self._conf_group = conf_group
+
+        # Guard against deeply-nested JSON payloads that can crash
+        # the process via RecursionError in json.loads().
+        app = json_depth.JsonDepthMiddleware(
+            self._application,
+            max_depth=CONF.api.max_json_body_depth)
+
         auth_strategy = json_rpc.auth_strategy(group=conf_group)
         if auth_strategy == 'keystone':
             conf = dict(CONF.keystone_authtoken)
-            app = auth_token.AuthProtocol(self._application, conf)
+            app = auth_token.AuthProtocol(app, conf)
         elif auth_strategy == 'http_basic':
             app = auth_basic.BasicAuthMiddleware(
-                self._application,
+                app,
                 getattr(CONF, conf_group).http_basic_auth_user_file)
-        else:
-            app = self._application
         super().__init__('ironic-json-rpc', app, getattr(CONF, conf_group))
         self._debug = CONF.rpc_transport != 'none'
 
