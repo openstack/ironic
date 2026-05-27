@@ -23,7 +23,7 @@ VALID_ADD_PORTS_VALUES = {
     'all': _('all MAC addresses'),
     'active': _('MAC addresses of NICs with IP addresses'),
     'pxe': _('only the MAC address of the PXE NIC'),
-    'disabled': _('do not create any ports'),
+    'disabled': _('do not create ports from the inspected inventory'),
 }
 VALID_KEEP_PORTS_VALUES = {
     'all': _('keep all ports, even ones with MAC addresses that are not '
@@ -76,7 +76,11 @@ opts = [
                        'interfaces (e.g. because they don\'t have ports).')),
     cfg.StrOpt('add_ports',
                default='pxe',
-               help=_('Which MAC addresses to add as ports during '
+               help=_('Which MAC addresses from the inspected inventory to '
+                      'add as ports, applied by the "ports" inspection hook. '
+                      'This does not control the port pre-creation step; '
+                      '[inspector]pre_create_ports will add ports found in '
+                      'the redfish controller before beginning any in-band '
                       'inspection.'),
                choices=list(VALID_ADD_PORTS_VALUES.items())),
     cfg.StrOpt('keep_ports',
@@ -88,6 +92,16 @@ opts = [
                 default=True,
                 help=_('Whether to update the ports\' pxe_enabled field '
                        'according to the inspection data.')),
+    cfg.BoolOpt('pre_create_ports',
+                default=True,
+                help=_('Whether to pre-create ports from the BMC-reported '
+                       'MAC addresses before inspection, in addition to the '
+                       'ports the "ports" hook creates from the inspected '
+                       'inventory. Set to False if you manage ports '
+                       'yourself; if so, ensure nodes still have the ports '
+                       'they need for inspection. Independent of '
+                       '[inspector]add_ports which adds ports discovered, '
+                       'regardless of method via the ports inspection hook')),
     cfg.StrOpt('default_hooks',
                default='ramdisk-error,validate-interfaces,ports,architecture',
                help=_('A comma-separated lists of inspection hooks that are '

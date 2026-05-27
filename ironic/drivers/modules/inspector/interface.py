@@ -178,11 +178,16 @@ class Common(base.InspectInterface):
         :returns: states.INSPECTWAIT
         :raises: HardwareInspectionFailure on failure
         """
-        try:
-            inspect_utils.create_ports_if_not_exist(task)
-        except exception.UnsupportedDriverExtension:
-            LOG.debug('Pre-creating ports prior to inspection not supported'
-                      ' on node %s.', task.node.uuid)
+        if CONF.inspector.pre_create_ports:
+            try:
+                inspect_utils.create_ports_if_not_exist(task)
+            except exception.UnsupportedDriverExtension:
+                LOG.debug('Pre-creating ports prior to inspection not '
+                          'supported on node %s.', task.node.uuid)
+        else:
+            LOG.debug('Skipping out-of-band port pre-creation for node %s '
+                      'because [inspector]pre_create_ports is False.',
+                      task.node.uuid)
 
         manage_boot = ironic_manages_boot(
             task, raise_exc=CONF.inspector.require_managed_boot)

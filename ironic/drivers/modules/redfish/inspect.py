@@ -166,8 +166,6 @@ class RedfishInspect(base.InspectInterface):
             inventory['boot'] = {'current_boot_mode':
                                  BOOT_MODE_MAP[system.boot.mode]}
 
-        self._create_ports(task, system)
-
         pxe_port_macs = self._get_pxe_port_macs(task)
         # existing data format only allows one mac so use that for now
         if pxe_port_macs:
@@ -208,16 +206,6 @@ class RedfishInspect(base.InspectInterface):
                                      'node': task.node.uuid})
 
         return states.MANAGEABLE
-
-    def _create_ports(self, task, system):
-        enabled_macs = redfish_utils.get_enabled_macs(task, system)
-        if enabled_macs:
-            inspect_utils.create_ports_if_not_exist(task, list(enabled_macs))
-        else:
-            LOG.warning("Not attempting to create any port as no NICs "
-                        "were discovered in 'enabled' state for node "
-                        "%(node)s: %(mac_data)s",
-                        {'mac_data': enabled_macs, 'node': task.node.uuid})
 
     def _detect_local_gb(self, task, system):
         simple_storage_size = 0

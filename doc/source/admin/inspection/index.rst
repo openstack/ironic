@@ -8,7 +8,9 @@ Overview
 Inspection allows Bare Metal service to discover required node properties
 once required ``driver_info`` fields (for example, IPMI credentials) are set
 by an operator. Inspection will also create the Bare Metal service ports for the
-discovered ethernet MACs.
+discovered ethernet MACs. Port creation is governed by the
+:oslo.config:option:`inspector.add_ports` and
+:oslo.config:option:`inspector.pre_create_ports` options.
 
 There are two kinds of inspection supported by Bare Metal service:
 
