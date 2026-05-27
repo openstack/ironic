@@ -15,8 +15,12 @@ from unittest import mock
 from oslo_utils import uuidutils
 
 from ironic.common import context as ironic_context
+from oslo_config import cfg
+
 from ironic.conductor import base_manager
 from ironic.conductor import periodics
+
+CONF = cfg.CONF
 from ironic.conductor import task_manager
 from ironic.drivers.modules import fake
 from ironic.tests.unit.db import base as db_base
@@ -24,6 +28,27 @@ from ironic.tests.unit.objects import utils as obj_utils
 
 
 _FILTERS = {'maintenance': False}
+
+
+class TestLazyPeriodicAttributes(db_base.DbTestCase):
+
+    def test_refresh_periodic_attributes_resolves_callables(self):
+        @periodics.periodic(spacing=lambda: 120,
+                            enabled=lambda: CONF.sensor_data.send_sensor_data)
+        def sample_task():
+            return None
+
+        self.assertFalse(sample_task._is_periodic)
+
+        CONF.set_override('send_sensor_data', True, group='sensor_data')
+        periodics.refresh_periodic_attributes(sample_task)
+
+        self.assertTrue(sample_task._is_periodic)
+        self.assertEqual(120, sample_task._periodic_spacing)
+
+        CONF.set_override('send_sensor_data', False, group='sensor_data')
+        periodics.refresh_periodic_attributes(sample_task)
+        self.assertFalse(sample_task._is_periodic)
 
 
 class PeriodicTestService(base_manager.BaseConductorManager):

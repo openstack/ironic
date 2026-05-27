@@ -12,10 +12,13 @@
 
 import datetime
 import multiprocessing.reduction
+import os
 import pickle
+import sys
 import time
 from unittest import mock
 
+import fixtures
 from oslo_config import cfg
 import oslo_messaging
 from oslo_service import service as base_service
@@ -410,3 +413,81 @@ class TestRPCService(db_base.DbTestCase):
         # Conf probe
         data_conf = multiprocessing.reduction.ForkingPickler.dumps(CONF)
         self.assertIsNotNone(data_conf)
+
+    def _restore_conductor_manager_module(self, saved_module):
+        """Put back ironic.conductor.manager after an import-order test."""
+        sys.modules.pop('ironic.conductor.manager', None)
+        if saved_module is not None:
+            sys.modules['ironic.conductor.manager'] = saved_module
+
+    def test_send_sensor_data_periodic_flag_refreshed_after_config(self):
+        """Lazy enabled applies when periodics refresh after config."""
+        manager_name = 'ironic.conductor.manager'
+        saved_module = sys.modules.pop(manager_name, None)
+        self.addCleanup(self._restore_conductor_manager_module, saved_module)
+
+        CONF.set_override('send_sensor_data', False, group='sensor_data')
+        from ironic.conductor import manager as mgr
+        from ironic.conductor import periodics as conductor_periodics
+
+        fn = mgr.ConductorManager._send_sensor_data
+        self.assertFalse(getattr(fn, '_is_periodic', True))
+
+        conductor_periodics.refresh_periodic_attributes(fn)
+        self.assertFalse(getattr(fn, '_is_periodic', True))
+
+        CONF.set_override('send_sensor_data', True, group='sensor_data')
+        conductor_periodics.refresh_periodic_attributes(fn)
+        self.assertTrue(CONF.sensor_data.send_sensor_data)
+        self.assertTrue(getattr(fn, '_is_periodic', False))
+
+    @mock.patch('ironic.common.service.prepare_command', autospec=True)
+    def test_spawn_unpickle_send_sensor_data_periodic_enabled(
+            self, mock_prepare):
+        """Spawn unpickle refreshes _send_sensor_data after prepare_command.
+
+        oslo.service spawn unpickles the manager before __setstate__ runs
+        prepare_command(), bypassing the import-order guard added for
+        LP #1562258 in ironic.command.conductor. The mock applies the
+        config-file value without re-parsing argv in tests.
+        """
+        conf_dir = self.useFixture(fixtures.TempDir()).path
+        conf_path = os.path.join(conf_dir, 'ironic.conf')
+        with open(conf_path, 'w', encoding='utf-8') as conf_file:
+            conf_file.write(
+                '[DEFAULT]\n'
+                'host=localhost\n'
+                '\n'
+                '[sensor_data]\n'
+                'send_sensor_data=true\n'
+                'interval=60\n')
+
+        argv = ['ironic-conductor', '--config-file', conf_path]
+
+        def _restore_conf_from_argv(restored_argv):
+            if restored_argv == argv:
+                CONF.set_override('send_sensor_data', True,
+                                  group='sensor_data')
+
+        mock_prepare.side_effect = _restore_conf_from_argv
+
+        saved_argv = sys.argv[:]
+        self.addCleanup(setattr, sys, 'argv', saved_argv)
+        sys.argv = argv[:]
+        data = multiprocessing.reduction.ForkingPickler.dumps(self.rpc_svc)
+
+        manager_name = 'ironic.conductor.manager'
+        saved_module = sys.modules.pop(manager_name, None)
+        self.addCleanup(self._restore_conductor_manager_module, saved_module)
+
+        CONF.set_override('send_sensor_data', False, group='sensor_data')
+
+        pickle.loads(data)
+
+        mock_prepare.assert_called_once_with(argv)
+        from ironic.conductor import manager as mgr
+        fn = mgr.ConductorManager._send_sensor_data
+        self.assertTrue(getattr(fn, '_is_periodic', False),
+                        '__setstate__ should refresh _send_sensor_data after '
+                        'prepare_command restores CONF')
+        self.assertTrue(CONF.sensor_data.send_sensor_data)
