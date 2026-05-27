@@ -1,0 +1,15 @@
+---
+fixes:
+  - |
+    Fixes an issue in the url handling logic of instance deploy logic where
+    file paths validity was not checked upfront, and the conductor service
+    would directly begin calculating checksums. This highlighted a DoS issue
+    where an attacker could exhaust conductor threads by attempting to request,
+    "file:///dev/zero", which would never return the thread. This is because
+    file URLs don't require downloading first, and validity checking logic
+    was all in the file access logic, not checksum logic.
+
+    Ironic now explicitly invokes the URL/validity checking logic prior to
+    calling the checksum logic which effectively prevents this issue.
+
+    This issue is tracked as CVE-2026-44919.
