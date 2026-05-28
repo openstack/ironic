@@ -28,6 +28,7 @@ from ironic.api.controllers import v1 as api_v1
 from ironic.api.controllers.v1 import notification_utils
 from ironic.api.controllers.v1 import utils as api_utils
 from ironic.common import exception
+from ironic.common import policy
 from ironic.conductor import rpcapi
 from ironic import objects
 from ironic.objects import fields as obj_fields
@@ -317,6 +318,91 @@ class TestListVolumeTargets(test_api_base.BaseApiTest):
             self.assertEqual(http_client.BAD_REQUEST, response.status_int)
             self.assertEqual('application/json', response.content_type)
             self.assertIn(invalid_key, response.json['error_message'])
+
+    @mock.patch.object(policy, 'check_policy', autospec=True)
+    def test_get_one_redact_properties(self, mock_check_policy):
+        """Properties are redacted when policy denies access."""
+        target = obj_utils.create_test_volume_target(
+            self.context, node_id=self.node.id)
+
+        def check_policy_side_effect(rule, target_dict, creds,
+                                     *args, **kwargs):
+            if rule == 'baremetal:volume:view_target_properties':
+                return False
+            return True
+
+        mock_check_policy.side_effect = check_policy_side_effect
+        data = self.get_json('/volume/targets/%s' % target.uuid,
+                             headers=self.headers)
+        self.assertIn('properties', data)
+        self.assertIn('redacted_contents', data['properties'])
+        self.assertNotIn('target_iqn', data['properties'])
+
+    @mock.patch.object(policy, 'check_policy', autospec=True)
+    def test_get_one_no_redact_properties(self, mock_check_policy):
+        """Properties are visible when policy allows access."""
+        target = obj_utils.create_test_volume_target(
+            self.context, node_id=self.node.id)
+
+        def check_policy_side_effect(rule, target_dict, creds,
+                                     *args, **kwargs):
+            if rule == 'baremetal:volume:view_target_properties':
+                return True
+            return True
+
+        mock_check_policy.side_effect = check_policy_side_effect
+        data = self.get_json('/volume/targets/%s' % target.uuid,
+                             headers=self.headers)
+        self.assertIn('properties', data)
+        self.assertEqual({'target_iqn': 'iqn.foo'},
+                         data['properties'])
+
+    @mock.patch.object(policy, 'check_policy', autospec=True)
+    def test_detail_redact_properties(self, mock_check_policy):
+        """Properties are redacted in detail listing."""
+        obj_utils.create_test_volume_target(
+            self.context, node_id=self.node.id)
+
+        def check_policy_side_effect(rule, target_dict, creds,
+                                     *args, **kwargs):
+            if rule == 'baremetal:volume:view_target_properties':
+                return False
+            return True
+
+        mock_check_policy.side_effect = check_policy_side_effect
+        data = self.get_json('/volume/targets?detail=True',
+                             headers=self.headers)
+        props = data['targets'][0]['properties']
+        self.assertIn('redacted_contents', props)
+        self.assertNotIn('target_iqn', props)
+
+    def test_get_one_masks_secret_properties(self):
+        """Password-like values in properties are always masked."""
+        props = {'target_iqn': 'iqn.foo',
+                 'auth_password': 'supersecret'}
+        obj_utils.create_test_volume_target(
+            self.context, node_id=self.node.id,
+            properties=props)
+        data = self.get_json('/volume/targets/%s'
+                             % dbutils.get_test_volume_target()['uuid'],
+                             headers=self.headers)
+        self.assertEqual('iqn.foo',
+                         data['properties']['target_iqn'])
+        self.assertEqual('******',
+                         data['properties']['auth_password'])
+
+    def test_detail_masks_secret_properties(self):
+        """Password-like values in properties are masked in listings."""
+        props = {'target_iqn': 'iqn.foo',
+                 'auth_password': 'supersecret'}
+        obj_utils.create_test_volume_target(
+            self.context, node_id=self.node.id,
+            properties=props)
+        data = self.get_json('/volume/targets?detail=True',
+                             headers=self.headers)
+        result_props = data['targets'][0]['properties']
+        self.assertEqual('iqn.foo', result_props['target_iqn'])
+        self.assertEqual('******', result_props['auth_password'])
 
     @mock.patch.object(api_utils, 'get_rpc_node', autospec=True)
     def test_get_all_by_node_name_ok(self, mock_get_rpc_node):
@@ -725,6 +811,86 @@ class TestPatch(test_api_base.BaseApiTest):
         self.assertEqual('application/json', response.content_type)
         self.assertTrue(response.json['error_message'])
         self.assertFalse(mock_upd.called)
+
+    @mock.patch.object(policy, 'check_policy', autospec=True)
+    @mock.patch.object(notification_utils, '_emit_api_notification',
+                       autospec=True)
+    def test_patch_redact_properties(self, mock_notify, mock_check_policy,
+                                     mock_upd):
+        """Properties are redacted in PATCH response."""
+        props = {'target_iqn': 'iqn.secret'}
+        mock_upd.return_value = self.target
+        mock_upd.return_value.properties = props
+
+        def check_policy_side_effect(rule, target_dict, creds,
+                                     *args, **kwargs):
+            if rule == 'baremetal:volume:view_target_properties':
+                return False
+            return True
+
+        mock_check_policy.side_effect = check_policy_side_effect
+        response = self.patch_json('/volume/targets/%s'
+                                   % self.target.uuid,
+                                   [{'path': '/extra/foo',
+                                     'value': 'bar',
+                                     'op': 'add'}],
+                                   headers=self.headers)
+        self.assertEqual(http_client.OK, response.status_code)
+        self.assertIn('redacted_contents',
+                      response.json['properties'])
+        self.assertNotIn('target_iqn',
+                         response.json['properties'])
+        mock_notify.assert_has_calls(
+            [mock.call(mock.ANY, mock.ANY, 'update',
+                       obj_fields.NotificationLevel.INFO,
+                       obj_fields.NotificationStatus.START,
+                       node_uuid=self.node.uuid),
+             mock.call(mock.ANY, mock.ANY, 'update',
+                       obj_fields.NotificationLevel.INFO,
+                       obj_fields.NotificationStatus.END,
+                       node_uuid=self.node.uuid)])
+
+    @mock.patch.object(policy, 'check_policy', autospec=True)
+    def test_patch_no_redact_properties(self, mock_check_policy,
+                                        mock_upd):
+        """Properties are visible in PATCH response when allowed."""
+        props = {'target_iqn': 'iqn.secret'}
+        mock_upd.return_value = self.target
+        mock_upd.return_value.properties = props
+
+        def check_policy_side_effect(rule, target_dict, creds,
+                                     *args, **kwargs):
+            if rule == 'baremetal:volume:view_target_properties':
+                return True
+            return True
+
+        mock_check_policy.side_effect = check_policy_side_effect
+        response = self.patch_json('/volume/targets/%s'
+                                   % self.target.uuid,
+                                   [{'path': '/extra/foo',
+                                     'value': 'bar',
+                                     'op': 'add'}],
+                                   headers=self.headers)
+        self.assertEqual(http_client.OK, response.status_code)
+        self.assertEqual(props, response.json['properties'])
+
+    def test_patch_masks_secret_properties(self, mock_upd):
+        """Password-like values in properties are masked in PATCH."""
+        props = {'target_iqn': 'iqn.foo',
+                 'auth_password': 'supersecret'}
+        mock_upd.return_value = self.target
+        mock_upd.return_value.properties = props
+        response = self.patch_json('/volume/targets/%s'
+                                   % self.target.uuid,
+                                   [{'path': '/extra/foo',
+                                     'value': 'bar',
+                                     'op': 'add'}],
+                                   headers=self.headers)
+        self.assertEqual(http_client.OK, response.status_code)
+        self.assertEqual('iqn.foo',
+                         response.json['properties']['target_iqn'])
+        self.assertEqual('******',
+                         response.json['properties']['auth_password'])
 
 
 class TestPost(test_api_base.BaseApiTest):

@@ -14,6 +14,7 @@
 
 from http import client as http_client
 
+from oslo_utils import strutils
 from oslo_utils import uuidutils
 from pecan import rest
 
@@ -90,9 +91,16 @@ def convert_with_links(rpc_target, fields=None, sanitize=True):
     if not sanitize:
         return target
 
-    api_utils.sanitize_dict(target, fields)
+    target_sanitize(target, fields)
 
     return target
+
+
+def target_sanitize(target, fields=None):
+    api_utils.sanitize_dict(target, fields)
+    if target.get('properties'):
+        target['properties'] = strutils.mask_dict_password(
+            target['properties'], "******")
 
 
 def list_convert_with_links(rpc_targets, limit, url, fields=None,
@@ -106,7 +114,7 @@ def list_convert_with_links(rpc_targets, limit, url, fields=None,
         limit=limit,
         url=url,
         fields=fields,
-        sanitize_func=api_utils.sanitize_dict,
+        sanitize_func=target_sanitize,
         **kwargs
     )
 
@@ -401,9 +409,15 @@ class VolumeTargetsController(rest.RestController):
             new_target = api.request.rpcapi.update_volume_target(
                 context, rpc_target, topic)
 
-        api_target = convert_with_links(new_target)
         notify.emit_end_notification(context, new_target, 'update',
                                      node_uuid=rpc_node.uuid)
+
+        cdict = api.request.context.to_policy_values()
+        if not policy.check_policy('baremetal:volume:view_target_properties',
+                                   cdict, cdict):
+            self._redact_target_properties(new_target)
+
+        api_target = convert_with_links(new_target)
         return api_target
 
     @METRICS.timer('VolumeTargetsController.delete')
