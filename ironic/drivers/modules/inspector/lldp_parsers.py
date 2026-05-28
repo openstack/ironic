@@ -142,6 +142,15 @@ class LLDPParser(object):
                         self.node_uuid)
             return False
 
+        if len(data) > tlv.LLDP_TLV_VALUE_MAX_LEN:
+            LOG.warning("Invalid data for %(name)s, data length $(actual) "
+                        "exceeds maximum allowed length of $(maxlen) octets. "
+                        "Node: $(node)s",
+                        {'name': name, 'actual': len(data),
+                         'node': self.node_uuid,
+                         'maxlen': tlv.LLDP_TLV_VALUE_MAX_LEN})
+            return False
+
         # Some constructs require a length validation to ensure that the
         # proper number of bytes have been provided, for example when a
         # BitStruct is used.
@@ -187,6 +196,7 @@ class LLDPBasicMgmtParser(LLDPParser):
 
     This class will also handle 802.1Q and 802.3 OUI TLVs.
     """
+
     def __init__(self, nv=None):
         super(LLDPBasicMgmtParser, self).__init__(nv)
 
@@ -277,6 +287,7 @@ class LLDPBasicMgmtParser(LLDPParser):
 
 class LLDPdot1Parser(LLDPParser):
     """Class to handle parsing of 802.1Q TLVs"""
+
     def __init__(self, node_uuid, nv=None):
         super(LLDPdot1Parser, self).__init__(node_uuid, nv)
 
@@ -330,6 +341,7 @@ class LLDPdot1Parser(LLDPParser):
 
 class LLDPdot3Parser(LLDPParser):
     """Class to handle parsing of 802.3 TLVs"""
+
     def __init__(self, node_uuid, nv=None):
         super(LLDPdot3Parser, self).__init__(node_uuid, nv)
 

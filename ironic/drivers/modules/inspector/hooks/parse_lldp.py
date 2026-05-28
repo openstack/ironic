@@ -76,7 +76,23 @@ class ParseLLDPHook(base.InspectionHook):
 
         lldp_raw = plugin_data.get('lldp_raw') or {}
 
-        for interface in inventory['interfaces']:
+        # Limit the possible interfaces. Each LLDPDU is associated with
+        # physical interface, so that creates a natural limit for the
+        # interfaces.
+        _MAX_INTERFACES = 64
+
+        interfaces = inventory['interfaces']
+        if len(interfaces) > _MAX_INTERFACES:
+            LOG.warning(
+                "Interface count (%d) exceeds maximum supported amount (%d); "
+                "truncating interfaces. Node: %s",
+                len(interfaces),
+                _MAX_INTERFACES,
+                task.node.uuid,
+            )
+            interfaces = interfaces[:_MAX_INTERFACES]
+
+        for interface in interfaces:
             if_name = interface['name']
             tlvs = lldp_raw.get(if_name) or interface.get('lldp')
             if tlvs is None:
