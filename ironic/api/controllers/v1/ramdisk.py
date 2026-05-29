@@ -74,6 +74,7 @@ def config(token):
         'agent_md5_checksum_enable': CONF.agent.allow_md5_checksum,
         'disable_deep_image_inspection': CONF.conductor.disable_deep_image_inspection,  # noqa
         'permitted_image_formats': CONF.conductor.permitted_image_formats,
+        'enable_bios_bootloader_install': CONF.agent.enable_bios_bootloader_install, # noqa
     }
 
 
