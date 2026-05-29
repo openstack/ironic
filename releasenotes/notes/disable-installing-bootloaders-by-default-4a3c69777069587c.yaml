@@ -1,0 +1,9 @@
+---
+security:
+  - |
+    Disable installation of bootloaders (via grub-install) by IPA by default
+    in order to improve security posture by adding a new agent configuration
+    option `enable_bios_bootloader_install` which defaults to `False`.
+    Operators who still need this functionality can re-enable installation of
+    bootloaders by setting `enable_bios_bootloader_install` to `True`.
+    Addresses CVE-2026-43003.
