@@ -39,8 +39,7 @@
       contains logs from all created pods, as well as dumps of various helpful
       Kubernetes resources.
 
-      Upgrade tests are not currently run by this job because it uses a custom
-      ironic-image container.
+      Details: https://docs.openstack.org/ironic/latest/contributor/metal3-integration.html
     parent: metal3-base
     pre-run: playbooks/irso-ci/pre.yaml
     run: playbooks/irso-ci/run.yaml
