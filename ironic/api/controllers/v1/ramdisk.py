@@ -59,6 +59,7 @@ def config(token):
         'agent_token_required': True,
         'disable_deep_image_inspection': CONF.conductor.disable_deep_image_inspection,  # noqa
         'permitted_image_formats': CONF.conductor.permitted_image_formats,
+        'enable_bios_bootloader_install': CONF.agent.enable_bios_bootloader_install, # noqa
     }
 
 

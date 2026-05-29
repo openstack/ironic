@@ -81,6 +81,7 @@ class TestLookup(test_api_base.BaseApiTest):
             'agent_token_required': True,
             'disable_deep_image_inspection': CONF.conductor.disable_deep_image_inspection,  # noqa
             'permitted_image_formats': CONF.conductor.permitted_image_formats,
+            'enable_bios_bootloader_install': CONF.agent.enable_bios_bootloader_install, # noqa
         }
         self.assertEqual(expected_config, data['config'])
         self.assertIsNotNone(data['config']['agent_token'])

@@ -163,6 +163,14 @@ opts = [
                help=_('Path to the TLS CA that is used to start the bare '
                       'metal API. In some boot methods this file can be '
                       'passed to the ramdisk.')),
+    cfg.BoolOpt('enable_bios_bootloader_install',
+                default=True,
+                help=_('When enabled, enables agent support for partition '
+                       'images which require a legacy bootloader -- and a '
+                       'call to ``grub-install``. Generally, this should '
+                       'remain disabled for maximum security, however, this '
+                       'option allows it to be re-enabled for '
+                       'compatibility.')),
 ]
 
 
