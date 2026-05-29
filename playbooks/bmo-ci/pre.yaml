@@ -1,0 +1,112 @@
+---
+- name: BMO Functional Tests - Preparation
+  hosts: all
+  vars:
+    local_install_path: /usr/local
+    junit2html_venv: "{{ ansible_user_dir }}/venv"
+    logdir: "{{ ansible_user_dir }}/metal3-logs"
+    bmo_branch: main
+    ironic_image_branch: main
+    redfish_emulator_port: 8000
+  environment:
+    PATH: "{{ local_install_path }}/bin:{{ ansible_env.PATH }}"
+
+  tasks:
+    - name: Install packages
+      package:
+        name:
+          - dnsmasq
+          - docker-buildx
+          - docker.io
+          - gettext-base
+          - libvirt-clients
+          - libvirt-daemon-system
+          - libvirt-dev
+          - ovmf
+          - pkg-config
+          - python3-venv
+          - qemu-system-x86
+          - squashfs-tools
+          - xorriso
+        state: present
+      become: yes
+
+    - name: Activate docker
+      service:
+        name: docker
+        state: started
+      become: yes
+
+    - name: Activate libvirtd
+      service:
+        name: libvirtd
+        state: started
+        enabled: yes
+      become: yes
+
+    - name: Allow the current user to use docker and libvirt
+      user:
+        name: "{{ ansible_user_id }}"
+        groups: docker,libvirt
+        append: yes
+      become: yes
+
+    - name: Reset connection to apply group changes
+      meta: reset_connection
+
+    # NOTE(dtantsur): global pip is deliberately broken in Ubuntu, use venv
+    - name: Create a venv for junit2html
+      command: python3 -m venv "{{ junit2html_venv }}"
+      args:
+        creates: "{{ junit2html_venv }}"
+
+    - name: Install junit2html
+      pip:
+        name: junit2html
+        executable: "{{ junit2html_venv }}/bin/pip"
+
+    - name: Ensure log directory exists
+      file:
+        path: "{{ logdir }}"
+        state: directory
+
+    - name: Checkout ironic-image
+      git:
+        repo: "https://github.com/metal3-io/ironic-image.git"
+        dest: "{{ ironic_image_source }}"
+        version: "{{ ironic_image_branch }}"
+        force: yes
+
+    - name: Checkout baremetal-operator
+      git:
+        repo: "https://github.com/metal3-io/baremetal-operator.git"
+        dest: "{{ bmo_source }}"
+        version: "{{ bmo_branch }}"
+        force: yes
+
+    - name: Download and install yq
+      get_url:
+        url: https://github.com/mikefarah/yq/releases/download/v4.53.2/yq_linux_amd64
+        mode: '0755'
+        dest: "{{ local_install_path }}/bin/yq"
+      become: yes
+
+    - name: Get sushy-tools IP address
+      command: yq '.spec.networks[0].address' '{{ bmo_source }}/test/e2e/config/vbmctl.yaml'
+      register: redfish_emulator_address
+
+    - name: Get sushy-tools bridge name
+      command: yq '.spec.networks[0].bridge' '{{ bmo_source }}/test/e2e/config/vbmctl.yaml'
+      register: redfish_emulator_bridge
+
+    - name: Enable access to sushy-tools in iptables
+      iptables:
+        chain: INPUT
+        protocol: tcp
+        destination: "{{ redfish_emulator_address.stdout | trim }}"
+        destination_port: "{{ redfish_emulator_port }}"
+        in_interface: "{{ redfish_emulator_bridge.stdout | trim }}"
+        jump: ACCEPT
+        action: insert
+        rule_num: 1
+      become: yes

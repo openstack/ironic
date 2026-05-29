@@ -1,0 +1,79 @@
+---
+- name: BMO Functional Tests - Log Collection
+  hosts: all
+  gather_facts: no
+  vars:
+    local_install_path: /usr/local
+    logdir: "{{ ansible_user_dir }}/metal3-logs"
+    bmo_artifacts: "{{ bmo_source }}/test/e2e/_artifacts"
+    junit_output: "{{ bmo_artifacts }}/junit.e2e_suite.1.xml"
+    junit2html_venv: "{{ ansible_user_dir }}/venv"
+  environment:
+    PATH: "{{ local_install_path }}/go/bin:{{ local_install_path }}/bin:{{ ansible_env.PATH }}"
+
+  tasks:
+    - name: Ensure log directory exists
+      file:
+        path: "{{ logdir }}"
+        state: directory
+
+    - name: Copy BMO artifacts to log directory
+      synchronize:
+        src: "{{ bmo_artifacts }}/"
+        dest: "{{ logdir }}/"
+      delegate_to: "{{ inventory_hostname }}"
+      ignore_errors: yes
+
+    - name: Check if JUnit report exists
+      stat:
+        path: "{{ junit_output }}"
+      register: junit_report
+
+    - name: Convert the JUnit report to HTML
+      command: "{{ junit2html_venv }}/bin/junit2html '{{ junit_output }}' '{{ logdir }}/report.html'"
+      args:
+        creates: "{{ logdir }}/report.html"
+      when: junit_report.stat.exists
+
+    - name: Create log location
+      file:
+        path: "{{ logdir }}/system"
+        state: directory
+
+    - name: Fetch system information
+      shell: "{{ item }} > {{ logdir }}/system/{{ item | replace(' ', '-') }}.txt"
+      become: true
+      ignore_errors: true
+      loop:
+        - dmesg
+        - dpkg -l
+        - ip addr
+        - ip route
+        - iptables -L -v -n
+        - docker images
+        - docker ps --all
+        - systemctl
+        - df -h
+        - df -i
+        - lsblk -ap
+
+    - name: Fetch redfish-emulator logs
+      shell: "docker logs vbmctl-sushy-tools > {{ logdir }}/redfish-emulator.log 2>&1"
+      become: true
+      ignore_errors: true
+
+    - name: Copy logs to the zuul location
+      synchronize:
+        src: "{{ logdir }}/"
+        dest: "{{ zuul.executor.log_root }}/{{ inventory_hostname }}/"
+        mode: pull
+      become: true
+
+    - name: Store JUnit report as a Zuul artifact
+      zuul_return:
+        data:
+          zuul:
+            artifacts:
+              - name: Test Results
+                url: 'controller/report.html'
+      when: junit_report.stat.exists

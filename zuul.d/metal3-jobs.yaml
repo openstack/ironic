@@ -30,7 +30,7 @@
 - job:
     name: metal3-ironic-standalone-operator-functional
     description: |
-      Ironic Standalone Operator functional tests.
+      Ironic Standalone Operator (IrSO) functional tests.
 
       These tests set up a Minikube cluster and create Ironic installations in
       various configurations supported by IrSO. The operator itself is only
@@ -54,3 +54,28 @@
     vars:
       ironic_image_source: "{{ ansible_user_dir }}/ironic-image"
       irso_source: "{{ ansible_user_dir }}/ironic-standalone-operator"
+
+- job:
+    name: metal3-baremetal-operator-functional
+    description: |
+      BareMetal Operator (BMO) functional tests tests.
+
+      These tests set up a Kind cluster with virtual bare metal hosts using
+      libvirt, deploy Ironic and BMO, and run the BMO e2e test suite.
+      The ironic-image container is built from Zuul's checkout of Ironic.
+
+      Details: https://docs.openstack.org/ironic/latest/contributor/metal3-integration.html
+    parent: metal3-base
+    pre-run: playbooks/bmo-ci/pre.yaml
+    run: playbooks/bmo-ci/run.yaml
+    post-run: playbooks/bmo-ci/post.yaml
+    timeout: 7200
+    nodeset: ironic-single-node-noble
+    required-projects:
+      - opendev.org/openstack/ironic
+      # FIXME(dtantsur): add these to zuul config and stop cloning manually
+      # - github.com/metal3-io/ironic-image
+      # - github.com/metal3-io/baremetal-operator
+    vars:
+      ironic_image_source: "{{ ansible_user_dir }}/ironic-image"
+      bmo_source: "{{ ansible_user_dir }}/baremetal-operator"

@@ -1,0 +1,15 @@
+---
+- name: BMO Functional Tests
+  hosts: all
+  vars:
+    local_install_path: /usr/local
+    redfish_emulator_port: 8000
+  environment:
+    IRONIC_SOURCE: "{{ ansible_user_dir }}/{{ zuul.projects['opendev.org/openstack/ironic'].src_dir }}"
+    PATH: "{{ local_install_path }}/go/bin:{{ local_install_path }}/bin:{{ ansible_env.PATH }}"
+    BMC_PROTOCOL: redfish-virtualmedia
+    SUSHY_EMULATOR_PORT: "{{ redfish_emulator_port }}"
+
+  tasks:
+    - name: Prepare and run BMO e2e tests
+      command: "{{ ironic_image_source }}/hack/prepare-bmo-tests.sh"
