@@ -1,0 +1,11 @@
+---
+fixes:
+  - |
+    Fixes a bug where deleting RAID configuration across multiple storage
+    controllers could silently leave volumes behind. When a controller
+    only supported on-reset apply time, leftover volumes were correctly
+    detected for that controller, but the detection flag was overwritten
+    when processing subsequent controllers. If a later controller had no
+    leftovers, the flag was reset to false, causing the system to skip
+    the reboot and retry needed to finish cleaning up the earlier
+    controller's volumes.

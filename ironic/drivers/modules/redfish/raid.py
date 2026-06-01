@@ -1174,7 +1174,7 @@ class RedfishRAID(base.RAIDInterface):
                             # deleted to avoid failures where only 1 request
                             # per controller can be submitted for non-immediate
                             break
-                any_left = any(iter_volumes)
+                any_left = any_left or any(iter_volumes)
         except sushy.exceptions.SushyError as exc:
             error_msg = _('Cannot get the list of volumes to delete for node '
                           '%(node_uuid)s. Reason: %(error)s.' %

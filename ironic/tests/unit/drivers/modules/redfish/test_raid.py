@@ -1080,6 +1080,58 @@ class RedfishRAIDTestCase(db_base.DbTestCase):
             # Async operation, raid_config shouldn't be updated yet
             self.assertEqual(raid_config, task.node.raid_config)
 
+    def test__submit_delete_configuration_pending_not_overwritten(
+            self, mock_get_system):
+        # First controller has one leftover volume after ON_RESET break.
+        # Second controller has no leftovers but pending must stay True.
+        first_controller_volumes = []
+        for i in ["1", "2"]:
+            first_controller_volumes.append(_mock_volume(
+                i, raid_type=sushy.RAIDType.RAID1))
+        on_reset_support = mock.MagicMock()
+        on_reset_support.mapped_supported_values = [
+            sushy.APPLY_TIME_ON_RESET]
+        self.mock_storage.volumes.operation_apply_time_support = (
+            on_reset_support)
+        self.mock_storage.volumes.get_members.return_value = (
+            first_controller_volumes)
+
+        second_storage = mock.MagicMock(identity='RAID controller 2')
+        second_storage.controllers = mock.MagicMock()
+        second_storage.controllers.get_members.return_value = [mock.Mock()]
+        second_controller_volume = _mock_volume(
+            '3', raid_type=sushy.RAIDType.RAID1)
+        second_storage.volumes = mock.MagicMock()
+        immediate_support = mock.MagicMock()
+        immediate_support.mapped_supported_values = [
+            sushy.APPLY_TIME_IMMEDIATE]
+        second_storage.volumes.operation_apply_time_support = (
+            immediate_support)
+        second_storage.volumes.get_members.return_value = [
+            second_controller_volume]
+
+        mock_get_system.return_value.storage.get_members.return_value = [
+            self.mock_storage, second_storage]
+        task_mon = mock.MagicMock()
+        task_mon.task_monitor_uri = '/TaskService/123'
+        first_controller_volumes[0].delete.return_value = task_mon
+
+        with task_manager.acquire(self.context, self.node.uuid,
+                                  shared=True) as task:
+            raid_iface = redfish_raid.RedfishRAID()
+            raid_configs, reboot_required = (
+                raid_iface._submit_delete_configuration(task))
+
+            self.assertTrue(reboot_required)
+            self.assertEqual(first_controller_volumes[0].delete.call_count, 1)
+            self.assertEqual(first_controller_volumes[1].delete.call_count, 0)
+            self.assertEqual(second_controller_volume.delete.call_count, 1)
+            self.assertEqual(
+                {'operation': 'delete',
+                 'pending': True,
+                 'task_monitor_uri': ['/TaskService/123']},
+                raid_configs)
+
     @mock.patch.object(redfish_boot.RedfishVirtualMediaBoot, 'prepare_ramdisk',
                        spec_set=True, autospec=True)
     @mock.patch.object(deploy_utils, 'build_agent_options', autospec=True)
