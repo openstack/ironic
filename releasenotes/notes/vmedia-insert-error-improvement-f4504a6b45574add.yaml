@@ -1,0 +1,8 @@
+---
+fixes:
+  - |
+    Improved virtual media insertion error messages to include the node
+    UUID and the image URL for easier debugging. When all virtual media
+    mount attempts fail with the same error, the duplicate error is no
+    longer repeated. Also fixed a case where all virtual media devices
+    could be skipped without returning an explicit failure.
