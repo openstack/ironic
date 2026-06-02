@@ -24,6 +24,9 @@ index_request_query = {
                     'initial_version',
                     'current_version',
                     'last_version_flashed',
+                    'vendor',
+                    'model',
+                    'serial_number',
                 ],
             },
             # OpenAPI-specific properties
@@ -46,6 +49,9 @@ _firmware_response_body = {
         'last_version_flashed': {'type': ['string', 'null']},
         'created_at': {'type': 'string', 'format': 'date-time'},
         'updated_at': {'type': ['string', 'null'], 'format': 'date-time'},
+        'vendor': {'type': ['string', 'null']},
+        'model': {'type': ['string', 'null']},
+        'serial_number': {'type': ['string', 'null']},
     },
     # NOTE(adamcarthur) - These are always returned, regardless of the
     # value of the fields parameter

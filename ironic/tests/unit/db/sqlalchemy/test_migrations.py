@@ -1547,6 +1547,19 @@ class MigrationCheckersMixin(object):
             self.assertRaises(db_exc.DBMigrationError,
                               self.migration_api.create_schema)
 
+    def _check_772c0e7e8299(self, engine, data):
+        fw_information = db_utils.get_table(engine, 'firmware_information')
+        col_names = [column.name for column in fw_information.c]
+        self.assertIn('vendor', col_names)
+        self.assertIn('model', col_names)
+        self.assertIn('serial_number', col_names)
+        self.assertIsInstance(fw_information.c.vendor.type,
+                              sqlalchemy.types.String)
+        self.assertIsInstance(fw_information.c.model.type,
+                              sqlalchemy.types.String)
+        self.assertIsInstance(fw_information.c.serial_number.type,
+                              sqlalchemy.types.String)
+
     def test_upgrade_twice(self):
         with patch_with_engine(self.engine):
             self.migration_api.upgrade('31baaf680d2b')

@@ -42,7 +42,17 @@ Response
     - initial_version: firmware_component_initial_version
     - current_version: firmware_component_current_version
     - last_version_flashed: firmware_component_last_version_flashed
+    - model: firmware_component_model
+    - serial_number: firmware_component_serial_number
+    - vendor: firmware_component_vendor
 
-**Example list of a Node's Firmware Components:**
+.. note::
+   The ``vendor``, ``model``, and ``serial_number`` fields are included in
+   the response at API microversion 1.114 or higher.  For NIC components the
+   values are sourced from the Redfish ``NetworkAdapter`` resource; for BMC
+   components only ``model`` is populated from ``Manager.Model``; all three
+   fields are ``null`` for BIOS components.
+
+**Example list of a Node's Firmware Components (starting with API microversion 1.114):**
 
 .. literalinclude:: samples/node-firmware-components-list-response.json

@@ -2,6 +2,20 @@
 REST API Version History
 ========================
 
+1.114 (Hibiscus)
+----------------
+
+Add hardware identity fields to the firmware component response:
+
+* ``GET /v1/nodes/{node_ident}/firmware`` now returns ``vendor``, ``model``,
+  and ``serial_number`` for each firmware component when the client declares
+  API microversion 1.114 or higher.  All three fields are nullable strings.
+* For NIC components the values come from the Redfish ``NetworkAdapter``
+  resource (``Manufacturer``, ``Model``, ``SerialNumber`` respectively).
+* For BMC components only ``model`` is populated from ``Manager.Model``
+  (e.g. ``"iDRAC 9"``); ``vendor`` and ``serial_number`` are ``null``.
+* For BIOS components all three fields are ``null``.
+
 1.113 (Hibiscus)
 ----------------
 

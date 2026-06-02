@@ -9589,6 +9589,56 @@ class TestNodeFirmwareComponent(test_api_base.BaseApiTest):
 
         self.assertEqual(http_client.NOT_FOUND, ret.status_int)
 
+    def test_firmware_identity_fields_with_api_version(self):
+        obj_utils.create_test_firmware_component(
+            self.context, node_id=self.node.id, component='NIC:SN123',
+            vendor='Intel Corporation', model='XXV710', serial_number='SN123')
+
+        ret = self.get_json(
+            '/nodes/%s/firmware' % self.node.uuid,
+            headers={api_base.Version.string: "1.114"})
+
+        components_by_name = {c['component']: c for c in ret['firmware']}
+        nic = components_by_name['NIC:SN123']
+        self.assertEqual('Intel Corporation', nic['vendor'])
+        self.assertEqual('XXV710', nic['model'])
+        self.assertEqual('SN123', nic['serial_number'])
+
+        bios = components_by_name['BIOS']
+        self.assertIsNone(bios['vendor'])
+        self.assertIsNone(bios['model'])
+        self.assertIsNone(bios['serial_number'])
+
+    def test_firmware_identity_fields_hidden_in_lower_version(self):
+        ret = self.get_json(
+            '/nodes/%s/firmware' % self.node.uuid,
+            headers={api_base.Version.string: "1.112"})
+
+        for component in ret['firmware']:
+            self.assertNotIn('vendor', component)
+            self.assertNotIn('model', component)
+            self.assertNotIn('serial_number', component)
+
+    def test_firmware_identity_fields_param_with_api_version(self):
+        ret = self.get_json(
+            '/nodes/%s/firmware?fields=component,vendor,model,serial_number'
+            % self.node.uuid,
+            headers={api_base.Version.string: "1.114"})
+
+        for component in ret['firmware']:
+            self.assertIn('vendor', component)
+            self.assertIn('model', component)
+            self.assertIn('serial_number', component)
+            self.assertNotIn('current_version', component)
+
+    def test_firmware_identity_fields_rejected_in_lower_version(self):
+        ret = self.get_json(
+            '/nodes/%s/firmware?fields=component,vendor'
+            % self.node.uuid,
+            headers={api_base.Version.string: "1.112"},
+            expect_errors=True)
+        self.assertEqual(http_client.BAD_REQUEST, ret.status_int)
+
 
 @mock.patch.object(rpcapi.ConductorAPI, 'get_topic_for',
                    lambda *_: 'test-topic')
