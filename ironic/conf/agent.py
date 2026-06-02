@@ -210,6 +210,14 @@ opts = [
                        'permitted to consider MD5 checksums. This option '
                        'is expected to change to a default of False in a '
                        '2024 release of Ironic.')),
+    cfg.BoolOpt('enable_bios_bootloader_install',
+                default=False,
+                help=_('When enabled, enables agent support for partition '
+                       'images which require a legacy bootloader -- and a '
+                       'call to ``grub-install``. Generally, this should '
+                       'remain disabled for maximum security, however, this '
+                       'option allows it to be re-enabled for '
+                       'compatibility.')),
 ]
 
 
