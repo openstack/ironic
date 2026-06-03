@@ -73,7 +73,7 @@ autosummary_mock_imports = [
 ]
 
 redfish_interop_source = \
-    '../../redfish-interop-profiles/OpenStackIronicProfile.v1_1_0.json'
+    '../../redfish-interop-profiles/OpenStackIronicProfile.v1_2_0.json'
 redfish_interop_output_dir = 'admin/drivers/redfish/'
 
 openstackdocs_repo_name = 'openstack/ironic'
