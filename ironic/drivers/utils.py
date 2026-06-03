@@ -24,6 +24,7 @@ from oslo_utils import timeutils
 
 from ironic.common import exception
 from ironic.common.i18n import _
+from ironic.common import kernel_parameters
 from ironic.common import states
 from ironic.common import swift
 from ironic.conductor import utils
@@ -428,11 +429,30 @@ def get_kernel_append_params(node, default):
 
     :param node: Node object.
     :param default: Default value.
+
+    :raises: InvalidParameterValue if kernel_append_params is an invalid
+             string to append to a kernel command line.
     """
     for location in ('instance_info', 'driver_info'):
         result = getattr(node, location).get('kernel_append_params')
         if result is not None:
-            return result.replace('%default%', default or '')
+            result = result.replace('%default%', default or '')
+
+            if not CONF.conductor.disable_kernel_parameter_parsing:
+                # NOTE(clif) Attempt to parse the append params. Failure to
+                # parse indicates malformed kernel parameters and should be
+                # rejected. parse() will raise if parsing fails.
+                try:
+                    kernel_parameters.KernelCommandLine.parse(result)
+                except exception.InvalidParameterValue:
+                    raise exception.InvalidParameterValue(
+                        _('node\'s %s[\'kernel_append_params\'] contains '
+                          'malformed kernel command line') % location)
+
+            # NOTE(clif) Always run basic sanitization on kernel_append_params
+            result = kernel_parameters.sanitize_kernel_command_line(result)
+
+            return result
 
     return default
 
