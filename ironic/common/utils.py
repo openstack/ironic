@@ -1149,3 +1149,38 @@ def get_route_source(dest, ignore_link_local=True):
     except (IndexError, ValueError):
         LOG.debug('No route to host %(dest)s, route record: %(rec)s',
                   {'dest': dest, 'rec': out})
+
+
+def check_iso_path(base_folder, folder, file=None):
+    """Sanity check an ISO path, folder, and file structure.
+
+    :param base_folder: The target folder for path operations.
+    :param folder: The folder being evaluated in the ISO.
+    :param file: An optional file to also evaluate for path
+                 transversal attempts.
+    :raises: InvalidContent when an inconsistency is detected.
+    """
+    if folder.startswith('/'):
+        # If we're here, we were handed the base folder path with a leading /.
+        # Any caller of this method should pre-emptively strip it.
+        raise exception.InvalidContent()
+
+    target_folder = os.path.join(base_folder, folder)
+    resolved_folder = os.path.realpath(target_folder)
+    if not resolved_folder.startswith(base_folder):
+        # supplied folder path has something like ../ in the data set
+        # or resolution has resulted in a change in the value.
+        # Possible risk: if the temp folder is being used with a symlink...
+        LOG.error('ISO path evaluation identified a folder based '
+                  'transversal attempt.')
+        raise exception.InvalidContent()
+    if file:
+        target_file_path = os.path.join(resolved_folder, file)
+        resolved_file_path = os.path.realpath(target_file_path)
+        # Check that the folder itself doesn't change,
+        # and then check that the resolved path matches
+        if (not target_file_path.startswith(resolved_folder)
+                or target_file_path != resolved_file_path):
+            LOG.error('ISO path evaluation identified a file name based '
+                      'transversal attempt.')
+            raise exception.InvalidContent()

@@ -25,7 +25,7 @@ import pycdlib
 
 from ironic.common import exception
 from ironic.common import neutron
-
+from ironic.common import utils as common_utils
 
 LOG = log.getLogger(__name__)
 CONF = cfg.CONF
@@ -198,9 +198,13 @@ def regenerate_iso(source, dest, override_files, node_uuid=None):
         # we want to preserve.
         for path, dirlist, filelist in source.walk(rr_path='/'):
             unix_path = path.lstrip('/')
+            common_utils.check_iso_path(tempfolder, unix_path)
             if path != "/":
                 os.makedirs(os.path.join(tempfolder, unix_path), exist_ok=True)
+            # NOTE(TheJulia): We're not evaluating dirlist here, so no need to
+            # call for it's evaluation
             for f in filelist:
+                common_utils.check_iso_path(tempfolder, unix_path, f)
                 # In iso9660 file extensions are mangled. Example '/FOO/BAR;1'.
                 iso_file_path = os.path.join(path, f)
                 file_record = source.get_record(rr_path=iso_file_path)
@@ -209,9 +213,12 @@ def regenerate_iso(source, dest, override_files, node_uuid=None):
                 )
                 # Path to which the file in config drive to be written on the
                 # server.
+                common_utils.check_iso_path(tempfolder, '',
+                                            posix_file_path.lstrip('/'))
                 posix_file_path = os.path.join(tempfolder,
                                                posix_file_path.lstrip('/'))
                 # Extract the actual file from the ISO.
+
                 source.get_file_from_iso(
                     joliet_path=iso_file_path, local_path=posix_file_path)
         # Okay, we have the files in a folder, lets patch!
@@ -222,6 +229,11 @@ def regenerate_iso(source, dest, override_files, node_uuid=None):
                        'node': node_uuid})
             content = override_files[file]
             dest_path = os.path.join(tempfolder, str(file).lstrip('/'))
+            resolved_path = os.path.realpath(dest_path)
+            if not dest_path.startswith(resolved_path):
+                LOG.error('Override file content for user requested '
+                          'injection contains an path transversal attempt.')
+                raise exception.InvalidContent()
             with open(dest_path, mode="w") as new_file:
                 new_file.write(content)
         # Instead of trying to use pycdlib to walk and assemble everything,

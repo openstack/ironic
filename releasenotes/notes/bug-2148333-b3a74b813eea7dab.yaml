@@ -1,0 +1,18 @@
+---
+security:
+  - |
+    Fixes CVE-2026-48681 which was a lack of file path validation when
+    interacting with ISO9660 files in the kickstart/anaconda driver,
+    configuration drive invalid network data detection and repair
+    functionality, and administrative deployment ISOs which
+    are admin-provided. Ironic now explicitly rejects the submitted
+    files when such a case has been detected.
+fixes:
+  - |
+    Fixes path handling around ISO9660 file handling as denoted in
+    `bug 2148333 <https://bugs.launchpad.net/ironic/+bug/2148333>`_
+    under CVE-2026-48681 where a malicious user with deployment privilges
+    could craft an ISO9660 formatted configuration drive or deployment ramdisk
+    which includes intentional path manipulation which is non-compliant with
+    the underlying standard. Ironic now explicitly looks for such attempts
+    and rejects the content.
