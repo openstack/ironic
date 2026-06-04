@@ -33,6 +33,7 @@ from ironic.common.glance_service import service_utils
 from ironic.common.i18n import _
 from ironic.common import image_service as service
 from ironic.common import images
+from ironic.common import kernel_parameters as kp
 from ironic.common import kickstart_utils as ks_utils
 from ironic.common import states
 from ironic.common import utils
@@ -935,6 +936,20 @@ def build_extra_pxe_options(task, ramdisk_params=None):
     if task and task.context.global_id:
         pxe_append_params += (
             ' ipa-global-request-id=%s' % task.context.global_id)
+
+    if not CONF.conductor.disable_kernel_parameter_parsing:
+        # NOTE(clif): ramdisk_params is introducing arbitrary kernel parameter
+        # input here. Parsing provides a strong degree of certainty the
+        # parameters are well-formed.
+        try:
+            kp.KernelCommandLine.parse(pxe_append_params)
+        except exception.InvalidParameterValue:
+            raise exception.InvalidParameterValue(
+                    _('build_extra_pxe_options: ramdisk_params likely '
+                      'contain a malformed kernel parameter.'))
+
+    # NOTE(clif) Always run basic sanitization on pxe_append_params
+    kp.sanitize_kernel_command_line(pxe_append_params)
 
     return {'pxe_append_params': pxe_append_params,
             'tftp_server': CONF.pxe.tftp_server,
