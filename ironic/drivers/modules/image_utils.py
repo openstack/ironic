@@ -14,6 +14,7 @@
 #    under the License.
 
 import base64
+import collections
 import functools
 import gzip
 import json
@@ -30,6 +31,7 @@ from ironic.common.glance_service import service_utils
 from ironic.common.i18n import _
 from ironic.common import image_publisher
 from ironic.common import images
+from ironic.common import kernel_parameters as kp
 from ironic.common import states
 from ironic.common import utils
 from ironic.conf import CONF
@@ -38,6 +40,7 @@ from ironic.drivers.modules import deploy_utils
 from ironic.drivers.modules import image_cache
 from ironic.drivers.modules import inspect_utils
 from ironic.drivers import utils as driver_utils
+from ironic.objects.node import Node
 
 LOG = log.getLogger(__name__)
 
@@ -429,7 +432,7 @@ def _prepare_iso_image(task, kernel_href, ramdisk_href,
     :raises: MissingParameterValue, if any of the required parameters are
         missing.
     :raises: InvalidParameterValue, if any of the parameters have invalid
-        value.
+        value. Or if kernel parameters fail to parse.
     :raises: ImageCreationFailed, if creating ISO image failed.
     """
     if (not kernel_href or not ramdisk_href) and not base_iso:
@@ -467,46 +470,39 @@ def _prepare_iso_image(task, kernel_href, ramdisk_href,
 
     img_handler = ImageHandler(task.node.driver)
 
+    publisher_id = ''
     if not is_ramdisk_boot:
         publisher_id = uuidutils.generate_uuid()
 
     with tempfile.TemporaryDirectory(dir=CONF.tempdir) as boot_file_dir:
 
         boot_iso_tmp_file = os.path.join(boot_file_dir, 'boot.iso')
-        if is_ramdisk_boot:
-            kernel_params = "root=/dev/ram0 text "
-            kernel_params += i_info.get("ramdisk_kernel_arguments", "")
-        else:
-            kernel_params = driver_utils.get_kernel_append_params(
-                task.node, default=img_handler.kernel_params)
 
-        if not is_ramdisk_boot:
-            kernel_params += " ir_pub_id=%s" % publisher_id
-
-        if params:
-            kernel_params = ' '.join(
-                (kernel_params, ' '.join(
-                    ('%s=%s' % kv) if kv[1] is not None else kv[0]
-                    for kv in params.items())))
+        kernel_cmd_line = _prepare_kernel_cmd_line(task.node,
+                                                   img_handler.kernel_params,
+                                                   is_ramdisk_boot,
+                                                   publisher_id,
+                                                   root_uuid,
+                                                   params)
 
         LOG.debug(
             "Trying to create %(boot_mode)s ISO image for node %(node)s "
             "with kernel %(kernel_href)s, ramdisk %(ramdisk_href)s, "
-            "bootloader %(bootloader_href)s and kernel params %(params)s",
+            "bootloader %(bootloader_href)s and kernel cmd line "
+            "%(kernel_cmd_line)s",
             {'node': task.node.uuid,
-                'boot_mode': boot_mode,
-                'kernel_href': kernel_href,
-                'ramdisk_href': ramdisk_href,
-                'bootloader_href': bootloader_href,
-                'params': kernel_params})
+             'boot_mode': boot_mode,
+             'kernel_href': kernel_href,
+             'ramdisk_href': ramdisk_href,
+             'bootloader_href': bootloader_href,
+             'kernel_cmd_line': str(kernel_cmd_line)})
 
         if is_ramdisk_boot:
             images.create_boot_iso(
                 task.context, boot_iso_tmp_file,
                 kernel_href, ramdisk_href,
                 esp_image_href=bootloader_href,
-                root_uuid=root_uuid,
-                kernel_params=kernel_params,
+                kernel_cmd_line=kernel_cmd_line,
                 boot_mode=boot_mode,
                 inject_files=inject_files)
 
@@ -515,8 +511,7 @@ def _prepare_iso_image(task, kernel_href, ramdisk_href,
                 task.context, boot_iso_tmp_file,
                 kernel_href, ramdisk_href,
                 esp_image_href=bootloader_href,
-                root_uuid=root_uuid,
-                kernel_params=kernel_params,
+                kernel_cmd_line=kernel_cmd_line,
                 boot_mode=boot_mode,
                 inject_files=inject_files,
                 publisher_id=publisher_id)
@@ -543,6 +538,64 @@ def _prepare_iso_image(task, kernel_href, ramdisk_href,
                           'url': image_url})
 
     return image_url
+
+
+def _prepare_kernel_cmd_line(node: Node,
+                             ih_kernel_params: str,
+                             is_ramdisk_boot: bool,
+                             publisher_id: str,
+                             root_uuid: str,
+                             params: dict[str, str]) -> kp.KernelCommandLine:
+    parameters = collections.defaultdict(list)
+    unstructured_params = []
+
+    if is_ramdisk_boot:
+        parameters['root'].append(kp.KernelParameter(
+            kp.ParameterKey('root'),
+            kp.ParameterValue('/dev/ram0')
+        ))
+        parameters['text'].append(
+            kp.KernelParameter(kp.ParameterKey('text'),
+                               kp.ParameterValue('')))
+
+        ramdisk_kernel_args = ""
+        if node.instance_info is not None:
+            ramdisk_kernel_args = \
+                node.instance_info.get("ramdisk_kernel_arguments", "")
+
+        unstructured_params.append(
+            kp.UnstructuredParameters(ramdisk_kernel_args))
+
+    else:
+        unstructured_params.append(
+            kp.UnstructuredParameters(
+                driver_utils.get_kernel_append_params(
+                    node, default=ih_kernel_params)))
+
+    if not is_ramdisk_boot:
+        parameters['ir_pub_id'].append(kp.KernelParameter(
+            kp.ParameterKey('ir_pub_id'), kp.ParameterValue(publisher_id)))
+
+    if root_uuid:
+        parameters['root'].append(kp.KernelParameter(
+            kp.ParameterKey('root'), kp.ParameterValue(f'UUID={root_uuid}')))
+
+    if params is not None:
+        for key, value in params.items():
+            parameters[key].append(
+                kp.KernelParameter(
+                    kp.ParameterKey(key), kp.ParameterValue(value or '')))
+
+    unparsed_kernel_cmd_line = kp.UnsafeKernelCommandLine(
+        parameters=parameters,
+        unstructured_params=unstructured_params,
+        init_args='')
+
+    if CONF.conductor.disable_kernel_parameter_parsing:
+        return unparsed_kernel_cmd_line
+
+    # NOTE(clif): Raises InvalidParameterValue if params fail to parse.
+    return kp.KernelCommandLine.parse(str(unparsed_kernel_cmd_line))
 
 
 def _find_param(param_str, param_dict):

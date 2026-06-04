@@ -142,21 +142,20 @@ def create_vfat_image(output_file, files_info=None, parameters=None,
             raise exception.ImageCreationFailed(image_type='vfat', error=e)
 
 
-def _generate_cfg(kernel_params, template, options):
+def _generate_cfg(kernel_cmd_line, template, options):
     """Generates a isolinux or grub configuration file.
 
     Given a given a list of strings containing kernel parameters, this method
     returns the kernel cmdline string.
-    :param kernel_params: a list of strings(each element being a string like
-        'K=V' or 'K' or combination of them like 'K1=V1 K2 K3=V3') to be added
-        as the kernel cmdline.
+    :param kernel_cmd_line: a kernel_parameters.KernelCommandLine object
+        representing a parsed kernel command line (includes kernel parameters).
     :param template: the path of the config template file.
     :param options: a dictionary of keywords which need to be replaced in
                     template file to generate a proper config file.
     :returns: a string containing the contents of the isolinux configuration
         file.
     """
-    options.update({'kernel_params': ' '.join(kernel_params or [])})
+    options.update({'kernel_params': str(kernel_cmd_line)})
     return utils.render_template(template, options)
 
 
@@ -172,8 +171,8 @@ def _label(files_info):
 
 
 def create_isolinux_image_for_bios(
-        output_file, kernel, ramdisk, kernel_params=None, inject_files=None,
-        publisher_id=None):
+        output_file, kernel, ramdisk, kernel_cmd_line=None,
+        inject_files=None, publisher_id=None):
     """Creates an isolinux image on the specified file.
 
     Copies the provided kernel, ramdisk to a directory, generates the isolinux
@@ -184,9 +183,8 @@ def create_isolinux_image_for_bios(
         created.
     :param kernel: the kernel to use.
     :param ramdisk: the ramdisk to use.
-    :param kernel_params: a list of strings(each element being a string like
-        'K=V' or 'K' or combination of them like 'K1=V1,K2,...') to be added
-        as the kernel cmdline.
+    :param kernel_cmd_line: a kernel_parameters.KernelCommandLine object
+        representing a parsed kernel command line (includes kernel parameters).
     :param inject_files: Mapping of local source file paths to their location
         on the final ISO image.
     :param publisher_id: A value to set as the publisher identifier string
@@ -231,7 +229,7 @@ def create_isolinux_image_for_bios(
             LOG.exception("Creating the filesystem root failed.")
             raise exception.ImageCreationFailed(image_type='iso', error=e)
 
-        cfg = _generate_cfg(kernel_params,
+        cfg = _generate_cfg(kernel_cmd_line,
                             CONF.isolinux_config_template, options)
 
         isolinux_cfg = os.path.join(tmpdir, ISOLINUX_CFG)
@@ -252,7 +250,7 @@ def create_isolinux_image_for_bios(
 
 def create_esp_image_for_uefi(
         output_file, kernel, ramdisk, deploy_iso=None, esp_image=None,
-        kernel_params=None, inject_files=None, publisher_id=None):
+        kernel_cmd_line=None, inject_files=None, publisher_id=None):
     """Creates an ESP image on the specified file.
 
     Copies the provided kernel, ramdisk and EFI system partition image (ESP) to
@@ -269,9 +267,8 @@ def create_esp_image_for_uefi(
         containing the EFI boot loader (e.g. GRUB2) for each hardware
         architecture to boot. This image will be embedded into the ISO image.
         If not specified, the `deploy_iso` option is required.
-    :param kernel_params: a list of strings(each element being a string like
-        'K=V' or 'K' or combination of them like 'K1=V1,K2,...') to be added
-        as the kernel cmdline.
+    :param kernel_cmd_line: a kernel_parameters.KernelCommandLine object
+        representing a parsed kernel command line (includes kernel parameters).
     :param inject_files: Mapping of local source file paths to their location
         on the final ISO image.
     :param publisher_id: A value to set as the publisher identifier string
@@ -337,7 +334,7 @@ def create_esp_image_for_uefi(
                     shutil.rmtree(mountdir)
 
         # Generate and copy grub config file.
-        grub_conf = _generate_cfg(kernel_params,
+        grub_conf = _generate_cfg(kernel_cmd_line,
                                   CONF.grub_config_template, grub_options)
         utils.write_to_file(grub_cfg, grub_conf)
 
@@ -644,7 +641,7 @@ def get_temp_url_for_glance_image(context, image_uuid):
 
 def create_boot_iso(context, output_filename, kernel_href,
                     ramdisk_href, deploy_iso_href=None, esp_image_href=None,
-                    root_uuid=None, kernel_params=None, boot_mode=None,
+                    kernel_cmd_line=None, boot_mode=None,
                     inject_files=None, publisher_id=None):
     """Creates a bootable ISO image for a node.
 
@@ -666,8 +663,7 @@ def create_boot_iso(context, output_filename, kernel_href,
         for each hardware architecture to boot. This image will be written
         onto the ISO image. If not specified, the `deploy_iso_href` option
         is only required for building UEFI-bootable ISO.
-    :param kernel_params: a string containing whitespace separated values
-        kernel cmdline arguments of the form K=V or K (optional).
+    :param kernel_cmd_line: a KernelCommandLine object.
     :boot_mode: the boot mode in which the deploy is to happen.
     :param inject_files: Mapping of local source file paths to their location
         on the final ISO image.
@@ -680,12 +676,6 @@ def create_boot_iso(context, output_filename, kernel_href,
         ramdisk_path = os.path.join(tmpdir, 'ramdisk')
         fetch(context, kernel_href, kernel_path)
         fetch(context, ramdisk_href, ramdisk_path)
-
-        params = []
-        if root_uuid:
-            params.append('root=UUID=%s' % root_uuid)
-        if kernel_params:
-            params.append(kernel_params)
 
         if boot_mode == 'uefi':
 
@@ -709,13 +699,15 @@ def create_boot_iso(context, output_filename, kernel_href,
             create_esp_image_for_uefi(
                 output_filename, kernel_path, ramdisk_path,
                 deploy_iso=deploy_iso_path, esp_image=esp_image_path,
-                kernel_params=params, inject_files=inject_files,
+                kernel_cmd_line=kernel_cmd_line,
+                inject_files=inject_files,
                 publisher_id=publisher_id)
 
         else:
             create_isolinux_image_for_bios(
                 output_filename, kernel_path, ramdisk_path,
-                kernel_params=params, inject_files=inject_files,
+                kernel_cmd_line=kernel_cmd_line,
+                inject_files=inject_files,
                 publisher_id=publisher_id)
 
 
