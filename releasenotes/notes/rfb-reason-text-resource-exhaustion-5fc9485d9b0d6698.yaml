@@ -1,0 +1,19 @@
+---
+security:
+  - |
+    Fixes a vulnerability where security proxy could be crashed if attacker
+    controls host VNC server. The exploit requires that VNC server first
+    informs the client that there is 0 security types available and then sends
+    a reason with reason length for this. There is no checks for reason length,
+    so the attacker can make the security proxy to reserve up to 4 GB of memory
+    and causing it to crash. The security proxy is shared between all tenants,
+    so crashing the proxy denies console access for all tenants. More
+    information in the bug description
+    `bug 2155052 <https://bugs.launchpad.net/ironic/+bug/2155052>`_.
+fixes:
+  - |
+    Fixes a vulnerability where security proxy could be crashed if the VNC
+    server sends unreasonable large reason length. The security proxy is shared
+    between all tenants, so crashing the proxy denies console access for all
+    tenants. More information in the bug description
+    `bug 2155052 <https://bugs.launchpad.net/ironic/+bug/2155052>`_.
