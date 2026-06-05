@@ -20,16 +20,18 @@
 import base64
 import json
 import re
+from urllib import parse
+
 import requests
 from requests import auth as requests_auth
 import tenacity
-from urllib import parse
 
 from oslo_log import log as logging
 
 from ironic.common import checksum_utils
 from ironic.common import exception
 from ironic.common.i18n import _
+from ironic.common import image_service
 from ironic.conf import CONF
 
 LOG = logging.getLogger(__name__)
@@ -65,7 +67,7 @@ class MakeSession(object):
     definitions for more on retry details.
     """
     def __init__(self, verify=True):
-        self.session = requests.Session()
+        self.session = image_service._build_webserver_session()
         self.session.verify = verify
 
     def create(self):

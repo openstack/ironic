@@ -560,7 +560,7 @@ connections are configured in the ``[agent]`` section:
    Ironic.
 
 Configuring TLS for the noVNC Proxy
--------------------------------------
+-----------------------------------
 
 When Ironic's integrated ``ironic-novncproxy`` service is used to
 provide browser-based console access, TLS settings can be
@@ -592,25 +592,34 @@ configured in the ``[vnc]`` section:
    controls the IP address and port mapping used to expose the
    container VNC port to the host.
 
-Configuring TLS for Image Downloads
--------------------------------------
+Configuring TLS for Image Downloads and OCI Registry Connections
+----------------------------------------------------------------
 
-The conductor makes outbound HTTPS connections to remote web
-servers to download images and other artifacts. TLS settings
-for these connections are configured in the ``[DEFAULT]``
+The conductor makes outbound HTTPS connections to remote HTTP
+servers hosting static disk images and to OCI container
+registries serving container image blobs. TLS settings for
+both types of connections are configured in the ``[DEFAULT]``
 section:
 
 .. code-block:: ini
 
    [DEFAULT]
-   # Enforce TLS 1.3 minimum for image downloads
+   # Enforce TLS 1.3 minimum for outbound HTTPS connections
    webserver_tls_minimum_version = 1.3
 
    # Optionally restrict available ciphers
    # webserver_tls_ciphers = ECDHE+AESGCM:ECDHE+CHACHA20:DHE+AESGCM
 
+These settings govern connections to:
+
+* HTTP servers hosting disk images and deployment artifacts
+  (the same connections controlled by ``webserver_verify_ca``
+  and ``webserver_connection_timeout``)
+* OCI container registries when deploying container-based
+  workloads
+
 Post-Quantum Cryptography Readiness
--------------------------------------
+-----------------------------------
 
 Post-Quantum Cryptography (PQC) key exchange mechanisms such as
 ML-KEM (Kyber) are available through TLS 1.3 hybrid key exchange
