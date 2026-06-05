@@ -167,6 +167,48 @@ class RedfishUtilsTestCase(db_base.DbTestCase):
                                    'The value should be one of ',
                                    redfish_utils.parse_driver_info, self.node)
 
+    def test_parse_driver_info_tls_minimum_version_driver_info(self):
+        for value in '1.1', '1.2', '1.3':
+            self.node.driver_info['redfish_tls_minimum_version'] = value
+            response = redfish_utils.parse_driver_info(self.node)
+            self.assertEqual(value, response['tls_min_version'])
+
+    def test_parse_driver_info_tls_minimum_version_config(self):
+        self.config(tls_minimum_version='1.2', group='redfish')
+        response = redfish_utils.parse_driver_info(self.node)
+        self.assertEqual('1.2', response['tls_min_version'])
+
+    def test_parse_driver_info_tls_minimum_version_override(self):
+        self.config(tls_minimum_version='1.2', group='redfish')
+        self.node.driver_info['redfish_tls_minimum_version'] = '1.3'
+        response = redfish_utils.parse_driver_info(self.node)
+        self.assertEqual('1.3', response['tls_min_version'])
+
+    def test_parse_driver_info_tls_minimum_version_invalid(self):
+        self.node.driver_info['redfish_tls_minimum_version'] = '1.0'
+        self.assertRaisesRegex(
+            exception.InvalidParameterValue,
+            'The value should be one of',
+            redfish_utils.parse_driver_info, self.node)
+
+    def test_parse_driver_info_tls_minimum_version_unset(self):
+        response = redfish_utils.parse_driver_info(self.node)
+        self.assertNotIn('tls_min_version', response)
+
+    def test_parse_driver_info_tls_ciphers_driver_info(self):
+        self.node.driver_info['redfish_tls_ciphers'] = 'ECDHE+AESGCM'
+        response = redfish_utils.parse_driver_info(self.node)
+        self.assertEqual('ECDHE+AESGCM', response['tls_ciphers'])
+
+    def test_parse_driver_info_tls_ciphers_config(self):
+        self.config(tls_ciphers='ECDHE+AESGCM', group='redfish')
+        response = redfish_utils.parse_driver_info(self.node)
+        self.assertEqual('ECDHE+AESGCM', response['tls_ciphers'])
+
+    def test_parse_driver_info_tls_ciphers_unset(self):
+        response = redfish_utils.parse_driver_info(self.node)
+        self.assertNotIn('tls_ciphers', response)
+
     def test_parse_driver_info_with_root_prefix(self):
         test_redfish_address = 'https://example.com/test/redfish/v0/'
         self.node.driver_info['redfish_address'] = test_redfish_address
@@ -491,6 +533,88 @@ class RedfishUtilsAuthTestCase(db_base.DbTestCase):
             verify=True,
             root_prefix='/custom/redfish/v1/',
             connect_timeout=15)
+
+
+class RedfishUtilsTLSTestCase(db_base.DbTestCase):
+
+    def setUp(self):
+        super(RedfishUtilsTLSTestCase, self).setUp()
+        self.config(enabled_hardware_types=['redfish'],
+                    enabled_power_interfaces=['redfish'],
+                    enabled_boot_interfaces=['redfish-virtual-media'],
+                    enabled_management_interfaces=['redfish'])
+        self.config(connection_attempts=1, group='redfish')
+        self.node = obj_utils.create_test_node(
+            self.context, driver='redfish', driver_info=INFO_DICT)
+
+    @mock.patch.object(sushy, 'Sushy', autospec=True)
+    @mock.patch('ironic.drivers.modules.redfish.utils.'
+                'SessionCache.AUTH_CLASSES', autospec=True)
+    @mock.patch('ironic.drivers.modules.redfish.utils.'
+                'SessionCache._sessions', {})
+    def test_tls_minimum_version_passed(
+            self, mock_auth, mock_sushy):
+        self.node.driver_info['redfish_tls_minimum_version'] = '1.2'
+        redfish_utils.get_system(self.node)
+        call_kwargs = mock_sushy.call_args[1]
+        self.assertEqual('1.2', call_kwargs['tls_min_version'])
+
+    @mock.patch.object(sushy, 'Sushy', autospec=True)
+    @mock.patch('ironic.drivers.modules.redfish.utils.'
+                'SessionCache.AUTH_CLASSES', autospec=True)
+    @mock.patch('ironic.drivers.modules.redfish.utils.'
+                'SessionCache._sessions', {})
+    def test_tls_ciphers_passed(
+            self, mock_auth, mock_sushy):
+        self.node.driver_info['redfish_tls_ciphers'] = (
+            'ECDHE+AESGCM')
+        redfish_utils.get_system(self.node)
+        call_kwargs = mock_sushy.call_args[1]
+        self.assertEqual('ECDHE+AESGCM',
+                         call_kwargs['tls_ciphers'])
+
+    @mock.patch.object(sushy, 'Sushy', autospec=True)
+    @mock.patch('ironic.drivers.modules.redfish.utils.'
+                'SessionCache.AUTH_CLASSES', autospec=True)
+    @mock.patch('ironic.drivers.modules.redfish.utils.'
+                'SessionCache._sessions', {})
+    def test_tls_params_from_config(
+            self, mock_auth, mock_sushy):
+        cfg.CONF.set_override(
+            'tls_minimum_version', '1.3', 'redfish')
+        cfg.CONF.set_override(
+            'tls_ciphers', 'ECDHE+AESGCM', 'redfish')
+        redfish_utils.get_system(self.node)
+        call_kwargs = mock_sushy.call_args[1]
+        self.assertEqual('1.3', call_kwargs['tls_min_version'])
+        self.assertEqual('ECDHE+AESGCM',
+                         call_kwargs['tls_ciphers'])
+
+    @mock.patch.object(sushy, 'Sushy', autospec=True)
+    @mock.patch('ironic.drivers.modules.redfish.utils.'
+                'SessionCache.AUTH_CLASSES', autospec=True)
+    @mock.patch('ironic.drivers.modules.redfish.utils.'
+                'SessionCache._sessions', {})
+    def test_tls_not_passed_when_unset(
+            self, mock_auth, mock_sushy):
+        redfish_utils.get_system(self.node)
+        call_kwargs = mock_sushy.call_args[1]
+        self.assertNotIn('tls_min_version', call_kwargs)
+        self.assertNotIn('tls_ciphers', call_kwargs)
+
+    @mock.patch.object(sushy, 'Sushy', autospec=True)
+    @mock.patch('ironic.drivers.modules.redfish.utils.'
+                'SessionCache.AUTH_CLASSES', autospec=True)
+    @mock.patch('ironic.drivers.modules.redfish.utils.'
+                'SessionCache._sessions', {})
+    def test_tls_driver_info_overrides_config(
+            self, mock_auth, mock_sushy):
+        cfg.CONF.set_override(
+            'tls_minimum_version', '1.2', 'redfish')
+        self.node.driver_info['redfish_tls_minimum_version'] = '1.3'
+        redfish_utils.get_system(self.node)
+        call_kwargs = mock_sushy.call_args[1]
+        self.assertEqual('1.3', call_kwargs['tls_min_version'])
 
 
 class RedfishUtilsSystemTestCase(db_base.DbTestCase):
