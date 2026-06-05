@@ -31,6 +31,7 @@ from ironic.api.controllers import base
 from ironic.api import hooks
 from ironic.api import middleware
 from ironic.api.middleware import auth_public_routes
+from ironic.api.middleware import json_depth
 from ironic.api.middleware import json_ext
 from ironic.api.middleware import request_log
 from ironic.common import auth_basic
@@ -103,6 +104,19 @@ def setup_app(pecan_config=None, extra_hooks=None):
         # compatibility through JsonExtensionMiddleware.
         guess_content_type_from_ext=False,
     )
+
+    # Guard against deeply-nested or oversized JSON payloads that
+    # can crash the process via RecursionError in json.loads() or
+    # exhaust memory.  This must run before any code path that
+    # triggers JSON parsing or reads the request body.
+    app = json_depth.JsonDepthMiddleware(
+        app,
+        max_depth=CONF.api.max_json_body_depth,
+        max_body_size=CONF.api.max_json_body_size * 1024,
+        max_provision_size=(
+            CONF.api.max_json_body_size_provision * 1024),
+        max_inspection_size=(
+            CONF.api.max_json_body_size_inspection * 1024))
 
     if CONF.audit.enabled:
         try:

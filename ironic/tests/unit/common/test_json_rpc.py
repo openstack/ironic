@@ -357,6 +357,25 @@ class TestService(TestCase):
         # The result is not affected, only logging
         self.assertEqual(data, node)
 
+    def test_deeply_nested_payload_rejected_by_middleware(self):
+        """Verify deep payloads are rejected before json.loads().
+
+        The JsonDepthMiddleware wraps the JSON-RPC application and
+        rejects payloads that exceed the configured nesting depth
+        with HTTP 400, preventing a RecursionError in the JSON
+        parser from crashing the worker process.
+        """
+        from ironic.api.middleware import json_depth
+
+        body = b'[' * 10000
+        request = webob.Request.blank("/", method='POST', body=body)
+        request.content_type = 'application/json'
+        wrapped_app = json_depth.JsonDepthMiddleware(
+            self.app, max_depth=25)
+        response = request.get_response(wrapped_app)
+        self.assertEqual(400, response.status_int)
+        self.assertIn(b'nested too deeply', response.body)
+
 
 class TestServiceTLS(TestCase):
 
