@@ -1,0 +1,23 @@
+---
+features:
+  - |
+    Adds TLS hardening options for outbound HTTPS connections to
+    remote web servers hosting images or other artifacts. The new
+    ``webserver_tls_minimum_version`` option controls the minimum
+    TLS protocol version and defaults to TLS 1.2. The new
+    ``webserver_tls_ciphers`` option allows restricting the cipher
+    suites using OpenSSL cipher list format. These options apply
+    to the same connections governed by the existing
+    ``webserver_verify_ca`` and ``webserver_connection_timeout``
+    options.
+security:
+  - |
+    Outbound HTTPS connections to remote web servers hosting
+    images or other artifacts now enforce TLS 1.2 as the minimum
+    protocol version by default. This prevents TLS downgrade
+    attacks on image download connections.
+upgrade:
+  - |
+    Outbound HTTPS connections to remote web servers now default
+    to requiring TLS 1.2 or later. This should not affect modern
+    deployments as TLS 1.2 has been widely supported since 2008.

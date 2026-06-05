@@ -21,12 +21,14 @@ from http import client as http_client
 from operator import itemgetter
 import os
 import shutil
+import ssl
 from urllib import parse as urlparse
 
 from oslo_log import log
 from oslo_utils import strutils
 from oslo_utils import uuidutils
 import requests
+from requests import adapters as req_adapters
 
 from ironic.common import checksum_utils
 from ironic.common import exception
@@ -37,6 +39,50 @@ from ironic.common import utils
 from ironic.conf import CONF
 
 IMAGE_CHUNK_SIZE = 1024 * 1024  # 1mb
+
+_TLS_VERSION_MAP = {
+    '1.2': ssl.TLSVersion.TLSv1_2,
+    '1.3': ssl.TLSVersion.TLSv1_3,
+}
+
+
+class TLSHTTPAdapter(req_adapters.HTTPAdapter):
+    """HTTPS adapter with configurable TLS settings."""
+
+    def __init__(self, ssl_context=None, **kwargs):
+        self._ssl_context = ssl_context
+        super().__init__(**kwargs)
+
+    def init_poolmanager(self, *args, **kwargs):
+        if self._ssl_context:
+            kwargs['ssl_context'] = self._ssl_context
+        super().init_poolmanager(*args, **kwargs)
+
+
+def _build_webserver_session():
+    """Build a requests Session with TLS settings from config.
+
+    :returns: A requests.Session, optionally configured with
+              TLS minimum version and cipher restrictions.
+    """
+    session = requests.Session()
+    tls_min = CONF.webserver_tls_minimum_version
+    tls_ciphers = CONF.webserver_tls_ciphers
+    if tls_min or tls_ciphers:
+        ctx = ssl.SSLContext(ssl.PROTOCOL_TLS_CLIENT)
+        # Verification is handled separately via the requests
+        # verify parameter; default to permissive here so that
+        # webserver_verify_ca remains the single source of truth.
+        ctx.check_hostname = False
+        ctx.verify_mode = ssl.CERT_NONE
+        if tls_min:
+            ctx.minimum_version = _TLS_VERSION_MAP[tls_min]
+        if tls_ciphers:
+            ctx.set_ciphers(tls_ciphers)
+        adapter = TLSHTTPAdapter(ssl_context=ctx)
+        session.mount('https://', adapter)
+    return session
+
 # NOTE(JayF): This is the check-of-last-resort; we also have an allowlist
 # enabled by default. These represent paths that under no circumstances should
 # we access for file:// URLs
@@ -99,6 +145,7 @@ class HttpImageService(BaseImageService):
 
     def __init__(self):
         self._transfer_verified_checksum = None
+        self.session = _build_webserver_session()
 
     @property
     def transfer_verified_checksum(self):
@@ -181,9 +228,10 @@ class HttpImageService(BaseImageService):
             auth = HttpImageService.gen_auth_from_conf_user_pass(image_href)
             # NOTE(TheJulia): Head requests do not work on things that are not
             # files, but they can be responded with redirects or a 200 OK....
-            response = requests.head(image_href, verify=verify,
-                                     timeout=CONF.webserver_connection_timeout,
-                                     auth=auth, allow_redirects=True)
+            response = self.session.head(
+                image_href, verify=verify,
+                timeout=CONF.webserver_connection_timeout,
+                auth=auth, allow_redirects=True)
 
             if (response.status_code == http_client.FORBIDDEN
                     and str(image_href).endswith('/')):
@@ -239,9 +287,10 @@ class HttpImageService(BaseImageService):
 
         try:
             auth = HttpImageService.gen_auth_from_conf_user_pass(image_href)
-            response = requests.get(image_href, stream=True, verify=verify,
-                                    timeout=CONF.webserver_connection_timeout,
-                                    auth=auth)
+            response = self.session.get(
+                image_href, stream=True, verify=verify,
+                timeout=CONF.webserver_connection_timeout,
+                auth=auth)
             if response.status_code != http_client.OK:
                 raise exception.ImageRefValidationFailed(
                     image_href=image_href,
@@ -360,9 +409,11 @@ class HttpImageService(BaseImageService):
 
         try:
             auth = HttpImageService.gen_auth_from_conf_user_pass(image_href)
-            response = requests.get(image_href, stream=False, verify=verify,
-                                    timeout=CONF.webserver_connection_timeout,
-                                    auth=auth)
+            session = _build_webserver_session()
+            response = session.get(
+                image_href, stream=False, verify=verify,
+                timeout=CONF.webserver_connection_timeout,
+                auth=auth)
             if response.status_code != http_client.OK:
                 raise exception.ImageRefValidationFailed(
                     image_href=image_href,

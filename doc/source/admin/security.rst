@@ -592,6 +592,23 @@ configured in the ``[vnc]`` section:
    controls the IP address and port mapping used to expose the
    container VNC port to the host.
 
+Configuring TLS for Image Downloads
+-------------------------------------
+
+The conductor makes outbound HTTPS connections to remote web
+servers to download images and other artifacts. TLS settings
+for these connections are configured in the ``[DEFAULT]``
+section:
+
+.. code-block:: ini
+
+   [DEFAULT]
+   # Enforce TLS 1.3 minimum for image downloads
+   webserver_tls_minimum_version = 1.3
+
+   # Optionally restrict available ciphers
+   # webserver_tls_ciphers = ECDHE+AESGCM:ECDHE+CHACHA20:DHE+AESGCM
+
 Post-Quantum Cryptography Readiness
 -------------------------------------
 
