@@ -15,6 +15,7 @@ from oslo_log import log as logging
 
 from ironic.common import exception
 from ironic.common.i18n import _
+from ironic.common import kernel_parameters as kp
 from ironic.common import states
 from ironic.common import utils
 from ironic.conductor import utils as cond_utils
@@ -131,10 +132,28 @@ def ironic_manages_boot(task, raise_exc=False):
 
 
 def prepare_managed_inspection(task, endpoint):
-    """Prepare the boot interface for managed inspection."""
+    """Prepare the boot interface for managed inspection.
+
+    :raises: InvalidParameterValue if CONF.inspector.extra_kernel_params
+        contains invalid kernel parameters.
+    """
+    parsed_param_dict = {}
+    if CONF.conductor.disable_kernel_parameter_parsing:
+        parsed_param_dict = \
+            utils.parse_kernel_params(CONF.inspector.extra_kernel_params)
+    else:
+        # NOTE(clif): The dictionary used for parameters here means each
+        # kernel parameter key can only be used once, otherwise key shadowing
+        # will occur.
+        # NOTE(clif): CONF.inspector.extra_kernel_params is already guaranteed
+        # to parse.
+        parsed_param_dict = kp.KernelCommandLine.parse(
+            CONF.inspector.extra_kernel_params).as_parameter_set().asdict()
+
     params = dict(
-        utils.parse_kernel_params(CONF.inspector.extra_kernel_params),
+        **parsed_param_dict,
         **{'ipa-inspection-callback-url': endpoint})
+
     if CONF.inspector.force_dhcp:
         # Ensure LLDP collection for inspection on all interfaces.
         params.setdefault('ipa-collect-lldp', '1')
@@ -165,7 +184,15 @@ class Common(base.InspectInterface):
         :param task: a task from TaskManager.
         :raises: UnsupportedDriverExtension
         """
-        utils.parse_kernel_params(CONF.inspector.extra_kernel_params)
+        if CONF.conductor.disable_kernel_parameter_parsing:
+            # NOTE(clif): Use the old method of 'parsing'.
+            utils.parse_kernel_params(CONF.inspector.extra_kernel_params)
+
+        # NOTE(clif): If disable_kernel_parameter_parsing is False it's not
+        # necessary to validate CONF.inspector.extra_kernel_params here,
+        # since it is validated at config ingestion time by
+        # ironic.conf.types.KernelParameterString
+
         if CONF.inspector.require_managed_boot:
             ironic_manages_boot(task, raise_exc=True)
 

@@ -723,6 +723,12 @@ def is_loopback(hostname_or_ip):
 def parse_kernel_params(params):
     """Parse kernel parameters into a dictionary.
 
+    NOTE: This method is considered deprecated and should not be used. Instead
+    use ironic.common.kernel_parameters.KernelCommandLine.parse() to handle
+    parsing of kernel parameters. When
+    conf.conductor.disable_kernel_parameter_parsing is retired, this function
+    should be as well.
+
     ``None`` is used as a value for parameters that are not in
     the ``key=value`` format.
 
