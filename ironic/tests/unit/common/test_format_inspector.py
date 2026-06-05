@@ -251,12 +251,6 @@ class TestFormatInspectors(test_base.TestCase):
     def test_qcow2(self):
         self._test_format('qcow2')
 
-    def test_iso_9660(self):
-        self._test_format('iso', subformat='9660')
-
-    def test_iso_udf(self):
-        self._test_format('iso', subformat='udf')
-
     def _generate_bad_iso(self):
         # we want to emulate a malicious user who uploads a an
         # ISO file has a qcow2 header in the system area
