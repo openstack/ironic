@@ -101,6 +101,9 @@
         - ironic-tempest-bfv
         - ironic-tempest-ipa-partition-uefi-pxe-grub2
         - ironic-tempest-uefi-redfish-vmedia-4k
+        - openstacksdk-functional-devstack:
+            files:
+              - ^ironic/api/.*$
         # NOTE(rpittau): Currently broken because of an issue with parted
         # NOTE(TheJulia): At present, metal3 doesn't leverage
         # stable branches, and as far as we are aware these jobs
