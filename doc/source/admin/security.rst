@@ -669,6 +669,29 @@ older hardware that requires weaker TLS:
    compatibility with older BMC firmware that does not support
    TLS 1.2.
 
+Configuring TLS for Ansible Deploy Image Downloads
+----------------------------------------------------
+
+When the Ansible deploy driver is used, image downloads to the
+target node are performed by the ``stream_url`` Ansible module.
+This module respects the same ``[DEFAULT]`` TLS configuration
+options used for webserver and OCI connections:
+
+.. code-block:: ini
+
+   [DEFAULT]
+   # Enforce TLS 1.3 minimum for image downloads to target nodes
+   webserver_tls_minimum_version = 1.3
+
+   # Optionally restrict available ciphers
+   # webserver_tls_ciphers = ECDHE+AESGCM:ECDHE+CHACHA20:DHE+AESGCM
+
+.. note::
+   The ``stream_url`` module runs on the target node, not the
+   conductor. The target node's Python environment must have
+   a version of OpenSSL that supports the configured minimum
+   TLS version.
+
 Post-Quantum Cryptography Readiness
 -----------------------------------
 
