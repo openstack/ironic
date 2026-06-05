@@ -20,13 +20,15 @@ from oslo_config import cfg
 from oslo_config import types as cfg_types
 
 from ironic.common.i18n import _
+from ironic.conf import types as ir_types
 
 opts = [
-    cfg.StrOpt('kernel_append_params',
-               deprecated_name='pxe_append_params',
-               default='nofb vga=normal',
-               mutable=True,
-               help=_('Additional append parameters for baremetal PXE boot.')),
+    cfg.Opt('kernel_append_params',
+            deprecated_name='pxe_append_params',
+            default='nofb vga=normal',
+            type=ir_types.KernelParameterString(),
+            mutable=True,
+            help=_('Additional append parameters for baremetal PXE boot.')),
     cfg.StrOpt('default_ephemeral_format',
                default='ext4',
                mutable=True,

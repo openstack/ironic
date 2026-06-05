@@ -10,8 +10,13 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
+from ironic.conf import CONF
 from ironic.conf import types
 from ironic.tests.base import TestCase
+
+from ddt import data
+from ddt import ddt
+from ddt import unpack
 
 
 class ExplicitAbsolutePath(TestCase):
@@ -61,3 +66,37 @@ class ExplicitAbsolutePath(TestCase):
         for path in bad_paths:
             self.assertFalse(_trypath(path),
                              msg=f"Improperly allowed path: {path}")
+
+
+@ddt
+class KernelParameterStringTestCase(TestCase):
+    def setUp(self):
+        super(KernelParameterStringTestCase, self).setUp()
+        self.kps = types.KernelParameterString()
+
+    def test_kps_type_name(self):
+        self.assertEqual(self.kps.type_name,
+                         types.KernelParameterString.TYPE_NAME)
+
+    @data(
+        ["quiet"],
+        ["BOOT_IMAGE=(hd5,gpt2)/vmlinuz-6.19.9-200.fc43.x86_64 ro"],
+        ["rootflags=subvol=root"],
+    )
+    @unpack
+    def test_good_kernel_parameter_string_type_passes(self, good_param: str):
+        self.assertIsInstance(self.kps(good_param), str)
+
+    @data(
+        ["qu\niet"],
+        ["BOOT_IMAGE=(hd5,gpt2)/vmlinuz-6.19.9-200.fc43.x86_64 \rro"],
+        ["rootflags\0=subvol=root"],
+    )
+    @unpack
+    def test_bad_kernel_parameter_string_type_fails(self, bad_param: str):
+        self.assertRaises(ValueError, self.kps, bad_param)
+
+    def test_parsing_skipped_when_disabled(self):
+        CONF.set_override('disable_kernel_parameter_parsing',
+                          True, group='conductor')
+        self.assertIsInstance(self.kps("qu\niet"), str)
