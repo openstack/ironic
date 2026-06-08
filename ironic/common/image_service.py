@@ -21,42 +21,27 @@ from http import client as http_client
 from operator import itemgetter
 import os
 import shutil
-import ssl
 from urllib import parse as urlparse
 
 from oslo_log import log
 from oslo_utils import strutils
 from oslo_utils import uuidutils
 import requests
-from requests import adapters as req_adapters
 
 from ironic.common import checksum_utils
 from ironic.common import exception
 from ironic.common.glance_service.image_service import GlanceImageService
 from ironic.common.i18n import _
 from ironic.common import oci_registry
+from ironic.common import tls_utils
 from ironic.common import utils
 from ironic.conf import CONF
 
 IMAGE_CHUNK_SIZE = 1024 * 1024  # 1mb
 
-_TLS_VERSION_MAP = {
-    '1.2': ssl.TLSVersion.TLSv1_2,
-    '1.3': ssl.TLSVersion.TLSv1_3,
-}
-
-
-class TLSHTTPAdapter(req_adapters.HTTPAdapter):
-    """HTTPS adapter with configurable TLS settings."""
-
-    def __init__(self, ssl_context=None, **kwargs):
-        self._ssl_context = ssl_context
-        super().__init__(**kwargs)
-
-    def init_poolmanager(self, *args, **kwargs):
-        if self._ssl_context:
-            kwargs['ssl_context'] = self._ssl_context
-        super().init_poolmanager(*args, **kwargs)
+# Re-export so that existing references (including tests) continue
+# to resolve via image_service.TLSHTTPAdapter.
+TLSHTTPAdapter = tls_utils.TLSHTTPAdapter
 
 
 def _build_webserver_session():
@@ -66,19 +51,10 @@ def _build_webserver_session():
               TLS minimum version and cipher restrictions.
     """
     session = requests.Session()
-    tls_min = CONF.webserver_tls_minimum_version
-    tls_ciphers = CONF.webserver_tls_ciphers
-    if tls_min or tls_ciphers:
-        ctx = ssl.SSLContext(ssl.PROTOCOL_TLS_CLIENT)
-        # Verification is handled separately via the requests
-        # verify parameter; default to permissive here so that
-        # webserver_verify_ca remains the single source of truth.
-        ctx.check_hostname = False
-        ctx.verify_mode = ssl.CERT_NONE
-        if tls_min:
-            ctx.minimum_version = _TLS_VERSION_MAP[tls_min]
-        if tls_ciphers:
-            ctx.set_ciphers(tls_ciphers)
+    ctx = tls_utils.build_ssl_context(
+        tls_minimum_version=CONF.webserver_tls_minimum_version,
+        tls_ciphers=CONF.webserver_tls_ciphers)
+    if ctx:
         adapter = TLSHTTPAdapter(ssl_context=ctx)
         session.mount('https://', adapter)
     return session

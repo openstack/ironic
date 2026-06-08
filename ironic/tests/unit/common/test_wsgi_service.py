@@ -18,6 +18,7 @@ from oslo_config import cfg
 from oslo_service import sslutils
 
 from ironic.common import exception
+from ironic.common import tls_utils
 from ironic.common import wsgi_service
 from ironic.tests import base
 
@@ -411,7 +412,7 @@ class TestWSGIService(base.TestCase):
 
     def test_check_tls_version_supported_ok(self):
         """Supported TLS version passes validation."""
-        wsgi_service._check_tls_version_supported('1.2')
+        tls_utils.check_tls_version_supported('1.2')
 
     @mock.patch.object(wsgi_service.wsgi, 'Server', autospec=True)
     @mock.patch('ironic.common.wsgi_service.cheroot_ssl.BuiltinSSLAdapter',
