@@ -205,6 +205,54 @@ class KernelParametersTestCase(base.TestCase):
                 )],
             }, "some init args")
         ),
+        annotate(
+            "Quoted value with spaces (sshkey pattern)",
+            'sshkey="ssh-rsa AAAAB3NzaC1yc2E= root@host"',
+            kp.KernelCommandLine({
+                'sshkey': [kp.KernelParameter(
+                    kp.ParameterKey('sshkey'),
+                    kp.ParameterValue(
+                        'ssh-rsa AAAAB3NzaC1yc2E= root@host'),
+                )],
+            }, "")
+        ),
+        annotate(
+            "Quoted value with SSH key and following parameters",
+            ('nofb nomodeset vga=normal ipa-insecure=1 '
+             'sshkey="ssh-rsa AAAAB3NzaC+/C1yc2E= root@host.example.com" '
+             'rd.net.timeout.carrier=30 ip=dhcp'),
+            kp.KernelCommandLine({
+                'nofb': [kp.KernelParameter(
+                    kp.ParameterKey('nofb'),
+                    kp.ParameterValue(''),
+                )],
+                'nomodeset': [kp.KernelParameter(
+                    kp.ParameterKey('nomodeset'),
+                    kp.ParameterValue(''),
+                )],
+                'vga': [kp.KernelParameter(
+                    kp.ParameterKey('vga'),
+                    kp.ParameterValue('normal'),
+                )],
+                'ipa-insecure': [kp.KernelParameter(
+                    kp.ParameterKey('ipa-insecure'),
+                    kp.ParameterValue('1'),
+                )],
+                'sshkey': [kp.KernelParameter(
+                    kp.ParameterKey('sshkey'),
+                    kp.ParameterValue(
+                        'ssh-rsa AAAAB3NzaC+/C1yc2E= root@host.example.com'),
+                )],
+                'rd.net.timeout.carrier': [kp.KernelParameter(
+                    kp.ParameterKey('rd.net.timeout.carrier'),
+                    kp.ParameterValue('30'),
+                )],
+                'ip': [kp.KernelParameter(
+                    kp.ParameterKey('ip'),
+                    kp.ParameterValue('dhcp'),
+                )],
+            }, "")
+        ),
     )
     @unpack
     def test_kernel_command_line_parsing(
@@ -227,3 +275,23 @@ class KernelParametersTestCase(base.TestCase):
             self, command_line: str):
         with self.assertRaises(InvalidParameterValue):
             kp.KernelCommandLine.parse(command_line)
+
+    @data(
+        annotate(
+            "trailing space",
+            "quiet ro ",
+        ),
+        annotate(
+            "leading space",
+            " quiet ro",
+        ),
+        annotate(
+            "leading and trailing spaces",
+            "  quiet ro  ",
+        ),
+    )
+    @unpack
+    def test_parse_strips_surrounding_whitespace(self, command_line: str):
+        result = kp.KernelCommandLine.parse(command_line)
+        self.assertEqual('quiet', list(result.parameters.keys())[0])
+        self.assertEqual('ro', list(result.parameters.keys())[1])
