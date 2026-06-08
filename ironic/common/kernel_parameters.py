@@ -57,7 +57,7 @@ class KernelParameter:
 
     def __str__(self):
         if len(self.value.value) > 0:
-            return f"{self.key.key}={self.value.value}"
+            return f"{self.key}={self.value}"
         return self.key.key
 
 
@@ -77,7 +77,7 @@ class KernelCommandLine:
     @classmethod
     def parse(cls, command_line: str):
         try:
-            tree = KernelParameterParser.parse(command_line)
+            tree = KernelParameterParser.parse(command_line.strip())
             return KernelParameterTransformer().transform(tree)
         except (lark.exceptions.LarkError,
                 lark.exceptions.UnexpectedInput) as e:
@@ -159,8 +159,7 @@ class KernelParameterTransformer(lark.Transformer):
         return ParameterValue(items[0])
 
     def quoted_value(self, items):
-        # Strip " characters from literal.
-        return items[0].value[1:-1]
+        return items[0]
 
     def bare_value(self, items):
         return items[0].value
