@@ -1,0 +1,14 @@
+---
+fixes:
+  - |
+    Restores retrying of Redfish virtual media insertion on transient
+    server-side (5xx) errors. The retry, originally added for Dell hardware
+    where a just-issued eject may still be in progress
+    (`story 2008504 <https://storyboard.openstack.org/#!/story/2008504>`_),
+    had been silently disabled because the error was swallowed (returned as a
+    failure) instead of being raised, so the retry never fired.
+  - |
+    Fixes an ``AttributeError`` (``'ServerSideError' object has no attribute
+    'node_uuid'``) that could be raised while retrying a Redfish virtual media
+    operation on a server-side error, which aborted the operation instead of
+    retrying it.

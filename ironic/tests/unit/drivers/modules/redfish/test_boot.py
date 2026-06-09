@@ -1592,11 +1592,14 @@ class RedfishVirtualMediaBootTestCase(db_base.DbTestCase):
             mock_manager.virtual_media.get_members.return_value = [
                 mock_vmedia_cd]
 
-            result = redfish_boot._insert_vmedia_in_resource(
+            # A persistent server-side error is re-raised after the retries;
+            # _insert_vmedia is what turns it into a failure.
+            self.assertRaises(
+                sushy.exceptions.ServerSideError,
+                redfish_boot._insert_vmedia_in_resource,
                 task, mock_manager, 'img-url',
                 sushy.VIRTUAL_MEDIA_CD, err_msgs)
 
-            self.assertFalse(result)
             self.assertEqual(2, len(err_msgs))
             self.assertIn(first_error, err_msgs[0])
             self.assertIn(error, err_msgs[1])
@@ -1744,6 +1747,46 @@ class RedfishVirtualMediaBootTestCase(db_base.DbTestCase):
             exc_str = str(exc)
             self.assertIn(task.node.uuid, exc_str)
             self.assertIn('img-url', exc_str)
+
+    @mock.patch('time.sleep', lambda *args, **kwargs: None)
+    @mock.patch.object(redfish_boot, '_has_vmedia_via_systems', autospec=True)
+    @mock.patch.object(redfish_utils, 'get_system', autospec=True)
+    def test__insert_vmedia_retries_server_side_error(self, mock_sys,
+                                                      mock_vmd_sys):
+        # A transient 5xx (e.g. a Dell eject still in progress) is retried on
+        # the same device and then succeeds. story 2008504
+        mock_vmd_sys.return_value = False
+        with task_manager.acquire(self.context, self.node.uuid,
+                                  shared=True) as task:
+            mock_vmedia_cd = mock.MagicMock(
+                inserted=False,
+                media_types=[sushy.VIRTUAL_MEDIA_CD])
+
+            mock_response = mock.MagicMock()
+            mock_response.status_code = 500
+            server_error = sushy.exceptions.ServerSideError(
+                "POST", 'img-url', mock_response)
+            mock_vmedia_cd.insert_media.side_effect = [server_error, None]
+
+            mock_manager = mock.MagicMock()
+            mock_manager.virtual_media.get_members.return_value = [
+                mock_vmedia_cd]
+
+            result = redfish_boot._insert_vmedia_in_resource(
+                task, mock_manager, 'img-url', sushy.VIRTUAL_MEDIA_CD, [])
+
+            self.assertTrue(result)
+            self.assertEqual(2, mock_vmedia_cd.insert_media.call_count)
+
+    def test__test_retry_server_side_error_without_node_uuid(self):
+        # Regression: _test_retry also guards _get_vmedia_resources, whose
+        # sushy errors have no node_uuid; it must retry, not raise
+        # AttributeError.
+        mock_response = mock.MagicMock()
+        mock_response.status_code = 500
+        err = sushy.exceptions.ServerSideError("GET", 'url', mock_response)
+        self.assertTrue(redfish_boot._test_retry(err))
+        self.assertFalse(redfish_boot._test_retry(ValueError("nope")))
 
     @mock.patch('time.sleep', lambda *args, **kwargs: None)
     @mock.patch.object(redfish_boot, '_has_vmedia_via_systems', autospec=True)

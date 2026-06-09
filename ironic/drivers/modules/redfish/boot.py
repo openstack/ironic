@@ -176,9 +176,13 @@ def _test_retry(exception):
     if isinstance(exception, sushy.exceptions.ServerSideError):
         # On some Dell hw, the eject media may still be in progress
         # https://storyboard.openstack.org/#!/story/2008504
-        LOG.warning("Boot media insert failed for node %(node)s, "
-                    "will retry after 3 seconds",
-                    {'node': exception.node_uuid})
+        # NOTE(cid): node_uuid is only set by the insert handler below, but
+        # _test_retry also guards _get_vmedia_resources, whose sushy errors
+        # have none, so read it defensively rather than raising AttributeError.
+        LOG.warning("Virtual media operation failed for node %(node)s, "
+                    "will retry after 3 seconds: %(error)s",
+                    {'node': getattr(exception, 'node_uuid', None),
+                     'error': exception})
         return True
     return False
 
@@ -281,18 +285,27 @@ def _insert_vmedia(task, managers, boot_url, boot_device,
     err_msgs = []
     system = redfish_utils.get_system(task.node)
     if _has_vmedia_via_systems(system):
-        inserted = _insert_vmedia_in_resource(task, system, boot_url,
-                                              boot_device, err_msgs,
-                                              username=username,
-                                              password=password)
+        # A ServerSideError surviving the retries means this resource failed;
+        # the error is already recorded in err_msgs.
+        try:
+            inserted = _insert_vmedia_in_resource(task, system, boot_url,
+                                                  boot_device, err_msgs,
+                                                  username=username,
+                                                  password=password)
+        except sushy.exceptions.ServerSideError:
+            inserted = False
         if inserted:
             return
     else:
         for manager in managers:
-            inserted = _insert_vmedia_in_resource(task, manager, boot_url,
-                                                  boot_device, err_msgs,
-                                                  username=username,
-                                                  password=password)
+            # On a surviving ServerSideError, try the next manager.
+            try:
+                inserted = _insert_vmedia_in_resource(task, manager, boot_url,
+                                                      boot_device, err_msgs,
+                                                      username=username,
+                                                      password=password)
+            except sushy.exceptions.ServerSideError:
+                continue
             if inserted:
                 return
 
@@ -427,12 +440,16 @@ def _insert_vmedia_in_resource(task, resource, boot_url, boot_device,
             LOG.warning(err_msg)
             continue
         except sushy.exceptions.ServerSideError as e:
+            # On some Dell hw a just-issued eject may still be in progress, so
+            # re-raise (stashing node_uuid for _test_retry) so the decorator
+            # retries the insert.
+            # https://storyboard.openstack.org/#!/story/2008504
             err_msg = str(e)
             if err_msg not in err_msgs:
                 err_msgs.append(err_msg)
 
             e.node_uuid = task.node.uuid
-            return False
+            raise
         # NOTE(janders): On Cisco C845A M8 (and potentially other systems),
         # attempting to use a virtual media slot that doesn't support remote
         # media insertion may result in HTTP 405 (Method Not Allowed).
