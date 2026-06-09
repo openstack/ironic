@@ -1069,7 +1069,7 @@ class RedfishBiosValidateSettingsTestCase(db_base.DbTestCase):
         with task_manager.acquire(self.context, self.node.uuid,
                                   shared=False) as task:
             # Should not raise
-            task.driver.bios._validate_settings(task, settings)
+            task.driver.bios._validate_and_convert_settings(task, settings)
 
     @mock.patch.object(objects, 'BIOSSettingList', autospec=True)
     def test_validate_settings_invalid_enumeration(self, mock_setting_list):
@@ -1083,7 +1083,8 @@ class RedfishBiosValidateSettingsTestCase(db_base.DbTestCase):
             self.assertRaisesRegex(
                 exception.InvalidParameterValue,
                 'HttpDev2EnDis',
-                task.driver.bios._validate_settings, task, settings)
+                task.driver.bios._validate_and_convert_settings,
+                task, settings)
 
     @mock.patch.object(objects, 'BIOSSettingList', autospec=True)
     def test_validate_settings_multiple_invalid(self, mock_setting_list):
@@ -1101,7 +1102,8 @@ class RedfishBiosValidateSettingsTestCase(db_base.DbTestCase):
                                   shared=False) as task:
             exc = self.assertRaises(
                 exception.InvalidParameterValue,
-                task.driver.bios._validate_settings, task, settings)
+                task.driver.bios._validate_and_convert_settings,
+                task, settings)
             self.assertIn('HttpDev1EnDis', str(exc))
             self.assertIn('HttpDev2EnDis', str(exc))
 
@@ -1115,7 +1117,7 @@ class RedfishBiosValidateSettingsTestCase(db_base.DbTestCase):
         with task_manager.acquire(self.context, self.node.uuid,
                                   shared=False) as task:
             # Should not raise - String type is not validated
-            task.driver.bios._validate_settings(task, settings)
+            task.driver.bios._validate_and_convert_settings(task, settings)
 
     @mock.patch.object(objects, 'BIOSSettingList', autospec=True)
     def test_validate_settings_no_allowable_values_skipped(
@@ -1127,7 +1129,7 @@ class RedfishBiosValidateSettingsTestCase(db_base.DbTestCase):
         with task_manager.acquire(self.context, self.node.uuid,
                                   shared=False) as task:
             # Should not raise - no allowable_values cached to check against
-            task.driver.bios._validate_settings(task, settings)
+            task.driver.bios._validate_and_convert_settings(task, settings)
 
     @mock.patch.object(objects, 'BIOSSettingList', autospec=True)
     def test_validate_settings_unknown_setting_skipped(
@@ -1137,7 +1139,7 @@ class RedfishBiosValidateSettingsTestCase(db_base.DbTestCase):
         with task_manager.acquire(self.context, self.node.uuid,
                                   shared=False) as task:
             # Should not raise - can't validate what's not in the cache
-            task.driver.bios._validate_settings(task, settings)
+            task.driver.bios._validate_and_convert_settings(task, settings)
 
     @mock.patch.object(objects, 'BIOSSettingList', autospec=True)
     def test_validate_settings_read_only_rejected(self, mock_setting_list):
@@ -1151,7 +1153,8 @@ class RedfishBiosValidateSettingsTestCase(db_base.DbTestCase):
             self.assertRaisesRegex(
                 exception.InvalidParameterValue,
                 'SystemModelName',
-                task.driver.bios._validate_settings, task, settings)
+                task.driver.bios._validate_and_convert_settings,
+                task, settings)
 
     @mock.patch.object(objects, 'BIOSSettingList', autospec=True)
     def test_validate_settings_integer_valid(self, mock_setting_list):
@@ -1163,7 +1166,7 @@ class RedfishBiosValidateSettingsTestCase(db_base.DbTestCase):
         with task_manager.acquire(self.context, self.node.uuid,
                                   shared=False) as task:
             # Should not raise
-            task.driver.bios._validate_settings(task, settings)
+            task.driver.bios._validate_and_convert_settings(task, settings)
 
     @mock.patch.object(objects, 'BIOSSettingList', autospec=True)
     def test_validate_settings_integer_below_lower_bound(
@@ -1178,7 +1181,8 @@ class RedfishBiosValidateSettingsTestCase(db_base.DbTestCase):
             self.assertRaisesRegex(
                 exception.InvalidParameterValue,
                 'BootDelay',
-                task.driver.bios._validate_settings, task, settings)
+                task.driver.bios._validate_and_convert_settings,
+                task, settings)
 
     @mock.patch.object(objects, 'BIOSSettingList', autospec=True)
     def test_validate_settings_integer_above_upper_bound(
@@ -1193,7 +1197,8 @@ class RedfishBiosValidateSettingsTestCase(db_base.DbTestCase):
             self.assertRaisesRegex(
                 exception.InvalidParameterValue,
                 'BootDelay',
-                task.driver.bios._validate_settings, task, settings)
+                task.driver.bios._validate_and_convert_settings,
+                task, settings)
 
     @mock.patch.object(objects, 'BIOSSettingList', autospec=True)
     def test_validate_settings_integer_not_a_number(self, mock_setting_list):
@@ -1207,7 +1212,8 @@ class RedfishBiosValidateSettingsTestCase(db_base.DbTestCase):
             self.assertRaisesRegex(
                 exception.InvalidParameterValue,
                 'BootDelay',
-                task.driver.bios._validate_settings, task, settings)
+                task.driver.bios._validate_and_convert_settings,
+                task, settings)
 
     @mock.patch.object(objects, 'BIOSSettingList', autospec=True)
     def test_validate_settings_integer_no_bounds(self, mock_setting_list):
@@ -1217,7 +1223,21 @@ class RedfishBiosValidateSettingsTestCase(db_base.DbTestCase):
         with task_manager.acquire(self.context, self.node.uuid,
                                   shared=False) as task:
             # Should not raise - no bounds to enforce
-            task.driver.bios._validate_settings(task, settings)
+            task.driver.bios._validate_and_convert_settings(task, settings)
+
+    @mock.patch.object(objects, 'BIOSSettingList', autospec=True)
+    def test_validate_settings_integer_string_converted(
+            self, mock_setting_list):
+        cached = self._make_cached('BootDelay', 'Integer', None)
+        cached.lower_bound = 5
+        cached.upper_bound = 30
+        mock_setting_list.get_by_node_id.return_value = [cached]
+        settings = [{'name': 'BootDelay', 'value': '10'}]
+        with task_manager.acquire(self.context, self.node.uuid,
+                                  shared=False) as task:
+            task.driver.bios._validate_and_convert_settings(task, settings)
+        self.assertEqual(10, settings[0]['value'])
+        self.assertIsInstance(settings[0]['value'], int)
 
     @mock.patch.object(objects, 'BIOSSettingList', autospec=True)
     def test_validate_settings_string_valid(self, mock_setting_list):
@@ -1229,7 +1249,7 @@ class RedfishBiosValidateSettingsTestCase(db_base.DbTestCase):
         with task_manager.acquire(self.context, self.node.uuid,
                                   shared=False) as task:
             # Should not raise
-            task.driver.bios._validate_settings(task, settings)
+            task.driver.bios._validate_and_convert_settings(task, settings)
 
     @mock.patch.object(objects, 'BIOSSettingList', autospec=True)
     def test_validate_settings_string_too_short(self, mock_setting_list):
@@ -1243,7 +1263,8 @@ class RedfishBiosValidateSettingsTestCase(db_base.DbTestCase):
             self.assertRaisesRegex(
                 exception.InvalidParameterValue,
                 'AdminName',
-                task.driver.bios._validate_settings, task, settings)
+                task.driver.bios._validate_and_convert_settings,
+                task, settings)
 
     @mock.patch.object(objects, 'BIOSSettingList', autospec=True)
     def test_validate_settings_string_too_long(self, mock_setting_list):
@@ -1257,7 +1278,8 @@ class RedfishBiosValidateSettingsTestCase(db_base.DbTestCase):
             self.assertRaisesRegex(
                 exception.InvalidParameterValue,
                 'AdminName',
-                task.driver.bios._validate_settings, task, settings)
+                task.driver.bios._validate_and_convert_settings,
+                task, settings)
 
     @mock.patch.object(objects, 'BIOSSettingList', autospec=True)
     def test_validate_settings_string_no_length_bounds(
@@ -1268,7 +1290,105 @@ class RedfishBiosValidateSettingsTestCase(db_base.DbTestCase):
         with task_manager.acquire(self.context, self.node.uuid,
                                   shared=False) as task:
             # Should not raise - no length bounds to enforce
-            task.driver.bios._validate_settings(task, settings)
+            task.driver.bios._validate_and_convert_settings(task, settings)
+
+    @mock.patch.object(objects, 'BIOSSettingList', autospec=True)
+    def test_convert_setting_types_integer_from_string(
+            self, mock_setting_list):
+        cached = self._make_cached('SnoopResponseHoldOff', 'Integer', None)
+        mock_setting_list.get_by_node_id.return_value = [cached]
+        settings = [{'name': 'SnoopResponseHoldOff', 'value': '0'}]
+        with task_manager.acquire(self.context, self.node.uuid,
+                                  shared=False) as task:
+            task.driver.bios._validate_and_convert_settings(task, settings)
+        self.assertEqual(0, settings[0]['value'])
+        self.assertIsInstance(settings[0]['value'], int)
+
+    @mock.patch.object(objects, 'BIOSSettingList', autospec=True)
+    def test_convert_setting_types_integer_already_int(
+            self, mock_setting_list):
+        cached = self._make_cached('SnoopResponseHoldOff', 'Integer', None)
+        mock_setting_list.get_by_node_id.return_value = [cached]
+        settings = [{'name': 'SnoopResponseHoldOff', 'value': 17}]
+        with task_manager.acquire(self.context, self.node.uuid,
+                                  shared=False) as task:
+            task.driver.bios._validate_and_convert_settings(task, settings)
+        self.assertEqual(17, settings[0]['value'])
+        self.assertIsInstance(settings[0]['value'], int)
+
+    @mock.patch.object(objects, 'BIOSSettingList', autospec=True)
+    def test_convert_setting_types_boolean_true(self, mock_setting_list):
+        cached = self._make_cached('SomeBoolSetting', 'Boolean', None)
+        mock_setting_list.get_by_node_id.return_value = [cached]
+        settings = [{'name': 'SomeBoolSetting', 'value': 'True'}]
+        with task_manager.acquire(self.context, self.node.uuid,
+                                  shared=False) as task:
+            task.driver.bios._validate_and_convert_settings(task, settings)
+        self.assertIs(True, settings[0]['value'])
+
+    @mock.patch.object(objects, 'BIOSSettingList', autospec=True)
+    def test_convert_setting_types_boolean_false(self, mock_setting_list):
+        cached = self._make_cached('SomeBoolSetting', 'Boolean', None)
+        mock_setting_list.get_by_node_id.return_value = [cached]
+        settings = [{'name': 'SomeBoolSetting', 'value': 'false'}]
+        with task_manager.acquire(self.context, self.node.uuid,
+                                  shared=False) as task:
+            task.driver.bios._validate_and_convert_settings(task, settings)
+        self.assertIs(False, settings[0]['value'])
+
+    @mock.patch.object(objects, 'BIOSSettingList', autospec=True)
+    def test_convert_setting_types_enumeration_unchanged(
+            self, mock_setting_list):
+        cached = self._make_cached('ProcTurboMode', 'Enumeration',
+                                   ['Enabled', 'Disabled'])
+        mock_setting_list.get_by_node_id.return_value = [cached]
+        settings = [{'name': 'ProcTurboMode', 'value': 'Disabled'}]
+        with task_manager.acquire(self.context, self.node.uuid,
+                                  shared=False) as task:
+            task.driver.bios._validate_and_convert_settings(task, settings)
+        self.assertEqual('Disabled', settings[0]['value'])
+
+    @mock.patch.object(objects, 'BIOSSettingList', autospec=True)
+    def test_convert_setting_types_string_unchanged(
+            self, mock_setting_list):
+        cached = self._make_cached('AdminName', 'String', None)
+        mock_setting_list.get_by_node_id.return_value = [cached]
+        settings = [{'name': 'AdminName', 'value': 'admin'}]
+        with task_manager.acquire(self.context, self.node.uuid,
+                                  shared=False) as task:
+            task.driver.bios._validate_and_convert_settings(task, settings)
+        self.assertEqual('admin', settings[0]['value'])
+
+    @mock.patch.object(objects, 'BIOSSettingList', autospec=True)
+    def test_convert_setting_types_unknown_setting_unchanged(
+            self, mock_setting_list):
+        mock_setting_list.get_by_node_id.return_value = []
+        settings = [{'name': 'UnknownSetting', 'value': '42'}]
+        with task_manager.acquire(self.context, self.node.uuid,
+                                  shared=False) as task:
+            task.driver.bios._validate_and_convert_settings(task, settings)
+        self.assertEqual('42', settings[0]['value'])
+
+    @mock.patch.object(objects, 'BIOSSettingList', autospec=True)
+    def test_convert_setting_types_mixed(self, mock_setting_list):
+        cached_int = self._make_cached('UncoreFreqMAX', 'Integer', None)
+        cached_enum = self._make_cached('ProcTurboMode', 'Enumeration',
+                                        ['Enabled', 'Disabled'])
+        cached_str = self._make_cached('AdminName', 'String', None)
+        mock_setting_list.get_by_node_id.return_value = [
+            cached_int, cached_enum, cached_str]
+        settings = [
+            {'name': 'UncoreFreqMAX', 'value': '17'},
+            {'name': 'ProcTurboMode', 'value': 'Disabled'},
+            {'name': 'AdminName', 'value': 'admin'},
+        ]
+        with task_manager.acquire(self.context, self.node.uuid,
+                                  shared=False) as task:
+            task.driver.bios._validate_and_convert_settings(task, settings)
+        self.assertEqual(17, settings[0]['value'])
+        self.assertIsInstance(settings[0]['value'], int)
+        self.assertEqual('Disabled', settings[1]['value'])
+        self.assertEqual('admin', settings[2]['value'])
 
 
 class RedfishBiosRegistryTestCase(db_base.DbTestCase):

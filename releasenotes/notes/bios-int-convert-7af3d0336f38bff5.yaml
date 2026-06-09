@@ -1,0 +1,5 @@
+---
+fixes:
+  - |
+    When strings values are provided for Integer or Boolean attributes in BIOS
+    settings, Ironic now tries to convert them before sending them to the BMC.
