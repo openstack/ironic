@@ -1,0 +1,20 @@
+---
+security:
+  - |
+    The IPMI Vendor-Passthru interface method ``send_raw`` step has been
+    disabled by default due to security implications. A malicious user with
+    sufficient Ironic access could utilzie this interface to make manual
+    changes to BMCs when the ``ipmitool`` vendor-passthru interface was
+    enabled.
+fixes:
+  - |
+    Fixes a bug where ironic allowed the ability for operators to send
+    raw commands when the ``ipmitool`` vendor interface was enabled
+    and configured for a baremetal node utilizing the IPMI protocol.
+
+    The Ironic project generally recommends the use of ``redfish``
+    instead of IPMI, however recognizes that is not universally possible
+    for all operators.
+
+    More information can be found in `bug 2150458
+    <https://bugs.launchpad.net/ironic/+bug/2150458>`_.

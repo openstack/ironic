@@ -2177,6 +2177,30 @@ class ServiceDoNodeDeployTestCase(mgr_utils.ServiceSetUpMixin,
         self.assertEqual(states.AVAILABLE, node.provision_state)
 
     @mock.patch.object(deployments, 'start_deploy', autospec=True)
+    def test_do_node_deploy_disallowed_step_raises_send_raw(
+            self, mock_start, mock_iwdi):
+        mock_iwdi.return_value = False
+        self._start_service()
+        deploy_steps = [
+            {'step': 'send_raw',
+             'priority': 7,
+             'interface': 'vendor'}
+        ]
+        node = obj_utils.create_test_node(
+            self.context, driver='fake-hardware',
+            provision_state=states.AVAILABLE,
+            target_provision_state=states.NOSTATE)
+        exc = self.assertRaises(messaging.rpc.ExpectedException,
+                                self.service.do_node_deploy,
+                                self.context, node.uuid,
+                                deploy_steps=deploy_steps)
+        self.assertEqual(exception.StepNotAllowed, exc.exc_info[0])
+        # start_deploy must NOT have been called
+        self.assertFalse(mock_start.called)
+        node.refresh()
+        self.assertEqual(states.AVAILABLE, node.provision_state)
+
+    @mock.patch.object(deployments, 'start_deploy', autospec=True)
     def test_do_node_deploy_allowed_step_proceeds(self, mock_start,
                                                   mock_iwdi):
         """Allowed deploy step proceeds normally."""
@@ -3541,6 +3565,36 @@ class DoNodeCleanTestCase(mgr_utils.ServiceSetUpMixin, db_base.DbTestCase):
                 autospec=True)
     @mock.patch('ironic.drivers.modules.fake.FakePower.validate',
                 autospec=True)
+    def test_do_node_clean_disallowed_step_raises_send_raw(
+            self, mock_power_valid,
+            mock_network_valid,
+            mock_process):
+        node = obj_utils.create_test_node(
+            self.context, driver='fake-hardware',
+            provision_state=states.MANAGEABLE,
+            target_provision_state=states.NOSTATE)
+        self._start_service()
+        clean_steps = [
+            {'step': 'send_raw',
+             'priority': 7,
+             'interface': 'vendor'}
+        ]
+        exc = self.assertRaises(messaging.rpc.ExpectedException,
+                                self.service.do_node_clean,
+                                self.context, node.uuid, clean_steps)
+        self.assertEqual(exception.StepNotAllowed, exc.exc_info[0])
+        # process_event must NOT have been called
+        self.assertFalse(mock_process.called)
+        node.refresh()
+        # Node stays in original state
+        self.assertEqual(states.MANAGEABLE, node.provision_state)
+
+    @mock.patch('ironic.conductor.task_manager.TaskManager.process_event',
+                autospec=True)
+    @mock.patch('ironic.drivers.modules.network.flat.FlatNetwork.validate',
+                autospec=True)
+    @mock.patch('ironic.drivers.modules.fake.FakePower.validate',
+                autospec=True)
     def test_do_node_clean_allowed_step_proceeds(self, mock_power_valid,
                                                  mock_network_valid,
                                                  mock_process):
@@ -3750,7 +3804,10 @@ class DoNodeServiceTestCase(mgr_utils.ServiceSetUpMixin, db_base.DbTestCase):
             target_provision_state=states.NOSTATE)
         self._start_service()
         self.service.do_node_service(self.context,
-                                     node.uuid, {'foo': 'bar'})
+                                     node.uuid,
+                                     [{'step': 'foo',
+                                       'priority': 7,
+                                       'interface': 'management'}])
         self.assertTrue(mock_pv.called)
         self.assertTrue(mock_nv.called)
         mock_event.assert_called_once_with(
@@ -3758,7 +3815,8 @@ class DoNodeServiceTestCase(mgr_utils.ServiceSetUpMixin, db_base.DbTestCase):
             'service',
             callback=mock.ANY,
             call_args=(servicing.do_node_service, mock.ANY,
-                       {'foo': 'bar'}, False),
+                       [{'step': 'foo', 'priority': 7,
+                         'interface': 'management'}], False),
             err_handler=mock.ANY, target_state='active')
 
     @mock.patch('ironic.conductor.manager.ConductorManager._spawn_worker',
@@ -3797,6 +3855,33 @@ class DoNodeServiceTestCase(mgr_utils.ServiceSetUpMixin, db_base.DbTestCase):
             target_provision_state=states.NOSTATE)
         self._start_service()
         service_steps = [self.deploy_update]
+        exc = self.assertRaises(messaging.rpc.ExpectedException,
+                                self.service.do_node_service,
+                                self.context, node.uuid, service_steps)
+        self.assertEqual(exception.StepNotAllowed, exc.exc_info[0])
+        self.assertFalse(mock_event.called)
+        node.refresh()
+        self.assertEqual(states.ACTIVE, node.provision_state)
+
+    @mock.patch('ironic.conductor.task_manager.TaskManager.process_event',
+                autospec=True)
+    @mock.patch('ironic.drivers.modules.network.flat.FlatNetwork.validate',
+                autospec=True)
+    @mock.patch('ironic.drivers.modules.fake.FakePower.validate',
+                autospec=True)
+    def test_do_node_service_disallowed_step_raises_on_send_raw(
+            self, mock_pv, mock_nv,
+            mock_event):
+        node = obj_utils.create_test_node(
+            self.context, driver='fake-hardware',
+            provision_state=states.ACTIVE,
+            target_provision_state=states.NOSTATE)
+        self._start_service()
+        service_steps = [
+            {'step': 'send_raw',
+             'priority': 7,
+             'interface': 'vendor'}
+        ]
         exc = self.assertRaises(messaging.rpc.ExpectedException,
                                 self.service.do_node_service,
                                 self.context, node.uuid, service_steps)
