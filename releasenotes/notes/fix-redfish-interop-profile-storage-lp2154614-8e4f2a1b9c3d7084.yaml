@@ -1,0 +1,11 @@
+---
+fixes:
+  - |
+    Added ``OpenStackIronicProfile`` version 1.2.0, correcting ``Storage``
+    requirements that did not match the DMTF schema: ``Drives`` is an inline
+    array of ``Drive`` references (not a ``DriveCollection`` link), and
+    storage controllers are exposed via the ``Controllers`` link to
+    ``StorageControllerCollection`` on modern BMCs, with legacy inline
+    ``StorageControllers`` optional. Use the 1.2.0 profile for conformance
+    testing; 1.1.0 remains for reference only.
+    Fixes `bug 2154614 <https://bugs.launchpad.net/ironic/+bug/2154614>`_.

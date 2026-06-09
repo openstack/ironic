@@ -20,7 +20,7 @@ that those properties can be omitted from the document for brevity.
 
 .. toctree::
 
-   OpenStackIronicProfile.v1_1_0
+   OpenStackIronicProfile.v1_2_0
 
 Validation of Profiles using DMTF tool
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
