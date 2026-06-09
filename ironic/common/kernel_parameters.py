@@ -12,6 +12,7 @@
 
 import lark
 
+from dataclasses import asdict
 from dataclasses import dataclass
 
 from ironic.common.exception import InvalidParameterValue
@@ -116,6 +117,10 @@ class KernelCommandLine:
         return ParameterSet({
             kp[0].key.key: kp[0] for kp in self.parameters.values()
         })
+
+    def asdict(self):
+        return asdict(self)
+
 
 @dataclass(frozen=True)
 class UnsafeKernelCommandLine(KernelCommandLine):
