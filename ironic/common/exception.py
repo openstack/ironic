@@ -982,6 +982,11 @@ class UnsupportedHardwareFeature(Invalid):
 class BootModeNotAllowed(Invalid):
     _msg_fmt = _("'%(mode)s' boot mode is not allowed for %(op)s operation.")
 
+class StepNotAllowed(Invalid):
+    _msg_fmt = _("%(step_type)s step '%(step)s' is not allowed. Disallowed "
+                 "by operator configuration "
+                 "[api]disallow_%(step_type)s_steps.")
+    code = http_client.BAD_REQUEST
 
 class InvalidImage(ImageUnacceptable):
     _msg_fmt = _("The requested image is not valid for use.")

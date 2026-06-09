@@ -194,6 +194,33 @@ opts = [
                        'entry points to the ironic.api.middleware namespace. '
                        'Each middleware must be a callable that accepts a '
                        'WSGI application and returns a wrapped application.')),
+    cfg.ListOpt('disallow_deploy_steps',
+                default=[],
+                mutable=True,
+                help=_("List of steps not allowed across the deploy "
+                       "workflow. Each entry should be in 'interface.step' "
+                       "format, e.g. ['raid.apply_configuration']. "
+                       "Applies to user-requested steps, deploy template "
+                       "steps, and driver steps alike.")),
+    cfg.ListOpt('disallow_service_steps',
+                default=[],
+                mutable=True,
+                help=_("List of steps not allowed across the service "
+                       "workflow. Each entry should be in 'interface.step' "
+                       "format, e.g. "
+                       "['bios.factory_reset','bios.apply_configuration']. "
+                       "Applies to user-requested steps and driver steps "
+                       "alike.")),
+    cfg.ListOpt('disallow_clean_steps',
+                default=[],
+                mutable=True,
+                help=_("List of steps not allowed across the clean "
+                       "workflow. Each entry should be in 'interface.step' "
+                       "format, e.g. "
+                       "['bios.factory_reset','bios.apply_configuration']. "
+                       "Applies to user-requested (manual) steps, "
+                       "automated cleaning steps, and runbook steps "
+                       "alike.")),
 ]
 
 
