@@ -110,7 +110,7 @@ opts = [
                help="Private key file to use when starting "
                     "the server securely."),
     cfg.ListOpt('disallow_deploy_steps',
-                default=[],
+                default=['vendor.send_raw'],
                 mutable=True,
                 help=_("List of steps not allowed across the deploy "
                        "workflow. Each entry should be in 'interface.step' "
@@ -118,7 +118,7 @@ opts = [
                        "Applies to user-requested steps, deploy template "
                        "steps, and driver steps alike.")),
     cfg.ListOpt('disallow_service_steps',
-                default=[],
+                default=['vendor.send_raw'],
                 mutable=True,
                 help=_("List of steps not allowed across the service "
                        "workflow. Each entry should be in 'interface.step' "
@@ -127,7 +127,7 @@ opts = [
                        "Applies to user-requested steps and driver steps "
                        "alike.")),
     cfg.ListOpt('disallow_clean_steps',
-                default=[],
+                default=['vendor.send_raw'],
                 mutable=True,
                 help=_("List of steps not allowed across the clean "
                        "workflow. Each entry should be in 'interface.step' "
