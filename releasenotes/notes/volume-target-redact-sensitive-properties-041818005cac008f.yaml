@@ -1,0 +1,21 @@
+---
+security:
+  - |
+    The volume target ``properties`` field can contain sensitive iSCSI
+    connection details, including CHAP authentication credentials. A
+    contributor identified that the ``baremetal:volume:view_target_properties``
+    RBAC policy check was not applied to ``PATCH`` responses. During review,
+    the ironic core security team determined that RBAC policy enforcement
+    alone was insufficient since standalone deployments do not have RBAC
+    support. The fix was updated in line with code reviewer feedback to
+    add secondary scrubbing of the ``properties`` field in all cases using
+    ``mask_dict_password``, ensuring password-like values are masked in all
+    API responses unconditionally.
+fixes:
+  - |
+    The ``PATCH`` endpoint for volume targets now applies the
+    ``baremetal:volume:view_target_properties`` RBAC policy check to its
+    response payload, consistent with the ``GET`` endpoints. Additionally,
+    the ``properties`` field is now scrubbed using ``mask_dict_password``
+    to mask any password-like keys, providing defense-in-depth independent
+    of RBAC policy enforcement.
