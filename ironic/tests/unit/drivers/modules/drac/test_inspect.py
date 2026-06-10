@@ -20,10 +20,8 @@ from unittest import mock
 from oslo_utils import units
 import sushy
 
-from ironic.common import states
 from ironic.conductor import task_manager
 from ironic.drivers.modules.drac import inspect as drac_inspect
-from ironic.drivers.modules import inspect_utils
 from ironic.drivers.modules.redfish import inspect as redfish_inspect
 from ironic.drivers.modules.redfish import utils as redfish_utils
 from ironic.tests.unit.drivers.modules.drac import utils as test_utils
@@ -138,28 +136,6 @@ class DracRedfishInspectionTestCase(test_utils.BaseDracTest):
                                   shared=True) as task:
             pxe_port_macs = task.driver.inspect._get_pxe_port_macs(task)
             self.assertEqual(expected_pxe_mac, pxe_port_macs)
-
-    @mock.patch.object(redfish_inspect.RedfishInspect, 'inspect_hardware',
-                       autospec=True)
-    @mock.patch.object(inspect_utils, 'create_ports_if_not_exist',
-                       autospec=True)
-    @mock.patch.object(redfish_utils, 'get_system', autospec=True)
-    def test_inspect_hardware_with_ethernet_interfaces_mac(
-            self, mock_get_system, mock_create_ports_if_not_exist,
-            mock_inspect_hardware):
-        ethernet_interfaces_mac = {'NIC.Integrated.1-1-1':
-                                   '24:6E:96:70:49:00'}
-        mock_get_system.return_value.sku = None
-        mock_inspect_hardware.return_value = states.MANAGEABLE
-        with task_manager.acquire(self.context, self.node.uuid,
-                                  shared=True) as task:
-            task.driver.inspect._get_mac_address = mock.Mock()
-            task.driver.inspect._get_mac_address.return_value = \
-                ethernet_interfaces_mac
-            return_value = task.driver.inspect.inspect_hardware(task)
-            self.assertEqual(states.MANAGEABLE, return_value)
-            mock_create_ports_if_not_exist.assert_called_once_with(
-                task, ['24:6E:96:70:49:00'])
 
     @mock.patch.object(redfish_utils, 'get_system', autospec=True)
     def test__get_mac_address_with_ethernet_interfaces(self, mock_get_system):

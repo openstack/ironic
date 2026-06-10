@@ -204,13 +204,8 @@ class RedfishInspectTestCase(db_base.DbTestCase):
             task.driver.management.validate(task)
             mock_parse_driver_info.assert_called_once_with(task.node)
 
-    @mock.patch.object(redfish_utils, 'get_enabled_macs', autospec=True)
     @mock.patch.object(redfish_utils, 'get_system', autospec=True)
-    @mock.patch.object(inspect_utils, 'create_ports_if_not_exist',
-                       autospec=True)
-    def test_inspect_hardware_ok(self, mock_create_ports_if_not_exist,
-                                 mock_get_system,
-                                 mock_get_enabled_macs):
+    def test_inspect_hardware_ok(self, mock_get_system):
         expected_properties = {
             'capabilities': 'boot_mode:uefi',
             'cpu_arch': 'x86_64',
@@ -221,7 +216,6 @@ class RedfishInspectTestCase(db_base.DbTestCase):
         with task_manager.acquire(self.context, self.node.uuid,
                                   shared=True) as task:
             task.driver.inspect.inspect_hardware(task)
-            self.assertEqual(1, mock_create_ports_if_not_exist.call_count)
             mock_get_system.assert_called_once_with(task.node)
 
         self.node.refresh()
@@ -277,22 +271,6 @@ class RedfishInspectTestCase(db_base.DbTestCase):
         ]
         self.assertEqual(expected_pcie_devices,
                          inventory['inventory']['pci_devices'])
-
-    @mock.patch.object(redfish_utils, 'get_enabled_macs', autospec=True)
-    @mock.patch.object(redfish_utils, 'get_system', autospec=True)
-    @mock.patch.object(inspect_utils, 'create_ports_if_not_exist',
-                       autospec=True)
-    def test_inspect_port_creation(self, mock_create_ports_if_not_exist,
-                                   mock_get_system,
-                                   mock_get_enabled_macs):
-        self.init_system_mock(mock_get_system.return_value)
-
-        with task_manager.acquire(self.context, self.node.uuid,
-                                  shared=True) as task:
-            task.driver.inspect.inspect_hardware(task)
-            result = task.driver.management.get_mac_addresses(task)
-            inspect_utils.create_ports_if_not_exist.assert_called_once_with(
-                task, result)
 
     @mock.patch.object(redfish_utils, 'get_system', autospec=True)
     def test_inspect_hardware_fail_missing_cpu_arch(self, mock_get_system):

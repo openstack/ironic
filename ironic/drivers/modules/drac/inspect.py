@@ -16,7 +16,6 @@ DRAC inspection interface
 """
 from ironic.common import boot_modes
 from ironic.drivers.modules.drac import utils as drac_utils
-from ironic.drivers.modules import inspect_utils
 from ironic.drivers.modules.redfish import inspect as redfish_inspect
 from ironic.drivers.modules.redfish import utils as redfish_utils
 from oslo_log import log
@@ -31,29 +30,6 @@ LOG = log.getLogger(__name__)
 
 class DracRedfishInspect(redfish_inspect.RedfishInspect):
     """iDRAC Redfish interface for inspection-related actions."""
-
-    def inspect_hardware(self, task):
-        """Inspect hardware to get the hardware properties.
-
-        Inspects hardware to get the essential properties.
-        It fails if any of the essential properties
-        are not received from the node.
-
-        :param task: a TaskManager instance.
-        :raises: HardwareInspectionFailure if essential properties
-                 could not be retrieved successfully.
-        :returns: The resulting state of inspection.
-
-        """
-        # Ensure we create a port for every NIC port found for consistency
-        # with our previous WSMAN inspect behavior and to work around a bug
-        # in some versions of the firmware where the port state is not being
-        # reported correctly.
-
-        ethernet_interfaces_mac = list(self._get_mac_address(task).values())
-        inspect_utils.create_ports_if_not_exist(task, ethernet_interfaces_mac)
-
-        return super(DracRedfishInspect, self).inspect_hardware(task)
 
     def _get_system_vendor_info(self, task, system):
         """Get system vendor information for Dell systems.

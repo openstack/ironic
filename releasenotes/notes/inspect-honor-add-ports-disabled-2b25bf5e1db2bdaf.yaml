@@ -1,0 +1,18 @@
+---
+features:
+  - |
+    Adds a new ``[inspector]pre_create_ports`` configuration option
+    (default ``True``). When enabled, ironic pre-creates ports from the MAC
+    addresses reported by the BMC before inspection, in addition to the ports
+    created from the inspected inventory by the ``ports`` inspection hook.
+    Operators who manage ports themselves (for example by pre-creating them)
+    can set this to ``False`` so that inspection does not create these
+    additional ports; if disabled, ensure nodes have the ports they need for
+    inspection. This is independent of ``[inspector]add_ports``, which governs
+    the ports created from the inspected inventory.
+upgrade:
+  - |
+    The ``redfish`` and ``idrac-redfish`` inspect interfaces no longer
+    pre-create ports during inspection; ports are now created by the
+    ``ports`` inspection hook from the inspected inventory, according to
+    ``[inspector]add_ports``.

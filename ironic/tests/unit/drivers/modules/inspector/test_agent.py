@@ -60,6 +60,15 @@ class InspectHardwareTestCase(db_base.DbTestCase):
         self.assertFalse(self.driver.network.remove_inspection_network.called)
         self.assertFalse(self.driver.boot.clean_up_ramdisk.called)
 
+    def test_pre_create_ports_disabled(self, mock_create_ports_if_not_exist):
+        CONF.set_override('pre_create_ports', False, group='inspector')
+        CONF.set_override('require_managed_boot', False, group='inspector')
+        self.driver.boot.validate_inspection.side_effect = (
+            exception.UnsupportedDriverExtension(''))
+        self.assertEqual(states.INSPECTWAIT,
+                         self.iface.inspect_hardware(self.task))
+        mock_create_ports_if_not_exist.assert_not_called()
+
     def test_unmanaged_disable_power_off(self, mock_create_ports_if_not_exist):
         CONF.set_override('require_managed_boot', False, group='inspector')
         self.driver.boot.validate_inspection.side_effect = (
