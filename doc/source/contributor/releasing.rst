@@ -283,6 +283,10 @@ is not supposed to run in stable or bugfix branches, and also comment out or
 remove the tox codespell job to avoid failures due to version changes, spelling
 is fixed in master and most recent stable branches only and backported "as is".
 
+The remaining metal3 jobs can be left on stable and bugfix branches but they
+need to be updated once the metal3 community follows up with its releases. See
+the comments in the job definitions for instructions.
+
 Things to do before releasing
 =============================
 

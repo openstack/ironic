@@ -2,9 +2,11 @@
 - name: BMO Functional Tests
   hosts: all
   vars:
+    ironic_image_source: "{{ ansible_user_dir }}/{{ zuul.projects['github.com/metal3-io/ironic-image'].src_dir }}"
     local_install_path: /usr/local
     redfish_emulator_port: 8000
   environment:
+    IRONIC_CUSTOM_VERSION: "{{ ironic_custom_version }}"
     IRONIC_SOURCE: "{{ ansible_user_dir }}/{{ zuul.projects['opendev.org/openstack/ironic'].src_dir }}"
     PATH: "{{ local_install_path }}/go/bin:{{ local_install_path }}/bin:{{ ansible_env.PATH }}"
     BMC_PROTOCOL: redfish-virtualmedia

@@ -56,13 +56,15 @@
         # CI Jobs Below this line may be *removed* on Stable Branches #
         ###############################################################
         # NOTE(TheJulia): At present, metal3 doesn't leverage
-        # stable branches, and as far as we are aware these jobs
+        # stable branches, and as far as we are aware this job
         # can be removed once this branch is made stable.
         # TODO(TheJulia): Re-enable the metal3-integration job once we
         # figure out what is going on with it and quay regarding
         # 502 Bad Gateway errors when accessing containers.
         - metal3-integration:
             voting: false
+        # NOTE(dtantsur) see comments in zuul.d/metal3-jobs.yaml on how to
+        # configure these 2 jobs for stable and bugfix branches.
         - metal3-baremetal-operator-functional:
             voting: false
         - metal3-ironic-standalone-operator-functional:
