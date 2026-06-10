@@ -132,6 +132,66 @@ reasonable, however operators may wish to override these policy settings.
 For details general policy setting details, please see
 :doc:`/configuration/policy`.
 
+.. _secure-rbac-trust-model:
+
+The trust model
+~~~~~~~~~~~~~~~
+
+The ``owner`` and ``lessee`` fields convey two very different levels of
+trust, and operators should keep the distinction in mind when assigning
+either field to a project.
+
+An ``owner`` project is a delegated administrator of the hardware. In many
+environments, the owning project may also have physical access to the
+machines. With the default policies, any user holding only the ``member``
+role in the owning project is able to, among other things:
+
+* deploy, rebuild, clean, and power the node on and off,
+* update ``driver_info``, the field which holds the BMC address and
+  credentials, and read it back, with secret values masked by default,
+* access the node's serial console,
+* run arbitrary cleaning and service steps,
+* attach and detach virtual media,
+* delegate access to the node to any other project by setting the
+  ``lessee`` field.
+
+Users holding the ``admin`` or ``manager`` role in the owning project can
+additionally change the node's driver and driver interfaces, set boot
+devices, inject non-maskable interrupts, and manage traits, ports and port
+groups. While :oslo.config:option:`api.project_admin_can_manage_own_nodes`
+is ``True`` (the default), ``admin`` users may also enroll new nodes owned
+by their project, and delete the nodes their project owns.
+
+.. warning::
+   Members of a project which has been set as a node's ``owner`` have
+   significantly more access than one might intuitively expect: holding
+   the ``member`` role in the owning project is sufficient to reach the
+   BMC configuration and the serial console. It is highly advisable to
+   use a dedicated project with strictly limited membership to own
+   nodes, rather than reusing an existing project whose membership is
+   managed for other purposes.
+
+Ironic also does not fully isolate the nodes of one owner from the nodes
+of another owner. Nodes are serviced by the same conductors and, in many
+deployments, share provisioning and management networks. An owner project
+should therefore be regarded as trusted infrastructure staff, not as just
+another tenant.
+
+A ``lessee`` project, in contrast, represents a *user* of the hardware,
+and in many environments may be a completely untrusted customer, with the
+field potentially populated automatically and non-interactively upon
+deployment, as described in `How do I assign a lessee?`_. The default
+policies are written with this in mind: lessees cannot view the masked
+node fields described in `Field value visibility restrictions`_, have no
+console access, and cannot update most node fields, although a lessee
+``member`` can still update general metadata such as the ``extra``
+field. Lessee users are still able to, among other things, control node
+power state, change the boot mode and secure boot state, and attach or detach
+virtual media with only the ``member`` role, and to reprovision the node or
+run cleaning and service steps with the ``admin`` or ``manager`` role.
+Operators loosening the default policies for lessees should do so with
+care.
+
 Field value visibility restrictions
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
