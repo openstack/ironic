@@ -1080,6 +1080,45 @@ class RedfishRAIDTestCase(db_base.DbTestCase):
             # Async operation, raid_config shouldn't be updated yet
             self.assertEqual(raid_config, task.node.raid_config)
 
+    @mock.patch.object(redfish_boot.RedfishVirtualMediaBoot, 'prepare_ramdisk',
+                       spec_set=True, autospec=True)
+    @mock.patch.object(deploy_utils, 'build_agent_options', autospec=True)
+    @mock.patch.object(manager_utils, 'node_power_action', autospec=True)
+    @mock.patch.object(deploy_utils, 'set_async_step_flags', autospec=True)
+    def test_delete_config_no_volumes_collection(
+            self,
+            mock_set_async_step_flags,
+            mock_node_power_action,
+            mock_build_agent_options,
+            mock_prepare_ramdisk,
+            mock_get_system):
+        # A controller without a Volumes collection (MissingAttributeError)
+        # should be skipped; remaining controllers proceed normally.
+        no_vol_storage = mock.MagicMock(identity='SATA controller')
+        no_vol_storage.volumes.get_members.side_effect = (
+            sushy.exceptions.MissingAttributeError)
+        mock_volumes = [_mock_volume('1', raid_type=sushy.RAIDType.RAID1)]
+        op_apply_time_support = mock.MagicMock()
+        op_apply_time_support.mapped_supported_values = [
+            sushy.APPLY_TIME_IMMEDIATE, sushy.APPLY_TIME_ON_RESET]
+        self.mock_storage.volumes.operation_apply_time_support = (
+            op_apply_time_support)
+        self.mock_storage.volumes.get_members.side_effect = [mock_volumes, []]
+        mock_get_system.return_value.storage.get_members.return_value = [
+            no_vol_storage, self.mock_storage]
+        with task_manager.acquire(self.context, self.node.uuid,
+                                  shared=True) as task:
+            task.node.raid_config = {
+                'logical_disks': [{
+                    'controller': 'RAID controller 1',
+                    'id': '1',
+                    'name': 'Volume 1',
+                    'raid_level': '1',
+                    'size_gb': 100}]}
+            self.assertIsNone(task.driver.raid.delete_configuration(task))
+            self.assertEqual(mock_volumes[0].delete.call_count, 1)
+            self.assertEqual([], task.node.raid_config['logical_disks'])
+
     def test_volume_create_error_handler(self, mock_get_system):
         volume_collection = self.mock_storage.volumes
         sushy_error = sushy.exceptions.SushyError()
@@ -1516,6 +1555,22 @@ class RedfishRAIDTestCase(db_base.DbTestCase):
 
         self.assertEqual([], self.node.raid_config['logical_disks'])
         mock_log.warning.assert_called_once()
+
+    @mock.patch.object(redfish_raid, 'LOG', autospec=True)
+    def test_update_raid_config_no_volumes_collection(
+            self, mock_log, mock_get_system):
+        # Controller without a Volumes link
+        # should be silently skipped rather than raising MissingAttributeError.
+        no_vol_storage = mock.MagicMock(identity='SATA controller')
+        no_vol_storage.volumes.get_members.side_effect = (
+            sushy.exceptions.MissingAttributeError)
+        mock_get_system.return_value.storage.get_members.return_value = [
+            no_vol_storage]
+
+        redfish_raid.update_raid_config(self.node)
+
+        self.assertEqual([], self.node.raid_config['logical_disks'])
+        mock_log.debug.assert_called_once()
 
 
 @mock.patch.object(redfish_utils, 'get_system', autospec=True)
