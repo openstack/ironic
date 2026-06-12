@@ -1,0 +1,8 @@
+---
+deprecations:
+  - |
+    Depreciate the ``management`` interface for providing firmware updates.
+    This was added prior to the creation of the dedicated ``firmware`` interface
+    which supports all the update operations of the ``management`` with
+    additional process and feature fixes coming to the ``firmware`` interface
+    only.

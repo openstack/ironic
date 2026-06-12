@@ -1,12 +1,13 @@
-Firmware update using manual cleaning
-=====================================
+Firmware Updates
+================
 
-The firmware update cleaning step allows one or more firmware updates to be
-applied to a node. If multiple updates are specified, then they are applied
+The firmware update step allows one or more firmware updates to be applied
+to a node via cleaning or servicing. If multiple updates are specified, then
+they are applied
 sequentially in the order given. The server is rebooted once per update.
-If a failure occurs, the cleaning step immediately fails which may result
+If a failure occurs, the step immediately fails which may result
 in some updates not being applied. If the node is placed into maintenance
-mode while a firmware update cleaning step is running that is performing
+mode while a firmware update step is running that is performing
 multiple firmware updates, the update in progress will complete, and processing
 of the remaining updates will pause.  When the node is taken out of maintenance
 mode, processing of the remaining updates will continue.
@@ -15,19 +16,206 @@ mode, processing of the remaining updates will continue.
    currently.
 
 When updating the BMC firmware, the BMC may become unavailable for a period of
-time as it resets. In this case, it may be desirable to have the cleaning step
+time as it resets. In this case, it may be desirable to have the step
 wait after the update has been applied before indicating that the
 update was successful. This allows the BMC time to fully reset before further
-operations are carried out against it. To cause the cleaning step to wait after
+operations are carried out against it. To cause the step to wait after
 applying an update, an optional ``wait`` argument may be specified in the
 firmware image dictionary. The value of this argument indicates the number of
 seconds to wait following the update. If the ``wait`` argument is not
 specified, then this is equivalent to ``wait 0``, meaning that it will not
 wait and immediately proceed with the next firmware update if there is one,
-or complete the cleaning step if not.
+or complete the step if not.
+
+How it works
+------------
+
+The ``update`` step can be used via cleaning or servicing, it accepts a JSON in
+the following format::
+
+    [{
+        "interface": "firmware",
+        "step": "update",
+        "args": {
+            "settings":[
+                {
+                    "component": "bmc",
+                    "url": "<url_to_firmware_image1>",
+                    "wait": <number_of_seconds_to_wait>
+                },
+                {
+                    "component": "bios",
+                    "url": "<url_to_firmware_image2>"
+                },
+                {
+                    "component": "nic:AD0700",
+                    "url": "<url_to_firmware_image3>"
+                },
+                {
+                    "component": "nic:NIC.Slot.2",
+                    "url": "<url_to_firmware_image4>"
+                }
+                ...
+            ]
+        }
+    }]
+
+The different attributes of the ``update`` step are as follows:
+
+.. csv-table::
+    :header: "Attribute", "Description"
+    :widths: 30, 120
+
+    "``interface``", "Interface of the step.  Must be ``firmware`` for firmware update"
+    "``step``", "Name of the step.  Must be ``update`` for firmware update"
+    "``args``", "Keyword-argument entry (<name>: <value>) being passed to the step"
+    "``args.settings``", "Ordered list of dictionaries of firmware updates to be applied"
+
+Each firmware image dictionary is of the form::
+
+    {
+      "component": "The desired component to have the firmware updated, supported components are listed below",
+      "url": "<URL of firmware image file>",
+      "wait": <Optional time in seconds to wait after applying update>
+    }
+
+.. csv-table::
+    :header: "Supported Components", "Description"
+    :widths: 30, 120
+
+    "bmc", "The BMC firmware"
+    "bios", "The BIOS firmware"
+    "nic:<NIC_REDFISH_ID>", "Since machines can have multiple NICs, we use **nic:** as prefix plus the **NIC_REDFISH_ID** to identify the NIC to update"
+
+The ``component`` and ``url`` arguments in the firmware image dictionary are
+mandatory, while the ``wait`` argument is optional.
+
+For ``url`` currently ``http``, ``https``, ``swift`` and ``file`` schemes are
+supported.
+
+Applying updates
+----------------
+
+To perform a firmware update, first download the firmware to a web server,
+Swift or filesystem that the Ironic conductor or BMC has network access to.
+This could be the ironic conductor web server or another web server on the BMC
+network. Using a web browser, curl, or similar tool on a server that has
+network access to the BMC or Ironic conductor, try downloading the firmware to
+verify that the URLs are correct and that the web server is configured
+properly.
+
+Next, construct the JSON for the firmware update step to be executed.
+When launching the firmware update, the JSON may be specified on the command
+line directly or in a file. The following example shows one step that
+installs two firmware updates.
+
+.. code-block:: json
+
+    [{
+        "interface": "firmware",
+        "step": "update",
+        "args": {
+            "settings":[
+                {
+                    "component": "bmc",
+                    "url": "http://192.0.2.10/BMC_4_22_00_00.EXE",
+                    "wait": 300
+                },
+                {
+                    "component": "bios",
+                    "url": "https://192.0.2.10/BIOS_19.0.12_A00.EXE"
+                },
+                {
+                    "component": "nic:AD0700",
+                    "url": "http://192.0.2.10/NIC_19.0.12_AD0700.EXE"
+                },
+                {
+                    "component": "nic:NIC.Slot.2",
+                    "url": "http://192.0.2.10/NICSlot2_1.0.12.EXE"
+                }
+            ]
+        }
+    }]
+
+
+It is also possible to use ``runbooks`` for firmware updates.
+
+First, create a YAML file with the firmware update steps. For example, save the
+following as ``firmware_runbook.yaml``:
+
+.. code-block:: yaml
+
+    - interface: firmware
+      step: update
+      args:
+        settings:
+          - component: bmc
+            url: http://192.168.0.8:8080/ilo5278.bin
+          - component: nic:AD0700
+            url: http://192.168.0.8:8080/nic.bin
+          - component: nic:NIC.Slot.2
+            url: http://192.168.0.8:8080/nic.bin
+
+Then create and use the runbook:
+
+.. code-block:: console
+
+    $ baremetal runbook create --name <RUNBOOK> --steps firmware_runbook.yaml
+    $ baremetal node add trait <ironic_node_uuid> <RUNBOOK>
+    $ baremetal node <clean or service>  <ironic_node_uuid> --runbook <RUNBOOK>
+
+Finally, launch the firmware update step against the node. The
+following example assumes the above JSON is in a file named
+``update.json``:
+
+.. code-block:: console
+
+   $ baremetal node clean <ironic_node_uuid> --clean-steps update.json
+   $ baremetal node service <ironic_node_uuid> --service-steps update.json
+
+.. note::
+   You can use the ``--disable-ramdisk`` flag to perform firmware updates
+   without booting into the ramdisk, which saves reboots and speeds up the
+   process:
+
+   .. code-block:: console
+
+      $ baremetal node clean <ironic_node_uuid> --disable-ramdisk --clean-steps update.json
+      $ baremetal node service <ironic_node_uuid> --disable-ramdisk --service-steps update.json
+
+In the following example, the JSON is specified directly on the command line:
+
+.. code-block:: console
+
+   $ baremetal node clean <ironic_node_uuid> --clean-steps \
+       '[{"interface": "firmware", "step": "update", "args": {"settings":[{"component": "bmc", "url":"http://192.168.0.8:8080/ilo5278.bin"}]}}]'
+   $ baremetal node clean <ironic_node_uuid> --clean-steps \
+       '[{"interface": "firmware", "step": "update", "args": {"settings":[{"component": "bios", "url":"http://192.168.0.8:8080/bios.bin"}]}}]'
+   $ baremetal node service <ironic_node_uuid> --service-steps \
+       '[{"interface": "firmware", "step": "update", "args": {"settings":[{"component": "bmc", "url":"http://192.168.0.8:8080/ilo5278.bin"}]}}]'
+   $ baremetal node service <ironic_node_uuid> --service-steps \
+       '[{"interface": "firmware", "step": "update", "args": {"settings":[{"component": "bios", "url":"http://192.168.0.8:8080/bios.bin"}]}}]'
+   $ baremetal node clean <ironic_node_uuid> --clean-steps \
+       '[{"interface": "firmware", "step": "update", "args": {"settings":[{"component": "nic:AD0700", "url":"http://192.168.0.8:8080/nic.bin"}]}}]'
+   $ baremetal node clean <ironic_node_uuid> --clean-steps \
+       '[{"interface": "firmware", "step": "update", "args": {"settings":[{"component": "nic:NIC.Slot.2", "url":"http://192.168.0.8:8080/nic.bin"}]}}]'
+
+.. note::
+   For Dell machines, you must extract the firmimgFIT.d9 from the iDRAC.exe
+   This can be done using the command ``7za e iDRAC_<VERSION>.exe``.
+
+.. note::
+   For HPE machines you must extract the ilo5_<version>.bin from the
+   ilo5_<version>.fwpkg
+   This can be done using the command ``7za e ilo<version>.fwpkg``.
 
 How it works - via Management Interface
 ---------------------------------------
+
+.. deprecated::
+   The management interface for firmware updates is deprecated in favor of
+   the firmware interface. Please use the firmware interface for new
+   deployments.
 
 The ``update_firmware`` cleaning step accepts JSON in the following format::
 
@@ -85,9 +273,6 @@ in clean step arguments.
    In testing, the BMC applied the update to all applicable targets on the
    node. It is assumed that the BMC knows what components a given firmware
    image is applicable to.
-
-Applying updates
-----------------
 
 To perform a firmware update, first download the firmware to a web server,
 Swift or filesystem that the Ironic conductor or BMC has network access to.
@@ -158,159 +343,3 @@ In the following example, the JSON is specified directly on the command line:
    Warning: Removing power from a server while it is in the process of updating
    firmware may result in devices in the server, or the server itself becoming
    inoperable.
-
-How it works - via Firmware Interface
--------------------------------------
-
-The ``update`` step can be used via cleaning or servicing, it accepts a JSON in
-the following format::
-
-    [{
-        "interface": "firmware",
-        "step": "update",
-        "args": {
-            "settings":[
-                {
-                    "component": "bmc"
-                    "url": "<url_to_firmware_image1>"
-                    "wait": <number_of_seconds_to_wait>
-                },
-                {
-                    "component": "bios"
-                    "url": "<url_to_firmware_image2>"
-                },
-                {
-                    "component": "nic:AD0700",
-                    "url": "<url_to_firmware_image3>"
-                },
-                {
-                    "component": "nic:NIC.Slot.2",
-                    "url": "<url_to_firmware_image4>"
-                }
-                ...
-            ]
-        }
-    }]
-
-The different attributes of the ``update`` step are as follows:
-
-.. csv-table::
-    :header: "Attribute", "Description"
-    :widths: 30, 120
-
-    "``interface``", "Interface of the step.  Must be ``firmware`` for firmware update"
-    "``step``", "Name of the step.  Must be ``update`` for firmware update"
-    "``args``", "Keyword-argument entry (<name>: <value>) being passed to the step"
-    "``args.settings``", "Ordered list of dictionaries of firmware updates to be applied"
-
-Each firmware image dictionary is of the form::
-
-    {
-      "component": "The desired component to have the firmware updated, supported components are listed below",
-      "url": "<URL of firmware image file>",
-      "wait": <Optional time in seconds to wait after applying update>
-    }
-
-.. csv-table::
-    :header: "Supported Components", "Description"
-    :widths: 30, 120
-
-    "bmc", "The BMC firmware"
-    "bios", "The BIOS firmware"
-    "nic:<NIC_REDFISH_ID>", "Since machines can have multiple NICs, we use **nic:** as prefix plus the **NIC_REDFISH_ID** to identify the NIC to update"
-
-The ``component`` and ``url`` arguments in the firmware image dictionary are
-mandatory, while the ``wait`` argument is optional.
-
-For ``url`` currently ``http``, ``https``, ``swift`` and ``file`` schemes are
-supported.
-
-
-Applying updates
-----------------
-
-To perform a firmware update, first download the firmware to a web server,
-Swift or filesystem that the Ironic conductor or BMC has network access to.
-This could be the ironic conductor web server or another web server on the BMC
-network. Using a web browser, curl, or similar tool on a server that has
-network access to the BMC or Ironic conductor, try downloading the firmware to
-verify that the URLs are correct and that the web server is configured
-properly.
-
-Next, construct the JSON for the firmware update step to be executed.
-When launching the firmware update, the JSON may be specified on the command
-line directly or in a file. The following example shows one step that
-installs two firmware updates.
-
-.. code-block:: json
-
-    [{
-        "interface": "firmware",
-        "step": "update",
-        "args": {
-            "settings":[
-                {
-                    "component": "bmc",
-                    "url": "http://192.0.2.10/BMC_4_22_00_00.EXE",
-                    "wait": 300
-                },
-                {
-                    "component": "bios",
-                    "url": "https://192.0.2.10/BIOS_19.0.12_A00.EXE"
-                },
-                {
-                    "component": "nic:AD0700",
-                    "url": "http://192.0.2.10/NIC_19.0.12_AD0700.EXE"
-                },
-                {
-                    "component": "nic:NIC.Slot.2",
-                    "url": "http://192.0.2.10/NICSlot2_1.0.12.EXE"
-                }
-            ]
-        }
-    }]
-
-
-It is also possible to use ``runbooks`` for firmware updates.
-
-.. code-block:: console
-
-    $ baremetal runbook create --name <RUNBOOK> --steps \
-        '[{"interface": "firmware", "step": "update", "args": {"settings":[{"component": "bmc", "url":"http://192.168.0.8:8080/ilo5278.bin"}, {"component": "nic:AD0700", "url":"http://192.168.0.8:8080/nic.bin"}, {"component": "nic:NIC.Slot.2", "url":"http://192.168.0.8:8080/nic.bin"}]}}]'
-    $ baremetal node add trait <ironic_node_uuid> <RUNBOOK>
-    $ baremetal node <clean or service>  <ironic_node_uuid> --runbook <RUNBOOK>
-
-Finally, launch the firmware update step against the node. The
-following example assumes the above JSON is in a file named
-``update.json``:
-
-.. code-block:: console
-
-   $ baremetal node clean <ironic_node_uuid> --clean-steps update.json
-   $ baremetal node service <ironic_node_uuid> --service-steps update.json
-
-In the following example, the JSON is specified directly on the command line:
-
-.. code-block:: console
-
-   $ baremetal node clean <ironic_node_uuid> --clean-steps \
-       '[{"interface": "firmware", "step": "update", "args": {"settings":[{"component": "bmc", "url":"http://192.168.0.8:8080/ilo5278.bin"}]}}]'
-   $ baremetal node clean <ironic_node_uuid> --clean-steps \
-       '[{"interface": "firmware", "step": "update", "args": {"settings":[{"component": "bios", "url":"http://192.168.0.8:8080/bios.bin"}]}}]'
-   $ baremetal node service <ironic_node_uuid> --service-steps \
-       '[{"interface": "firmware", "step": "update", "args": {"settings":[{"component": "bmc", "url":"http://192.168.0.8:8080/ilo5278.bin"}]}}]'
-   $ baremetal node service <ironic_node_uuid> --service-steps \
-       '[{"interface": "firmware", "step": "update", "args": {"settings":[{"component": "bios", "url":"http://192.168.0.8:8080/bios.bin"}]}}]'
-   $ baremetal node clean <ironic_node_uuid> --clean-steps \
-       '[{"interface": "firmware", "step": "update", "args": {"settings":[{"component": "nic:AD0700", "url":"http://192.168.0.8:8080/nic.bin"}]}}]'
-   $ baremetal node clean <ironic_node_uuid> --clean-steps \
-       '[{"interface": "firmware", "step": "update", "args": {"settings":[{"component": "nic:NIC.Slot.2", "url":"http://192.168.0.8:8080/nic.bin"}]}}]'
-
-.. note::
-   For Dell machines, you must extract the firmimgFIT.d9 from the iDRAC.exe
-   This can be done using the command ``7za e iDRAC_<VERSION>.exe``.
-
-.. note::
-   For HPE machines you must extract the ilo5_<version>.bin from the
-   ilo5_<version>.fwpkg
-   This can be done using the command ``7za e ilo<version>.fwpkg``.
