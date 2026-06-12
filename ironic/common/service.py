@@ -20,6 +20,7 @@ try:
     from oslo_reports import opts as gmr_opts
 except ImportError:
     gmr = None
+from oslo_service import opts as oslo_service_opts
 from oslo_service import service
 
 from ironic.common import config
@@ -79,6 +80,11 @@ def prepare_command(argv=None):
     # it does not properly parse the options from config file and uses defaults
     # from oslo_log
     log.setup(CONF, 'ironic')
+    # Register oslo.service's service opts (including log_options and
+    # graceful_shutdown_timeout). These are needed by cotyledon's
+    # oslo_config_glue in spawned child processes where the parent's
+    # option registrations are not inherited.
+    oslo_service_opts.register_service_opts(CONF)
     objects.register_all()
 
 
