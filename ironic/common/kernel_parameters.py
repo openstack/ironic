@@ -66,7 +66,7 @@ class KernelParameter:
 
     def __str__(self):
         if len(self.value.value) > 0:
-            return f"{self.key.key}={self.value.value}"
+            return f"{self.key}={self.value}"
         return self.key.key
 
 
@@ -100,7 +100,7 @@ class KernelCommandLine:
     def parse(cls, command_line: str):
         try:
             cmd_line, init_args = \
-                _divide_command_line_by_init_args(command_line)
+                _divide_command_line_by_init_args(command_line.strip())
             tree = KernelParameterParser.parse(cmd_line)
             kcl = KernelParameterTransformer().transform(tree)
             return KernelCommandLine(kcl.parameters, init_args)
@@ -143,8 +143,7 @@ class KernelParameterTransformer(Transformer):
         return ParameterValue(items[0])
 
     def quoted_value(self, items):
-        # Strip " characters from literal.
-        return items[0].value[1:-1]
+        return items[0]
 
     def bare_value(self, items):
         return items[0].value
