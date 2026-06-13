@@ -10,6 +10,7 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
+import datetime
 import os
 import tempfile
 import time
@@ -1282,6 +1283,10 @@ class DeployingErrorHandlerTestCase(db_base.DbTestCase):
         self.task.node = mock.Mock(spec_set=objects.Node)
         self.node = self.task.node
         self.node.provision_state = states.DEPLOYING
+        # NOTE(edomfeh): node_history_record() records the target provision
+        # state. We must mock it as a string to prevent oslo_versionedobjects
+        # from throwing a ValueError on an unconfigured Mock object.
+        self.node.target_provision_state = states.DEPLOYING
         self.node.last_error = None
         self.node.deploy_step = None
         self.node.driver_info = {}
@@ -1426,6 +1431,8 @@ class ErrorHandlersTestCase(db_base.DbTestCase):
 
         self.node.configure_mock(power_state=states.POWER_OFF,
                                  target_power_state=states.POWER_ON,
+                                 provision_state=states.AVAILABLE,
+                                 target_provision_state=states.NOSTATE,
                                  maintenance=False, maintenance_reason=None,
                                  id=fake_node.id)
         self.task.context = self.context
@@ -3277,6 +3284,88 @@ class NodeHistoryRecordTestCase(db_base.DbTestCase):
         entry = entries[0]
         self.assertEqual(short_event, entry['event'])
 
+
+    @mock.patch('oslo_utils.timeutils.utcnow', autospec=True)
+    def test_record_node_history_with_state_fields(self, mock_utcnow):
+        """Test that node history captures state and duration correctly"""
+
+        frozen_time = datetime.datetime(
+            2026, 6, 10, 12, 0, 0, tzinfo=datetime.timezone.utc)
+        mock_utcnow.return_value = frozen_time
+
+        self.node.provision_state = states.DEPLOYING
+        self.node.target_provision_state = states.ACTIVE
+        self.node.provision_updated_at = frozen_time
+        self.node.save()
+
+        mock_utcnow.return_value = frozen_time + datetime.timedelta(
+            seconds=120)
+
+        conductor_utils.node_history_record(
+            self.node, event='deploying started')
+
+        entries = objects.NodeHistory.list_by_node_id(
+            self.context, self.node.id)
+        self.assertEqual(1, len(entries))
+        entry = entries[0]
+
+        self.assertEqual(states.DEPLOYING, entry.state)
+        self.assertEqual(states.ACTIVE, entry.target_provision_state)
+        self.assertEqual(120, entry.duration_seconds)
+        self.assertEqual('deploying started', entry.event)
+
+
+    def test_record_node_history_without_provision_updated_at(self):
+        """Test that history still works when we don't have a timestamp"""
+
+        self.node.provision_state = states.ACTIVE
+        self.node.provision_updated_at = None
+        self.node.save()
+
+        conductor_utils.node_history_record(self.node, event='node active')
+
+        entries = objects.NodeHistory.list_by_node_id(self.context,
+                                                      self.node.id)
+        self.assertEqual(1, len(entries))
+        entry = entries[0]
+
+        self.assertEqual(states.ACTIVE, entry.state)
+        self.assertEqual(0, entry.duration_seconds)
+
+    @mock.patch('oslo_utils.timeutils.utcnow', autospec=True)
+    def test_record_node_history_with_error_and_state_fields(self,
+                                                             mock_utcnow):
+        """Test that error events also capture state information"""
+
+        frozen_time = datetime.datetime(2026, 6, 10, 12, 0, 0,
+                                        tzinfo=datetime.timezone.utc)
+        mock_utcnow.return_value = frozen_time
+
+        self.node.provision_state = states.DEPLOYFAIL
+        self.node.target_provision_state = states.AVAILABLE
+        self.node.provision_updated_at = frozen_time
+        self.node.save()
+
+        mock_utcnow.return_value = frozen_time + datetime.timedelta(
+            seconds=300)
+
+        conductor_utils.node_history_record(
+            self.node,
+            event='deployment failed',
+            error=True,
+            event_type='provisioning'
+        )
+
+        entries = objects.NodeHistory.list_by_node_id(self.context,
+                                                      self.node.id)
+        self.assertEqual(1, len(entries))
+        entry = entries[0]
+
+        self.assertEqual(states.DEPLOYFAIL, entry.state)
+        self.assertEqual(states.AVAILABLE, entry.target_provision_state)
+        self.assertEqual(300, entry.duration_seconds)
+        self.assertEqual('ERROR', entry.severity)
+        self.assertEqual('deployment failed', self.node.last_error)
 
 class GetTokenProjectFromRequestTestCase(db_base.DbTestCase):
 
