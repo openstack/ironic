@@ -12,6 +12,8 @@
 
 import os_traits
 
+from ironic.api.schemas.common import request_types
+
 
 STANDARD_TRAITS = os_traits.get_traits()
 CUSTOM_TRAIT_PATTERN = "^%s[A-Z0-9_]+$" % os_traits.CUSTOM_NAMESPACE
@@ -44,3 +46,11 @@ links = {
         'additionalProperties': False,
     },
 }
+
+name = request_types.name
+
+uuid = request_types.uuid
+
+mac_address = request_types.mac_address
+
+nullable_mac_address = {'type': ['string', 'null'], 'format': 'mac-address'}
