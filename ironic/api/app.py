@@ -29,10 +29,10 @@ import stevedore
 from ironic.api import config
 from ironic.api.controllers import base
 from ironic.api import hooks
-from ironic.api import middleware
 from ironic.api.middleware import auth_public_routes
 from ironic.api.middleware import json_depth
 from ironic.api.middleware import json_ext
+from ironic.api.middleware import parsable_error
 from ironic.api.middleware import request_log
 from ironic.common import auth_basic
 from ironic.common import exception
@@ -97,7 +97,7 @@ def setup_app(pecan_config=None, extra_hooks=None):
         debug=CONF.pecan_debug,
         static_root=pecan_config.app.static_root if CONF.pecan_debug else None,
         hooks=app_hooks,
-        wrap_app=middleware.ParsableErrorMiddleware,
+        wrap_app=parsable_error.ParsableErrorMiddleware,
         # NOTE(dtantsur): enabling this causes weird issues with nodes named
         # as if they had a known mime extension, e.g. "mynode.1". We do
         # simulate the same behaviour for .json extensions for backward
