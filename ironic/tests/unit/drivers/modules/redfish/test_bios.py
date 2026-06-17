@@ -491,12 +491,13 @@ class RedfishBiosTestCase(db_base.DbTestCase):
 
     @mock.patch.object(manager_utils, 'cleaning_error_handler', autospec=True)
     @mock.patch.object(redfish_utils, 'get_system', autospec=True)
-    def test_apply_conf_post_reboot_cleaning_failed_pending(
+    def test_apply_conf_post_reboot_cleaning_success_pending(
             self, mock_get_system, mock_cleaning_error_handler):
         data = [{'name': 'ProcTurboMode', 'value': 'Enabled'}]
         self.node.clean_step = {'priority': 100, 'interface': 'bios',
                                 'step': 'apply_configuration',
                                 'argsinfo': {'settings': data}}
+        other_attrs = {'Other': 'Value'}
         requested_attrs = {'ProcTurboMode': 'Enabled'}
         node = self.node
         driver_internal_info = node.driver_internal_info
@@ -509,8 +510,42 @@ class RedfishBiosTestCase(db_base.DbTestCase):
         self.node.save()
 
         mock_bios = mock.Mock()
-        mock_bios.attributes = requested_attrs
-        mock_bios.pending_attributes = {'ProcTurboMode': 'Enabled'}
+        mock_bios.attributes = {**requested_attrs, **other_attrs}
+        mock_bios.pending_attributes = {**requested_attrs, **other_attrs}
+        mock_bios.get_attribute_registry = []
+        mock_system = mock.Mock()
+        mock_system.bios = mock_bios
+        mock_get_system.return_value = mock_system
+
+        with task_manager.acquire(self.context, self.node.uuid,
+                                  shared=False) as task:
+            task.driver.bios.apply_configuration(task, data)
+
+        mock_cleaning_error_handler.assert_not_called()
+
+    @mock.patch.object(manager_utils, 'cleaning_error_handler', autospec=True)
+    @mock.patch.object(redfish_utils, 'get_system', autospec=True)
+    def test_apply_conf_post_reboot_cleaning_failed_pending(
+            self, mock_get_system, mock_cleaning_error_handler):
+        data = [{'name': 'ProcTurboMode', 'value': 'Enabled'}]
+        self.node.clean_step = {'priority': 100, 'interface': 'bios',
+                                'step': 'apply_configuration',
+                                'argsinfo': {'settings': data}}
+        requested_attrs = {'ProcTurboMode': 'Enabled'}
+        other_attrs = {'Other': 'Value'}
+        node = self.node
+        driver_internal_info = node.driver_internal_info
+        driver_internal_info['redfish_bios_state'] = {
+            'reboot_requested': True,
+            'requested_bios_attrs': requested_attrs,
+        }
+        self.node.driver_internal_info = driver_internal_info
+        self.node.provision_state = states.CLEANING
+        self.node.save()
+
+        mock_bios = mock.Mock()
+        mock_bios.attributes = {'ProcTurboMode': 'Disabled', **other_attrs}
+        mock_bios.pending_attributes = {**requested_attrs, **other_attrs}
         mock_bios.get_attribute_registry = []
         mock_system = mock.Mock()
         mock_system.bios = mock_bios

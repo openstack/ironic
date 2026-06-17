@@ -1,0 +1,6 @@
+---
+fixes:
+  - |
+    Fixes an issue for setting bios parameters on hardware where pending
+    settings contain all bios settings.
+    See `bug 2157002 <https://bugs.launchpad.net/ironic/+bug/2157002>`_.
