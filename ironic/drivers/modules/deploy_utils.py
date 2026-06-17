@@ -401,16 +401,23 @@ def get_pxe_boot_file(node):
     """Return the PXE boot file name requested for deploy.
 
     This method returns PXE boot file name to be used for deploy.
-    Architecture specific boot file is searched first. BIOS/UEFI
-    boot file is used if no valid architecture specific file found.
+    Architecture and boot mode specific boot file is searched first
+    using a composite key of ``arch-boot_mode`` (e.g. ``x86_64-uefi``).
+    If not found, architecture-only key is tried for backward
+    compatibility. BIOS/UEFI boot file is used if no valid
+    architecture specific file found.
 
     :param node: A single Node.
     :returns: The PXE boot file name.
     """
     cpu_arch = node.properties.get('cpu_arch')
-    boot_file = CONF.pxe.pxe_bootfile_name_by_arch.get(cpu_arch)
+    boot_mode = boot_mode_utils.get_boot_mode(node)
+    boot_file = CONF.pxe.pxe_bootfile_name_by_arch.get(
+        '%s-%s' % (cpu_arch, boot_mode))
     if boot_file is None:
-        if boot_mode_utils.get_boot_mode(node) == 'uefi':
+        boot_file = CONF.pxe.pxe_bootfile_name_by_arch.get(cpu_arch)
+    if boot_file is None:
+        if boot_mode == 'uefi':
             boot_file = CONF.pxe.uefi_pxe_bootfile_name
         else:
             boot_file = CONF.pxe.pxe_bootfile_name
@@ -422,8 +429,11 @@ def get_ipxe_boot_file(node):
     """Return the iPXE boot file name requested for deploy.
 
     This method returns iPXE boot file name to be used for deploy.
-    Architecture specific boot file is searched first. BIOS/UEFI
-    boot file is used if no valid architecture specific file found.
+    Architecture and boot mode specific boot file is searched first
+    using a composite key of ``arch-boot_mode`` (e.g. ``x86_64-bios``).
+    If not found, architecture-only key is tried for backward
+    compatibility. BIOS/UEFI boot file is used if no valid
+    architecture specific file found.
 
     If no valid value is found, the default reverts to the
     ``get_pxe_boot_file`` method and thus the
@@ -434,9 +444,13 @@ def get_ipxe_boot_file(node):
     :returns: The iPXE boot file name.
     """
     cpu_arch = node.properties.get('cpu_arch')
-    boot_file = CONF.pxe.ipxe_bootfile_name_by_arch.get(cpu_arch)
+    boot_mode = boot_mode_utils.get_boot_mode(node)
+    boot_file = CONF.pxe.ipxe_bootfile_name_by_arch.get(
+        '%s-%s' % (cpu_arch, boot_mode))
     if boot_file is None:
-        if boot_mode_utils.get_boot_mode(node) == 'uefi':
+        boot_file = CONF.pxe.ipxe_bootfile_name_by_arch.get(cpu_arch)
+    if boot_file is None:
+        if boot_mode == 'uefi':
             boot_file = CONF.pxe.uefi_ipxe_bootfile_name
         else:
             boot_file = CONF.pxe.ipxe_bootfile_name
