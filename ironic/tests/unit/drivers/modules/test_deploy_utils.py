@@ -343,6 +343,34 @@ class GetPxeBootConfigTestCase(db_base.DbTestCase):
         result = utils.get_pxe_boot_file(self.node)
         self.assertEqual('aarch64-bootfile', result)
 
+    def test_get_pxe_boot_file_arch_boot_mode_composite_key(self):
+        bootfile_by_arch = {'x86_64-bios': 'pxelinux.0',
+                            'x86_64-uefi': 'bootx64.efi',
+                            'aarch64': 'grubaa64.efi'}
+        properties = {'cpu_arch': 'x86_64', 'capabilities': 'boot_mode:uefi'}
+        self.node.properties = properties
+        self.config(pxe_bootfile_name_by_arch=bootfile_by_arch, group='pxe')
+        result = utils.get_pxe_boot_file(self.node)
+        self.assertEqual('bootx64.efi', result)
+
+    def test_get_pxe_boot_file_arch_boot_mode_composite_key_bios(self):
+        bootfile_by_arch = {'x86_64-bios': 'pxelinux.0',
+                            'x86_64-uefi': 'bootx64.efi'}
+        properties = {'cpu_arch': 'x86_64', 'capabilities': 'boot_mode:bios'}
+        self.node.properties = properties
+        self.config(pxe_bootfile_name_by_arch=bootfile_by_arch, group='pxe')
+        result = utils.get_pxe_boot_file(self.node)
+        self.assertEqual('pxelinux.0', result)
+
+    def test_get_pxe_boot_file_arch_boot_mode_fallback_to_arch_only(self):
+        bootfile_by_arch = {'x86_64-bios': 'pxelinux.0',
+                            'aarch64': 'grubaa64.efi'}
+        properties = {'cpu_arch': 'aarch64', 'capabilities': 'boot_mode:uefi'}
+        self.node.properties = properties
+        self.config(pxe_bootfile_name_by_arch=bootfile_by_arch, group='pxe')
+        result = utils.get_pxe_boot_file(self.node)
+        self.assertEqual('grubaa64.efi', result)
+
     def test_get_pxe_config_template_cpu_in_by_arch(self):
         properties = {'cpu_arch': 'aarch64', 'capabilities': 'boot_mode:uefi'}
         self.node.properties = properties
@@ -387,6 +415,34 @@ class GetPxeBootConfigTestCase(db_base.DbTestCase):
     def test_get_ipxe_boot_file_other_arch(self):
         arch_names = {'aarch64': 'ipxe-aa64.efi',
                       'x86_64': 'ipxe.kpxe'}
+        self.config(ipxe_bootfile_name_by_arch=arch_names, group='pxe')
+        properties = {'cpu_arch': 'aarch64', 'capabilities': 'boot_mode:uefi'}
+        self.node.properties = properties
+        result = utils.get_ipxe_boot_file(self.node)
+        self.assertEqual('ipxe-aa64.efi', result)
+
+    def test_get_ipxe_boot_file_arch_boot_mode_composite_key(self):
+        arch_names = {'x86_64-bios': 'undionly.kpxe',
+                      'x86_64-uefi': 'snponly.efi',
+                      'aarch64': 'ipxe-aa64.efi'}
+        self.config(ipxe_bootfile_name_by_arch=arch_names, group='pxe')
+        properties = {'cpu_arch': 'x86_64', 'capabilities': 'boot_mode:uefi'}
+        self.node.properties = properties
+        result = utils.get_ipxe_boot_file(self.node)
+        self.assertEqual('snponly.efi', result)
+
+    def test_get_ipxe_boot_file_arch_boot_mode_composite_key_bios(self):
+        arch_names = {'x86_64-bios': 'undionly.kpxe',
+                      'x86_64-uefi': 'snponly.efi'}
+        self.config(ipxe_bootfile_name_by_arch=arch_names, group='pxe')
+        properties = {'cpu_arch': 'x86_64', 'capabilities': 'boot_mode:bios'}
+        self.node.properties = properties
+        result = utils.get_ipxe_boot_file(self.node)
+        self.assertEqual('undionly.kpxe', result)
+
+    def test_get_ipxe_boot_file_arch_boot_mode_fallback_to_arch_only(self):
+        arch_names = {'x86_64-bios': 'undionly.kpxe',
+                      'aarch64': 'ipxe-aa64.efi'}
         self.config(ipxe_bootfile_name_by_arch=arch_names, group='pxe')
         properties = {'cpu_arch': 'aarch64', 'capabilities': 'boot_mode:uefi'}
         self.node.properties = properties
