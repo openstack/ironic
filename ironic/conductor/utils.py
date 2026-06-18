@@ -21,6 +21,7 @@ import secrets
 import time
 
 from oslo_config import cfg
+from oslo_context import context as oslo_context
 from oslo_log import log
 from oslo_service import loopingcall
 from oslo_utils import secretutils
@@ -1930,7 +1931,16 @@ def node_history_record(node, conductor=None, event=None,
         node.last_error = event
     if not conductor:
         conductor = CONF.host
-
+    # NOTE(edomfeh): Resolved the user ID independently of
+    # the conductor check block to ensure it executes when a
+    # custom conductor string is supplied. We fall back to the
+    # thread-local context if an explicit user parameter is
+    # not passed into the function.
+    actual_user = user
+    if not actual_user:
+        current_context = oslo_context.get_current()
+        if current_context:
+            actual_user = getattr(current_context, 'user_id', None)
     if CONF.conductor.node_history:
         duration = None
         if node.provision_updated_at is not None:
@@ -1951,7 +1961,7 @@ def node_history_record(node, conductor=None, event=None,
         node_history.NodeHistory(
             node_id=node.id,
             conductor=CONF.host,
-            user=user,
+            user=actual_user,
             project=project,
             severity=error and "ERROR" or "INFO",
             event=event,

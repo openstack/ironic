@@ -17,6 +17,7 @@ import time
 from unittest import mock
 
 from oslo_config import cfg
+from oslo_context import context as oslo_context
 from oslo_utils import timeutils
 from oslo_utils import uuidutils
 
@@ -3162,6 +3163,7 @@ class NodeHistoryRecordTestCase(db_base.DbTestCase):
                 'priority': 99}]
 
     def test_record_node_history(self):
+        oslo_context.get_current().user_id = None
         conductor_utils.node_history_record(self.node, event='meow')
         entries = objects.NodeHistory.list_by_node_id(self.context,
                                                       self.node.id)
@@ -3366,6 +3368,25 @@ class NodeHistoryRecordTestCase(db_base.DbTestCase):
         self.assertEqual(300, entry.duration_seconds)
         self.assertEqual('ERROR', entry.severity)
         self.assertEqual('deployment failed', self.node.last_error)
+
+    @mock.patch(
+            'ironic.conductor.utils.oslo_context.get_current', autospec=True)
+    def test_record_node_history_discovers_context_user(
+            self, mock_get_current):
+        """Ensure node history record falls back to request context user."""
+        fake_context = mock.Mock()
+        fake_context.user_id = 'context-user-alpha'
+        mock_get_current.return_value = fake_context
+
+        conductor_utils.node_history_record(self.node, event='meow')
+
+        entries = objects.NodeHistory.list_by_node_id(self.context,
+                                                      self.node.id)
+
+        entry = entries[0]
+
+        self.assertEqual('context-user-alpha', entry['user'])
+
 
 class GetTokenProjectFromRequestTestCase(db_base.DbTestCase):
 
