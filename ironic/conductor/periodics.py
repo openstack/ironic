@@ -33,15 +33,72 @@ LOG = log.getLogger(__name__)
 METRICS = metrics_utils.get_metrics_logger(__name__)
 
 
+def refresh_periodic_attributes(func):
+    """Update futurist periodic attributes from deferred CONF resolvers.
+
+    Used for periodics whose ``enabled`` or ``spacing`` were supplied as
+    callables so that values are read after configuration is loaded (for
+    example in oslo.service spawn workers, which bypass the LP #1562258
+    import-order guard in ``ironic.command.conductor``).
+    """
+    target = getattr(func, '__func__', func)
+    target_dict = getattr(target, '__dict__', {})
+    enabled_resolver = target_dict.get('_periodic_enabled_resolver')
+    spacing_resolver = target_dict.get('_periodic_spacing_resolver')
+    if not enabled_resolver and not spacing_resolver:
+        return False
+
+    spacing = target_dict.get('_periodic_spacing',
+                              getattr(target, '_periodic_spacing', None))
+    if spacing_resolver is not None:
+        spacing = spacing_resolver()
+        target._periodic_spacing = spacing
+
+    if enabled_resolver is not None:
+        target._is_periodic = bool(enabled_resolver()) and spacing > 0
+    elif spacing_resolver is not None:
+        target._is_periodic = spacing > 0
+
+    return True
+
+
+def refresh_class_periodic_attributes(cls):
+    """Refresh lazy periodic attributes on all periodic methods of ``cls``."""
+    for _name, member in inspect.getmembers(cls):
+        if periodics.is_periodic(member):
+            refresh_periodic_attributes(member)
+
+
 def periodic(spacing, enabled=True, **kwargs):
     """A decorator to define a periodic task.
 
-    :param spacing: how often (in seconds) to run the periodic task.
+    :param spacing: how often (in seconds) to run the periodic task, or a
+        callable returning the spacing in seconds.
     :param enabled: whether the task is enabled; defaults to ``spacing > 0``.
+        May be a callable returning a boolean, in which case it is evaluated
+        when periodic tasks are collected (and after spawn unpickling when
+        configuration has been restored).
     """
-    return periodics.periodic(spacing=spacing,
-                              enabled=enabled and spacing > 0,
-                              **kwargs)
+    lazy_enabled = callable(enabled)
+    lazy_spacing = callable(spacing)
+
+    if not lazy_enabled and not lazy_spacing:
+        return periodics.periodic(spacing=spacing,
+                                  enabled=enabled and spacing > 0,
+                                  **kwargs)
+
+    def decorator(func):
+        # Placeholder registration; refresh_periodic_attributes() sets real
+        # spacing and _is_periodic before the PeriodicWorker is created.
+        decorated = periodics.periodic(spacing=1, enabled=False,
+                                       **kwargs)(func)
+        if lazy_enabled:
+            decorated._periodic_enabled_resolver = enabled
+        if lazy_spacing:
+            decorated._periodic_spacing_resolver = spacing
+        return decorated
+
+    return decorator
 
 
 class Stop(Exception):

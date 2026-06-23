@@ -3045,8 +3045,8 @@ class ConductorManager(base_manager.BaseConductorManager):
                     context, ev_type, message)
 
     @METRICS.timer('ConductorManager._send_sensor_data')
-    @periodics.periodic(spacing=CONF.sensor_data.interval,
-                        enabled=CONF.sensor_data.send_sensor_data)
+    @periodics.periodic(spacing=lambda: CONF.sensor_data.interval,
+                        enabled=lambda: CONF.sensor_data.send_sensor_data)
     def _send_sensor_data(self, context):
         """Periodically collects and transmits sensor data notifications."""
 

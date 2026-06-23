@@ -1,0 +1,24 @@
+---
+fixes:
+  - |
+    Fixes an issue where the conductor periodic task
+    ``ConductorManager._send_sensor_data`` was not scheduled when
+    ``ironic-conductor`` ran under oslo.service's **spawn** worker model.
+    The task could appear in debug logs as "found" during
+    ``init_host()``, but futurist never submitted it, so no sensor data
+    was published to the notification bus even when
+    ``[sensor_data] send_sensor_data`` was enabled in ``ironic.conf``.
+
+    Spawn workers unpickle the conductor manager before configuration is
+    reloaded in the child process. The ``enabled`` flag for this periodic
+    was therefore evaluated at import time using the default value
+    (``False``). Ironic now defers evaluation of ``enabled`` and
+    ``interval`` for this task until configuration is available, and
+    refreshes periodic attributes after spawn unpickling and when periodic
+    tasks are collected.
+
+    Operators using ``ironic-prometheus-exporter``, Ceilometer, or other
+    consumers of conductor sensor notifications should see data collection
+    resume without changing configuration. Other conductor periodics were
+    not affected.
+

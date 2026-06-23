@@ -75,6 +75,13 @@ class BaseRPCService(service.Service):
             # Re-run prepare_command with the parent's argv to restore all
             # config values before start() is called.
             common_service.prepare_command(argv)
+            # ironic.conductor.manager may have been imported during unpickle
+            # before prepare_command() (spawn bypasses the LP #1562258 guard
+            # in ironic.command.conductor); refresh lazy periodic flags.
+            from ironic.conductor import manager as conductor_manager
+            from ironic.conductor import periodics as conductor_periodics
+            conductor_periodics.refresh_class_periodic_attributes(
+                conductor_manager.ConductorManager)
 
     def start(self):
         self._failure = None

@@ -37,6 +37,7 @@ from ironic.common.trait_based_networking import loader
 from ironic.common import utils as common_utils
 from ironic.conductor import allocations
 from ironic.conductor import notification_utils as notify_utils
+from ironic.conductor import periodics as conductor_periodics
 from ironic.conductor import task_manager
 from ironic.conductor import utils
 from ironic.conf import CONF
@@ -385,6 +386,7 @@ class BaseConductorManager(object):
             if obj and obj.__class__ not in periodic_task_classes:
                 for name, member in inspect.getmembers(obj):
                     if periodics.is_periodic(member):
+                        conductor_periodics.refresh_periodic_attributes(member)
                         LOG.debug('Found periodic task %(owner)s.%(member)s',
                                   {'owner': obj.__class__.__name__,
                                    'member': name})
