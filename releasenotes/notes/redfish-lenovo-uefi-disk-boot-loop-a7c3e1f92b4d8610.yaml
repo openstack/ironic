@@ -1,0 +1,10 @@
+---
+fixes:
+  - |
+    Fixes infinite boot loops on some Lenovo UEFI systems when using the
+    Redfish virtual media boot interface. After deployment, Ironic was still
+    setting the boot device to generic HDD via Redfish, which can bypass the
+    OS UEFI shim bootloader. The Redfish boot interface now skips setting
+    the disk boot device on Lenovo UEFI nodes during deployment, matching
+    the existing PXE and agent deploy behavior from
+    `bug 2053064 <https://bugs.launchpad.net/ironic/+bug/2053064>`_.
