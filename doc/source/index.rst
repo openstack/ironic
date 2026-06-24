@@ -33,6 +33,27 @@ Found a bug in one of our projects? Please see :doc:`/contributor/bugs`.
 
 Would like to engage with the community? See :doc:`/contributor/community`.
 
+Getting Started
+===============
+
+Not sure where to begin? Find the goal that best matches yours and start with the
+recommended guide.
+
+.. list-table::
+  :widths: 60, 40
+  :header-rows: 1
+
+  * - If your goal with ironic is:
+    - Start here:
+  * - Understand and evaluate ironic for my organization
+    - :doc:`Technical overview </install/get_started>`
+  * - Install ironic standalone for a small number of nodes
+    - :doc:`Standalone installation guide </install/standalone>`
+  * - Use Ansible to install and configure nodes
+    - `Bifrost documentation <https://docs.openstack.org/bifrost/latest/>`_
+  * - Use ironic with other OpenStack components
+    - :doc:`Integration with other OpenStack services </install/configure-integration>`
+
 Ironic Installation Guide
 =========================
 
