@@ -1333,6 +1333,14 @@ def _check_clean_steps(clean_steps):
     """
     _check_steps(clean_steps, 'clean', _STEPS_SCHEMA)
 
+    disallowed_steps = CONF.api.disallow_clean_steps
+    if disallowed_steps:
+        for step in clean_steps:
+            step_id = '%s.%s' % (step['interface'], step['step'])
+            if step_id in disallowed_steps:
+                raise exception.StepNotAllowed(step=step_id,
+                                               step_type='clean')
+
 
 def _check_deploy_steps(deploy_steps):
     """Ensure all necessary keys are present and correct in steps for deploy
@@ -1343,6 +1351,13 @@ def _check_deploy_steps(deploy_steps):
     """
     _check_steps(deploy_steps, 'deploy', _DEPLOY_STEPS_SCHEMA)
 
+    disallowed_steps = CONF.api.disallow_deploy_steps
+    if disallowed_steps:
+        for step in deploy_steps:
+            step_id = '%s.%s' % (step['interface'], step['step'])
+            if step_id in disallowed_steps:
+                raise exception.StepNotAllowed(step=step_id,
+                                               step_type='deploy')
 
 def _check_service_steps(service_steps):
     """Ensure all necessary keys are present and correct in steps for service
@@ -1353,6 +1368,13 @@ def _check_service_steps(service_steps):
     """
     _check_steps(service_steps, 'service', _STEPS_SCHEMA)
 
+    disallowed_steps = CONF.api.disallow_service_steps
+    if disallowed_steps:
+        for step in service_steps:
+            step_id = '%s.%s' % (step['interface'], step['step'])
+            if step_id in disallowed_steps:
+                raise exception.StepNotAllowed(step=step_id,
+                                               step_type='service')
 
 def _check_steps(steps, step_type, schema):
     """Ensure all necessary keys are present and correct in steps.
