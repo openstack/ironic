@@ -491,3 +491,53 @@ class TestRPCService(db_base.DbTestCase):
                         '__setstate__ should refresh _send_sensor_data after '
                         'prepare_command restores CONF')
         self.assertTrue(CONF.sensor_data.send_sensor_data)
+
+    @mock.patch('ironic.common.service.prepare_command', autospec=True)
+    def test_spawn_unpickle_refreshes_metrics_logger(self, mock_prepare):
+        """Spawn unpickle re-creates METRICS with the configured backend.
+
+        The module-level METRICS in ironic.conductor.manager is created at
+        import time. In spawn workers the import happens before config is
+        loaded, so METRICS defaults to NoopMetricLogger whose
+        get_metrics_data() raises MetricsNotSupported. __setstate__ must
+        reassign METRICS after prepare_command() restores CONF.
+        """
+        conf_dir = self.useFixture(fixtures.TempDir()).path
+        conf_path = os.path.join(conf_dir, 'ironic.conf')
+        with open(conf_path, 'w', encoding='utf-8') as conf_file:
+            conf_file.write(
+                '[DEFAULT]\n'
+                'host=localhost\n'
+                '\n'
+                '[metrics]\n'
+                'backend=collector\n')
+
+        argv = ['ironic-conductor', '--config-file', conf_path]
+
+        def _restore_conf_from_argv(restored_argv):
+            if restored_argv == argv:
+                CONF.set_override('backend', 'collector', group='metrics')
+
+        mock_prepare.side_effect = _restore_conf_from_argv
+
+        saved_argv = sys.argv[:]
+        self.addCleanup(setattr, sys, 'argv', saved_argv)
+        sys.argv = argv[:]
+        data = multiprocessing.reduction.ForkingPickler.dumps(self.rpc_svc)
+
+        manager_name = 'ironic.conductor.manager'
+        saved_module = sys.modules.pop(manager_name, None)
+        self.addCleanup(self._restore_conductor_manager_module, saved_module)
+
+        CONF.set_override('backend', 'noop', group='metrics')
+
+        pickle.loads(data)
+
+        mock_prepare.assert_called_once_with(argv)
+        from ironic.common import metrics_collector
+        from ironic.conductor import manager as mgr
+        self.assertIsInstance(
+            mgr.METRICS,
+            metrics_collector.DictCollectionMetricLogger,
+            '__setstate__ should refresh METRICS after '
+            'prepare_command restores CONF')

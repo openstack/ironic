@@ -77,9 +77,14 @@ class BaseRPCService(service.Service):
             common_service.prepare_command(argv)
             # ironic.conductor.manager may have been imported during unpickle
             # before prepare_command() (spawn bypasses the LP #1562258 guard
-            # in ironic.command.conductor); refresh lazy periodic flags.
+            # in ironic.command.conductor); refresh lazy periodic flags and
+            # the module-level METRICS logger so get_metrics_data() uses the
+            # configured backend instead of the default NoopMetricLogger.
+            from ironic.common import metrics_utils
             from ironic.conductor import manager as conductor_manager
             from ironic.conductor import periodics as conductor_periodics
+            conductor_manager.METRICS = metrics_utils.get_metrics_logger(
+                conductor_manager.__name__)
             conductor_periodics.refresh_class_periodic_attributes(
                 conductor_manager.ConductorManager)
 

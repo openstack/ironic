@@ -1,0 +1,20 @@
+---
+fixes:
+  - |
+    Fixes an issue where the conductor's internal metrics (written to
+    ``$(hostname)-ironic.metrics``) were not collected when
+    ``ironic-conductor`` ran under oslo.service's **spawn** worker model
+    with ``[metrics] backend = collector``.
+
+    The module-level ``METRICS`` logger in ``ironic.conductor.manager``
+    was created at import time before configuration was restored in the
+    spawned child process, defaulting to ``NoopMetricLogger``. Calls to
+    ``get_metrics_data()`` then raised ``MetricsNotSupported`` on every
+    sensor data collection cycle. The ``METRICS`` logger is now
+    re-created after ``prepare_command()`` restores configuration,
+    matching the configured backend.
+
+    Operators using ``ironic-prometheus-exporter`` should see the
+    conductor metrics file generated correctly alongside per-node
+    hardware metrics.
+
