@@ -115,6 +115,17 @@ class DbVolumeTargetTestCase(base.DbTestCase):
     def test_get_volume_targets_by_node_id_that_does_not_exist(self):
         self.assertEqual([], self.dbapi.get_volume_targets_by_node_id(99))
 
+    def test_get_volume_targets_by_node_id_with_invalid_project(self):
+        node1 = db_utils.create_test_node(owner='12345')
+        db_utils.create_test_volume_target(
+            uuid=uuidutils.generate_uuid(), node_id=node1.id)
+        node2 = db_utils.create_test_node(owner='54321')
+        db_utils.create_test_volume_target(
+            uuid=uuidutils.generate_uuid(), node_id=node2.id)
+        res = self.dbapi.get_volume_targets_by_node_id(node2.id,
+                                                       project='12345')
+        self.assertEqual(0, len(res))
+
     def test_get_volume_targets_by_volume_id(self):
         # Create two volume_targets. They'll have the same volume_id.
         uuids = self._create_list_of_volume_targets(2)

@@ -1113,12 +1113,16 @@ class Connection(api.Connection):
                                sort_key, sort_dir, query)
 
     def get_ports_by_shards(self, shards, limit=None, marker=None,
-                            sort_key=None, sort_dir=None, filters=None):
+                            sort_key=None, sort_dir=None,
+                            project=None, filters=None):
         shard_node_ids = sa.select(models.Node) \
             .where(models.Node.shard.in_(shards)) \
             .with_only_columns(models.Node.id)
         query = sa.select(models.Port) \
             .where(models.Port.node_id.in_(shard_node_ids))
+
+        if project:
+            query = add_port_filter_by_node_project(query, project)
         query = add_port_filter_description_contains(query, filters)
         return _paginate_query(
             models.Port, limit, marker, sort_key, sort_dir, query)
@@ -1781,7 +1785,7 @@ class Connection(api.Connection):
         query = sa.select(models.VolumeConnector).where(
             models.VolumeConnector.node_id == node_id)
         if project:
-            add_volume_conn_filter_by_node_project(query, project)
+            query = add_volume_conn_filter_by_node_project(query, project)
         return _paginate_query(models.VolumeConnector, limit, marker,
                                sort_key, sort_dir, query)
 
@@ -1872,7 +1876,7 @@ class Connection(api.Connection):
         query = sa.select(models.VolumeTarget).where(
             models.VolumeTarget.node_id == node_id)
         if project:
-            add_volume_target_filter_by_node_project(query, project)
+            query = add_volume_target_filter_by_node_project(query, project)
         return _paginate_query(models.VolumeTarget, limit, marker, sort_key,
                                sort_dir, query)
 
