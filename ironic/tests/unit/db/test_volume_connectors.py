@@ -94,6 +94,23 @@ class DbVolumeConnectorTestCase(base.DbTestCase):
         self.assertEqual(self.connector.type, res[0].type)
         self.assertEqual(self.connector.connector_id, res[0].connector_id)
 
+    def test_get_volume_connectors_by_node_id_with_invalid_project(self):
+        node1 = db_utils.create_test_node(owner='12345')
+        db_utils.create_test_volume_connector(
+                uuid=uuidutils.generate_uuid(),
+                node_id=node1.id,
+                type='iqn',
+                connector_id='iqn.test-%s' % 1)
+        node2 = db_utils.create_test_node(owner='54321')
+        db_utils.create_test_volume_connector(
+                uuid=uuidutils.generate_uuid(),
+                node_id=node2.id,
+                type='iqn',
+                connector_id='iqn.test-%s' % 2)
+        res = self.dbapi.get_volume_connectors_by_node_id(node2.id,
+                                                          project='12345')
+        self.assertEqual(0, len(res))
+
     def test_get_volume_connectors_by_node_id_that_does_not_exist(self):
         self.assertEqual([], self.dbapi.get_volume_connectors_by_node_id(99))
 

@@ -322,6 +322,7 @@ class Port(base.IronicObject, object_base.VersionedObjectDictCompat):
                                                  marker=marker,
                                                  sort_key=sort_key,
                                                  sort_dir=sort_dir,
+                                                 project=project,
                                                  filters=filters)
         return cls._from_db_object_list(context, db_ports)
 
