@@ -317,7 +317,8 @@ class Port(base.IronicObject, object_base.VersionedObjectDictCompat):
         db_ports = cls.dbapi.get_ports_by_shards(shards, limit=limit,
                                                  marker=marker,
                                                  sort_key=sort_key,
-                                                 sort_dir=sort_dir)
+                                                 sort_dir=sort_dir,
+                                                 project=project)
         return cls._from_db_object_list(context, db_ports)
 
     # NOTE(xek): We don't want to enable RPC on this call just yet. Remotable
