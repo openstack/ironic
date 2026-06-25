@@ -1413,6 +1413,37 @@ class RedfishVirtualMediaBootTestCase(db_base.DbTestCase):
         self.node.save()
         self._test_prepare_instance_local_boot()
 
+    @mock.patch.object(boot_mode_utils, 'configure_secure_boot_if_needed',
+                       autospec=True)
+    @mock.patch.object(boot_mode_utils, 'sync_boot_mode', autospec=True)
+    @mock.patch.object(redfish_boot, '_eject_vmedia', autospec=True)
+    @mock.patch.object(image_utils, 'cleanup_iso_image', autospec=True)
+    @mock.patch.object(redfish_boot, 'manager_utils', autospec=True)
+    @mock.patch.object(redfish_utils, 'get_system', autospec=True)
+    def test_prepare_instance_local_boot_lenovo_uefi(
+            self, mock_system, mock_manager_utils,
+            mock_cleanup_iso_image, mock__eject_vmedia, mock_sync_boot_mode,
+            mock_secure_boot):
+        props = self.node.properties
+        props['vendor'] = 'Lenovo'
+        props['capabilities'] = 'boot_mode:uefi'
+        self.node.properties = props
+        self.node.driver_internal_info = {'is_whole_disk_image': True}
+        self.node.save()
+
+        with task_manager.acquire(self.context, self.node.uuid,
+                                  shared=True) as task:
+            task.node.provision_state = states.DEPLOYING
+            task.driver.boot.prepare_instance(task)
+
+            mock_manager_utils.node_set_boot_device.assert_not_called()
+            mock_cleanup_iso_image.assert_called_once_with(task)
+            mock__eject_vmedia.assert_called_once_with(
+                task, mock_system.return_value.managers,
+                sushy.VIRTUAL_MEDIA_CD)
+            mock_sync_boot_mode.assert_called_once_with(task)
+            mock_secure_boot.assert_called_once_with(task)
+
     @mock.patch.object(boot_mode_utils, 'deconfigure_secure_boot_if_needed',
                        autospec=True)
     @mock.patch.object(redfish_boot, '_eject_vmedia', autospec=True)
@@ -3093,6 +3124,31 @@ class RedfishHTTPBootTestCase(db_base.DbTestCase):
         self.node.instance_info = instance_info
         self.node.save()
         self._test_prepare_instance_local_boot()
+
+    @mock.patch.object(boot_mode_utils, 'configure_secure_boot_if_needed',
+                       autospec=True)
+    @mock.patch.object(boot_mode_utils, 'sync_boot_mode', autospec=True)
+    @mock.patch.object(image_utils, 'cleanup_iso_image', autospec=True)
+    @mock.patch.object(redfish_boot, 'manager_utils', autospec=True)
+    def test_prepare_instance_local_boot_lenovo_uefi(
+            self, mock_manager_utils, mock_cleanup_iso_image,
+            mock_sync_boot_mode, mock_secure_boot):
+        props = self.node.properties
+        props['vendor'] = 'Lenovo'
+        props['capabilities'] = 'boot_mode:uefi'
+        self.node.properties = props
+        self.node.driver_internal_info = {'is_whole_disk_image': True}
+        self.node.save()
+
+        with task_manager.acquire(self.context, self.node.uuid,
+                                  shared=True) as task:
+            task.node.provision_state = states.DEPLOYING
+            task.driver.boot.prepare_instance(task)
+
+            mock_manager_utils.node_set_boot_device.assert_not_called()
+            mock_cleanup_iso_image.assert_called_once_with(task)
+            mock_sync_boot_mode.assert_called_once_with(task)
+            mock_secure_boot.assert_called_once_with(task)
 
     @mock.patch.object(boot_mode_utils, 'deconfigure_secure_boot_if_needed',
                        autospec=True)
