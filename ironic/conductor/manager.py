@@ -895,7 +895,8 @@ class ConductorManager(base_manager.BaseConductorManager):
                                    exception.InstanceDeployFailure,
                                    exception.InvalidStateRequested,
                                    exception.NodeProtected,
-                                   exception.ConcurrentActionLimit)
+                                   exception.ConcurrentActionLimit,
+                                   exception.StepNotAllowed)
     def do_node_deploy(self, context, node_id, rebuild=False,
                        configdrive=None, deploy_steps=None):
         """RPC method to initiate deployment to a node.
@@ -933,6 +934,12 @@ class ConductorManager(base_manager.BaseConductorManager):
         with task_manager.acquire(context, node_id, shared=False,
                                   purpose='node deployment') as task:
             deployments.validate_node(task, event=event)
+            # Check user-provided deploy steps against the disallow
+            # list before transitioning state so the node stays in
+            # its current state on rejection.
+            if deploy_steps:
+                conductor_steps.check_disallowed_steps(
+                    deploy_steps, 'deploy', raise_on_disallowed=True)
             deployments.start_deploy(task, self, configdrive, event=event,
                                      deploy_steps=deploy_steps)
 
@@ -1178,7 +1185,8 @@ class ConductorManager(base_manager.BaseConductorManager):
                                    exception.NodeInMaintenance,
                                    exception.NodeLocked,
                                    exception.NoFreeConductorWorker,
-                                   exception.ConcurrentActionLimit)
+                                   exception.ConcurrentActionLimit,
+                                   exception.StepNotAllowed)
     def do_node_clean(self, context, node_id, clean_steps,
                       disable_ramdisk=False):
         """RPC method to initiate manual cleaning.
@@ -1231,6 +1239,12 @@ class ConductorManager(base_manager.BaseConductorManager):
                          'failed: %(msg)s') %
                        {'node': node.uuid, 'msg': e})
                 raise exception.InvalidParameterValue(msg)
+
+            # Check user-provided clean steps against the disallow
+            # list before transitioning state so the node stays in
+            # its current state on rejection.
+            conductor_steps.check_disallowed_steps(
+                clean_steps, 'clean', raise_on_disallowed=True)
 
             try:
                 task.process_event(
@@ -3806,7 +3820,8 @@ class ConductorManager(base_manager.BaseConductorManager):
                                    exception.NodeInMaintenance,
                                    exception.NodeLocked,
                                    exception.NoFreeConductorWorker,
-                                   exception.ConcurrentActionLimit)
+                                   exception.ConcurrentActionLimit,
+                                   exception.StepNotAllowed)
     def do_node_service(self, context, node_id, service_steps,
                         disable_ramdisk=False):
         """RPC method to initiate node service.
@@ -3858,6 +3873,13 @@ class ConductorManager(base_manager.BaseConductorManager):
                          'failed: %(msg)s') %
                        {'node': node.uuid, 'msg': e})
                 raise exception.InvalidParameterValue(msg)
+
+            # Check user-provided service steps against the disallow
+            # list before transitioning state so the node stays in
+            # its current state on rejection.
+            conductor_steps.check_disallowed_steps(
+                service_steps, 'service', raise_on_disallowed=True)
+
             try:
                 task.process_event(
                     'service',
