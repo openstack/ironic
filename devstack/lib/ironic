@@ -376,10 +376,12 @@ if [[ -z "$IRONIC_DIB_RAMDISK_OPTIONS" ]]; then
     if [[ "$IRONIC_DIB_RAMDISK_OS" == "centos8" ]]; then
         IRONIC_DIB_RAMDISK_OS=centos
         IRONIC_DIB_RAMDISK_RELEASE=8-stream
-    fi
-    if [[ "$IRONIC_DIB_RAMDISK_OS" == "centos9" ]]; then
+    elif [[ "$IRONIC_DIB_RAMDISK_OS" == "centos9" ]]; then
         IRONIC_DIB_RAMDISK_OS=centos
         IRONIC_DIB_RAMDISK_RELEASE=9-stream
+    elif [[ "$IRONIC_DIB_RAMDISK_OS" == "centos10" ]]; then
+        IRONIC_DIB_RAMDISK_OS=centos
+        IRONIC_DIB_RAMDISK_RELEASE=10-stream
     fi
     IRONIC_DIB_RAMDISK_OPTIONS="$IRONIC_DIB_RAMDISK_OS"
 fi

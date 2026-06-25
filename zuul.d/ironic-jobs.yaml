@@ -888,7 +888,7 @@
         s-object: True
         s-proxy: True
       devstack_localrc:
-        IRONIC_DIB_RAMDISK_OS: centos9
+        IRONIC_DIB_RAMDISK_OS: centos10
         IRONIC_TEMPEST_WHOLE_DISK_IMAGE: True
         IRONIC_VM_EPHEMERAL_DISK: 0
         IRONIC_VM_INTERFACE_COUNT: 1
@@ -993,7 +993,7 @@
       tempest_test_regex: BaremetalSingleTenant
       devstack_localrc:
         IRONIC_AGENT_IMAGE_DOWNLOAD_SOURCE: http
-        IRONIC_DIB_RAMDISK_OS: centos9
+        IRONIC_DIB_RAMDISK_OS: centos10
         IPV6_ENABLED: True
         IRONIC_IP_VERSION: 6
         IRONIC_IPV6_ADDRESS_MODE: dhcpv6-stateful
@@ -1076,9 +1076,8 @@
         IRONIC_DIB_OPTIONS: centos simple-init
         IRONIC_BUILD_DEPLOY_RAMDISK: True
         IRONIC_BUILD_WHOLEDISK: True
-        IRONIC_DIB_RAMDISK_OS: centos9
+        IRONIC_DIB_RAMDISK_OS: centos10
         IRONIC_DIB_OS: centos9
-        IRONIC_DIB_RAMDISK_RELEASE: 9-stream
         IRONIC_DIB_RELEASE: 9-stream
         IRONIC_DEPLOY_DRIVER: redfish
         IRONIC_ENABLED_HARDWARE_TYPES: redfish
