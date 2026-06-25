@@ -270,7 +270,9 @@ The ``bootc`` deploy interface is designed to enable operators to deploy
 containers directly from a container image registry without intermediate
 conversion steps, such as creating custom disk images for modifications.
 This deployment interface utilizes the
-`bootc project <https://containers.github.io/bootc/>`_.
+`bootc project <https://containers.github.io/bootc/>`_. Usage context of
+this deployment interface is **not** intended for the traditional OpenStack
+integrated instance flow.
 
 Ultimately this enables a streamlined flow, where a user of the deployment
 interface *can* create updated containers rapidly and the deployment interface
@@ -301,6 +303,11 @@ partition separation.
    the ability of the ramdisk being able to download, launch, and
    run bootc to trigger the installation which also isolates most risk
    to the actual bootc process execution.
+
+.. NOTE::
+   Operators who are using Ironic in purely in an OpenStack integrated
+   context should likely consider disabling the ``bootc`` interface as
+   this interface does not leverage other OpenStack integrations.
 
 Features
 --------
