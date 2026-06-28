@@ -1,0 +1,8 @@
+---
+fixes:
+  - |
+    Fixes a security issue where user can list volume connectors, volume
+    targets and ports of nodes that they are not authorized to access. Volume
+    connectors and target could be listed when specifying the node ID and ports
+    could be listed by giving a valid shard. Related bug report
+    `bug 2150461 <https://bugs.launchpad.net/ironic/+bug/2150461>`_.

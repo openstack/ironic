@@ -22,10 +22,11 @@ from ironic.tests.unit.db import base
 from ironic.tests.unit.db import utils as db_utils
 
 
-def _create_test_port_with_shard(shard, address):
+def _create_test_port_with_shard(shard, address, owner='12345',
+                                 lessee='54321'):
     node = db_utils.create_test_node(
         uuid=uuidutils.generate_uuid(),
-        owner='12345', lessee='54321', shard=shard)
+        owner=owner, lessee=lessee, shard=shard)
     pg = db_utils.create_test_portgroup(
         name='pg-%s' % shard,
         uuid=uuidutils.generate_uuid(),
@@ -273,6 +274,13 @@ class DbPortTestCase(base.DbTestCase):
         # note(JayF): We do not query for shard3; ensure we don't get it.
         self.assertNotEqual('port-shard3', res[0].name)
         self.assertNotEqual('port-shard3', res[1].name)
+
+    def test_get_ports_by_shard_with_invalid_project(self):
+        _create_test_port_with_shard('shard1', 'aa:bb:cc:dd:ee:ff')
+        _create_test_port_with_shard('shard2', 'ff:ee:dd:cc:bb:aa',
+                                     owner='67890', lessee='09876')
+        res = self.dbapi.get_ports_by_shards(['shard2'], project='12345')
+        self.assertEqual(0, len(res))
 
     def test_destroy_port(self):
         self.dbapi.destroy_port(self.port.id)
