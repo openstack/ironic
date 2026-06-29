@@ -119,7 +119,8 @@ class Deployment(base.IronicObject, object_base.VersionedObjectDictCompat):
         node.instance_info = instance_info
         return node
 
-    @object_base.remotable_classmethod
+    @classmethod
+    @object_base.remotable
     def get_by_uuid(cls, context, uuid):
         """Find a deployment by its UUID.
 
@@ -133,7 +134,8 @@ class Deployment(base.IronicObject, object_base.VersionedObjectDictCompat):
         node = node_obj.Node.get_by_instance_uuid(context, uuid)
         return cls._from_node_object(context, node)
 
-    @object_base.remotable_classmethod
+    @classmethod
+    @object_base.remotable
     def get_by_node_uuid(cls, context, node_uuid):
         """Find a deployment based by its node's UUID.
 
@@ -147,7 +149,8 @@ class Deployment(base.IronicObject, object_base.VersionedObjectDictCompat):
         node = node_obj.Node.get_by_uuid(context, node_uuid)
         return cls._from_node_object(context, node)
 
-    @object_base.remotable_classmethod
+    @classmethod
+    @object_base.remotable
     def list(cls, context, filters=None, limit=None, marker=None,
              sort_key=None, sort_dir=None):
         """Return a list of Deployment objects.

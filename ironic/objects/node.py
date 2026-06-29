@@ -245,7 +245,8 @@ class Node(base.IronicObject, object_base.VersionedObjectDictCompat):
                 fields=['trait', 'version'])
             self.traits.obj_reset_changes()
 
-    @object_base.remotable_classmethod
+    @classmethod
+    @object_base.remotable
     def get(cls, context, node_id):
         """Find a node based on its id or uuid and return a Node object.
 
@@ -260,7 +261,8 @@ class Node(base.IronicObject, object_base.VersionedObjectDictCompat):
         else:
             raise exception.InvalidIdentity(identity=node_id)
 
-    @object_base.remotable_classmethod
+    @classmethod
+    @object_base.remotable
     def get_by_id(cls, context, node_id):
         """Find a node based on its integer ID and return a Node object.
 
@@ -273,7 +275,8 @@ class Node(base.IronicObject, object_base.VersionedObjectDictCompat):
         node = cls._from_db_object(context, cls(), db_node)
         return node
 
-    @object_base.remotable_classmethod
+    @classmethod
+    @object_base.remotable
     def get_by_uuid(cls, context, uuid):
         """Find a node based on UUID and return a Node object.
 
@@ -286,7 +289,8 @@ class Node(base.IronicObject, object_base.VersionedObjectDictCompat):
         node = cls._from_db_object(context, cls(), db_node)
         return node
 
-    @object_base.remotable_classmethod
+    @classmethod
+    @object_base.remotable
     def get_by_name(cls, context, name):
         """Find a node based on name and return a Node object.
 
@@ -299,7 +303,8 @@ class Node(base.IronicObject, object_base.VersionedObjectDictCompat):
         node = cls._from_db_object(context, cls(), db_node)
         return node
 
-    @object_base.remotable_classmethod
+    @classmethod
+    @object_base.remotable
     def get_by_instance_uuid(cls, context, instance_uuid):
         """Find a node based on the instance UUID and return a Node object.
 
@@ -312,7 +317,8 @@ class Node(base.IronicObject, object_base.VersionedObjectDictCompat):
         node = cls._from_db_object(context, cls(), db_node)
         return node
 
-    @object_base.remotable_classmethod
+    @classmethod
+    @object_base.remotable
     def list(cls, context, limit=None, marker=None, sort_key=None,
              sort_dir=None, filters=None, fields=None):
         """Return a list of Node objects.
@@ -508,7 +514,8 @@ class Node(base.IronicObject, object_base.VersionedObjectDictCompat):
         """Touch the database record to mark the provisioning as alive."""
         self.dbapi.touch_node_provisioning(self.id)
 
-    @object_base.remotable_classmethod
+    @classmethod
+    @object_base.remotable
     def get_by_port_addresses(cls, context, addresses):
         """Get a node by associated port addresses.
 

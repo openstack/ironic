@@ -153,7 +153,8 @@ class Portgroup(base.IronicObject, object_base.VersionedObjectDictCompat):
             'dynamic_portgroup', (1, 9), target_version,
             remove_unavailable_fields, False)
 
-    @object_base.remotable_classmethod
+    @classmethod
+    @object_base.remotable
     def get(cls, context, portgroup_ident):
         """Find a portgroup based on its id, uuid, name or address.
 
@@ -174,7 +175,8 @@ class Portgroup(base.IronicObject, object_base.VersionedObjectDictCompat):
         else:
             raise exception.InvalidIdentity(identity=portgroup_ident)
 
-    @object_base.remotable_classmethod
+    @classmethod
+    @object_base.remotable
     def get_by_id(cls, context, portgroup_id):
         """Find a portgroup by its integer ID and return a Portgroup object.
 
@@ -189,7 +191,8 @@ class Portgroup(base.IronicObject, object_base.VersionedObjectDictCompat):
         portgroup = cls._from_db_object(context, cls(), db_portgroup)
         return portgroup
 
-    @object_base.remotable_classmethod
+    @classmethod
+    @object_base.remotable
     def get_by_uuid(cls, context, uuid):
         """Find a portgroup by UUID and return a :class:`Portgroup` object.
 
@@ -204,7 +207,8 @@ class Portgroup(base.IronicObject, object_base.VersionedObjectDictCompat):
         portgroup = cls._from_db_object(context, cls(), db_portgroup)
         return portgroup
 
-    @object_base.remotable_classmethod
+    @classmethod
+    @object_base.remotable
     def get_by_address(cls, context, address, project=None):
         """Find portgroup by address and return a :class:`Portgroup` object.
 
@@ -221,7 +225,8 @@ class Portgroup(base.IronicObject, object_base.VersionedObjectDictCompat):
         portgroup = cls._from_db_object(context, cls(), db_portgroup)
         return portgroup
 
-    @object_base.remotable_classmethod
+    @classmethod
+    @object_base.remotable
     def get_by_name(cls, context, name):
         """Find portgroup based on name and return a :class:`Portgroup` object.
 
@@ -236,7 +241,8 @@ class Portgroup(base.IronicObject, object_base.VersionedObjectDictCompat):
         portgroup = cls._from_db_object(context, cls(), db_portgroup)
         return portgroup
 
-    @object_base.remotable_classmethod
+    @classmethod
+    @object_base.remotable
     def list(cls, context, limit=None, marker=None,
              sort_key=None, sort_dir=None, project=None,
              conductor_groups=None, filters=None):
@@ -266,7 +272,8 @@ class Portgroup(base.IronicObject, object_base.VersionedObjectDictCompat):
             conductor_groups=conductor_groups)
         return cls._from_db_object_list(context, db_portgroups)
 
-    @object_base.remotable_classmethod
+    @classmethod
+    @object_base.remotable
     def list_by_node_id(cls, context, node_id, limit=None, marker=None,
                         sort_key=None, sort_dir=None, project=None):
         """Return a list of Portgroup objects associated with a given node ID.

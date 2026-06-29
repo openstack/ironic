@@ -124,7 +124,8 @@ class Runbook(base.IronicObject, object_base.VersionedObjectDictCompat):
         self.dbapi.destroy_runbook(self.id)
         self.obj_reset_changes()
 
-    @object_base.remotable_classmethod
+    @classmethod
+    @object_base.remotable
     def get_by_id(cls, context, runbook_id):
         """Find a runbook based on its integer ID.
 
@@ -143,7 +144,8 @@ class Runbook(base.IronicObject, object_base.VersionedObjectDictCompat):
         template = cls._from_db_object(context, cls(), db_template)
         return template
 
-    @object_base.remotable_classmethod
+    @classmethod
+    @object_base.remotable
     def get_by_uuid(cls, context, uuid):
         """Find a runbook based on its UUID.
 
@@ -162,7 +164,8 @@ class Runbook(base.IronicObject, object_base.VersionedObjectDictCompat):
         template = cls._from_db_object(context, cls(), db_template)
         return template
 
-    @object_base.remotable_classmethod
+    @classmethod
+    @object_base.remotable
     def get_by_name(cls, context, name):
         """Find a runbook based on its name.
 
@@ -181,7 +184,8 @@ class Runbook(base.IronicObject, object_base.VersionedObjectDictCompat):
         template = cls._from_db_object(context, cls(), db_template)
         return template
 
-    @object_base.remotable_classmethod
+    @classmethod
+    @object_base.remotable
     def list(cls, context, limit=None, marker=None, sort_key=None,
              sort_dir=None, filters=None):
         """Return a list of Runbook objects.
@@ -205,7 +209,8 @@ class Runbook(base.IronicObject, object_base.VersionedObjectDictCompat):
                                                   filters=filters)
         return cls._from_db_object_list(context, db_templates)
 
-    @object_base.remotable_classmethod
+    @classmethod
+    @object_base.remotable
     def list_by_names(cls, context, names):
         """Return a list of Runbook objects matching a set of names.
 
@@ -271,7 +276,8 @@ class RunbookTrait(base.IronicObject):
             values['runbook_id'], values['trait'], values['version'])
         self._from_db_object(self._context, self, db_trait)
 
-    @object_base.remotable_classmethod
+    @classmethod
+    @object_base.remotable
     def destroy(cls, context, runbook_id, trait):
         """Delete the RunbookTrait from the DB.
 
@@ -287,7 +293,8 @@ class RunbookTrait(base.IronicObject):
         """
         cls.dbapi.delete_runbook_trait(runbook_id, trait)
 
-    @object_base.remotable_classmethod
+    @classmethod
+    @object_base.remotable
     def exists(cls, context, runbook_id, trait):
         """Check whether a RunbookTrait exists in the DB.
 
@@ -315,7 +322,8 @@ class RunbookTraitList(base.IronicObjectListBase, base.IronicObject):
         'objects': object_fields.ListOfObjectsField('RunbookTrait'),
     }
 
-    @object_base.remotable_classmethod
+    @classmethod
+    @object_base.remotable
     def get_by_runbook_id(cls, context, runbook_id):
         """Return all traits for the specified runbook.
 
@@ -331,7 +339,8 @@ class RunbookTraitList(base.IronicObjectListBase, base.IronicObject):
         return object_base.obj_make_list(
             context, cls(), RunbookTrait, db_traits)
 
-    @object_base.remotable_classmethod
+    @classmethod
+    @object_base.remotable
     def create(cls, context, runbook_id, traits):
         """Replace all existing traits with the specified list.
 
@@ -349,7 +358,8 @@ class RunbookTraitList(base.IronicObjectListBase, base.IronicObject):
         return object_base.obj_make_list(
             context, cls(), RunbookTrait, db_traits)
 
-    @object_base.remotable_classmethod
+    @classmethod
+    @object_base.remotable
     def destroy(cls, context, runbook_id):
         """Delete all traits for the specified runbook.
 
