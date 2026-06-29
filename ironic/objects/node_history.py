@@ -24,7 +24,8 @@ from ironic.objects import fields as object_fields
 class NodeHistory(base.IronicObject, object_base.VersionedObjectDictCompat):
     # Version 1.0: Initial version
     # Version 1.1: Relevant methods changed to be remotable methods.
-    VERSION = '1.1'
+    # Version 1.2: Added project field.
+    VERSION = '1.2'
 
     dbapi = dbapi.get_instance()
 
@@ -34,6 +35,7 @@ class NodeHistory(base.IronicObject, object_base.VersionedObjectDictCompat):
         'conductor': object_fields.StringField(nullable=True),
         'event': object_fields.StringField(nullable=True),
         'user': object_fields.StringField(nullable=True),
+        'project': object_fields.StringField(nullable=True),
         'node_id': object_fields.IntegerField(nullable=True),
         'event_type': object_fields.StringField(nullable=True),
         'severity': object_fields.StringField(nullable=True),

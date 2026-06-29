@@ -2156,7 +2156,7 @@ class NodeVIFController(rest.RestController, GetNodeAndTopicMixin):
 class NodeHistoryController(rest.RestController):
 
     detail_fields = ['uuid', 'created_at', 'severity', 'event_type',
-                     'event', 'conductor', 'user']
+                     'event', 'conductor', 'user', 'project']
 
     standard_fields = ['uuid', 'created_at', 'severity', 'event']
 
@@ -2177,6 +2177,10 @@ class NodeHistoryController(rest.RestController):
             event,
             link_resource='nodes',
             fields=fields)
+
+        if detail and not api_utils.allow_node_history_project():
+            event_entry.pop('project', None)
+
         if not detail:
             # The spec for this feature calls to truncate the event
             # field if not detailed, which makes sense in some environments

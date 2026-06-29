@@ -131,3 +131,12 @@ class TestNodeHistoryObject(db_base.DbTestCase, obj_utils.SchemasTestMixIn):
                 history.destroy()
 
                 mock_db_destroy.assert_called_once_with(uuid)
+
+    def test_list_with_project(self):
+        with mock.patch.object(self.dbapi, 'get_node_history_list',
+                               autospec=True) as mock_get_list:
+            self.fake_history['project'] = 'test-project'
+            mock_get_list.return_value = [self.fake_history]
+            history = objects.NodeHistory.list(
+                self.context, limit=4, sort_key='uuid', sort_dir='asc')
+            self.assertEqual('test-project', history[0].project)

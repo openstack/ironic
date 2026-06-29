@@ -1886,7 +1886,7 @@ def node_change_secure_boot(task, secure_boot_target):
 
 def node_history_record(node, conductor=None, event=None,
                         event_type=None, user=None,
-                        error=False):
+                        error=False, project=None):
     """Records a node history record
 
     Adds an entry to the node history table with the appropriate fields
@@ -1910,6 +1910,8 @@ def node_history_record(node, conductor=None, event=None,
                        occurred.
     :param user: The user_id value which triggered the request,
                  if available.
+    :param project: The project_id value which triggered the request,
+                    if available.
     :param error: Boolean value, default false, to signify if the event
                   is an error which should be recorded in the node
                   ``last_error`` field.
@@ -1934,6 +1936,7 @@ def node_history_record(node, conductor=None, event=None,
             node_id=node.id,
             conductor=CONF.host,
             user=user,
+            project=project,
             severity=error and "ERROR" or "INFO",
             event=event,
             event_type=event_type or "UNKNOWN").create()

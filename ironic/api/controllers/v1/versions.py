@@ -270,6 +270,7 @@ MINOR_111_DYNAMIC_PORTGROUP = 111
 #         validation, description field, and /v1/runbooks/{ident}/traits
 #         sub-resource.
 MINOR_112_RUNBOOK_TRAITS = 112
+MINOR_113_NODE_HISTORY_PROJECT = 113
 
 # When adding another version, update:
 # - MINOR_MAX_VERSION
@@ -279,7 +280,7 @@ MINOR_112_RUNBOOK_TRAITS = 112
 # - Add a comment describing the change above the list of consts
 
 
-MINOR_MAX_VERSION = MINOR_112_RUNBOOK_TRAITS
+MINOR_MAX_VERSION = MINOR_113_NODE_HISTORY_PROJECT
 
 # String representations of the minor and maximum versions
 _MIN_VERSION_STRING = '{}.{}'.format(BASE_VERSION, MINOR_1_INITIAL_VERSION)

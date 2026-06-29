@@ -9006,10 +9006,10 @@ class TestNodeHistory(test_api_base.BaseApiTest):
         self._add_history_entries()
         record = self.get_json('/nodes/%s/history/%s' % (self.node.uuid,
                                                          self.event1.uuid),
-                               headers={api_base.Version.string: self.version})
-        self.assertEqual(8, len(record))
+                               headers={api_base.Version.string: '1.113'})
+        self.assertEqual(9, len(record))
         expected_keys = ['created_at', 'links', 'event',
-                         'event_type', 'severity', 'user', 'uuid']
+                         'event_type', 'severity', 'user', 'uuid', 'project']
         for key in expected_keys:
             self.assertIn(key, record)
         self.assertNotIn('updated_at', record)
@@ -9017,6 +9017,14 @@ class TestNodeHistory(test_api_base.BaseApiTest):
         self.assertEqual('meow', record['event'])
         self.assertEqual('peaches', record['user'])
         self.assertEqual(self.event1.uuid, record['uuid'])
+
+    def test_get_history_item_no_project_old_version(self):
+        self._add_history_entries()
+        record = self.get_json('/nodes/%s/history/%s' % (self.node.uuid,
+                                                         self.event1.uuid),
+                               headers={api_base.Version.string: '1.78'})
+        self.assertEqual(8, len(record))
+        self.assertNotIn('project', record)
 
     def test_get_history_item_not_found(self):
         self._add_history_entries()
