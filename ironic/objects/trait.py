@@ -49,7 +49,8 @@ class Trait(base.IronicObject):
             values['node_id'], values['trait'], values['version'])
         self._from_db_object(self._context, self, db_trait)
 
-    @object_base.remotable_classmethod
+    @classmethod
+    @object_base.remotable
     def destroy(cls, context, node_id, trait):
         """Delete the Trait from the DB.
 
@@ -66,7 +67,8 @@ class Trait(base.IronicObject):
         """
         cls.dbapi.delete_node_trait(node_id, trait)
 
-    @object_base.remotable_classmethod
+    @classmethod
+    @object_base.remotable
     def exists(cls, context, node_id, trait):
         """Check whether a Trait exists in the DB.
 
@@ -97,7 +99,8 @@ class TraitList(base.IronicObjectListBase, base.IronicObject):
         'objects': object_fields.ListOfObjectsField('Trait'),
     }
 
-    @object_base.remotable_classmethod
+    @classmethod
+    @object_base.remotable
     def get_by_node_id(cls, context, node_id):
         """Return all traits for the specified node.
 
@@ -113,7 +116,8 @@ class TraitList(base.IronicObjectListBase, base.IronicObject):
         db_traits = cls.dbapi.get_node_traits_by_node_id(node_id)
         return object_base.obj_make_list(context, cls(), Trait, db_traits)
 
-    @object_base.remotable_classmethod
+    @classmethod
+    @object_base.remotable
     def create(cls, context, node_id, traits):
         """Replace all existing traits with the specified list.
 
@@ -133,7 +137,8 @@ class TraitList(base.IronicObjectListBase, base.IronicObject):
         db_traits = cls.dbapi.set_node_traits(node_id, traits, version)
         return object_base.obj_make_list(context, cls(), Trait, db_traits)
 
-    @object_base.remotable_classmethod
+    @classmethod
+    @object_base.remotable
     def destroy(cls, context, node_id):
         """Delete all traits for the specified node.
 

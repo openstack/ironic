@@ -46,7 +46,8 @@ class NodeInventory(base.IronicObject, object_base.VersionedObjectDictCompat):
         for src, dest in self.instance_info_mapping.items():
             setattr(self, dest, node.instance_info.get(src))
 
-    @object_base.remotable_classmethod
+    @classmethod
+    @object_base.remotable
     def get_by_node_id(cls, context, node_id):
         """Get a NodeInventory object by its node ID.
 

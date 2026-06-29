@@ -51,7 +51,8 @@ class Conductor(base.IronicObject, object_base.VersionedObjectDictCompat):
         'online': object_fields.BooleanField(),
     }
 
-    @object_base.remotable_classmethod
+    @classmethod
+    @object_base.remotable
     def list(cls, context, limit=None, marker=None, sort_key=None,
              sort_dir=None):
         """Return a list of Conductor objects.
@@ -70,7 +71,8 @@ class Conductor(base.IronicObject, object_base.VersionedObjectDictCompat):
                                                      sort_dir=sort_dir)
         return cls._from_db_object_list(context, db_conductors)
 
-    @object_base.remotable_classmethod
+    @classmethod
+    @object_base.remotable
     def get_by_hostname(cls, context, hostname, online=True):
         """Get a Conductor record by its hostname.
 
@@ -173,7 +175,8 @@ class Conductor(base.IronicObject, object_base.VersionedObjectDictCompat):
         """Unregister all hardware interfaces for this conductor."""
         self.dbapi.unregister_conductor_hardware_interfaces(self.id)
 
-    @base.remotable_classmethod
+    @classmethod
+    @base.remotable
     def get_active_hardware_type_dict(cls, context, use_groups=False):
         """Provides a hardware type list as it relates to the conductors.
 
@@ -187,7 +190,8 @@ class Conductor(base.IronicObject, object_base.VersionedObjectDictCompat):
         return dict(
             cls.dbapi.get_active_hardware_type_dict(use_groups=use_groups))
 
-    @base.remotable_classmethod
+    @classmethod
+    @base.remotable
     def list_hardware_type_interfaces_dict(cls, context, names):
         """Provides a list of hardware type interface names from conductors.
 
@@ -214,7 +218,8 @@ class Conductor(base.IronicObject, object_base.VersionedObjectDictCompat):
             resp.append(entry)
         return resp
 
-    @base.remotable_classmethod
+    @classmethod
+    @base.remotable
     def get_shard_list(cls, context):
         """Provides a shard list as it relates to conductors.
 

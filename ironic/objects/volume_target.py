@@ -43,7 +43,8 @@ class VolumeTarget(base.IronicObject,
         'extra': object_fields.FlexibleDictField(nullable=True),
     }
 
-    @object_base.remotable_classmethod
+    @classmethod
+    @object_base.remotable
     def get(cls, context, ident):
         """Find a volume target based on its ID or UUID.
 
@@ -62,7 +63,8 @@ class VolumeTarget(base.IronicObject,
         else:
             raise exception.InvalidIdentity(identity=ident)
 
-    @object_base.remotable_classmethod
+    @classmethod
+    @object_base.remotable
     def get_by_id(cls, context, db_id):
         """Find a volume target based on its database ID.
 
@@ -76,7 +78,8 @@ class VolumeTarget(base.IronicObject,
         target = cls._from_db_object(context, cls(), db_target)
         return target
 
-    @object_base.remotable_classmethod
+    @classmethod
+    @object_base.remotable
     def get_by_uuid(cls, context, uuid):
         """Find a volume target based on its UUID.
 
@@ -90,7 +93,8 @@ class VolumeTarget(base.IronicObject,
         target = cls._from_db_object(context, cls(), db_target)
         return target
 
-    @object_base.remotable_classmethod
+    @classmethod
+    @object_base.remotable
     def list(cls, context, limit=None, marker=None,
              sort_key=None, sort_dir=None, project=None):
         """Return a list of VolumeTarget objects.
@@ -112,7 +116,8 @@ class VolumeTarget(base.IronicObject,
                                                       project=project)
         return cls._from_db_object_list(context, db_targets)
 
-    @object_base.remotable_classmethod
+    @classmethod
+    @object_base.remotable
     def list_by_node_id(cls, context, node_id, limit=None, marker=None,
                         sort_key=None, sort_dir=None, project=None):
         """Return a list of VolumeTarget objects related to a given node ID.
@@ -137,7 +142,8 @@ class VolumeTarget(base.IronicObject,
             project=project)
         return cls._from_db_object_list(context, db_targets)
 
-    @object_base.remotable_classmethod
+    @classmethod
+    @object_base.remotable
     def list_by_volume_id(cls, context, volume_id, limit=None, marker=None,
                           sort_key=None, sort_dir=None, project=None):
         """Return a list of VolumeTarget objects related to a given volume ID.

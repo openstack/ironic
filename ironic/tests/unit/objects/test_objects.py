@@ -53,7 +53,8 @@ class MyObj(base.IronicObject, object_base.VersionedObjectDictCompat):
         else:
             setattr(self, attrname, 'loaded!')
 
-    @object_base.remotable_classmethod
+    @classmethod
+    @object_base.remotable
     def query(cls, context):
         obj = cls(context)
         obj.foo = 1
@@ -105,7 +106,8 @@ class MyObj2(object):
     def obj_name(cls):
         return 'MyObj'
 
-    @object_base.remotable_classmethod
+    @classmethod
+    @object_base.remotable
     def get(cls, *args, **kwargs):
         pass
 

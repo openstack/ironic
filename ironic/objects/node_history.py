@@ -41,7 +41,8 @@ class NodeHistory(base.IronicObject, object_base.VersionedObjectDictCompat):
         'severity': object_fields.StringField(nullable=True),
     }
 
-    @object_base.remotable_classmethod
+    @classmethod
+    @object_base.remotable
     def get(cls, context, history_ident):
         """Get a history based on its id or uuid.
 
@@ -58,7 +59,8 @@ class NodeHistory(base.IronicObject, object_base.VersionedObjectDictCompat):
         else:
             raise exception.InvalidIdentity(identity=history_ident)
 
-    @object_base.remotable_classmethod
+    @classmethod
+    @object_base.remotable
     def get_by_id(cls, context, history_id):
         """Get a NodeHistory object by its integer ID.
 
@@ -73,7 +75,8 @@ class NodeHistory(base.IronicObject, object_base.VersionedObjectDictCompat):
         history = cls._from_db_object(context, cls(), db_history)
         return history
 
-    @object_base.remotable_classmethod
+    @classmethod
+    @object_base.remotable
     def get_by_uuid(cls, context, uuid):
         """Get a NodeHistory object by its UUID.
 
@@ -88,7 +91,8 @@ class NodeHistory(base.IronicObject, object_base.VersionedObjectDictCompat):
         history = cls._from_db_object(context, cls(), db_history)
         return history
 
-    @object_base.remotable_classmethod
+    @classmethod
+    @object_base.remotable
     def list(cls, context, limit=None, marker=None, sort_key=None,
              sort_dir=None):
         """Return a list of NodeHistory objects.
@@ -109,7 +113,8 @@ class NodeHistory(base.IronicObject, object_base.VersionedObjectDictCompat):
                                                        sort_dir=sort_dir)
         return cls._from_db_object_list(context, db_histories)
 
-    @object_base.remotable_classmethod
+    @classmethod
+    @object_base.remotable
     def list_by_node_id(cls, context, node_id, limit=None, marker=None,
                         sort_key=None, sort_dir=None):
         """Return a list of NodeHistory objects belongs to a given node ID.

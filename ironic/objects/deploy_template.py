@@ -91,7 +91,8 @@ class DeployTemplate(base.IronicObject, object_base.VersionedObjectDictCompat):
         self.dbapi.destroy_deploy_template(self.id)
         self.obj_reset_changes()
 
-    @object_base.remotable_classmethod
+    @classmethod
+    @object_base.remotable
     def get_by_id(cls, context, template_id):
         """Find a deploy template based on its integer ID.
 
@@ -110,7 +111,8 @@ class DeployTemplate(base.IronicObject, object_base.VersionedObjectDictCompat):
         template = cls._from_db_object(context, cls(), db_template)
         return template
 
-    @object_base.remotable_classmethod
+    @classmethod
+    @object_base.remotable
     def get_by_uuid(cls, context, uuid):
         """Find a deploy template based on its UUID.
 
@@ -129,7 +131,8 @@ class DeployTemplate(base.IronicObject, object_base.VersionedObjectDictCompat):
         template = cls._from_db_object(context, cls(), db_template)
         return template
 
-    @object_base.remotable_classmethod
+    @classmethod
+    @object_base.remotable
     def get_by_name(cls, context, name):
         """Find a deploy template based on its name.
 
@@ -148,7 +151,8 @@ class DeployTemplate(base.IronicObject, object_base.VersionedObjectDictCompat):
         template = cls._from_db_object(context, cls(), db_template)
         return template
 
-    @object_base.remotable_classmethod
+    @classmethod
+    @object_base.remotable
     def list(cls, context, limit=None, marker=None, sort_key=None,
              sort_dir=None):
         """Return a list of DeployTemplate objects.
@@ -169,7 +173,8 @@ class DeployTemplate(base.IronicObject, object_base.VersionedObjectDictCompat):
             limit=limit, marker=marker, sort_key=sort_key, sort_dir=sort_dir)
         return cls._from_db_object_list(context, db_templates)
 
-    @object_base.remotable_classmethod
+    @classmethod
+    @object_base.remotable
     def list_by_names(cls, context, names):
         """Return a list of DeployTemplate objects matching a set of names.
 

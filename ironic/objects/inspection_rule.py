@@ -91,7 +91,8 @@ class InspectionRule(base.IronicObject, object_base.VersionedObjectDictCompat):
         self.dbapi.destroy_inspection_rule(self.id)
         self.obj_reset_changes()
 
-    @object_base.remotable_classmethod
+    @classmethod
+    @object_base.remotable
     def get_by_uuid(cls, context, uuid):
         """Find a inspection rule based on its UUID.
 
@@ -110,7 +111,8 @@ class InspectionRule(base.IronicObject, object_base.VersionedObjectDictCompat):
         rule = cls._from_db_object(context, cls(), db_rule)
         return rule
 
-    @object_base.remotable_classmethod
+    @classmethod
+    @object_base.remotable
     def list(cls, context, limit=None, marker=None, sort_key=None,
              sort_dir=None, filters=None):
         """Return a list of InspectionRule objects.

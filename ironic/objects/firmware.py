@@ -77,7 +77,8 @@ class FirmwareComponent(base.IronicObject):
             self.node_id, self.component, updates)
         self._from_db_object(self._context, self, up_fwcmp)
 
-    @object_base.remotable_classmethod
+    @classmethod
+    @object_base.remotable
     def get(cls, context, node_id, name):
         """Get a FirmwareComponent based on its node_id and name.
 
@@ -106,7 +107,8 @@ class FirmwareComponentList(base.IronicObjectListBase, base.IronicObject):
         'objects': object_fields.ListOfObjectsField('FirmwareComponent'),
     }
 
-    @object_base.remotable_classmethod
+    @classmethod
+    @object_base.remotable
     def get_by_node_id(cls, context, node_id):
         """Get FirmwareComponent based on node_id.
 

@@ -95,7 +95,8 @@ class BIOSSetting(base.IronicObject):
             values['node_id'], [settings], values['version'])
         self._from_db_object(self._context, self, updated_bios_setting[0])
 
-    @object_base.remotable_classmethod
+    @classmethod
+    @object_base.remotable
     def get(cls, context, node_id, name):
         """Get a BIOS Setting based on its node_id and name.
 
@@ -109,7 +110,8 @@ class BIOSSetting(base.IronicObject):
         db_bios_setting = cls.dbapi.get_bios_setting(node_id, name)
         return cls._from_db_object(context, cls(), db_bios_setting)
 
-    @object_base.remotable_classmethod
+    @classmethod
+    @object_base.remotable
     def delete(cls, context, node_id, name):
         """Delete a BIOS Setting based on its node_id and name.
 
@@ -163,7 +165,8 @@ class BIOSSettingList(base.IronicObjectListBase, base.IronicObject):
         'objects': object_fields.ListOfObjectsField('BIOSSetting'),
     }
 
-    @object_base.remotable_classmethod
+    @classmethod
+    @object_base.remotable
     def create(cls, context, node_id, settings):
         """Create a list of BIOS Setting records in DB.
 
@@ -186,7 +189,8 @@ class BIOSSettingList(base.IronicObjectListBase, base.IronicObject):
         return object_base.obj_make_list(
             context, cls(), BIOSSetting, db_setting_list)
 
-    @object_base.remotable_classmethod
+    @classmethod
+    @object_base.remotable
     def save(cls, context, node_id, settings):
         """Save a list of BIOS Setting updates in DB.
 
@@ -209,7 +213,8 @@ class BIOSSettingList(base.IronicObjectListBase, base.IronicObject):
         return object_base.obj_make_list(
             context, cls(), BIOSSetting, updated_setting_list)
 
-    @object_base.remotable_classmethod
+    @classmethod
+    @object_base.remotable
     def delete(cls, context, node_id, names):
         """Delete BIOS Settings based on node_id and names.
 
@@ -221,7 +226,8 @@ class BIOSSettingList(base.IronicObjectListBase, base.IronicObject):
         """
         cls.dbapi.delete_bios_setting_list(node_id, names)
 
-    @object_base.remotable_classmethod
+    @classmethod
+    @object_base.remotable
     def get_by_node_id(cls, context, node_id):
         """Get BIOS Setting based on node_id.
 
@@ -234,7 +240,8 @@ class BIOSSettingList(base.IronicObjectListBase, base.IronicObject):
         return object_base.obj_make_list(
             context, cls(), BIOSSetting, node_bios_setting)
 
-    @object_base.remotable_classmethod
+    @classmethod
+    @object_base.remotable
     def sync_node_setting(cls, context, node_id, settings):
         """Returns lists of create/update/delete/unchanged settings.
 

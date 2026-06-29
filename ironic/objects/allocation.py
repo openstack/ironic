@@ -81,7 +81,8 @@ class Allocation(base.IronicObject, object_base.VersionedObjectDictCompat):
                 # DB: set unavailable fields to their default.
                 self.owner = None
 
-    @object_base.remotable_classmethod
+    @classmethod
+    @object_base.remotable
     def get(cls, context, allocation_ident):
         """Find an allocation by its ID, UUID or name.
 
@@ -100,7 +101,8 @@ class Allocation(base.IronicObject, object_base.VersionedObjectDictCompat):
         else:
             raise exception.InvalidIdentity(identity=allocation_ident)
 
-    @object_base.remotable_classmethod
+    @classmethod
+    @object_base.remotable
     def get_by_id(cls, context, allocation_id):
         """Find an allocation by its integer ID.
 
@@ -115,7 +117,8 @@ class Allocation(base.IronicObject, object_base.VersionedObjectDictCompat):
         allocation = cls._from_db_object(context, cls(), db_allocation)
         return allocation
 
-    @object_base.remotable_classmethod
+    @classmethod
+    @object_base.remotable
     def get_by_uuid(cls, context, uuid):
         """Find an allocation by its UUID.
 
@@ -130,7 +133,8 @@ class Allocation(base.IronicObject, object_base.VersionedObjectDictCompat):
         allocation = cls._from_db_object(context, cls(), db_allocation)
         return allocation
 
-    @object_base.remotable_classmethod
+    @classmethod
+    @object_base.remotable
     def get_by_name(cls, context, name):
         """Find an allocation based by its name.
 
@@ -145,7 +149,8 @@ class Allocation(base.IronicObject, object_base.VersionedObjectDictCompat):
         allocation = cls._from_db_object(context, cls(), db_allocation)
         return allocation
 
-    @object_base.remotable_classmethod
+    @classmethod
+    @object_base.remotable
     def list(cls, context, filters=None, limit=None, marker=None,
              sort_key=None, sort_dir=None):
         """Return a list of Allocation objects.
@@ -242,7 +247,8 @@ class Allocation(base.IronicObject, object_base.VersionedObjectDictCompat):
         self.obj_refresh(current)
         self.obj_reset_changes()
 
-    @base.remotable_classmethod
+    @classmethod
+    @base.remotable
     def check_node_list(cls, context, candidate_nodes, project):
         """Provides a pass-through to the database for allocation node lists.
 

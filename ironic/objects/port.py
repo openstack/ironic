@@ -182,7 +182,8 @@ class Port(base.IronicObject, object_base.VersionedObjectDictCompat):
             'available_for_dynamic_portgroup', (1, 16), target_version,
             remove_unavailable_fields, True)
 
-    @object_base.remotable_classmethod
+    @classmethod
+    @object_base.remotable
     def get(cls, context, port_id):
         """Find a port.
 
@@ -206,7 +207,8 @@ class Port(base.IronicObject, object_base.VersionedObjectDictCompat):
         else:
             raise exception.InvalidIdentity(identity=port_id)
 
-    @object_base.remotable_classmethod
+    @classmethod
+    @object_base.remotable
     def get_by_id(cls, context, port_id):
         """Find a port based on its integer ID and return a Port object.
 
@@ -221,7 +223,8 @@ class Port(base.IronicObject, object_base.VersionedObjectDictCompat):
         port = cls._from_db_object(context, cls(), db_port)
         return port
 
-    @object_base.remotable_classmethod
+    @classmethod
+    @object_base.remotable
     def get_by_uuid(cls, context, uuid):
         """Find a port based on UUID and return a :class:`Port` object.
 
@@ -236,7 +239,8 @@ class Port(base.IronicObject, object_base.VersionedObjectDictCompat):
         port = cls._from_db_object(context, cls(), db_port)
         return port
 
-    @object_base.remotable_classmethod
+    @classmethod
+    @object_base.remotable
     def get_by_address(cls, context, address, owner=None, project=None):
         """Find a port based on address and return a :class:`Port` object.
 
@@ -255,7 +259,8 @@ class Port(base.IronicObject, object_base.VersionedObjectDictCompat):
         port = cls._from_db_object(context, cls(), db_port)
         return port
 
-    @object_base.remotable_classmethod
+    @classmethod
+    @object_base.remotable
     def get_by_name(cls, context, name):
         """Find a port based on name and return a :class:`Port` object.
 
@@ -270,7 +275,8 @@ class Port(base.IronicObject, object_base.VersionedObjectDictCompat):
         port = cls._from_db_object(context, cls(), db_port)
         return port
 
-    @object_base.remotable_classmethod
+    @classmethod
+    @object_base.remotable
     def list(cls, context, limit=None, marker=None, sort_key=None,
              sort_dir=None, owner=None, project=None, conductor_groups=None,
              filters=None):
@@ -326,7 +332,8 @@ class Port(base.IronicObject, object_base.VersionedObjectDictCompat):
                                                  filters=filters)
         return cls._from_db_object_list(context, db_ports)
 
-    @object_base.remotable_classmethod
+    @classmethod
+    @object_base.remotable
     def list_by_node_id(cls, context, node_id, limit=None, marker=None,
                         sort_key=None, sort_dir=None, owner=None,
                         project=None, filters=None):
@@ -354,7 +361,8 @@ class Port(base.IronicObject, object_base.VersionedObjectDictCompat):
                                                   filters=filters)
         return cls._from_db_object_list(context, db_ports)
 
-    @object_base.remotable_classmethod
+    @classmethod
+    @object_base.remotable
     def list_by_portgroup_id(cls, context, portgroup_id, limit=None,
                              marker=None, sort_key=None, sort_dir=None,
                              owner=None, project=None, filters=None):

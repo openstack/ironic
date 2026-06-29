@@ -43,7 +43,8 @@ class Chassis(base.IronicObject, object_base.VersionedObjectDictCompat):
         'description': object_fields.StringField(nullable=True),
     }
 
-    @object_base.remotable_classmethod
+    @classmethod
+    @object_base.remotable
     def get(cls, context, chassis_id):
         """Find a chassis based on its id or uuid and return a Chassis object.
 
@@ -58,7 +59,8 @@ class Chassis(base.IronicObject, object_base.VersionedObjectDictCompat):
         else:
             raise exception.InvalidIdentity(identity=chassis_id)
 
-    @object_base.remotable_classmethod
+    @classmethod
+    @object_base.remotable
     def get_by_id(cls, context, chassis_id):
         """Find a chassis based on its integer ID and return a Chassis object.
 
@@ -71,7 +73,8 @@ class Chassis(base.IronicObject, object_base.VersionedObjectDictCompat):
         chassis = cls._from_db_object(context, cls(), db_chassis)
         return chassis
 
-    @object_base.remotable_classmethod
+    @classmethod
+    @object_base.remotable
     def get_by_uuid(cls, context, uuid):
         """Find a chassis based on UUID and return a :class:`Chassis` object.
 
@@ -84,7 +87,8 @@ class Chassis(base.IronicObject, object_base.VersionedObjectDictCompat):
         chassis = cls._from_db_object(context, cls(), db_chassis)
         return chassis
 
-    @object_base.remotable_classmethod
+    @classmethod
+    @object_base.remotable
     def list(cls, context, limit=None, marker=None,
              sort_key=None, sort_dir=None):
         """Return a list of Chassis objects.
