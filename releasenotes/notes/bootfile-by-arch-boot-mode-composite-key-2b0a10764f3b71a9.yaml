@@ -1,0 +1,13 @@
+---
+fixes:
+  - |
+    The ``[pxe]pxe_bootfile_name_by_arch`` and
+    ``[pxe]ipxe_bootfile_name_by_arch`` options now support composite keys
+    in the format ``arch-boot_mode`` (e.g. ``x86_64-bios:undionly.kpxe``,
+    ``x86_64-uefi:snponly.efi``). The composite key is tried first, then
+    the arch-only key as a fallback, preserving backward compatibility.
+    Previously it was not possible to specify different boot files for the
+    same architecture in different boot modes (e.g. x86_64 in both UEFI
+    and BIOS), because the boot mode check was skipped when a by-arch
+    entry matched.
+    Fixes `bug 2157027 <https://bugs.launchpad.net/ironic/+bug/2157027>`_.
