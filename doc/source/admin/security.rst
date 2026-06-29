@@ -90,9 +90,11 @@ endpoint.
 Multi-tenancy
 =============
 
-There are two aspects of multitenancy to consider when evaluating a deployment
-of the Bare Metal Service: interactions between tenants on the network, and
-actions one tenant can take on a machine that will affect the next tenant.
+There are three aspects of multitenancy to consider when evaluating a
+deployment of the Bare Metal Service: interactions between tenants on the
+network, actions one tenant can take on a machine that will affect the next
+tenant, and the API-level access granted to projects through a node's
+``owner`` and ``lessee`` fields.
 
 Network Interactions
 --------------------
@@ -120,6 +122,34 @@ BIOS or reflash firmware or peripheral devices. This can be addressed through
 customizing the utility ramdisk used during the "cleaning" phase. See details in
 the `Firmware security`_ section.
 
+Access Delegation: Owners and Lessees
+-------------------------------------
+
+A node may be exposed to a project through the node's ``owner`` or
+``lessee`` field, and the two fields imply very different levels of trust.
+
+An owning project is a delegated administrator of the node. With the
+default policies, every user holding the ``member`` role in an owning
+project can update the node's BMC address and credentials, access its
+serial console, run arbitrary cleaning and service steps, and lease the
+node to other projects. In many environments, the owning project may
+also have physical access to the machines. A node owner should be
+treated as trusted infrastructure staff, and Ironic does not fully
+isolate the nodes of one owner from the nodes of another owner.
+
+A lessee project is a user of the hardware, in many environments a
+completely untrusted customer, and receives far more limited access by
+default.
+
+.. warning::
+   Access through these fields is granted to *every* user holding the
+   relevant role in the project. Avoid setting a project with broad
+   membership as a node's ``owner``; a dedicated project with strictly
+   limited membership is highly advisable.
+
+See the :ref:`trust model description <secure-rbac-trust-model>` in
+:doc:`/admin/secure-rbac` for full details, and
+:doc:`/admin/node-multitenancy` for configuring multi-tenant access.
 
 Firmware security
 =================

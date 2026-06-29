@@ -26,3 +26,34 @@ which indicate the user is in a user within a project.
 In older versions of Ironic, this functionality had to be manually configured
 and then set via custom policies, but now it is automatically available
 in modern versions of Ironic.
+
+Trust Model
+===========
+
+The ``owner`` and ``lessee`` fields imply very different levels of trust:
+
+* An ``owner`` project is a delegated administrator of the hardware. With
+  the default policies, its users holding the ``member`` role can, among
+  other things, update the node's BMC address and credentials, access the
+  serial console, run arbitrary cleaning and service steps, and lease the
+  node to other projects. In many environments, the owning project may
+  also have physical access to the nodes, and Ironic does not fully
+  isolate the nodes of one owner from the nodes of another owner.
+
+* A ``lessee`` project is a user of the hardware, and may be a completely
+  untrusted customer. The ``lessee`` field may also be populated
+  automatically and non-interactively when a node is deployed, as
+  controlled by :oslo.config:option:`conductor.automatic_lessee_source`.
+  The default policies largely limit lessees to using the node, rather
+  than administering it (lessee ``admin`` users can still reprovision it
+  and run cleaning and service steps), and prevent them from viewing
+  sensitive node fields.
+
+.. warning::
+   Setting a project as a node's ``owner`` grants elevated access to
+   *all* members of that project. It is highly advisable to use a
+   dedicated project with strictly limited membership to own nodes.
+
+See the :ref:`trust model description <secure-rbac-trust-model>` in
+:doc:`/admin/secure-rbac` for details of exactly what access each field
+grants with the default policies.
