@@ -2,7 +2,7 @@
 REST API Version History
 ========================
 
-1.113 (Gazpacho)
+1.113 (Hibiscus)
 ----------------
 
 Add ``project`` field to node history detail response. Clients
