@@ -209,6 +209,7 @@ ISO stored in Glance via the ``boot_iso_id`` property:
       openstack image create my-ramdisk-image --public \
         --disk-format raw --container-format bare \
         --property boot_iso_id=$MY_BOOT_ISO_UUID \
+        --property ironic_ramdisk_deploy=True \
         --file /tmp/placeholder
 
 #. Boot a Nova instance as above:
