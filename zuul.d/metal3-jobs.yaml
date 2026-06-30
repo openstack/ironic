@@ -2,7 +2,7 @@
 - job:
     name: metal3-base
     abstract: true
-    description: Base job for metal3-dev-env based ironic jobs.
+    description: Base job for metal3 based ironic jobs.
     nodeset: ironic-single-node-noble
     timeout: 5400
     required-projects:
@@ -24,6 +24,7 @@
     name: metal3-integration
     description: Run metal3 CI on ironic.
     parent: metal3-base
+    timeout: 7200
     run: playbooks/metal3-ci/run.yaml
     post-run: playbooks/metal3-ci/post.yaml
 
@@ -44,21 +45,31 @@
     pre-run: playbooks/irso-ci/pre.yaml
     run: playbooks/irso-ci/run.yaml
     post-run: playbooks/irso-ci/post.yaml
-    timeout: 7200
-    nodeset: ironic-single-node-noble
     required-projects:
-      - opendev.org/openstack/ironic
-      # FIXME(dtantsur): add these to zuul config and stop cloning manually
-      # - github.com/metal3-io/ironic-image
-      # - github.com/metal3-io/ironic-standalone-operator
+      - name: github.com/metal3-io/ironic-image
+        # NOTE(dtantsur): to run this job on stable or bugfix branches, update
+        # the overridden checkout with the corresponding ironic-image branch
+        # once it's created and set ironic_custom_version as described below.
+        # Example: release-35.0
+        override-checkout: main
+      - name: github.com/metal3-io/ironic-standalone-operator
+        # NOTE(dtantsur): IrSO is compatible with the 3 latest Ironic releases.
+        # Update this pin once the IrSO branch is created (a few days or a week
+        # after an ironic-image release) to avoid issues down the road.
+        # Example: release-0.9
+        override-checkout: main
     vars:
-      ironic_image_source: "{{ ansible_user_dir }}/ironic-image"
-      irso_source: "{{ ansible_user_dir }}/ironic-standalone-operator"
+      # NOTE(dtantsur): this version field tells IrSO which features to expect
+      # from Ironic and thus what to test. Update this field once the
+      # corresponding version of ironic-image is released and IrSO is updated
+      # to support it. Using old values may require pinning IrSO branch.
+      # Example: 35.0
+      ironic_custom_version: latest
 
 - job:
     name: metal3-baremetal-operator-functional
     description: |
-      BareMetal Operator (BMO) functional tests tests.
+      BareMetal Operator (BMO) functional tests.
 
       These tests set up a Kind cluster with virtual bare metal hosts using
       libvirt, deploy Ironic and BMO, and run the BMO e2e test suite.
@@ -69,13 +80,23 @@
     pre-run: playbooks/bmo-ci/pre.yaml
     run: playbooks/bmo-ci/run.yaml
     post-run: playbooks/bmo-ci/post.yaml
-    timeout: 7200
-    nodeset: ironic-single-node-noble
     required-projects:
-      - opendev.org/openstack/ironic
-      # FIXME(dtantsur): add these to zuul config and stop cloning manually
-      # - github.com/metal3-io/ironic-image
-      # - github.com/metal3-io/baremetal-operator
+      - name: github.com/metal3-io/ironic-image
+        # NOTE(dtantsur): to run this job on stable or bugfix branches, update
+        # the overridden checkout with the corresponding ironic-image branch
+        # once it's created and set ironic_custom_version as described above.
+        # Example: release-35.0
+        override-checkout: main
+      - name: github.com/metal3-io/baremetal-operator
+        # NOTE(dtantsur): BMO is normally compatible with a wide range of
+        # Ironic versions, but the tests may assume newer functionality.
+        # Additionally, BMO's CI scripts bundle a specific version of IrSO, and
+        # that version may become incompatible with older versions of Ironic.
+        # It's recommended to pin this checkout eventually on older branches.
+        # Example: release-0.12
+        override-checkout: main
     vars:
-      ironic_image_source: "{{ ansible_user_dir }}/ironic-image"
-      bmo_source: "{{ ansible_user_dir }}/baremetal-operator"
+      # NOTE(dtantsur): this version field tells IrSO which features to expect
+      # from Ironic and thus what to test. See the IrSO job definition for
+      # information on how and when to update it.
+      ironic_custom_version: latest

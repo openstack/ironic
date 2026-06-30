@@ -2,13 +2,14 @@
 - name: IrSO Functional Tests
   hosts: all
   vars:
+    ironic_image_source: "{{ ansible_user_dir }}/{{ zuul.projects['github.com/metal3-io/ironic-image'].src_dir }}"
+    irso_source: "{{ ansible_user_dir }}/{{ zuul.projects['github.com/metal3-io/ironic-standalone-operator'].src_dir }}"
     local_install_path: /usr/local
     logdir: "{{ ansible_user_dir }}/metal3-logs"
   environment:
     CLUSTER_TYPE: minikube
     CONTAINER_RUNTIME: docker
-    IRONIC_CUSTOM_IMAGE: localhost/ironic:test
-    IRONIC_CUSTOM_VERSION: latest
+    IRONIC_CUSTOM_VERSION: "{{ ironic_custom_version }}"
     IRONIC_SOURCE: "{{ ansible_user_dir }}/{{ zuul.projects['opendev.org/openstack/ironic'].src_dir }}"
     LOGDIR: "{{ logdir }}"
     PATH: "{{ local_install_path }}/go/bin:{{ local_install_path }}/bin:{{ ansible_env.PATH }}"

@@ -2,11 +2,12 @@
 - name: BMO Functional Tests - Preparation
   hosts: all
   vars:
+    bmo_source: "{{ ansible_user_dir }}/{{ zuul.projects['github.com/metal3-io/baremetal-operator'].src_dir }}"
     local_install_path: /usr/local
     junit2html_venv: "{{ ansible_user_dir }}/venv"
     logdir: "{{ ansible_user_dir }}/metal3-logs"
-    bmo_branch: main
-    ironic_image_branch: main
+    # Values hardcoded in BMO tests configuration
+    redfish_emulator_address: 192.168.222.1
     redfish_emulator_port: 8000
   environment:
     PATH: "{{ local_install_path }}/bin:{{ ansible_env.PATH }}"
@@ -70,43 +71,22 @@
         path: "{{ logdir }}"
         state: directory
 
-    - name: Checkout ironic-image
-      git:
-        repo: "https://github.com/metal3-io/ironic-image.git"
-        dest: "{{ ironic_image_source }}"
-        version: "{{ ironic_image_branch }}"
-        force: yes
-
-    - name: Checkout baremetal-operator
-      git:
-        repo: "https://github.com/metal3-io/baremetal-operator.git"
-        dest: "{{ bmo_source }}"
-        version: "{{ bmo_branch }}"
-        force: yes
-
-    - name: Download and install yq
-      get_url:
-        url: https://github.com/mikefarah/yq/releases/download/v4.53.2/yq_linux_amd64
-        mode: '0755'
-        dest: "{{ local_install_path }}/bin/yq"
-      become: yes
-
-    - name: Get sushy-tools IP address
-      command: yq '.spec.networks[0].address' '{{ bmo_source }}/test/e2e/config/vbmctl.yaml'
-      register: redfish_emulator_address
-
-    - name: Get sushy-tools bridge name
-      command: yq '.spec.networks[0].bridge' '{{ bmo_source }}/test/e2e/config/vbmctl.yaml'
-      register: redfish_emulator_bridge
-
     - name: Enable access to sushy-tools in iptables
       iptables:
         chain: INPUT
         protocol: tcp
-        destination: "{{ redfish_emulator_address.stdout | trim }}"
+        destination: "{{ redfish_emulator_address }}"
         destination_port: "{{ redfish_emulator_port }}"
-        in_interface: "{{ redfish_emulator_bridge.stdout | trim }}"
         jump: ACCEPT
         action: insert
         rule_num: 1
       become: yes
+
+    - name: Copy cached Cirros images
+      synchronize:
+        src: "/opt/cache/files/"
+        dest: "{{ bmo_source }}/test/e2e/images/"
+        rsync_opts:
+          - '--include=cirros-*-disk.img'
+          - '--exclude=*'
+      delegate_to: "{{ inventory_hostname }}"

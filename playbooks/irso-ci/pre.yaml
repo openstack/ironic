@@ -2,6 +2,7 @@
 - name: IrSO Functional Tests - Preparation
   hosts: all
   vars:
+    irso_source: "{{ ansible_user_dir }}/{{ zuul.projects['github.com/metal3-io/ironic-standalone-operator'].src_dir }}"
     local_install_path: /usr/local
     junit2html_venv: "{{ ansible_user_dir }}/venv"
     kubectl_version: "1.33.4"
@@ -50,17 +51,6 @@
       file:
         path: "{{ logdir }}"
         state: directory
-
-    - name: Checkout Metal3 repositories
-      git:
-        repo: "https://github.com/metal3-io/{{ item.name }}.git"
-        dest: "{{ item.path }}"
-        force: yes
-      loop:
-        - name: ironic-image
-          path: "{{ ironic_image_source }}"
-        - name: ironic-standalone-operator
-          path: "{{ irso_source }}"
 
     - name: Calculate go version
       shell: make -sC "{{ irso_source }}" go-version 2> /dev/null | tail -n1
