@@ -1868,6 +1868,9 @@ class RedfishVirtualMediaBootTestCase(db_base.DbTestCase):
     @mock.patch.object(redfish_boot, '_has_vmedia_via_systems', autospec=True)
     @mock.patch.object(redfish_utils, 'get_system', autospec=True)
     def test__insert_vmedia_already_inserted(self, mock_sys, mock_vmd_sys):
+        # A stale "inserted" state reporting the same (UUID-derived) image URL
+        # must not be trusted: eject and re-insert so the node never boots
+        # with nothing mounted.
         with task_manager.acquire(self.context, self.node.uuid,
                                   shared=True) as task:
             mock_vmd_sys.return_value = False
@@ -1883,7 +1886,39 @@ class RedfishVirtualMediaBootTestCase(db_base.DbTestCase):
             redfish_boot._insert_vmedia(
                 task, [mock_manager], 'img-url', sushy.VIRTUAL_MEDIA_CD)
 
-            self.assertFalse(mock_vmedia_cd.insert_media.call_count)
+            self.assertEqual(1, mock_vmedia_cd.eject_media.call_count)
+            mock_vmedia_cd.insert_media.assert_called_once_with(
+                'img-url', inserted=True, write_protected=True)
+
+    def test__insert_vmedia_ejects_all_slots(self):
+        with task_manager.acquire(self.context, self.node.uuid,
+                                  shared=True) as task:
+            task.driver.boot._get_acceptable_media_id = mock.MagicMock(
+                return_value=None)
+
+            mock_vmedia_free = mock.MagicMock(
+                identity='1',
+                inserted=False,
+                media_types=[sushy.VIRTUAL_MEDIA_CD])
+            mock_vmedia_stale = mock.MagicMock(
+                identity='2',
+                inserted=True,
+                image='other-url',
+                media_types=[sushy.VIRTUAL_MEDIA_CD])
+
+            mock_resource = mock.MagicMock()
+            mock_resource.virtual_media.get_members.return_value = [
+                mock_vmedia_free, mock_vmedia_stale]
+
+            result = redfish_boot._insert_vmedia_in_resource(
+                task, mock_resource, 'img-url', sushy.VIRTUAL_MEDIA_CD, [])
+
+            self.assertTrue(result)
+            # The occupied slot is ejected even though we insert elsewhere.
+            self.assertEqual(1, mock_vmedia_stale.eject_media.call_count)
+            mock_vmedia_free.insert_media.assert_called_once_with(
+                'img-url', inserted=True, write_protected=True)
+            mock_vmedia_stale.insert_media.assert_not_called()
 
     @mock.patch('time.sleep', lambda *args, **kwargs: None)
     @mock.patch.object(redfish_boot, '_has_vmedia_via_systems', autospec=True)
@@ -3237,6 +3272,9 @@ class RedfishVirtualMediaBootViaSystemTestCase(db_base.DbTestCase):
     @mock.patch.object(redfish_boot, '_has_vmedia_via_systems', autospec=True)
     @mock.patch.object(redfish_utils, 'get_system', autospec=True)
     def test__insert_vmedia_already_inserted(self, mock_sys, mock_vmd_sys):
+        # A stale "inserted" state reporting the same (UUID-derived) image URL
+        # must not be trusted: eject and re-insert so the node never boots
+        # with nothing mounted.
         with task_manager.acquire(self.context, self.node.uuid,
                                   shared=True) as task:
             mock_vmd_sys.return_value = False
@@ -3252,7 +3290,9 @@ class RedfishVirtualMediaBootViaSystemTestCase(db_base.DbTestCase):
             redfish_boot._insert_vmedia(
                 task, [mock_manager], 'img-url', sushy.VIRTUAL_MEDIA_CD)
 
-            self.assertFalse(mock_vmedia_cd.insert_media.call_count)
+            self.assertEqual(1, mock_vmedia_cd.eject_media.call_count)
+            mock_vmedia_cd.insert_media.assert_called_once_with(
+                'img-url', inserted=True, write_protected=True)
 
     @mock.patch('time.sleep', lambda *args, **kwargs: None)
     @mock.patch.object(redfish_boot, '_has_vmedia_via_systems', autospec=True)

@@ -1,0 +1,12 @@
+---
+fixes:
+  - |
+    Fixes an intermittent failure of ``redfish-virtual-media`` based boot
+    (used during inspection, cleaning and deployment) where the node could
+    power on with no ISO actually mounted, leading to a timeout with no
+    useful error. Some BMCs continue to report virtual media as still
+    ``Inserted`` for a short window after a successful eject, and because the
+    boot ISO URL is derived from the node UUID, the previously inserted URL
+    matched the one about to be inserted, so the insert was skipped. Ironic
+    now ejects any virtual media already present before inserting, instead of
+    trusting the reported state.

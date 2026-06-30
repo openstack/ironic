@@ -368,6 +368,20 @@ def _insert_vmedia_in_resource(task, resource, boot_url, boot_device,
                     task.driver.boot.__class__.__name__)
         acceptable_id = None
 
+    # NOTE(cid): some BMCs (observed on Dell iDRAC) keep reporting media as
+    # inserted for a short window after a successful eject. Since the ISO URL
+    # is derived from the node UUID, that stale URL matches the one we are
+    # about to insert, so trusting it would skip the insert and the node would
+    # boot with nothing mounted. Eject any media from every usable slot of
+    # this device type and re-insert into the first slot; the retry below
+    # (story 2008504) covers an eject still in progress edge case.
+    try:
+        _eject_vmedia_from_resource(task, resource, boot_device)
+    except sushy.exceptions.SushyError as exc:
+        # Best effort; the insert below surfaces/retries real errors.
+        LOG.debug("Failed to eject existing boot media for node %(node)s: "
+                  "%(exc)s", {'node': task.node.uuid, 'exc': exc})
+
     for v_media in resource.virtual_media.get_members():
         # Skip virtual media if the ID is not in the acceptable set
         if acceptable_id is not None and v_media.identity != acceptable_id:
@@ -397,17 +411,6 @@ def _insert_vmedia_in_resource(task, resource, boot_url, boot_device,
                            'available_device': sushy.VIRTUAL_MEDIA_DVD})
             else:
                 continue
-
-        if v_media.inserted:
-            if v_media.image == boot_url:
-                LOG.debug("Boot media %(boot_url)s is already "
-                          "inserted into %(boot_device)s for node "
-                          "%(node)s", {'node': task.node.uuid,
-                                       'boot_url': boot_url,
-                                       'boot_device': boot_device})
-                return True
-
-            continue
 
         try:
             kwargs = dict(inserted=True, write_protected=True)
