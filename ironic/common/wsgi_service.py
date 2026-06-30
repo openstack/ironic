@@ -73,8 +73,8 @@ class BaseWSGIService(service.ServiceBase):
             server_name=name)
 
         if use_ssl:
-            cert_file = getattr(conf, "cert_file", None)
-            key_file = getattr(conf, "key_file", None)
+            cert_file = conf.cert_file
+            key_file = conf.key_file
 
             if not (cert_file and key_file):
                 LOG.warning(
