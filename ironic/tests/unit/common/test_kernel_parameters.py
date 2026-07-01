@@ -295,3 +295,42 @@ class KernelParametersTestCase(base.TestCase):
         result = kp.KernelCommandLine.parse(command_line)
         self.assertEqual('quiet', list(result.parameters.keys())[0])
         self.assertEqual('ro', list(result.parameters.keys())[1])
+
+    @data(
+        annotate(
+            'just unstructured_params',
+            kp.UnsafeKernelCommandLine(
+                parameters={},
+                unstructured_params=[
+                    'quiet',
+                    'ro'
+                ],
+                init_args=''
+            ),
+            'quiet ro',
+        ),
+        annotate(
+            'a mix of params, unstructured, and init args',
+            kp.UnsafeKernelCommandLine(
+                parameters={
+                    'root': [kp.KernelParameter(
+                        kp.ParameterKey('root'),
+                        kp.ParameterValue('UUID=217c8a40-4956-11f1'
+                                          '-9c98-d8bbc1c85452')
+                    )]
+                },
+                unstructured_params=[
+                    'quiet ro'
+                ],
+                init_args='some_init_args'
+            ),
+            ('root=UUID=217c8a40-4956-11f1-9c98-d8bbc1c85452 quiet ro'
+             ' -- some_init_args'),
+        ),
+    )
+    @unpack
+    def test_unsafe_kernel_command_line__str__(
+            self,
+            unsafe_cmd_line_obj: kp.UnsafeKernelCommandLine,
+            expected_str: str):
+        self.assertEqual(expected_str, str(unsafe_cmd_line_obj))
