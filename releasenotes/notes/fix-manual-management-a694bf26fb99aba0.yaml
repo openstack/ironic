@@ -1,0 +1,8 @@
+---
+fixes:
+  - |
+    It is documented as being able to use the 'noop' deploy interface with the
+    manual-management hardware type and used as an example in the documentation.
+    However the manual-management hardware type did not report that it supported
+    'noop' so it was not possible to do this operation so fix the code to allow
+    it.
