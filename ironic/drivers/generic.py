@@ -110,6 +110,12 @@ class ManualManagementHardware(GenericHardware):
     """
 
     @property
+    def supported_deploy_interfaces(self):
+        """List of supported deploy interfaces."""
+        return (super().supported_deploy_interfaces
+                + [noop.NoDeploy])
+
+    @property
     def supported_management_interfaces(self):
         """List of supported management interfaces."""
         return [noop_mgmt.NoopManagement, fake.FakeManagement]
