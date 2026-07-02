@@ -73,7 +73,9 @@ def _attach_interfaces_to_driver(bare_driver, node, hw_type):
         setattr(bare_driver, iface, impl)
 
 
-def get_interface(hw_type, interface_type, interface_name):
+def get_interface(hw_type,
+                  interface_type,
+                  interface_name) -> driver_base.BaseInterface:
     """Get interface implementation instance.
 
     For hardware types also validates compatibility.
