@@ -418,7 +418,7 @@ class TestAnsibleMethods(AnsibleDeployTestCaseBase):
                               "mem_req": 3000,
                               "disk_format": "qcow2",
                               "checksum": "md5:checksum",
-                              "tls_minimum_version": "1.2",
+                              "tls_minimum_version": "1.3",
                               "whatever": "hello"}}
         with task_manager.acquire(self.context, self.node.uuid) as task:
             self.assertEqual(expected,
@@ -434,7 +434,7 @@ class TestAnsibleMethods(AnsibleDeployTestCaseBase):
                               "source": "fake-image",
                               "disk_format": "qcow2",
                               "checksum": "md5:checksum",
-                              "tls_minimum_version": "1.2"},
+                              "tls_minimum_version": "1.3"},
                     "root_device_hints": {"wwn": "fake-wwn"}}
         with task_manager.acquire(self.context, self.node.uuid) as task:
             self.assertEqual(expected,
@@ -451,13 +451,13 @@ class TestAnsibleMethods(AnsibleDeployTestCaseBase):
                               "source": "fake-image",
                               "disk_format": "qcow2",
                               "checksum": "sha256:checksum",
-                              "tls_minimum_version": "1.2"}}
+                              "tls_minimum_version": "1.3"}}
         with task_manager.acquire(self.context, self.node.uuid) as task:
             self.assertEqual(expected,
                              ansible_deploy._prepare_variables(task))
 
     def test__prepare_variables_tls_minimum_version(self):
-        self.config(webserver_tls_minimum_version='1.3')
+        self.config(webserver_tls_minimum_version='1.2')
         i_info = self.node.instance_info
         i_info['image_checksum'] = 'sha256:checksum'
         self.node.instance_info = i_info
@@ -465,7 +465,7 @@ class TestAnsibleMethods(AnsibleDeployTestCaseBase):
         with task_manager.acquire(self.context,
                                   self.node.uuid) as task:
             result = ansible_deploy._prepare_variables(task)
-        self.assertEqual('1.3',
+        self.assertEqual('1.2',
                          result['image']['tls_minimum_version'])
 
     def test__prepare_variables_tls_ciphers(self):
@@ -503,7 +503,7 @@ class TestAnsibleMethods(AnsibleDeployTestCaseBase):
         with task_manager.acquire(self.context,
                                   self.node.uuid) as task:
             result = ansible_deploy._prepare_variables(task)
-        self.assertEqual('1.2',
+        self.assertEqual('1.3',
                          result['image']['tls_minimum_version'])
         self.assertNotIn('tls_ciphers',
                          result['image'])
@@ -518,7 +518,7 @@ class TestAnsibleMethods(AnsibleDeployTestCaseBase):
                               "source": "fake-image",
                               "disk_format": "qcow2",
                               "checksum": "md5:checksum",
-                              "tls_minimum_version": "1.2"},
+                              "tls_minimum_version": "1.3"},
                     'configdrive': {'type': 'url',
                                     'location': 'http://configdrive_url'}}
         with task_manager.acquire(self.context, self.node.uuid) as task:
@@ -538,7 +538,7 @@ class TestAnsibleMethods(AnsibleDeployTestCaseBase):
                               "source": "fake-image",
                               "disk_format": "qcow2",
                               "checksum": "md5:checksum",
-                              "tls_minimum_version": "1.2"},
+                              "tls_minimum_version": "1.3"},
                     'configdrive': {'type': 'file',
                                     'location': configdrive_path}}
         with mock.patch.object(ansible_deploy, 'open', mock.mock_open(),
@@ -568,7 +568,7 @@ class TestAnsibleMethods(AnsibleDeployTestCaseBase):
                               "source": "fake-image",
                               "disk_format": "qcow2",
                               "checksum": "md5:checksum",
-                              "tls_minimum_version": "1.2"},
+                              "tls_minimum_version": "1.3"},
                     'configdrive': {'type': 'file',
                                     'location': configdrive_path}}
         with mock.patch.object(ansible_deploy, 'open', mock.mock_open(),

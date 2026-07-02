@@ -50,7 +50,7 @@ opts = [
                help=_("Private key file matching cert_file.")),
     cfg.StrOpt(
         'tls_minimum_version',
-        default='1.2',
+        default='1.3',
         choices=[
             ('1.2',
              _('Require TLS 1.2 as the minimum version.')),
@@ -63,7 +63,7 @@ opts = [
         help=_("Set the minimum TLS protocol version for "
                "the JSON-RPC server when "
                "[json_rpc]use_ssl is True. Defaults to "
-               "TLS 1.2 since TLS 1.0 and 1.1 are "
+               "TLS 1.3 since TLS 1.0 and 1.1 are "
                "deprecated (RFC 8996).")),
     cfg.StrOpt(
         'tls_ciphers',

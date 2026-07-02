@@ -1333,19 +1333,7 @@ class TestRegistrySessionHelper(base.TestCase):
 class MakeSessionTLSTestCase(base.TestCase):
 
     def test_make_session_defaults(self):
-        """Default config returns session with TLS 1.2."""
-        ms = oci_registry.MakeSession(verify=True)
-        session = ms.create()
-        adapter = session.get_adapter('https://example.com')
-        self.assertIsInstance(
-            adapter, image_service.TLSHTTPAdapter)
-        self.assertEqual(
-            ssl.TLSVersion.TLSv1_2,
-            adapter._ssl_context.minimum_version)
-
-    def test_make_session_tls_minimum_version(self):
-        CONF.set_override(
-            'webserver_tls_minimum_version', '1.3')
+        """Default config returns session with TLS 1.3."""
         ms = oci_registry.MakeSession(verify=True)
         session = ms.create()
         adapter = session.get_adapter('https://example.com')

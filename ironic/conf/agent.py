@@ -176,7 +176,7 @@ opts = [
                       'passed to the ramdisk.')),
     cfg.StrOpt(
         'tls_minimum_version',
-        default='1.2',
+        default='1.3',
         choices=[
             ('1.2',
              _('Require TLS 1.2 as the minimum version.')),
@@ -189,7 +189,7 @@ opts = [
         help=_("Set the minimum TLS protocol version for "
                "outbound HTTPS connections from the "
                "conductor to the ironic-python-agent. "
-               "Defaults to TLS 1.2 since TLS 1.0 and "
+               "Defaults to TLS 1.3 since TLS 1.0 and "
                "1.1 are deprecated (RFC 8996). "
                "Note: the agent must support the configured "
                "minimum version for connections to "

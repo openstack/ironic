@@ -445,9 +445,9 @@ class TestServiceTLS(TestCase):
             private_key='/path/to/key',
             ciphers='ECDHE+AESGCM'
         )
-        # Default TLS 1.2 minimum is still applied
+        # Default TLS 1.3 minimum is still applied
         self.assertEqual(
-            ssl.TLSVersion.TLSv1_2,
+            ssl.TLSVersion.TLSv1_3,
             mock_context.minimum_version
         )
 
@@ -516,7 +516,7 @@ class TestServiceTLS(TestCase):
                        'BuiltinSSLAdapter', autospec=True)
     def test_json_rpc_tls_defaults_with_ssl(
             self, mock_ssl_adapter, mock_validate):
-        """Default TLS 1.2 minimum is applied with SSL on."""
+        """Default TLS 1.3 minimum is applied with SSL on."""
         self.config(use_ssl=True, group='json_rpc')
         self.config(cert_file='/path/to/cert',
                     group='json_rpc')
@@ -535,9 +535,9 @@ class TestServiceTLS(TestCase):
             private_key='/path/to/key',
             ciphers=None
         )
-        # Default TLS 1.2 minimum is always applied
+        # Default TLS 1.3 minimum is always applied
         self.assertEqual(
-            ssl.TLSVersion.TLSv1_2,
+            ssl.TLSVersion.TLSv1_3,
             mock_context.minimum_version
         )
 
