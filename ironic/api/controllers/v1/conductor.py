@@ -17,7 +17,10 @@ from pecan import rest
 from ironic import api
 from ironic.api.controllers.v1 import collection
 from ironic.api.controllers.v1 import utils as api_utils
+from ironic.api.controllers.v1 import versions
 from ironic.api import method
+from ironic.api.schemas.v1 import conductor as schema
+from ironic.api import validation
 from ironic.common import args
 from ironic.common import exception
 from ironic.common.i18n import _
@@ -103,9 +106,12 @@ class ConductorsController(rest.RestController):
 
     @METRICS.timer('ConductorsController.get_all')
     @method.expose()
+    @validation.api_version(min_version=versions.MINOR_49_CONDUCTORS)
     @args.validate(marker=args.host_port, limit=args.integer,
                    sort_key=args.string, sort_dir=args.string,
                    fields=args.string_list, detail=args.boolean)
+    @validation.request_query_schema(schema.index_request_query)
+    @validation.response_body_schema(schema.index_response_body)
     def get_all(self, marker=None, limit=None, sort_key='id', sort_dir='asc',
                 fields=None, detail=None):
         """Retrieve a list of conductors.
@@ -140,7 +146,11 @@ class ConductorsController(rest.RestController):
 
     @METRICS.timer('ConductorsController.get_one')
     @method.expose()
+    @validation.api_version(min_version=versions.MINOR_49_CONDUCTORS)
     @args.validate(hostname=args.host_port, fields=args.string_list)
+    @validation.request_parameter_schema(schema.show_request_parameter)
+    @validation.request_query_schema(schema.show_request_query)
+    @validation.response_body_schema(schema.show_response_body)
     def get_one(self, hostname, fields=None):
         """Retrieve information about the given conductor.
 
