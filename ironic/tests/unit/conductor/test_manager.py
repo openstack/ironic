@@ -8777,6 +8777,62 @@ class DoNodeAdoptionTestCase(mgr_utils.ServiceSetUpMixin, db_base.DbTestCase):
         mock_spawn.assert_called_with(self.service,
                                       self.service._do_adoption, mock.ANY)
 
+    @mock.patch('ironic.drivers.modules.fake.FakeDeploy.switch_interface',
+                autospec=True)
+    @mock.patch('ironic.drivers.modules.fake.FakeDeploy.take_over',
+                autospec=True)
+    @mock.patch('ironic.drivers.modules.fake.FakeDeploy.prepare',
+                autospec=True)
+    def test__do_adoption_calls_switch_interface(self,
+                                                 mock_prepare,
+                                                 mock_take_over,
+                                                 mock_switch):
+        """Test that adoption calls switch_interface before takeover."""
+        self._start_service()
+        node = obj_utils.create_test_node(
+            self.context, driver='fake-hardware',
+            provision_state=states.ADOPTING)
+        task = task_manager.TaskManager(self.context, node.uuid)
+
+        self.service._do_adoption(task)
+        node.refresh()
+
+        self.assertEqual(states.ACTIVE, node.provision_state)
+        mock_switch.assert_called_once_with(task.driver.deploy, task)
+        mock_prepare.assert_called_once_with(task.driver.deploy, task)
+        mock_take_over.assert_called_once_with(task.driver.deploy, task)
+
+    @mock.patch('ironic.drivers.modules.fake.FakeDeploy.restore_interface',
+                autospec=True)
+    @mock.patch('ironic.drivers.modules.fake.FakeDeploy.switch_interface',
+                autospec=True)
+    @mock.patch('ironic.drivers.modules.fake.FakeDeploy.take_over',
+                autospec=True)
+    @mock.patch('ironic.drivers.modules.fake.FakeDeploy.prepare',
+                autospec=True)
+    def test__do_adoption_failure_calls_restore_interface(self,
+                                                          mock_prepare,
+                                                          mock_take_over,
+                                                          mock_switch,
+                                                          mock_restore):
+        """Test that failed adoption calls restore_interface."""
+        mock_take_over.side_effect = exception.IPMIFailure(
+            "something went wrong")
+
+        self._start_service()
+        node = obj_utils.create_test_node(
+            self.context, driver='fake-hardware',
+            provision_state=states.ADOPTING,
+            power_state=states.POWER_ON)
+        task = task_manager.TaskManager(self.context, node.uuid)
+
+        self.service._do_adoption(task)
+        node.refresh()
+
+        self.assertEqual(states.ADOPTFAIL, node.provision_state)
+        mock_switch.assert_called_once_with(task.driver.deploy, task)
+        mock_restore.assert_called_once_with(task.driver.deploy, task)
+
     def test_do_provisioning_action_manage_of_failed_adoption(self):
         """Test a node in ADOPTFAIL can be taken to MANAGEABLE"""
         node = obj_utils.create_test_node(
