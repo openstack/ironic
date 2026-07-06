@@ -21,6 +21,7 @@ CLI References
 - `Ironic CLI <https://docs.openstack.org/python-ironicclient/latest/cli/>`_
 - :doc:`ironic-dbsync </cli/ironic-dbsync>`
 - `ironic-status <https://docs.openstack.org/ironic/latest/cli/ironic-status.html>`_
+- :doc:`ironic-manage </cli/ironic-manage>`
 
 Trait Based Networking Reference
 --------------------------------
