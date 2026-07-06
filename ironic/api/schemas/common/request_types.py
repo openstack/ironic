@@ -21,6 +21,8 @@ uuid = {'type': 'string', 'format': 'uuid'}
 
 uuid_or_name = {'anyOf': [uuid, name]}
 
+mac_address = {'type': 'string', 'format': 'mac-address'}
+
 detail = {
     'type': ['string', 'boolean'],
     'format': '(?i)^(1|t|true|on|y|yes|0|f|false|off|n|no)$',

@@ -238,14 +238,14 @@ class AllocationsController(pecan.rest.RestController):
 
     @METRICS.timer('AllocationsController.get_all')
     @method.expose()
-    # TODO(stephenfin): We are currently using this for side-effects to e.g.
-    # convert a CSV string to an array or a string to an integer. We should
-    # probably rename this decorator or provide a separate, simpler decorator.
-    @args.validate(limit=args.integer, fields=args.string_list)
     @validation.api_version(
         min_version=versions.MINOR_52_ALLOCATION,
         message=_('The API version does not allow allocations'),
     )
+    # TODO(stephenfin): We are currently using this for side-effects to e.g.
+    # convert a CSV string to an array or a string to an integer. We should
+    # probably rename this decorator or provide a separate, simpler decorator.
+    @args.validate(limit=args.integer, fields=args.string_list)
     @validation.request_query_schema(schema.index_request_query, None, 59)
     @validation.request_query_schema(schema.index_request_query_v60, 60)
     @validation.response_body_schema(schema.index_response_body, None, 59)

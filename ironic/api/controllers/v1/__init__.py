@@ -191,7 +191,6 @@ class Controller(object):
 
     @pecan.expose()
     def _lookup(self, primary_key, *remainder):
-
         controller = self._subcontroller_map.get(primary_key)
         if not controller:
             pecan.abort(http_client.NOT_FOUND)

@@ -21,7 +21,10 @@ from ironic.api.controllers.v1 import collection
 from ironic.api.controllers.v1 import notification_utils as notify
 from ironic.api.controllers.v1 import port
 from ironic.api.controllers.v1 import utils as api_utils
+from ironic.api.controllers.v1 import versions
 from ironic.api import method
+from ironic.api.schemas.v1 import portgroup as schema
+from ironic.api import validation
 from ironic.common import args
 from ironic.common import exception
 from ironic.common.i18n import _
@@ -177,8 +180,6 @@ class PortgroupsController(pecan.rest.RestController):
 
     @pecan.expose()
     def _lookup(self, ident, *remainder):
-        if not api_utils.allow_portgroups():
-            pecan.abort(http_client.NOT_FOUND)
         try:
             ident = args.uuid_or_name('portgroup', ident)
         except exception.InvalidParameterValue as e:
@@ -296,11 +297,17 @@ class PortgroupsController(pecan.rest.RestController):
 
     @METRICS.timer('PortgroupsController.get_all')
     @method.expose()
-    @args.validate(node=args.uuid_or_name, address=args.mac_address,
-                   marker=args.uuid, limit=args.integer, sort_key=args.string,
-                   sort_dir=args.string, fields=args.string_list,
-                   detail=args.boolean, shard=args.string_list,
-                   conductor_groups=args.string_list)
+    @validation.api_version(min_version=versions.MINOR_23_PORTGROUPS)
+    # TODO(stephenfin): We are currently using this for side-effects to e.g.
+    # convert a CSV string to an array or a string to an integer. We should
+    # probably rename this decorator or provide a separate, simpler decorator.
+    @args.validate(
+        limit=args.integer, fields=args.string_list, detail=args.boolean,
+        shard=args.string_list, conductor_groups=args.string_list
+    )
+    @validation.request_query_schema(schema.index_request_query, 23, 25)
+    @validation.request_query_schema(schema.index_request_query_v26, 26)
+    @validation.response_body_schema(schema.index_response_body)
     def get_all(self, node=None, address=None, marker=None,
                 limit=None, sort_key='id', sort_dir='asc', fields=None,
                 detail=None, shard=None, conductor_groups=None):
@@ -324,9 +331,6 @@ class PortgroupsController(pecan.rest.RestController):
                       be returned.
         :param conductor_groups: conductor groups, to filter the request by.
         """
-        if not api_utils.allow_portgroups():
-            raise exception.NotFound()
-
         if self.parent_node_ident:
             # Override the node, since this is being called by another
             # controller with a linked view.
@@ -336,6 +340,8 @@ class PortgroupsController(pecan.rest.RestController):
             portgroup=True,
             parent_node=self.parent_node_ident)
 
+        # TODO(stephenfin): Remove this check once we are able to tighten up
+        # the JSON Schema schema
         api_utils.check_allow_portgroup_filter_by_shard(shard)
         api_utils.check_allowed_portgroup_fields(fields)
         api_utils.check_allowed_portgroup_fields([sort_key])
@@ -353,10 +359,14 @@ class PortgroupsController(pecan.rest.RestController):
 
     @METRICS.timer('PortgroupsController.detail')
     @method.expose()
-    @args.validate(node=args.uuid_or_name, address=args.mac_address,
-                   marker=args.uuid, limit=args.integer, sort_key=args.string,
-                   sort_dir=args.string, shard=args.string_list,
+    @validation.api_version(min_version=versions.MINOR_23_PORTGROUPS)
+    # TODO(stephenfin): We are currently using this for side-effects to e.g.
+    # convert a CSV string to an array or a string to an integer. We should
+    # probably rename this decorator or provide a separate, simpler decorator.
+    @args.validate(limit=args.integer, shard=args.string_list,
                    conductor_groups=args.string_list)
+    @validation.request_query_schema(schema.index_request_query)
+    @validation.response_body_schema(schema.index_response_body)
     def detail(self, node=None, address=None, marker=None,
                limit=None, sort_key='id', sort_dir='asc',
                shard=None, conductor_groups=None):
@@ -378,9 +388,6 @@ class PortgroupsController(pecan.rest.RestController):
                       be returned.
         :param conductor_groups: conductor groups, to filter the request by.
         """
-        if not api_utils.allow_portgroups():
-            raise exception.NotFound()
-
         if self.parent_node_ident:
             # If we have a parent node, then we need to override this method's
             # node filter.
@@ -405,7 +412,15 @@ class PortgroupsController(pecan.rest.RestController):
 
     @METRICS.timer('PortgroupsController.get_one')
     @method.expose()
-    @args.validate(portgroup_ident=args.uuid_or_name, fields=args.string_list)
+    @validation.api_version(min_version=versions.MINOR_23_PORTGROUPS)
+    # TODO(stephenfin): We are currently using this for side-effects to e.g.
+    # convert a CSV string to an array or a string to an integer. We should
+    # probably rename this decorator or provide a separate, simpler decorator.
+    @args.validate(fields=args.string_list)
+    @validation.request_parameter_schema(schema.show_request_parameter)
+    @validation.request_query_schema(schema.show_request_query, None, 25)
+    @validation.request_query_schema(schema.show_request_query_v26, 26)
+    @validation.response_body_schema(schema.show_response_body)
     def get_one(self, portgroup_ident, fields=None):
         """Retrieve information about the given portgroup.
 
@@ -413,9 +428,6 @@ class PortgroupsController(pecan.rest.RestController):
         :param fields: Optional, a list with a specified set of fields
                        of the resource to be returned.
         """
-        if not api_utils.allow_portgroups():
-            raise exception.NotFound()
-
         rpc_portgroup, rpc_node = api_utils.check_port_policy_and_retrieve(
             'baremetal:portgroup:get', portgroup_ident, portgroup=True)
 
@@ -431,15 +443,15 @@ class PortgroupsController(pecan.rest.RestController):
     @METRICS.timer('PortgroupsController.post')
     @method.expose(status_code=http_client.CREATED)
     @method.body('portgroup')
+    @validation.api_version(min_version=versions.MINOR_23_PORTGROUPS)
     @args.validate(portgroup=PORTGROUP_VALIDATOR)
+    @validation.request_body_schema(schema.create_request_body)
+    @validation.response_body_schema(schema.create_response_body)
     def post(self, portgroup):
         """Create a new portgroup.
 
         :param portgroup: a portgroup within the request body.
         """
-        if not api_utils.allow_portgroups():
-            raise exception.NotFound()
-
         raise_node_not_found = False
         node = None
         owner = None
@@ -502,16 +514,17 @@ class PortgroupsController(pecan.rest.RestController):
     @METRICS.timer('PortgroupsController.patch')
     @method.expose()
     @method.body('patch')
-    @args.validate(portgroup_ident=args.uuid_or_name, patch=args.patch)
+    @validation.api_version(min_version=versions.MINOR_23_PORTGROUPS)
+    @args.validate(patch=args.patch)
+    @validation.request_parameter_schema(schema.update_request_parameter)
+    @validation.request_body_schema(schema.update_request_body)
+    @validation.response_body_schema(schema.update_response_body)
     def patch(self, portgroup_ident, patch):
         """Update an existing portgroup.
 
         :param portgroup_ident: UUID or logical name of a portgroup.
         :param patch: a json PATCH document to apply to this portgroup.
         """
-        if not api_utils.allow_portgroups():
-            raise exception.NotFound()
-
         context = api.request.context
 
         rpc_portgroup, rpc_node = api_utils.check_port_policy_and_retrieve(
@@ -601,15 +614,13 @@ class PortgroupsController(pecan.rest.RestController):
 
     @METRICS.timer('PortgroupsController.delete')
     @method.expose(status_code=http_client.NO_CONTENT)
-    @args.validate(portgroup_ident=args.uuid_or_name)
+    @validation.api_version(min_version=versions.MINOR_23_PORTGROUPS)
+    @validation.request_parameter_schema(schema.delete_request_parameter)
     def delete(self, portgroup_ident):
         """Delete a portgroup.
 
         :param portgroup_ident: UUID or logical name of a portgroup.
         """
-        if not api_utils.allow_portgroups():
-            raise exception.NotFound()
-
         rpc_portgroup, rpc_node = api_utils.check_port_policy_and_retrieve(
             'baremetal:portgroup:delete', portgroup_ident, portgroup=True)
 
