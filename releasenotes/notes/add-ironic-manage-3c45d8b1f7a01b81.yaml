@@ -1,0 +1,9 @@
+---
+features:
+  - |
+    Adds a new ``ironic-manage`` utility. Its first sub-commands,
+    ``ironic-manage drivers hardware-types`` and ``ironic-manage drivers
+    interfaces [<interface type> ...]``, list the hardware type and hardware
+    interface entry points installed on the system, to help operators
+    discover valid values for the ``[DEFAULT]enabled_hardware_types`` and
+    ``[DEFAULT]enabled_<interface type>_interfaces`` configuration options.

@@ -7,4 +7,5 @@ Here are references for commands not elsewhere documented.
   :maxdepth: 1
 
   ironic-dbsync
+  ironic-manage
   ironic-status
