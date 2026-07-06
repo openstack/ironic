@@ -1883,7 +1883,6 @@ def node_change_secure_boot(task, secure_boot_target):
         task.node.secure_boot = secure_boot_target
         task.node.save()
 
-
 def node_history_record(node, conductor=None, event=None,
                         event_type=None, user=None,
                         error=False, project=None):
@@ -1920,6 +1919,7 @@ def node_history_record(node, conductor=None, event=None,
     if not event:
         # No error has occurred, apparently.
         return
+
     if error:
         # When the task exits out or is saved, the event
         # or error is saved, but that is outside of creating an
@@ -1927,11 +1927,13 @@ def node_history_record(node, conductor=None, event=None,
         node.last_error = event
     if not conductor:
         conductor = CONF.host
+
     if CONF.conductor.node_history:
         # If the maximum number of entries is not set to zero,
         # then we should record the entry.
         # NOTE(TheJulia): DB API automatically adds in a uuid.
         # TODO(TheJulia): At some point, we should allow custom severity.
+
         node_history.NodeHistory(
             node_id=node.id,
             conductor=CONF.host,

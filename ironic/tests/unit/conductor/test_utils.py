@@ -3226,6 +3226,48 @@ class NodeHistoryRecordTestCase(db_base.DbTestCase):
         assert '***' in event_string
         assert 'meow' not in event_string
 
+    def test_record_node_history_event_truncation(self):
+        # MySQL TEXT column max is 65535 bytes.
+        _MAX_BYTES = 65535
+        _MARKER = " ... [truncated] ... "
+        _MARKER_LEN = len(_MARKER.encode('utf-8'))
+
+        # keep = 65535 - 21 = 65514
+        # head = 65514 // 2 = 32757
+        # tail = 65514 - 32757 = 32757
+        available_space = _MAX_BYTES - _MARKER_LEN
+        expected_head_size = available_space // 2
+        expected_tail_size = available_space - expected_head_size
+
+        long_event = 'A' * 40000 + 'B' * 5000 + 'C' * 40000
+
+        conductor_utils.node_history_record(self.node, event=long_event)
+
+        entries = objects.NodeHistory.list_by_node_id(self.context,
+                                                      self.node.id)
+        entry = entries[0]
+        actual_event = entry['event']
+
+        # Verify the new marker exists
+        self.assertIn(_MARKER, actual_event)
+
+        # Verify the 50/50 split preservation
+        self.assertTrue(actual_event.startswith('A' * expected_head_size))
+        self.assertTrue(actual_event.endswith('C' * (expected_tail_size - 10)))
+
+        # 3. Verify the final byte count
+        # (Since we used ASCII, len(str) == len(bytes))
+        self.assertEqual(_MAX_BYTES, len(actual_event.encode('utf-8')))
+
+    def test_record_node_history_no_truncation_if_short(self):
+        # Events under 1024 characters should be saved as-is.
+        short_event = 'meow ' * 100  # 500 chars, under limit
+        conductor_utils.node_history_record(self.node, event=short_event)
+        entries = objects.NodeHistory.list_by_node_id(self.context,
+                                                      self.node.id)
+        entry = entries[0]
+        self.assertEqual(short_event, entry['event'])
+
 
 class GetTokenProjectFromRequestTestCase(db_base.DbTestCase):
 

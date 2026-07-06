@@ -30,6 +30,7 @@ from sqlalchemy import BigInteger, ForeignKey, Integer
 from sqlalchemy import schema, String, Text
 from sqlalchemy import orm
 from sqlalchemy.orm import declarative_base
+from sqlalchemy import types
 
 from ironic.common import exception
 from ironic.common.i18n import _
@@ -38,6 +39,8 @@ from ironic.conf import CONF
 _DEFAULT_SQL_CONNECTION = 'sqlite:///' + path.join('$state_path',
                                                    'ironic.sqlite')
 
+MAX_EVENT_BYTES = 65535
+TRUNCATE_MARKER = " ... [truncated] ... "
 
 db_options.set_defaults(CONF, connection=_DEFAULT_SQL_CONNECTION)
 
@@ -49,6 +52,47 @@ def table_args():
                 'mysql_charset': "utf8mb4"}
     return None
 
+
+def _truncate_event(event, max_bytes):
+    """Safely truncate a string to fit within a byte limit."""
+    if not event:
+        return event
+
+    encoded = event.encode("utf-8")
+
+    if len(encoded) <= max_bytes:
+        return event
+
+    trim_bytes = TRUNCATE_MARKER.encode("utf-8")
+    available_space = max_bytes - len(trim_bytes)
+
+    # We preserve an equal amount of the start and end of the event
+    # (head and tail) to ensure both the initial action and the
+    # final traceback details are captured within the database
+    # byte limit.
+
+    head_limit = available_space // 2
+    tail_limit = available_space - head_limit
+
+    return (
+        encoded[:head_limit].decode("utf-8", errors="ignore")
+        + TRUNCATE_MARKER
+        + encoded[-tail_limit:].decode("utf-8", errors="ignore")
+    )
+
+class TruncatedText(types.TypeDecorator):
+    """Custom type to truncate text to MySQL's 64k limit."""
+
+    impl = types.Text
+
+    cache_ok = True
+    """Indicates this custom type is safe to cache in SQLAlchemy."""
+
+    def process_bind_param(self, value, dialect):
+        """Process the value and safely truncate it before saving."""
+        if value is not None:
+            return _truncate_event(value, max_bytes=MAX_EVENT_BYTES)
+        return value
 
 class IronicBase(models.TimestampMixin,
                  models.ModelBase):
@@ -494,7 +538,7 @@ class NodeHistory(Base):
     conductor = Column(String(255), nullable=True)
     event_type = Column(String(255), nullable=True)
     severity = Column(String(255), nullable=True)
-    event = Column(Text, nullable=True)
+    event = Column(TruncatedText)
     user = Column(String(64), nullable=True)
     project = Column(String(80), nullable=True)
     node_id = Column(Integer, ForeignKey('nodes.id'), nullable=True)
