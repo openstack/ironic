@@ -1,0 +1,8 @@
+---
+fixes:
+  - |
+    No longer attempts to list Glance image members for images whose
+    visibility is not ``shared``. Glance rejects member listing for
+    non-shared images with a 403 error, which previously caused a spurious
+    error to be logged on every access check for public, community, and
+    private images.
