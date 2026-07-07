@@ -141,7 +141,6 @@ def is_image_available(context, image):
     image_visibility = getattr(image, 'visibility', None)
     image_owner = getattr(image, 'owner', None)
     image_id = getattr(image, 'id', 'unknown')
-    image_shared_member_list = get_image_member_list(image_id, context)
     is_admin = 'admin' in getattr(context, 'roles', [])
     project = getattr(context, 'project', 'unknown')
 
@@ -164,9 +163,11 @@ def is_image_available(context, image):
     if image_visibility == 'private' and image_owner == conductor_project_id:
         return True
     # If the image is shared and the conductor_project_id is in the shared
-    # member list, allow access
+    # member list, allow access. Glance only permits listing members on
+    # shared images, so only query the member list in that case.
     if image_visibility == 'shared'\
-            and conductor_project_id in image_shared_member_list:
+            and conductor_project_id in get_image_member_list(image_id,
+                                                              context):
         return True
     LOG.info(
         'Access to %s owned by %s denied to requester %s',
