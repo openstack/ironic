@@ -63,6 +63,12 @@ class KernelParameter:
 
 @dataclass(frozen=True)
 class KernelCommandLine:
+    """Represents a kernel command line.
+
+    NOTE: An instantiated object of this type does not guarantee that it has
+    passed parsing via KernelParameterParser. ParsedKernelCommandLine is
+    reserved for this distinction.
+    """
     parameters: dict[str, list[KernelParameter]]
     init_args: str
 
@@ -84,6 +90,20 @@ class KernelCommandLine:
             raise InvalidParameterValue(
                 _('Kernel command line did not parse: "%s" -- %s') \
                 % (command_line, str(e))) from None
+
+
+@dataclass(frozen=True)
+class ParsedKernelCommandLine(KernelCommandLine):
+    """Represents a parsed kernel command line.
+
+    NOTE: This object should only be instantiated via passing a kernel
+    command line string through KernelParameterParser.parse() and then
+    the resultant parse tree through KernelParameterTransformer.transform().
+
+    This helps distinguish between kernel command lines that have been
+    validated by parsing and those that have not.
+    """
+    pass
 
 
 # NOTE(clif): Some valid values (such as filenames) are not going to be
@@ -131,7 +151,7 @@ KernelParameterParser = lark.Lark(KERNEL_PARAMETER_GRAMMAR,
 
 class KernelParameterTransformer(lark.Transformer):
     def kernel_command_line(self, items):
-        return KernelCommandLine(items[0], items[1] or '')
+        return ParsedKernelCommandLine(items[0], items[1] or '')
 
     def parameter_list(self, items):
         parameters = {}

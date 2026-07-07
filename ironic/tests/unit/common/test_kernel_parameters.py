@@ -98,7 +98,7 @@ class KernelParametersTestCase(base.TestCase):
         annotate(
             "Single key=value pair",
             "BOOT_IMAGE=(hd5,gpt2)/vmlinuz-6.19.9-200.fc43.x86_64",
-            kp.KernelCommandLine({
+            kp.ParsedKernelCommandLine({
                 'BOOT_IMAGE': [kp.KernelParameter(
                     kp.ParameterKey('BOOT_IMAGE'),
                     kp.ParameterValue(
@@ -109,7 +109,7 @@ class KernelParametersTestCase(base.TestCase):
         annotate(
             "Single key",
             "quiet",
-            kp.KernelCommandLine({
+            kp.ParsedKernelCommandLine({
                 'quiet': [kp.KernelParameter(
                     kp.ParameterKey('quiet'),
                     kp.ParameterValue(''),
@@ -119,7 +119,7 @@ class KernelParametersTestCase(base.TestCase):
         annotate(
             "Two parameters",
             "quiet BOOT_IMAGE=(hd5,gpt2)/vmlinuz-6.19.9-200.fc43.x86_64",
-            kp.KernelCommandLine({
+            kp.ParsedKernelCommandLine({
                 'quiet': [kp.KernelParameter(
                     kp.ParameterKey('quiet'),
                     kp.ParameterValue(''),
@@ -139,7 +139,7 @@ class KernelParametersTestCase(base.TestCase):
              "rd.luks.uuid=luks-3a516752-4956-11f1-aa13-d8bbc1c85452 "
              "rhgb quiet rd.driver.blacklist=nouveau,nova_core "
              "modprobe.blacklist=nouveau,nova_core"),
-            kp.KernelCommandLine({
+            kp.ParsedKernelCommandLine({
                 'BOOT_IMAGE': [kp.KernelParameter(
                     kp.ParameterKey('BOOT_IMAGE'),
                     kp.ParameterValue(
@@ -184,7 +184,7 @@ class KernelParametersTestCase(base.TestCase):
         annotate(
             "Multiple parameters with the same key",
             "initrd=/initramfs-linux.img initrd=ramdisk",
-            kp.KernelCommandLine({
+            kp.ParsedKernelCommandLine({
                 'initrd': [kp.KernelParameter(
                     kp.ParameterKey('initrd'),
                     kp.ParameterValue('/initramfs-linux.img')
@@ -198,7 +198,7 @@ class KernelParametersTestCase(base.TestCase):
         annotate(
             "init arguments",
             "quiet -- some init args",
-            kp.KernelCommandLine({
+            kp.ParsedKernelCommandLine({
                 'quiet': [kp.KernelParameter(
                     kp.ParameterKey('quiet'),
                     kp.ParameterValue(''),
@@ -208,7 +208,7 @@ class KernelParametersTestCase(base.TestCase):
         annotate(
             "Quoted value with spaces (sshkey pattern)",
             'sshkey="ssh-rsa AAAAB3NzaC1yc2E= root@host"',
-            kp.KernelCommandLine({
+            kp.ParsedKernelCommandLine({
                 'sshkey': [kp.KernelParameter(
                     kp.ParameterKey('sshkey'),
                     kp.ParameterValue(
@@ -221,7 +221,7 @@ class KernelParametersTestCase(base.TestCase):
             ('nofb nomodeset vga=normal ipa-insecure=1 '
              'sshkey="ssh-rsa AAAAB3NzaC+/C1yc2E= root@host.example.com" '
              'rd.net.timeout.carrier=30 ip=dhcp'),
-            kp.KernelCommandLine({
+            kp.ParsedKernelCommandLine({
                 'nofb': [kp.KernelParameter(
                     kp.ParameterKey('nofb'),
                     kp.ParameterValue(''),
