@@ -1,0 +1,12 @@
+---
+features:
+  - |
+    Adds a ``container`` console container provider which manages graphical
+    console containers directly through a Docker compatible container engine
+    (Docker or Podman) by invoking its CLI. This provider is intended for
+    deployments where ``ironic-conductor`` itself runs in a Docker or Podman
+    container, where neither the ``systemd`` nor the ``kubernetes`` provider
+    is usable. It is selected with ``[vnc]container_provider = container``
+    and configured with the new ``[vnc]container_executable``,
+    ``[vnc]container_host``, ``[vnc]container_publish_port`` and
+    ``[vnc]container_command_template`` options.
