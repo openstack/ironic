@@ -1,0 +1,13 @@
+# Arguments for [vnc]container_executable. Rendered with Jinja2,
+# then split with shlex; '#' starts a comment.
+run --detach --rm
+--name ironic-console-{{ uuid }}
+--label org.openstack.ironic.console=true
+--label org.openstack.ironic.conductor={{ conductor }}
+--label org.openstack.ironic.node={{ uuid }}
+--publish {{ publish_port }}
+--pull missing
+--env APP={{ app }}
+--env APP_INFO
+--env READ_ONLY={{ read_only }}
+{{ image }}

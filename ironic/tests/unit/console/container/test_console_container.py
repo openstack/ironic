@@ -25,6 +25,7 @@ from oslo_config import cfg
 from ironic.common import console_factory
 from ironic.common import exception
 from ironic.common import utils
+from ironic.console.container import container
 from ironic.console.container import fake
 from ironic.console.container import kubernetes
 from ironic.console.container import systemd
@@ -1227,3 +1228,336 @@ metadata:
                 ),
             ]
         )
+
+
+class TestContainerConsoleContainer(base.TestCase):
+
+    def setUp(self):
+        super(TestContainerConsoleContainer, self).setUp()
+        _reset_provider('container')
+        self.addCleanup(_reset_provider, 'fake')
+
+        CONF.set_override('console_image', 'test-image', 'vnc')
+
+        # The __init__ of the provider renders the real default template,
+        # which validates that it exists and parses.
+        with mock.patch.object(utils, 'execute', autospec=True) as mock_exec:
+            self.provider = console_factory.ConsoleContainerFactory().provider
+            mock_exec.assert_has_calls([
+                mock.call('docker', 'version'),
+            ])
+
+    def test_init_cli_failure(self):
+        # construct the provider directly so the provider's own error
+        # handling is exercised, not the factory's catch-all wrapper
+        with mock.patch.object(utils, 'execute', autospec=True) as mock_exec:
+            mock_exec.side_effect = processutils.ProcessExecutionError(
+                stderr='ouch'
+            )
+            self.assertRaisesRegex(
+                exception.ConsoleContainerError, 'ouch',
+                container.ContainerConsoleContainer)
+
+    def test_init_no_image(self):
+        CONF.set_override('console_image', None, 'vnc')
+        with mock.patch.object(utils, 'execute', autospec=True):
+            self.assertRaisesRegex(
+                exception.ConsoleContainerError,
+                r'console_image must be set',
+                container.ContainerConsoleContainer)
+
+    def test_init_bad_template(self):
+        with mock.patch.object(utils, 'execute', autospec=True):
+            with mock.patch.object(utils, 'render_template', autospec=True,
+                                   side_effect=Exception('bad template')):
+                self.assertRaisesRegex(
+                    exception.ConsoleContainerError, 'bad template',
+                    container.ContainerConsoleContainer)
+
+    def test__container_name(self):
+        self.assertEqual(
+            'ironic-console-1234',
+            self.provider._container_name('1234')
+        )
+
+    @mock.patch.object(utils, 'execute', autospec=True)
+    def test__execute(self, mock_exec):
+        mock_exec.return_value = ('', '')
+        self.provider._execute('ps')
+
+        # no container_host, no env: the CLI process environment is
+        # left alone
+        mock_exec.assert_called_once_with('docker', 'ps')
+
+    @mock.patch.object(utils, 'execute', autospec=True)
+    def test__execute_executable(self, mock_exec):
+        CONF.set_override('container_executable', 'podman', 'vnc')
+        mock_exec.return_value = ('', '')
+        self.provider._execute('version')
+
+        mock_exec.assert_called_once_with('podman', 'version')
+
+    @mock.patch.object(utils, 'execute', autospec=True)
+    def test__execute_container_host(self, mock_exec):
+        CONF.set_override(
+            'container_host', 'unix:///run/podman/podman.sock', 'vnc')
+        mock_exec.return_value = ('', '')
+        self.provider._execute('ps')
+
+        env = mock_exec.call_args.kwargs['env_variables']
+        self.assertEqual('unix:///run/podman/podman.sock', env['DOCKER_HOST'])
+        self.assertEqual(
+            'unix:///run/podman/podman.sock', env['CONTAINER_HOST'])
+
+    def test__render_template(self):
+        CONF.set_override('read_only', True, 'vnc')
+        CONF.set_override(
+            'container_publish_port', '192.0.2.2::5900', 'vnc')
+
+        self.assertEqual([
+            'run', '--detach', '--rm',
+            '--name', 'ironic-console-1234',
+            '--label', 'org.openstack.ironic.console=true',
+            '--label', 'org.openstack.ironic.conductor=fake-mini',
+            '--label', 'org.openstack.ironic.node=1234',
+            '--publish', '192.0.2.2::5900',
+            '--pull', 'missing',
+            '--env', 'APP=fake-app',
+            '--env', 'APP_INFO',
+            '--env', 'READ_ONLY=True',
+            'test-image',
+        ], self.provider._render_template('1234', app_name='fake-app'))
+
+    @mock.patch.object(utils, 'execute', autospec=True)
+    def test__host_port_ipv4(self, mock_exec):
+        mock_exec.return_value = ('192.0.2.1:33819\n', None)
+        self.assertEqual(
+            ('192.0.2.1', 33819),
+            self.provider._host_port('ironic-console-1234'))
+
+        mock_exec.assert_called_once_with(
+            'docker', 'port', 'ironic-console-1234', '5900/tcp')
+
+    @mock.patch.object(utils, 'execute', autospec=True)
+    def test__host_port_unspecified_ipv4(self, mock_exec):
+        CONF.set_override('my_ip', '203.0.113.5')
+        mock_exec.return_value = ('0.0.0.0:33819\n', None)
+        self.assertEqual(
+            ('203.0.113.5', 33819),
+            self.provider._host_port('ironic-console-1234'))
+
+    @mock.patch.object(utils, 'execute', autospec=True)
+    def test__host_port_bracketed_ipv6(self, mock_exec):
+        # Docker 23.0+ brackets IPv6 addresses
+        mock_exec.return_value = ('[2001:db8::1]:33819\n', None)
+        self.assertEqual(
+            ('2001:db8::1', 33819),
+            self.provider._host_port('ironic-console-1234'))
+
+    @mock.patch.object(utils, 'execute', autospec=True)
+    def test__host_port_unbracketed_ipv6(self, mock_exec):
+        # older Docker and all Podman releases do not bracket IPv6
+        mock_exec.return_value = ('2001:db8::1:33819\n', None)
+        self.assertEqual(
+            ('2001:db8::1', 33819),
+            self.provider._host_port('ironic-console-1234'))
+
+    @mock.patch.object(utils, 'execute', autospec=True)
+    def test__host_port_unspecified_ipv6(self, mock_exec):
+        CONF.set_override('my_ip', '203.0.113.5')
+        mock_exec.return_value = (':::33819\n', None)
+        self.assertEqual(
+            ('203.0.113.5', 33819),
+            self.provider._host_port('ironic-console-1234'))
+
+    @mock.patch.object(utils, 'execute', autospec=True)
+    def test__host_port_dual_stack_prefers_ipv4(self, mock_exec):
+        mock_exec.return_value = ('[2001:db8::1]:33819\n'
+                                  '192.0.2.1:33820\n', None)
+        self.assertEqual(
+            ('192.0.2.1', 33820),
+            self.provider._host_port('ironic-console-1234'))
+
+    @mock.patch.object(utils, 'execute', autospec=True)
+    def test__host_port_arrow_form(self, mock_exec):
+        mock_exec.return_value = ('5900/tcp -> 192.0.2.1:33819\n', None)
+        self.assertEqual(
+            ('192.0.2.1', 33819),
+            self.provider._host_port('ironic-console-1234'))
+
+    @mock.patch.object(utils, 'execute', autospec=True)
+    def test__host_port_no_binding(self, mock_exec):
+        mock_exec.return_value = ('asdkljffo872\n', None)
+        self.assertRaisesRegex(
+            exception.ConsoleContainerError,
+            'Could not detect a published VNC port',
+            self.provider._host_port, 'ironic-console-1234')
+
+    @mock.patch.object(utils, 'execute', autospec=True)
+    def test__host_port_failure(self, mock_exec):
+        mock_exec.side_effect = processutils.ProcessExecutionError(
+            stderr='ouch'
+        )
+        self.assertRaisesRegex(
+            exception.ConsoleContainerError, 'ouch',
+            self.provider._host_port, 'ironic-console-1234')
+
+    @mock.patch.object(container.ContainerConsoleContainer,
+                       '_wait_for_listen', autospec=True)
+    @mock.patch.object(utils, 'execute', autospec=True)
+    def test_start_container(self, mock_exec, mock_wait):
+        CONF.set_override(
+            'container_publish_port', '192.0.2.2::5900', 'vnc')
+        task = mock.Mock(node=mock.Mock(uuid='1234'))
+
+        mock_exec.side_effect = [
+            (None, None),                 # rm of any stale container
+            ('cid123\n', None),           # run
+            ('192.0.2.2:33819\n', None),  # port
+        ]
+
+        self.assertEqual(
+            ('192.0.2.2', 33819),
+            self.provider.start_container(task, 'fake-app', {'foo': 'bar'}))
+
+        mock_exec.assert_has_calls([
+            mock.call('docker', 'rm', '--force', 'ironic-console-1234',
+                      check_exit_code=False),
+            mock.call(
+                'docker', 'run', '--detach', '--rm',
+                '--name', 'ironic-console-1234',
+                '--label', 'org.openstack.ironic.console=true',
+                '--label', 'org.openstack.ironic.conductor=fake-mini',
+                '--label', 'org.openstack.ironic.node=1234',
+                '--publish', '192.0.2.2::5900',
+                '--pull', 'missing',
+                '--env', 'APP=fake-app',
+                '--env', 'APP_INFO',
+                '--env', 'READ_ONLY=False',
+                'test-image',
+                env_variables=mock.ANY),
+            mock.call('docker', 'port', 'ironic-console-1234', '5900/tcp'),
+        ])
+        mock_wait.assert_called_once_with(self.provider, '192.0.2.2', 33819)
+
+        # app_info is passed through the CLI process environment, never
+        # on the command line
+        run_call = mock_exec.call_args_list[1]
+        self.assertNotIn('{"foo": "bar"}', run_call.args)
+        self.assertEqual(
+            '{"foo": "bar"}', run_call.kwargs['env_variables']['APP_INFO'])
+
+    @mock.patch.object(utils, 'execute', autospec=True)
+    def test_start_container_run_failed(self, mock_exec):
+        task = mock.Mock(node=mock.Mock(uuid='1234'))
+
+        mock_exec.side_effect = [
+            (None, None),  # rm of any stale container
+            processutils.ProcessExecutionError(stderr='ouch'),  # run
+            ('a log line', None),  # logs
+            (None, None),  # rm
+        ]
+
+        self.assertRaisesRegex(
+            exception.ConsoleContainerError, 'ouch',
+            self.provider.start_container, task, 'fake-app', {})
+
+        mock_exec.assert_has_calls([
+            mock.call('docker', 'logs', 'ironic-console-1234',
+                      check_exit_code=False),
+            mock.call('docker', 'rm', '--force', 'ironic-console-1234',
+                      check_exit_code=False),
+        ])
+
+    @mock.patch.object(container.ContainerConsoleContainer,
+                       '_wait_for_listen', autospec=True)
+    @mock.patch.object(utils, 'execute', autospec=True)
+    def test_start_container_wait_failed(self, mock_exec, mock_wait):
+        task = mock.Mock(node=mock.Mock(uuid='1234'))
+
+        mock_exec.side_effect = [
+            (None, None),                 # rm of any stale container
+            ('cid123\n', None),           # run
+            ('192.0.2.1:33819\n', None),  # port
+            ('a log line', None),         # logs
+            (None, None),                 # rm
+        ]
+        mock_wait.side_effect = exception.ConsoleContainerError(
+            provider='container', reason='RFB data not returned')
+
+        self.assertRaisesRegex(
+            exception.ConsoleContainerError, 'RFB data not returned',
+            self.provider.start_container, task, 'fake-app', {})
+
+        mock_exec.assert_has_calls([
+            mock.call('docker', 'logs', 'ironic-console-1234',
+                      check_exit_code=False),
+            mock.call('docker', 'rm', '--force', 'ironic-console-1234',
+                      check_exit_code=False),
+        ])
+
+    @mock.patch.object(utils, 'execute', autospec=True)
+    def test_stop_container(self, mock_exec):
+        task = mock.Mock(node=mock.Mock(uuid='1234'))
+        mock_exec.return_value = (None, None)
+
+        self.provider.stop_container(task)
+
+        mock_exec.assert_has_calls([
+            mock.call('docker', 'logs', 'ironic-console-1234',
+                      check_exit_code=False),
+            mock.call('docker', 'rm', '--force', 'ironic-console-1234',
+                      check_exit_code=False),
+        ])
+
+    @mock.patch.object(utils, 'execute', autospec=True)
+    def test_stop_container_absent(self, mock_exec):
+        task = mock.Mock(node=mock.Mock(uuid='1234'))
+        mock_exec.side_effect = processutils.ProcessExecutionError(
+            stderr='no such container'
+        )
+
+        # an already-absent container is treated as success
+        self.provider.stop_container(task)
+
+    @mock.patch.object(utils, 'execute', autospec=True)
+    def test_stop_all_containers(self, mock_exec):
+        mock_exec.side_effect = [
+            ('abc123\ndef456\n', None),  # ps
+            (None, None),                # logs abc123
+            (None, None),                # rm abc123
+            (None, None),                # logs def456
+            (None, None),                # rm def456
+        ]
+
+        self.provider.stop_all_containers()
+
+        mock_exec.assert_has_calls([
+            mock.call('docker', 'ps', '--all', '--quiet', '--filter',
+                      'label=org.openstack.ironic.conductor=fake-mini'),
+            mock.call('docker', 'logs', 'abc123', check_exit_code=False),
+            mock.call('docker', 'rm', '--force', 'abc123',
+                      check_exit_code=False),
+            mock.call('docker', 'logs', 'def456', check_exit_code=False),
+            mock.call('docker', 'rm', '--force', 'def456',
+                      check_exit_code=False),
+        ])
+
+    @mock.patch.object(utils, 'execute', autospec=True)
+    def test_stop_all_containers_none(self, mock_exec):
+        mock_exec.return_value = ('', None)
+
+        self.provider.stop_all_containers()
+
+        mock_exec.assert_called_once_with(
+            'docker', 'ps', '--all', '--quiet', '--filter',
+            'label=org.openstack.ironic.conductor=fake-mini')
+
+    @mock.patch.object(utils, 'execute', autospec=True)
+    def test_stop_all_containers_failed(self, mock_exec):
+        mock_exec.side_effect = processutils.ProcessExecutionError(
+            stderr='ouch'
+        )
+        self.assertRaisesRegex(
+            exception.ConsoleContainerError, 'ouch',
+            self.provider.stop_all_containers)
