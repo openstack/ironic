@@ -1064,6 +1064,17 @@ class TestIsImageAvailable(base.TestCase):
         mock_get_members.assert_called_once_with('shared-image-id',
                                                  self.context)
 
+    @mock.patch.object(service_utils, 'get_image_member_list', autospec=True)
+    def test_no_member_list_query_for_non_shared_images(self,
+                                                        mock_get_members):
+        # Glance rejects member listing on non-shared images with a 403,
+        # so ensure we never query members unless visibility is 'shared'.
+        for visibility in ('public', 'community', 'private'):
+            self.image.visibility = visibility
+            self.image.owner = service_utils.get_conductor_project_id()
+            service_utils.is_image_available(self.context, self.image)
+        mock_get_members.assert_not_called()
+
     def test_deny_private_image_different_owner(self):
         self.config(ignore_project_check_for_admin_tasks=False)
 
