@@ -1,4 +1,3 @@
-#!/usr/bin/env python3
 #    Licensed under the Apache License, Version 2.0 (the "License"); you may
 #    not use this file except in compliance with the License. You may obtain
 #    a copy of the License at
@@ -11,20 +10,22 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
-"""Inspection Rules Tester - Test inspection rules against hardware inventory.
+"""Test inspection rules against captured hardware inventory.
 
-This tool runs the inspection rules evaluation process to help test and
+This module runs the inspection rules evaluation process to help test and
 debug inspection rules before deploying them to a production environment.
+It backs the ``ironic-manage inspection-rules check`` command.
 """
 
-import argparse
-import json
-import sys
+import os
+
 import yaml
 
 from ironic.common.inspection_rules import actions
 from ironic.common.inspection_rules import engine
+from oslo_log import log as logging
 
+LOG = logging.getLogger(__name__)
 
 class FakeNode:
     """Fake node built from 'openstack baremetal node show' output."""
@@ -49,13 +50,10 @@ class FakeTask:
 class InspectionRulesEvaluator:
     """Evaluator for testing inspection rules against hardware inventory."""
 
-    def __init__(
-        self, node_file, inventory_file, rules_file, json_output=False
-    ):
+    def __init__(self, node_file, inventory_file, rules_file):
         self.rules_file = rules_file
         self.inventory_file = inventory_file
         self.node_file = node_file
-        self.json_output = json_output
         self.rules = []
         self.inventory = {}
         self.plugin_data = {}
@@ -77,10 +75,10 @@ class InspectionRulesEvaluator:
         try:
             self.rules = engine.get_built_in_rules(self.rules_file)
         except FileNotFoundError:
-            print(f"Rules file not found: {self.rules_file}", file=sys.stderr)
+            LOG.error("Rules file not found: %s", self.rules_file)
             return False
-        except Exception as e:
-            print(f"Error loading rules: {e}", file=sys.stderr)
+        except Exception:
+            LOG.exception("Error loading rules")
             return False
         return True
 
@@ -88,8 +86,8 @@ class InspectionRulesEvaluator:
         """Load hardware inventory and plugin data from JSON or YAML file."""
         try:
             data = self._load_file("inventory", self.inventory_file)
-        except Exception as e:
-            print(f"{e}", file=sys.stderr)
+        except Exception:
+            LOG.exception("Error loading inventory")
             return False
 
         self.inventory = data.get("inventory", {})
@@ -100,8 +98,8 @@ class InspectionRulesEvaluator:
         """Load node data from YAML file."""
         try:
             self.node_data = self._load_file("node", self.node_file)
-        except Exception as e:
-            print(f"{e}", file=sys.stderr)
+        except Exception:
+            LOG.exception("Error loading node")
             return False
         return True
 
@@ -226,21 +224,6 @@ class InspectionRulesEvaluator:
             summary += f", {errors} error(s)"
         print(summary)
 
-    def output_json(self):
-        """Output results in JSON format."""
-        output = {
-            "summary": {
-                "total_rules": len(self.results),
-                "matched_rules": sum(1 for r in self.results if r["matched"]),
-                "total_errors": sum(len(r["errors"]) for r in self.results),
-            },
-            "rules": self.results,
-            "inventory": self.inventory,
-            "plugin_data": self.plugin_data,
-            "node": self.node_data,
-        }
-        print(json.dumps(output, indent=2, default=str))
-
     def run(self):
         """Run the complete evaluation process."""
         if not self.load_rules():
@@ -250,65 +233,91 @@ class InspectionRulesEvaluator:
         if not self.load_node():
             return 1
         self.evaluate_rules()
-        errors = sum(len(r["errors"]) for r in self.results)
-        if self.json_output:
-            self.output_json()
-        else:
-            self.print_results()
-            if errors:
-                return 1
+        self.print_results()
+        if any(r["errors"] for r in self.results):
+            return 1
         return 0
 
 
-def main():
-    parser = argparse.ArgumentParser(
-        prog="Inspection Rules Tester",
-        description=(
-            "Test inspection rules against hardware inventory data "
-            "to see which rules match and what actions would be "
-            "executed."
-        ),
-        formatter_class=argparse.RawDescriptionHelpFormatter,
-        epilog="""
-Examples:
-  # Capture node and inventory data then evaluate
-  openstack baremetal node show <node-id> -f yaml > node.yaml
-  openstack baremetal node inventory save --file inventory.json <node-id>
-  %(prog)s node.yaml inventory.json rules.yaml
+def check_files(node_file, inventory_file, rules_file):
+    """Evaluate inspection rules against a single set of captured files.
 
-  # JSON output for automation
-  %(prog)s --json node.yaml inventory.json rules.yaml > results.json
-        """,
-    )
-
-    parser.add_argument(
-        "node_file",
-        help="JSON or YAML file containing node data "
-             "(e.g. from 'openstack baremetal node show <id> -f json')"
-    )
-    parser.add_argument(
-        "inventory_file",
-        help="JSON or YAML file containing hardware inventory and plugin data "
-             "(e.g. from 'openstack baremetal node inventory save')"
-    )
-    parser.add_argument(
-        "rules_file", help="YAML file containing inspection rules"
-    )
-    parser.add_argument(
-        "--json", action="store_true", help="Output results in JSON format"
-    )
-
-    args = parser.parse_args()
-
+    :param node_file: JSON or YAML file with node data, e.g. from
+        ``openstack baremetal node show <node> -f json``.
+    :param inventory_file: JSON or YAML file with hardware inventory and
+        plugin data, e.g. from ``openstack baremetal node inventory save``.
+    :param rules_file: YAML file with the inspection rules to evaluate.
+    :returns: an exit code, 0 on success.
+    """
     evaluator = InspectionRulesEvaluator(
-        args.node_file,
-        args.inventory_file,
-        args.rules_file,
-        json_output=args.json,
-    )
-
+        node_file, inventory_file, rules_file)
     return evaluator.run()
 
 
-if __name__ == "__main__":
-    sys.exit(main())
+def _find_case_file(test_dir, base):
+    """Find <base>.yaml or <base>.json in a test case directory."""
+    for ext in ("yaml", "json"):
+        candidate = os.path.join(test_dir, f"{base}.{ext}")
+        if os.path.isfile(candidate):
+            return candidate
+    return None
+
+
+def run_suite(data_dir, rules_file):
+    """Run the inspection rules tester against all test cases in a tree.
+
+    Each subdirectory of ``data_dir`` is one test case and must contain
+    a node file (``node.yaml`` or ``node.json``) and an inventory file
+    (``inventory.yaml`` or ``inventory.json``). The rules in
+    ``rules_file`` are evaluated against every test case.
+
+    :param data_dir: directory containing test case subdirectories.
+    :param rules_file: YAML file with the inspection rules to evaluate.
+    :returns: an exit code, 0 when all test cases pass.
+    """
+    if not os.path.isdir(data_dir):
+        LOG.error("No data directory found at %s", data_dir)
+        return 0
+
+    test_dirs = sorted(
+        entry.path for entry in os.scandir(data_dir) if entry.is_dir())
+    if not test_dirs:
+        LOG.error("No test cases found in %s", data_dir)
+        return 0
+
+    passed = 0
+    failed = []
+    for test_dir in test_dirs:
+        test_name = os.path.basename(test_dir)
+
+        node_file = _find_case_file(test_dir, "node")
+        if node_file is None:
+            print(f"FAIL: {test_name} - missing node.yaml or node.json")
+            failed.append(test_name)
+            continue
+
+        inventory_file = _find_case_file(test_dir, "inventory")
+        if inventory_file is None:
+            print(f"FAIL: {test_name} - missing inventory.yaml or "
+                  "inventory.json")
+            failed.append(test_name)
+            continue
+
+        print(f"Running: {test_name}")
+        if check_files(node_file, inventory_file, rules_file) == 0:
+            print(f"PASS: {test_name}")
+            passed += 1
+        else:
+            print(f"FAIL: {test_name}")
+            failed.append(test_name)
+        print()
+
+    print(f"Results: {passed} passed, {len(failed)} failed")
+
+    if failed:
+        print("Failed tests:")
+        for test_name in failed:
+            print(f"  - {test_name}")
+        return 1
+
+    return 0
