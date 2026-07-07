@@ -102,13 +102,16 @@ opts = [
              'unusable VNC host and port. This needs to be changed if enabled '
              'is True. '
              '"kubernetes" manages containers as pods using template driven '
-             'resource creation.'),
+             'resource creation. '
+             '"container" manages containers directly through a Docker '
+             'compatible container engine (Docker or Podman), appropriate '
+             'when ironic-conductor itself runs in a container.'),
     cfg.StrOpt(
         'console_image',
         mutable=True,
-        help='Container image reference for the "systemd" and '
-             '"kubernetes" console container '
-             'provider, and any other out-of-tree provider which requires a '
+        help='Container image reference for the "systemd", "kubernetes" '
+             'and "container" console container '
+             'providers, and any other out-of-tree provider which requires a '
              'configurable image reference.'),
     cfg.StrOpt(
         'systemd_container_template',
@@ -147,6 +150,58 @@ opts = [
                default=120,
                help='For the kubernetes provider, the time (in seconds) to '
                     'wait for the console pod to start.'),
+    cfg.StrOpt(
+        'container_executable',
+        default='docker',
+        help='For the container provider, name or absolute path of the '
+             'Docker compatible CLI binary to invoke. Set to "podman" to '
+             'use Podman\'s Docker compatible CLI (Podman 4.0 or later '
+             'recommended).'),
+    cfg.StrOpt(
+        'container_host',
+        help='For the container provider, the container engine endpoint '
+             'URL, for example "unix:///var/run/docker.sock" or a "tcp://" '
+             'URL. When set it is exported to the CLI as both DOCKER_HOST '
+             'and CONTAINER_HOST; when unset the CLI\'s default socket '
+             'resolution applies. The engine is assumed to run on the '
+             'conductor host: a remote engine requires '
+             'container_publish_port to bind an address which is valid and '
+             'routable on the engine host. A TCP endpoint must be '
+             'protected with TLS, configured through the standard Docker '
+             'client environment variables.'),
+    cfg.StrOpt(
+        'container_publish_port',
+        default='$my_ip::5900',
+        help='For the container provider, the value passed to the '
+             '"--publish" argument of the container run command, mapping '
+             'container VNC port 5900 to the host. An IP address is '
+             'required to bind to, defaulting to $my_ip. The VNC port '
+             'exposed on the host will be a randomly allocated high port. '
+             'An IPv6 bind address must be bracketed '
+             '(e.g. "[2001:db8::1]::5900"), so deployments where my_ip is '
+             'IPv6 must set this option explicitly. '
+             'These containers expose VNC servers which must be accessible '
+             'by ironic-novncproxy and/or nova-novncproxy. The VNC servers '
+             'have no authentication or encryption so they also should not '
+             'be exposed to public access. Additionally, the containers '
+             'need to be able to access BMC management endpoints.'),
+    cfg.StrOpt(
+        'container_command_template',
+        default=os.path.join(
+            '$pybasedir',
+            'console/container/ironic-console-container.template'),
+        mutable=True,
+        help='For the container provider, path to the Jinja2 template '
+             'which renders the argument vector for container_executable '
+             'to run a console container. The rendered text is split with '
+             'shlex ("#" starts a comment) and run with no shell. The '
+             'default template requires that "console_image" be set. A '
+             'custom template must keep, as rendered by the default '
+             'template: the container "--name", the '
+             '"org.openstack.ironic.*" labels, "--detach", the publish of '
+             'container port 5900 and the value-less "--env APP_INFO" '
+             'entry (the credentials are supplied through the CLI\'s '
+             'process environment).'),
     cfg.StrOpt(
         'cert_file',
         deprecated_name='ssl_cert_file',
