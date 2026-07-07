@@ -1,0 +1,9 @@
+---
+fixes:
+  - |
+    Fixes BIOS firmware updates via Redfish SimpleUpdate on Dell iDRAC
+    failing silently when the BMC purges the TaskMonitor before Ironic
+    can observe it. Previously, a disappeared task was assumed successful
+    and cleaning completed without rebooting, leaving the staged firmware
+    unapplied. Now, a reboot is triggered to apply the staged BIOS update
+    via the BMC's scheduled job.
