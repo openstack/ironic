@@ -36,6 +36,8 @@ POD_READY_POLL_INTERVAL = 2
 class KubernetesConsoleContainer(base.BaseConsoleContainer):
     """Console container provider which uses kubernetes pods."""
 
+    provider_name = 'kubernetes'
+
     def __init__(self):
         # confirm kubectl is available
         try:
