@@ -214,9 +214,17 @@ class BaseStep(_BaseStepRequired, total=False):
     args: dict[str, Any]
 
 
+class _ArgInfoRequired(TypedDict):
+    description: str
+
+
+class ArgInfo(_ArgInfoRequired, total=False):
+    required: bool
+
+
 class _StepWithAbortAndArgsinfo(TypedDict):
     abortable: bool
-    argsinfo: dict[str, Any] | None
+    argsinfo: dict[str, ArgInfo] | None
 
 
 class CleanStep(BaseStep, _StepWithAbortAndArgsinfo):
@@ -2084,7 +2092,7 @@ class FirmwareInterface(BaseInterface):
         ...
 
 
-def _validate_argsinfo(argsinfo):
+def _validate_argsinfo(argsinfo: dict[str, ArgInfo] | None):
     """Validate args info.
 
     This method validates args info, so that the values are the expected
@@ -2138,8 +2146,10 @@ def _validate_argsinfo(argsinfo):
                 {'arg': arg})
 
 
-def clean_step(priority, abortable=False, argsinfo=None,
-               requires_ramdisk=True):
+def clean_step(priority: int,
+               abortable: bool = False,
+               argsinfo: dict[str, ArgInfo] | None = None,
+               requires_ramdisk: bool = True):
     """Decorator for cleaning steps.
 
     Cleaning steps may be used in manual or automated cleaning.
@@ -2220,7 +2230,9 @@ def clean_step(priority, abortable=False, argsinfo=None,
     return decorator
 
 
-def deploy_step(priority, abortable=True, argsinfo=None):
+def deploy_step(priority: int,
+                abortable: bool = True,
+                argsinfo: dict[str, ArgInfo] | None = None):
     """Decorator for deployment steps.
 
     Only steps with priorities greater than 0 are used.
@@ -2289,7 +2301,7 @@ def deploy_step(priority, abortable=True, argsinfo=None):
     return decorator
 
 
-def verify_step(priority):
+def verify_step(priority: int):
     """Decorator for verify steps.
 
     Only steps with priorities greater than 0 are used. These steps are
@@ -2330,8 +2342,10 @@ def verify_step(priority):
     return decorator
 
 
-def service_step(priority=None, abortable=False, argsinfo=None,
-                 requires_ramdisk=True):
+def service_step(priority: int | None = None,
+                 abortable: bool = False,
+                 argsinfo: dict[str, ArgInfo] | None = None,
+                 requires_ramdisk: bool = True):
     """Decorator for service steps.
 
     Service steps may be used in performing service upon a node.
