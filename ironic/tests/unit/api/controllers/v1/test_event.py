@@ -185,7 +185,6 @@ class TestPostRBAC(TestPost):
     def setUp(self):
         super(TestPostRBAC, self).setUp()
 
-        cfg.CONF.set_override('enforce_scope', True, group='oslo_policy')
         cfg.CONF.set_override('enforce_new_defaults', True,
                               group='oslo_policy')
         cfg.CONF.set_override('auth_strategy', 'keystone')
