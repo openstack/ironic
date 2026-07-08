@@ -221,6 +221,71 @@ quiet-level = 4
 ignore-words-list = "selectin,exept,taks,ser,wit,cna,myraid,dum,assertin,checkin,authenticatin,burnin"
 skip = "AUTHORS,ChangeLog,*.pyc,*.inv,*.svg,*.png,*.sample,./doc/build/*,./api-ref/build/*,./releasenotes/build/*,./api-ref/build/*,./build/*"
 
+# NOTE(cardoe): mypy is being introduced incrementally. Every relaxation in
+# this section and in the override blocks below is TEMPORARY scaffolding so
+# that "mypy ironic" passes on the tree as it exists today. The goal is to
+# walk these back over time: remove entries from the override lists as
+# modules are cleaned up, and eventually tighten the global settings
+# (e.g. disallow_untyped_defs) module by module. Do NOT add new modules to
+# the ignore lists; fix new code instead.
+[tool.mypy]
+# Check against the oldest Python we support (requires-python above), so
+# annotations stay valid across every supported interpreter.
+python_version = "3.10"
+# TEMPORARY: most of our dependencies (oslo.*, sushy, pecan, futurist,
+# stevedore, ...) ship neither inline types nor stubs, so their imports
+# would each be an error. Treating them as Any is the standard first step.
+# Walk back by replacing this with per-module overrides as dependencies
+# gain typing or as types-* stubs are added.
+ignore_missing_imports = true
+# TEMPORARY: don't require annotations for module- and class-level
+# variables that mypy cannot fully infer (e.g. "FOO = None" at class
+# scope). Removing this today produces errors across the tree; walk it
+# back once the common patterns are annotated.
+allow_untyped_globals = true
+# NOTE: strict_optional (None-safety) is deliberately left at its default
+# of *enabled*; it is the main property we want out of mypy.
+
+[[tool.mypy.overrides]]
+# TEMPORARY: the unit tests lean heavily on dynamic patterns (e.g.
+# attributes on ironic.objects that only exist after register_all(), mock
+# attribute injection) and are the largest source of pre-existing errors.
+# They are parsed but their errors are suppressed. Walk this back last,
+# ideally per test package.
+module = ["ironic.tests.*"]
+ignore_errors = true
+
+[[tool.mypy.overrides]]
+# TEMPORARY: each module below has pre-existing mypy errors (as of the
+# introduction of this config, with mypy 1.19 / current upper-constraints).
+# They are parsed but their errors are suppressed. Remove entries from this
+# list as the modules are fixed; do not add new ones.
+module = [
+    "ironic.api.controllers.v1.port",
+    "ironic.api.controllers.v1.runbook",
+    "ironic.api.controllers.v1.utils",
+    "ironic.api.schemas.v1.allocation",
+    "ironic.api.schemas.v1.bios",
+    "ironic.api.schemas.v1.firmware",
+    "ironic.common.json_rpc.client",
+    "ironic.common.json_rpc.server",
+    "ironic.common.mdns",
+    "ironic.common.service",
+    "ironic.common.trait_based_networking.plan",
+    "ironic.conductor.deployments",
+    "ironic.db.sqlalchemy.alembic.env",
+    "ironic.db.sqlalchemy.models",
+    "ironic.drivers.modules.agent",
+    "ironic.drivers.modules.agent_base",
+    "ironic.drivers.modules.ipmitool",
+    "ironic.drivers.modules.redfish.bios",
+    "ironic.drivers.modules.redfish.firmware",
+    "ironic.drivers.modules.redfish.management",
+    "ironic.drivers.modules.redfish.raid",
+    "ironic.objects.portgroup",
+]
+ignore_errors = true
+
 [tool.setuptools.packages.find]
 include = ["ironic*"]
 

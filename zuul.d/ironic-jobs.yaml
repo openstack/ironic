@@ -859,6 +859,14 @@
       tox_envlist: mysql-migrations
 
 - job:
+    name: ironic-tox-mypy
+    parent: openstack-tox
+    description: |
+      Run mypy static type checks.
+    vars:
+      tox_envlist: mypy
+
+- job:
     name: ironic-tempest-ipa-partition-uefi-pxe-grub2
     description: Ironic tempest scenario test utilizing PXE (NOT iPXE),
       UEFI, and grub2. If this job fails alone, it indicates grub2 network
