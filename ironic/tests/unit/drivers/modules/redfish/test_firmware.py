@@ -1070,10 +1070,11 @@ class RedfishFirmwareTestCase(db_base.DbTestCase):
         interface._continue_updates.assert_not_called()
 
     @mock.patch.object(redfish_fw, 'LOG', autospec=True)
+    @mock.patch.object(manager_utils, 'node_power_action', autospec=True)
     @mock.patch.object(redfish_utils, 'get_update_service', autospec=True)
     @mock.patch.object(redfish_utils, 'get_task_monitor', autospec=True)
     def test_check_update_task_monitor_not_found(self, tm_mock, get_us_mock,
-                                                 log_mock):
+                                                 power_mock, log_mock):
         tm_mock.side_effect = exception.RedfishError()
         self._generate_new_driver_internal_info(['bios'])
 
@@ -1086,11 +1087,46 @@ class RedfishFirmwareTestCase(db_base.DbTestCase):
                        'firmware_image': 'https://bios/v1.0.1'})]
 
         log_mock.warning.assert_has_calls(warning_calls)
+        # BIOS: should trigger reboot to apply staged firmware
+        power_mock.assert_called_once_with(task, states.REBOOT, mock.ANY)
+        interface._continue_updates.assert_not_called()
+
+    @mock.patch.object(redfish_fw, 'LOG', autospec=True)
+    @mock.patch.object(redfish_utils, 'get_update_service', autospec=True)
+    @mock.patch.object(redfish_utils, 'get_task_monitor', autospec=True)
+    def test_check_update_task_monitor_not_found_bmc(self, tm_mock,
+                                                     get_us_mock, log_mock):
+        tm_mock.side_effect = exception.RedfishError()
+        self._generate_new_driver_internal_info(['bmc'])
+
+        task, interface = self._test__check_node_redfish_firmware_update()
+
+        # Non-BIOS: should call _continue_updates directly
         interface._continue_updates.assert_called_once_with(
             task, get_us_mock.return_value,
-            [{'component': 'bios', 'url': 'https://bios/v1.0.1',
-              'task_monitor': '/task/2'}]
+            [{'component': 'bmc', 'url': 'https://bmc/v1.0.1',
+              'task_monitor': '/task/1'}]
         )
+
+    @mock.patch.object(redfish_fw, 'LOG', autospec=True)
+    @mock.patch.object(manager_utils, 'node_power_action', autospec=True)
+    @mock.patch.object(redfish_utils, 'get_update_service', autospec=True)
+    @mock.patch.object(redfish_utils, 'get_task_monitor', autospec=True)
+    def test_check_update_task_monitor_not_found_bios_already_rebooted(
+            self, tm_mock, get_us_mock, power_mock, log_mock):
+        tm_mock.side_effect = exception.RedfishError()
+        self._generate_new_driver_internal_info(['bios'])
+        # Simulate reboot already triggered on previous poll
+        settings = self.node.driver_internal_info['redfish_fw_updates']
+        settings[0]['bios_reboot_triggered'] = True
+        self.node.set_driver_internal_info('redfish_fw_updates', settings)
+        self.node.save()
+
+        task, interface = self._test__check_node_redfish_firmware_update()
+
+        # Reboot already done: should fall through to _continue_updates
+        power_mock.assert_not_called()
+        interface._continue_updates.assert_called_once()
 
     @mock.patch.object(redfish_fw, 'LOG', autospec=True)
     @mock.patch.object(redfish_utils, 'get_update_service', autospec=True)
