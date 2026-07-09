@@ -174,7 +174,6 @@ class TestACLBase(base.BaseApiTest):
                 and ('404' in response.status
                      or '500' in response.status
                      or '403' in response.status)
-                and cfg.CONF.oslo_policy.enforce_scope
                 and cfg.CONF.oslo_policy.enforce_new_defaults):
             self.assertEqual(assert_status, response.status_int)
         else:
@@ -215,8 +214,7 @@ class TestACLBase(base.BaseApiTest):
                 #          important for owner/lessee testing.
                 items = response.json[root]
                 self.assertIsInstance(items, list)
-                if not (bool(deprecated)
-                        and cfg.CONF.oslo_policy.enforce_scope):
+                if not bool(deprecated):
                     self.assertEqual(length, len(items))
                 else:
                     # If we have scope enforcement, we likely have different
@@ -240,148 +238,11 @@ class TestRBACBasic(TestACLBase):
 
 
 @ddt.ddt
-class TestRBACModelBeforeScopesBase(TestACLBase):
-
-    def _create_test_data(self):
-        allocated_node_id = 31
-        fake_db_allocation = db_utils.create_test_allocation(
-            resource_class="CUSTOM_TEST")
-        fake_db_node = db_utils.create_test_node(
-            chassis_id=None,
-            uuid='1be26c0b-03f2-4d2e-ae87-c02d7f33c123',
-            driver='fake-driverz',
-            owner='z')
-        fake_db_node_alloced = db_utils.create_test_node(
-            id=allocated_node_id,
-            chassis_id=None,
-            uuid='22e26c0b-03f2-4d2e-ae87-c02d7f33c000',
-            driver='fake-driverz',
-            owner='z')
-        dbapi = db_api.get_instance()
-        dbapi.update_allocation(fake_db_allocation['id'],
-                                dict(node_id=allocated_node_id))
-        fake_vif_port_id = "ee21d58f-5de2-4956-85ff-33935ea1ca00"
-        fake_db_port = db_utils.create_test_port(
-            uuid='1be26c0b-03f2-4d2e-ae87-c02d7f33c781',
-            node_id=fake_db_node['id'],
-            internal_info={'tenant_vif_port_id': fake_vif_port_id})
-        fake_db_portgroup = db_utils.create_test_portgroup(
-            uuid="6eb02b44-18a3-4659-8c0b-8d2802581ae4",
-            node_id=fake_db_node['id'])
-        fake_db_chassis = db_utils.create_test_chassis(
-            uuid='e74c40e0-d825-11e2-a28f-0800200c9a66',
-            drivers=['fake-hardware', 'fake-driverz', 'fake-driver'])
-        fake_db_deploy_template = db_utils.create_test_deploy_template()
-        fake_db_conductor = db_utils.create_test_conductor()
-        fake_db_volume_target = db_utils.create_test_volume_target(
-            node_id=fake_db_node['id'])
-        fake_db_volume_connector = db_utils.create_test_volume_connector(
-            node_id=fake_db_node['id'])
-        # Trait name aligns with create_test_node_trait.
-        fake_trait = 'trait'
-        fake_setting = 'FAKE_SETTING'
-        db_utils.create_test_bios_setting(
-            node_id=fake_db_node['id'],
-            name=fake_setting,
-            value=fake_setting)
-        db_utils.create_test_node_trait(
-            node_id=fake_db_node['id'])
-        # Create a Fake Firmware Component BMC
-        db_utils.create_test_firmware_component(
-            node_id=fake_db_node['id'],
-        )
-        fake_history = db_utils.create_test_history(node_id=fake_db_node.id)
-        fake_inventory = db_utils.create_test_inventory(
-            node_id=fake_db_node.id)
-        # dedicated node for portgroup addition test to avoid
-        # false positives with test runners.
-        db_utils.create_test_node(
-            uuid='18a552fb-dcd2-43bf-9302-e4c93287be11')
-        fake_db_runbook = db_utils.create_test_runbook()
-        self.format_data.update({
-            'node_ident': fake_db_node['uuid'],
-            'allocated_node_ident': fake_db_node_alloced['uuid'],
-            'port_ident': fake_db_port['uuid'],
-            'portgroup_ident': fake_db_portgroup['uuid'],
-            'chassis_ident': fake_db_chassis['uuid'],
-            'deploy_template_ident': fake_db_deploy_template['uuid'],
-            'allocation_ident': fake_db_allocation['uuid'],
-            'conductor_ident': fake_db_conductor['hostname'],
-            'vif_ident': fake_vif_port_id,
-            # Can't use the same fake-driver as other tests can
-            # pollute a global method cache in the API that is in the
-            # test runner, resulting in false positives.
-            'driver_name': 'fake-driverz',
-            'bios_setting': fake_setting,
-            'trait': fake_trait,
-            'runbook_ident': fake_db_runbook['uuid'],
-            'volume_target_ident': fake_db_volume_target['uuid'],
-            'volume_connector_ident': fake_db_volume_connector['uuid'],
-            'history_ident': fake_history['uuid'],
-            'node_inventory': fake_inventory,
-        })
-
-
-@ddt.ddt
-class TestRBACModelBeforeScopes(TestRBACModelBeforeScopesBase):
-
-    def _set_test_config(self):
-        # NOTE(TheJulia): Sets default test conditions, in the event
-        # oslo_policy defaults change.
-        cfg.CONF.set_override('enforce_scope', False, group='oslo_policy')
-        cfg.CONF.set_override('enforce_new_defaults', False,
-                              group='oslo_policy')
-
-    @ddt.file_data('test_rbac_legacy.yaml')
-    @ddt.unpack
-    def test_rbac_legacy(self, **kwargs):
-        self._check_skip(**kwargs)
-        self._test_request(**kwargs)
-
-
-@ddt.ddt
-class TestRBACScoped(TestRBACModelBeforeScopes):
-    """Test Scoped RBAC access using our existing access policy."""
-
-    def _set_test_config(self):
-        # NOTE(TheJulia): This test class is as like a canary.
-        # The operational intent is for it to kind of provide
-        # a safety net as we're changing policy rules so we can
-        # incremently disable the ones we *know* will no longer work
-        # while we also enable the new ones in another test class with
-        # the appropriate scope friendly chagnges. In other words, two
-        # test changes will be needed for each which should also reduce
-        # risk of accidental policy changes. It may just be Julia being
-        # super risk-adverse, just let her roll with it and we will delete
-        # this class later.
-        # NOTE(TheJulia): This test class runs with test_rbac_legacy.yaml!
-        cfg.CONF.set_override('enforce_scope', True, group='oslo_policy')
-        cfg.CONF.set_override('enforce_new_defaults', True,
-                              group='oslo_policy')
-
-    @ddt.file_data('test_rbac_legacy.yaml')
-    def test_scoped_canary(self, **kwargs):
-        self._check_skip(**kwargs)
-        self._test_request(**kwargs)
-
-
-@ddt.ddt
-class TestRBACScopedRequests(TestRBACModelBeforeScopesBase):
-
-    @ddt.file_data('test_rbac_system_scoped.yaml')
-    @ddt.unpack
-    def test_system_scoped(self, **kwargs):
-        self._check_skip(**kwargs)
-        self._test_request(**kwargs)
-
-
-@ddt.ddt
 class TestRBACProjectScoped(TestACLBase):
 
     def setUp(self):
         super(TestRBACProjectScoped, self).setUp()
 
-        cfg.CONF.set_override('enforce_scope', True, group='oslo_policy')
         cfg.CONF.set_override('enforce_new_defaults', True,
                               group='oslo_policy')
 

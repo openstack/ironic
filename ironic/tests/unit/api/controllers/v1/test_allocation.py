@@ -1046,7 +1046,6 @@ class TestPost(test_api_base.BaseApiTest):
     def test_create_allocation_owner_not_my_projet_id(self, mock_auth_req):
         # This is only enforced, test wise with the new oslo policy rbac
         # model and enforcement. Likely can be cleaned up past the Xena cycle.
-        cfg.CONF.set_override('enforce_scope', True, group='oslo_policy')
         cfg.CONF.set_override('enforce_new_defaults', True,
                               group='oslo_policy')
         # Tests normally run in noauth, but we need policy

@@ -539,7 +539,6 @@ class TestLookupScopedRBAC(TestLookup):
     def setUp(self):
         super(TestLookupScopedRBAC, self).setUp()
 
-        cfg.CONF.set_override('enforce_scope', True, group='oslo_policy')
         cfg.CONF.set_override('enforce_new_defaults', True,
                               group='oslo_policy')
         cfg.CONF.set_override('auth_strategy', 'keystone')
@@ -554,7 +553,6 @@ class TestHeartbeatScopedRBAC(TestHeartbeat):
     def setUp(self):
         super(TestHeartbeatScopedRBAC, self).setUp()
 
-        cfg.CONF.set_override('enforce_scope', True, group='oslo_policy')
         cfg.CONF.set_override('enforce_new_defaults', True,
                               group='oslo_policy')
         cfg.CONF.set_override('auth_strategy', 'keystone')
@@ -674,7 +672,6 @@ class TestContinueInspectionScopedRBAC(TestContinueInspection):
     def setUp(self):
         super().setUp()
 
-        cfg.CONF.set_override('enforce_scope', True, group='oslo_policy')
         cfg.CONF.set_override('enforce_new_defaults', True,
                               group='oslo_policy')
         cfg.CONF.set_override('auth_strategy', 'keystone')
