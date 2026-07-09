@@ -20,6 +20,7 @@ from oslo_db.sqlalchemy import utils
 from oslo_upgradecheck import common_checks
 from oslo_upgradecheck import upgradecheck
 import sqlalchemy
+from sqlalchemy import orm
 
 from ironic.command import dbsync
 from ironic.common import driver_factory
@@ -27,6 +28,7 @@ from ironic.common.i18n import _
 from ironic.common import policy  # noqa importing to load policy config.
 import ironic.conf
 from ironic.db import api as db_api
+from ironic.db.sqlalchemy import models
 
 CONF = ironic.conf.CONF
 
@@ -183,6 +185,38 @@ class Checks(upgradecheck.UpgradeCommands):
         else:
             return upgradecheck.Result(upgradecheck.Code.SUCCESS)
 
+    def _check_parent_child_owners(self):
+        engine = enginefacade.reader.get_engine()
+        parent_node = orm.aliased(models.Node)
+        broken = []
+        with engine.connect() as conn, conn.begin():
+            # NOTE(dtantsur): since NULL handling in SQL is insane, we need to
+            # handle 3 possible cases separately.
+            conditions = (
+                (parent_node.owner != models.Node.owner)
+                | (models.Node.owner.is_not(None)
+                   & parent_node.owner.is_(None))
+                | (models.Node.owner.is_(None)
+                   & parent_node.owner.is_not(None))
+            )
+            query = (sqlalchemy.select(models.Node.uuid,
+                                       models.Node.owner,
+                                       parent_node.uuid,
+                                       parent_node.owner)
+                     .join(parent_node,
+                           models.Node.parent_node == parent_node.uuid)
+                     .where(conditions))
+            res = conn.execute(query)
+            for child_uuid, child_owner, parent_uuid, parent_owner in res:
+                broken.append(f"- {child_uuid}: owner {child_owner}, "
+                              f"parent {parent_uuid} owner {parent_owner}")
+        if broken:
+            msg = ("Some nodes have an owner mismatch with parents:\n"
+                   + "\n".join(broken))
+            return upgradecheck.Result(upgradecheck.Code.WARNING, details=msg)
+        else:
+            return upgradecheck.Result(upgradecheck.Code.SUCCESS)
+
     # A tuple of check tuples of (<name of check>, <check function>).
     # The name of the check will be used in the output of this command.
     # The check function takes no arguments and returns an
@@ -201,6 +235,9 @@ class Checks(upgradecheck.UpgradeCommands):
          (common_checks.check_policy_json, {'conf': CONF})),
         (_('Hardware Types and Interfaces Check'),
          _check_hardware_types_interfaces),
+        # Cases of CVE-2026-44918
+        (_('Mismatch between Child and Parent Owners'),
+         _check_parent_child_owners),
     )
 
 

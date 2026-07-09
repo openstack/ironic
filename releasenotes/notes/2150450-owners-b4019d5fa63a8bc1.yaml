@@ -1,0 +1,21 @@
+---
+security:
+  - |
+    Addresses a potential security issues where an admin of a project could
+    create nodes with ``parent_node`` set to a node from a different project.
+  - |
+    Prevents changing the ``node_uuid`` of ports, port groups, volume targets,
+    and volume connectors to point to a node with a different owner from the
+    initial node. In some cases this is not normally permitted due to the
+    database model, but additional access checking was added across these
+    similar resources for consistency in the event the Ironic project fixes
+    `12150252 <https://bugs.launchpad.net/ironic/+bug/2150252>`_.
+issues:
+  - |
+    System operators should note that changing the owner field on a node does
+    not affect its child or parent nodes, potentially resulting in these nodes
+    being in different projects.
+upgrade:
+  - |
+    Adds an upgrade check that issues a warning when any node has a different
+    owner from its parent node.

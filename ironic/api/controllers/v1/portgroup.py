@@ -552,28 +552,19 @@ class PortgroupsController(pecan.rest.RestController):
 
         portgroup_dict = rpc_portgroup.as_dict()
 
-        # NOTE:
-        # 1) Remove node_id because it's an internal value and
+        # NOTE: Remove node_id because it's an internal value and
         #    not present in the API object
-        # 2) Add node_uuid
         portgroup_dict.pop('node_id')
-        portgroup_dict['node_uuid'] = rpc_node.uuid
+
+        rpc_node = api_utils.authorize_node_link_patch(
+            rpc_node, patch, 'node_uuid')
+
         portgroup_dict = api_utils.apply_jsonpatch(portgroup_dict, patch)
+        portgroup_dict['node_uuid'] = rpc_node.uuid
 
         if 'mode' not in portgroup_dict:
             msg = _("'mode' is a mandatory attribute and can not be removed")
             raise exception.ClientSideError(msg)
-
-        try:
-            if portgroup_dict['node_uuid'] != rpc_node.uuid:
-                rpc_node = objects.Node.get(api.request.context,
-                                            portgroup_dict['node_uuid'])
-
-        except exception.NodeNotFound as e:
-            # Change error code because 404 (NotFound) is inappropriate
-            # response for a POST request to patch a Portgroup
-            e.code = http_client.BAD_REQUEST  # BadRequest
-            raise
 
         api_utils.patched_validate_with_schema(
             portgroup_dict, PORTGROUP_PATCH_SCHEMA, PORTGROUP_PATCH_VALIDATOR)
