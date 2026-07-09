@@ -1357,6 +1357,25 @@ class RedfishFirmware(base.FirmwareInterface):
                         'update is unknown.  Assuming update was successful.',
                         {'node': node.uuid,
                          'firmware_image': current_update['url']})
+            # For BIOS updates, the task disappearing likely means staging
+            # completed. We still need to reboot to apply the staged
+            # firmware via the BMC's scheduled job.
+            component = current_update.get('component', '')
+            component_type = redfish_utils.get_component_type(component)
+            if (component_type == redfish_utils.BIOS
+                    and not current_update.get(BIOS_REBOOT_TRIGGERED)):
+                LOG.info('BIOS firmware update task disappeared for node '
+                         '%(node)s before reboot was triggered. '
+                         'Triggering reboot now to apply staged firmware.',
+                         {'node': node.uuid})
+                task.upgrade_lock()
+                current_update[BIOS_REBOOT_TRIGGERED] = True
+                node.set_driver_internal_info('redfish_fw_updates', settings)
+                node.save()
+                power_timeout = current_update.get('power_timeout', 0)
+                manager_utils.node_power_action(task, states.REBOOT,
+                                                power_timeout)
+                return
             self._continue_updates(task, update_service, settings)
             return
 
