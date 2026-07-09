@@ -437,10 +437,15 @@ class RedfishBIOS(base.BIOSInterface):
         if not isinstance(pending_attrs, dict):
             pending_attrs = {}
         attrs_not_updated = {}
+        # On some systems pending area only contain the modified attributes
+        # (eg. dell) and must be clean before another modification can be done.
+        # On others it always contains all the values of the writable
+        # attributes (eg. hpe, lenovo)
+        purge_pending_behavior = len(pending_attrs) <= len(requested_attrs)
         for attr in requested_attrs:
             if requested_attrs[attr] != current_attrs.get(attr):
                 attrs_not_updated[attr] = requested_attrs[attr]
-            elif attr in pending_attrs:
+            elif purge_pending_behavior and attr in pending_attrs:
                 attrs_not_updated[attr] = requested_attrs[attr]
         return attrs_not_updated
 
