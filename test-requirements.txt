@@ -7,4 +7,3 @@ oslotest>=3.2.0 # Apache-2.0
 stestr>=2.0.0 # Apache-2.0
 testtools>=2.5.0 # MIT
 WebTest>=2.0.27 # MIT
-bandit>=1.1.0,<2.0.0 # Apache-2.0
