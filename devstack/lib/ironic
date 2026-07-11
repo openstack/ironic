@@ -1190,7 +1190,11 @@ function install_ironic {
         done
     fi
 
-    setup_develop $IRONIC_DIR
+    if is_ansible_deploy_enabled; then
+      setup_develop $IRONIC_DIR[ansible]
+    else
+      setup_develop $IRONIC_DIR
+    fi
 
     install_apache_wsgi
 
@@ -1210,11 +1214,6 @@ function install_ironic {
 
     if is_drac_enabled; then
         pip_install python-dracclient
-    fi
-
-
-    if is_ansible_deploy_enabled; then
-        pip_install "$(grep '^ansible' $IRONIC_DIR/driver-requirements.txt | awk '{print $1}')"
     fi
 
     if is_service_enabled ir-novnc; then
