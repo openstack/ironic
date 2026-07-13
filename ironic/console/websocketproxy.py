@@ -130,7 +130,8 @@ class IronicProxyRequestHandler(websockify.ProxyRequestHandler):
                 expected_origin_hostname = e.split(']')[0][1:]
             else:
                 expected_origin_hostname = e.split(':')[0]
-        expected_origin_hostnames = CONF.cors.allowed_origin or []
+        expected_origin_hostnames = list(
+            CONF.cors.allowed_origin or [])
         expected_origin_hostnames.append(expected_origin_hostname)
         origin_url = self.headers.get('Origin')
         # missing origin header indicates non-browser client which is OK

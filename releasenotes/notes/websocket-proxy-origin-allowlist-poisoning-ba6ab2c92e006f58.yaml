@@ -1,0 +1,8 @@
+---
+fixes:
+  - |
+    Fixed the noVNC websocket proxy to copy the ``[cors]
+    allowed_origin`` configuration value before appending the
+    per-request ``Host`` header, preventing mutation of the shared
+    oslo.config cached list object.
+    See `bug 2160548 <https://launchpad.net/bugs/2160548>`_.
