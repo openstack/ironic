@@ -255,6 +255,71 @@ class IronicProxyRequestHandlerTestCase(db_base.DbTestCase):
 
     @mock.patch('ironic.common.vnc.novnc_validate',
                 autospec=True)
+    def test_host_does_not_poison_allowed_origins(self, validate):
+        """Verify Host header does not poison allowed origins.
+
+        Verify that the Host header from one request does not persist
+        in CONF.cors.allowed_origin and affect subsequent origin
+        checks.
+
+        Regression test for bug 2158919.
+        """
+        validate.return_value = '123-456-789'
+
+        self.wh.socket.return_value = '<socket>'
+        self.wh.path = (
+            f"http://127.0.0.1/?node={self.uuid}&token=123-456-789"
+        )
+        self.wh.headers = self.fake_header
+
+        original_conf_origins = list(
+            CONF.cors.allowed_origin)
+
+        self.wh.new_websocket_client()
+
+        self.assertEqual(original_conf_origins,
+                         list(CONF.cors.allowed_origin))
+
+    @mock.patch('ironic.common.vnc.novnc_validate',
+                autospec=True)
+    def test_previous_host_does_not_bypass_origin_check(
+            self, validate):
+        """Verify prior Host header cannot bypass origin check.
+
+        Verify that a Host header from a prior request cannot be
+        used to bypass the origin check on a subsequent request.
+
+        Regression test for bug 2158919.
+        """
+        validate.return_value = '123-456-789'
+
+        self.wh.socket.return_value = '<socket>'
+        self.wh.path = (
+            f"http://127.0.0.1/?node={self.uuid}&token=123-456-789"
+        )
+
+        # First request: Host header introduces evil.com
+        self.wh.headers = {
+            'cookie': 'token="123-456-789"',
+            'Origin': 'https://evil.com:6080',
+            'Host': 'evil.com:6080',
+        }
+        self.wh.new_websocket_client()
+
+        # Second request: Origin is evil.com but Host is
+        # legitimate. This must be rejected - evil.com should not
+        # have been persisted into the allow-list by the first
+        # request.
+        self.wh.headers = {
+            'cookie': 'token="123-456-789"',
+            'Origin': 'https://evil.com:6080',
+            'Host': 'example.net:6080',
+        }
+        self.assertRaises(exception.NotAuthorized,
+                          self.wh.new_websocket_client)
+
+    @mock.patch('ironic.common.vnc.novnc_validate',
+                autospec=True)
     def test_new_websocket_client_novnc_bad_origin_header(self, validate):
         validate.return_value = '123-456-789'
 
