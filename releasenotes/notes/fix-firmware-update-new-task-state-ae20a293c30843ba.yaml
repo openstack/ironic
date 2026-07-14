@@ -1,0 +1,16 @@
+---
+fixes:
+  - |
+    Fixes a bug where Redfish firmware updates were incorrectly declared as
+    failed when the BMC task was in the ``New`` state. Some BMCs, notably Dell
+    iDRAC, return ``TaskState.NEW`` immediately after a ``SimpleUpdate``
+    request before the task transitions to ``Starting``. Previously, the
+    ``New`` state was not recognized as an in-progress state and was treated
+    as a terminal failure, causing the firmware update to be aborted with a
+    misleading error message such as ``Error: New``.
+  - |
+    Fixes the ``_query_update_status`` periodic task to use the
+    ``[redfish]firmware_update_status_interval`` configuration option for its
+    polling interval instead of ``[redfish]firmware_update_fail_interval``.
+    Both options default to 60 seconds, so this was only visible when they
+    were explicitly configured to different values.
