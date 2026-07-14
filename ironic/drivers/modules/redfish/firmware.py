@@ -943,7 +943,7 @@ class RedfishFirmware(base.FirmwareInterface):
     @METRICS.timer('RedfishFirmware._query_update_status')
     @periodics.node_periodic(
         purpose='checking async update of firmware component',
-        spacing=CONF.redfish.firmware_update_fail_interval,
+        spacing=CONF.redfish.firmware_update_status_interval,
         filters={'reserved': False, 'provision_state_in': [states.CLEANWAIT,
                  states.DEPLOYWAIT, states.SERVICEWAIT]},
         predicate_extra_fields=['driver_internal_info'],
@@ -1389,10 +1389,11 @@ class RedfishFirmware(base.FirmwareInterface):
 
         # Check if task is in a terminal state (completed, failed, etc.)
         # If so, proceed directly to completion handling
-        if task_state not in [sushy.TASK_STATE_RUNNING,
+        if task_state not in [sushy.TASK_STATE_NEW,
+                              sushy.TASK_STATE_RUNNING,
                               sushy.TASK_STATE_STARTING,
                               sushy.TASK_STATE_PENDING]:
-            # Taks is done (COMPLETED, EXCEPTION, KILLED, CANCELLED, etc.)
+            # Task is done (COMPLETED, EXCEPTION, KILLED, CANCELLED, etc.)
             # Parse messages and handle completion
             LOG.debug('Firmware update task in terminal state %(state)s '
                       'for node %(node)s',
@@ -1417,7 +1418,7 @@ class RedfishFirmware(base.FirmwareInterface):
                                          current_update)
             return
 
-        # Task is still in progress (RUNNING, STARTING, or PENDING)
+        # Task is still in progress (NEW, RUNNING, STARTING, or PENDING)
         # Special handling for BIOS and NIC updates
         component = current_update.get('component', '')
         component_type = redfish_utils.get_component_type(component)

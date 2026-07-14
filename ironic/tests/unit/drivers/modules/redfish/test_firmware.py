@@ -1185,6 +1185,36 @@ class RedfishFirmwareTestCase(db_base.DbTestCase):
             log_mock.debug.assert_has_calls(debug_calls)
             interface._continue_updates.assert_not_called()
 
+    @mock.patch.object(redfish_fw, 'LOG', autospec=True)
+    @mock.patch.object(redfish_utils, 'get_update_service', autospec=True)
+    @mock.patch.object(redfish_utils, 'get_task_monitor', autospec=True)
+    def test__check_update_task_state_new(self, tm_mock, get_us_mock,
+                                          log_mock):
+        """Test task in NEW state is treated as in-progress, not terminal.
+
+        Dell iDRAC returns TaskState.NEW immediately after a SimpleUpdate
+        request before the task transitions to STARTING. This must not be
+        treated as a terminal state, otherwise the firmware update is
+        incorrectly declared as failed.
+        """
+        self._generate_new_driver_internal_info(['bmc'])
+
+        tm_mock.return_value.is_processing = False
+        mock_task = tm_mock.return_value.get_task.return_value
+        mock_task.task_state = sushy.TASK_STATE_NEW
+        mock_task.task_status = sushy.HEALTH_OK
+
+        _, interface = self._test__check_node_redfish_firmware_update()
+
+        debug_calls = [
+            mock.call('Firmware update in progress for node %(node)s, '
+                      'firmware %(firmware_image)s.',
+                      {'node': self.node.uuid,
+                       'firmware_image': 'https://bmc/v1.0.1'})]
+
+        log_mock.debug.assert_has_calls(debug_calls)
+        interface._continue_updates.assert_not_called()
+
     @mock.patch.object(manager_utils, 'cleaning_error_handler', autospec=True)
     @mock.patch.object(redfish_utils, 'get_update_service', autospec=True)
     @mock.patch.object(redfish_utils, 'get_task_monitor', autospec=True)
