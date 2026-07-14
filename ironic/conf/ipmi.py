@@ -85,7 +85,9 @@ opts = [
                 default=[],
                 help=_('List of possible cipher suites versions that can '
                        'be supported by the hardware in case the field '
-                       '`cipher_suite` is not set for the node.')),
+                       '`cipher_suite` is not set for the node. The items '
+                       'are listed in the reverse priority order: the last '
+                       'one is tried first.')),
 ]
 
 
