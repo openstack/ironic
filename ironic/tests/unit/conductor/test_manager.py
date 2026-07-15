@@ -4605,6 +4605,28 @@ class DestroyNodeTestCase(mgr_utils.ServiceSetUpMixin, db_base.DbTestCase):
                               self.dbapi.get_node_by_uuid,
                               node.uuid)
 
+    @mock.patch.object(objects.Node, 'release', autospec=True)
+    def test_destroy_node_no_release_reservation(self,
+                                                 mock_release):
+        """Verify destroy_node clears task.node before __exit__.
+
+        After a successful node deletion the task's node reference
+        must be None so that release_resources() does not attempt to
+        release the DB reservation on the already-deleted row. A
+        stale read in release_node() can otherwise raise NodeLocked
+        instead of NodeNotFound, surfacing a spurious HTTP 409 to
+        the caller.
+        """
+        self._start_service()
+        node = obj_utils.create_test_node(
+            self.context,
+            provision_state=states.MANAGEABLE)
+        self.service.destroy_node(self.context, node.uuid)
+        self.assertRaises(exception.NodeNotFound,
+                          self.dbapi.get_node_by_uuid,
+                          node.uuid)
+        mock_release.assert_not_called()
+
     def test_destroy_node_reserved(self):
         self._start_service()
         fake_reservation = 'fake-reserv'
