@@ -1,0 +1,15 @@
+---
+fixes:
+  - |
+    Improves BIOS firmware update handling on Dell iDRAC when the Redfish
+    TaskMonitor is purged before Ironic can poll it. Previously, Ironic
+    unconditionally triggered a reboot assuming staging had succeeded,
+    with no way to detect if the firmware download or staging had actually
+    failed. For nodes with vendor property containing ``Dell``, now
+    queries the iDRAC Lifecycle Controller job collection to determine
+    whether staging actually succeeded. If a scheduled LC job exists, a
+    reboot is triggered to apply the firmware. If no job exists, the
+    update is correctly reported as failed. Non-Dell nodes skip this
+    check and fall back to triggering a reboot unconditionally, preserving
+    the previous behavior.
+

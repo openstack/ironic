@@ -28,6 +28,7 @@ from ironic.conductor import utils as manager_utils
 from ironic.conf import CONF
 from ironic.drivers import base
 from ironic.drivers.modules import deploy_utils
+from ironic.drivers.modules.drac import firmware as drac_fw
 from ironic.drivers.modules.redfish import firmware_utils
 from ironic.drivers.modules.redfish import utils as redfish_utils
 from ironic import objects
@@ -1216,6 +1217,84 @@ class RedfishFirmware(base.FirmwareInterface):
 
         return False
 
+    def _check_bmc_scheduled_firmware_update(self, task, current_update):
+        """Check if the BMC has a scheduled job for this firmware update.
+
+        Delegates to vendor-specific helpers when available.
+        Currently only Dell iDRAC is supported via
+        ``drac.firmware.check_scheduled_idrac_job``.
+
+        :param task: a TaskManager instance
+        :param current_update: the current firmware update being processed
+        :returns: True if a matching scheduled job was found, False if
+            no matching job exists, None if this check is not supported
+        """
+        vendor = task.node.properties.get('vendor', '')
+        if vendor and 'Dell' in vendor.split():
+            return drac_fw.check_scheduled_idrac_job(task, current_update)
+        return None
+
+    def _handle_bios_task_monitor_disappeared(self, task, node,
+                                              current_update,
+                                              update_service, settings):
+        """Handle BIOS firmware update when the TaskMonitor has disappeared.
+
+        When the Redfish TaskMonitor returns 404, the BMC has purged the
+        task. This can mean either:
+
+        1. Staging succeeded and a scheduled job is waiting for reboot
+        2. The firmware download failed and the job was cleaned up
+
+        Calls _check_bmc_scheduled_firmware_update to distinguish these
+        cases. Vendor-specific subclasses can override that method to
+        query the BMC job queue. When the check is not supported
+        (returns None), falls back to triggering a reboot
+        unconditionally.
+
+        :param task: a TaskManager instance
+        :param node: an Ironic node object
+        :param current_update: the current firmware update being processed
+        :param update_service: the sushy firmware update service
+        :param settings: firmware update settings
+        """
+        has_job = self._check_bmc_scheduled_firmware_update(
+            task, current_update)
+        task.upgrade_lock()
+
+        if has_job is None:
+            LOG.info('BIOS firmware update task disappeared for node '
+                     '%(node)s. BMC scheduled job check not supported; '
+                     'assuming staging succeeded and triggering reboot.',
+                     {'node': node.uuid})
+        elif not has_job:
+            error_msg = (
+                _('Firmware update failed for node %(node)s, '
+                  'firmware %(firmware_image)s. The BMC task '
+                  'disappeared and no scheduled job was found, '
+                  'indicating the firmware download or staging '
+                  'failed.') %
+                {'node': node.uuid,
+                 'firmware_image': current_update['url']})
+            self._clear_updates(node)
+            if task.node.clean_step:
+                manager_utils.cleaning_error_handler(task, error_msg)
+            elif task.node.deploy_step:
+                manager_utils.deploying_error_handler(task, error_msg)
+            elif task.node.service_step:
+                manager_utils.servicing_error_handler(task, error_msg)
+            return
+        else:
+            LOG.info('BIOS firmware update task disappeared for node '
+                     '%(node)s. Scheduled job confirmed, triggering '
+                     'reboot to apply staged firmware.',
+                     {'node': node.uuid})
+        current_update[BIOS_REBOOT_TRIGGERED] = True
+        node.set_driver_internal_info('redfish_fw_updates', settings)
+        node.save()
+        power_timeout = current_update.get('power_timeout', 0)
+        manager_utils.node_power_action(task, states.REBOOT,
+                                        power_timeout)
+
     def _handle_wait_completion(self, task, update_service, settings,
                                 current_update):
         """Handle firmware update wait completion.
@@ -1354,24 +1433,12 @@ class RedfishFirmware(base.FirmwareInterface):
                         'update is unknown.  Assuming update was successful.',
                         {'node': node.uuid,
                          'firmware_image': current_update['url']})
-            # For BIOS updates, the task disappearing likely means staging
-            # completed. We still need to reboot to apply the staged
-            # firmware via the BMC's scheduled job.
             component = current_update.get('component', '')
             component_type = redfish_utils.get_component_type(component)
             if (component_type == redfish_utils.BIOS
                     and not current_update.get(BIOS_REBOOT_TRIGGERED)):
-                LOG.info('BIOS firmware update task disappeared for node '
-                         '%(node)s before reboot was triggered. '
-                         'Triggering reboot now to apply staged firmware.',
-                         {'node': node.uuid})
-                task.upgrade_lock()
-                current_update[BIOS_REBOOT_TRIGGERED] = True
-                node.set_driver_internal_info('redfish_fw_updates', settings)
-                node.save()
-                power_timeout = current_update.get('power_timeout', 0)
-                manager_utils.node_power_action(task, states.REBOOT,
-                                                power_timeout)
+                self._handle_bios_task_monitor_disappeared(
+                    task, node, current_update, update_service, settings)
                 return
             self._continue_updates(task, update_service, settings)
             return
