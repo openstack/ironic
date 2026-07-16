@@ -1,0 +1,17 @@
+---
+features:
+  - |
+    Add new configuration options under the ``[api]`` group in config:
+    ``disallow_deploy_steps``, ``disallow_clean_steps``, and
+    ``disallow_service_steps``. Using these operators can block specific
+    steps from being executed across all workflows. Each option accepts
+    a list of steps in ``interface.step`` format (e.g.
+    ``raid.create_configuration``). Steps are rejected at the API level
+    with an error for user-requested operations, and silently filtered
+    at the conductor level for automated workflows (driver steps,
+    deploy templates, runbooks). All three options are mutable and can
+    be reloaded via SIGHUP without restarting services.
+    For more information, refer to
+    ` bug 2150456 <https://bugs.launchpad.net/ironic/+bug/2150456>`.
+
+
