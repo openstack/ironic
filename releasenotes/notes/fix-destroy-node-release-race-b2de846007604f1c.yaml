@@ -1,0 +1,14 @@
+---
+fixes:
+  - |
+    Fixes a race condition where deleting a node could return an
+    HTTP 409 (NodeLocked) error to the caller even though the node
+    was successfully deleted. This occurred because the task
+    manager's resource cleanup attempted to release the database
+    reservation on the already-deleted node row, which could raise
+    ``NodeLocked`` instead of ``NodeNotFound`` depending on
+    transaction visibility timing. A subsequent retry by the
+    client would then return HTTP 404, confusing operators. The
+    conductor now clears its task reference to the node immediately
+    after a successful deletion so that the cleanup path no longer
+    attempts to release a reservation on a non-existent row.
