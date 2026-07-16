@@ -13,6 +13,7 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
+import types
 from unittest import mock
 
 import sushy
@@ -582,11 +583,14 @@ class RedfishVirtualMediaBootTestCase(db_base.DbTestCase):
             mock_validate_vendor):
 
         managers = mock_system.return_value.managers
-        mock_detect_protocols.return_value = ['HTTP']
-        mock_select_protocol.return_value = 'HTTP'
+        mock_detect_protocols.return_value = ['HTTP', 'HTTPS']
+        mock_select_protocol.return_value = 'HTTPS'
         with task_manager.acquire(self.context, self.node.uuid,
                                   shared=False) as task:
             task.node.provision_state = states.DEPLOYING
+            driver_info = task.node.driver_info
+            driver_info['vmedia_transport_protocol'] = 'HTTPS'
+            task.node.driver_info = driver_info
 
             mock__parse_driver_info.return_value = {}
             mock_prepare_deploy_iso.return_value = 'image-url'
@@ -605,7 +609,7 @@ class RedfishVirtualMediaBootTestCase(db_base.DbTestCase):
 
             mock__insert_vmedia.assert_called_once_with(
                 task, managers, 'image-url', sushy.VIRTUAL_MEDIA_CD,
-                username=None, password=None)
+                username=None, password=None, transfer_protocol='HTTPS')
 
             token = task.node.driver_internal_info['agent_secret_token']
             self.assertTrue(token)
@@ -1557,6 +1561,28 @@ class RedfishVirtualMediaBootTestCase(db_base.DbTestCase):
             mock_vmedia_dvd.insert_media.assert_called_once_with(
                 'img-url', inserted=True, write_protected=True)
 
+    @mock.patch.object(redfish_boot, '_has_vmedia_via_systems', autospec=True)
+    @mock.patch.object(redfish_utils, 'get_system', autospec=True)
+    def test__insert_vmedia_with_transfer_protocol(self, mock_sys,
+                                                   mock_vmd_sys):
+        mock_vmd_sys.return_value = False
+        with task_manager.acquire(self.context, self.node.uuid,
+                                  shared=True) as task:
+            mock_vmedia_cd = mock.MagicMock(
+                inserted=False,
+                media_types=[sushy.VIRTUAL_MEDIA_CD])
+            mock_manager = mock.MagicMock()
+            mock_manager.virtual_media.get_members.return_value = [
+                mock_vmedia_cd]
+
+            redfish_boot._insert_vmedia(
+                task, [mock_manager], 'https://media.example/boot.iso',
+                sushy.VIRTUAL_MEDIA_CD, transfer_protocol='HTTPS')
+
+            mock_vmedia_cd.insert_media.assert_called_once_with(
+                'https://media.example/boot.iso', inserted=True,
+                write_protected=True, transfer_protocol='HTTPS')
+
     @mock.patch('time.sleep', lambda *args, **kwargs: None)
     @mock.patch.object(redfish_boot, '_has_vmedia_via_systems', autospec=True)
     @mock.patch.object(redfish_utils, 'get_system', autospec=True)
@@ -2255,6 +2281,55 @@ class RedfishVirtualMediaBootTestCase(db_base.DbTestCase):
             redfish_boot._has_vmedia_device(
                 [mock_manager], sushy.VIRTUAL_MEDIA_FLOPPY, inserted=True))
 
+    @mock.patch.object(redfish_boot, '_has_vmedia_via_systems',
+                       autospec=True)
+    @mock.patch.object(redfish_boot, 'redfish_utils', autospec=True)
+    def test_detect_transport_protocols_from_sushy_json(
+            self, mock_redfish_utils, mock_vmd_sys):
+        mock_vmd_sys.return_value = True
+        virtual_media = types.SimpleNamespace(
+            media_types=[sushy.VIRTUAL_MEDIA_CD],
+            json={
+                'Actions': {
+                    '#VirtualMedia.InsertMedia': {
+                        'TransferProtocolType@Redfish.AllowableValues': [
+                            'HTTP', 'HTTPS']
+                    }
+                }
+            })
+        system = mock_redfish_utils.get_system.return_value
+        system.virtual_media.get_members.return_value = [virtual_media]
+
+        with task_manager.acquire(self.context, self.node.uuid,
+                                  shared=True) as task:
+            protocols = redfish_boot._detect_supported_transport_protocols(
+                task, [], sushy.VIRTUAL_MEDIA_CD)
+
+        self.assertEqual(['HTTP', 'HTTPS'], protocols)
+
+    @mock.patch.object(redfish_boot, '_has_vmedia_via_systems',
+                       autospec=True)
+    @mock.patch.object(redfish_boot, 'redfish_utils', autospec=True)
+    def test_detect_transport_protocols_falls_back_when_field_is_none(
+            self, mock_redfish_utils, mock_vmd_sys):
+        mock_vmd_sys.return_value = True
+        virtual_media = types.SimpleNamespace(
+            media_types=[sushy.VIRTUAL_MEDIA_CD],
+            transfer_protocol_type=None,
+            json={
+                'TransferProtocolType': 'HTTPS',
+                'Actions': {'#VirtualMedia.InsertMedia': {}}
+            })
+        system = mock_redfish_utils.get_system.return_value
+        system.virtual_media.get_members.return_value = [virtual_media]
+
+        with task_manager.acquire(self.context, self.node.uuid,
+                                  shared=True) as task:
+            protocols = redfish_boot._detect_supported_transport_protocols(
+                task, [], sushy.VIRTUAL_MEDIA_CD)
+
+        self.assertEqual(['HTTP', 'HTTPS'], protocols)
+
     def test_validate_rescue_success(self):
         with task_manager.acquire(self.context, self.node.uuid,
                                   shared=True) as task:
@@ -2312,6 +2387,15 @@ class SelectTransportProtocolTestCase(db_base.DbTestCase):
             result = redfish_boot._select_transport_protocol(
                 task, ['HTTP', 'NFS'])
             self.assertEqual('NFS', result)
+
+    def test_select_transport_protocol_explicit_https(self):
+        """Override to HTTPS when HTTPS is supported."""
+        with task_manager.acquire(self.context, self.node.uuid,
+                                  shared=True) as task:
+            task.node.driver_info['vmedia_transport_protocol'] = 'HTTPS'
+            result = redfish_boot._select_transport_protocol(
+                task, ['HTTP', 'HTTPS'])
+            self.assertEqual('HTTPS', result)
 
     def test_select_transport_protocol_explicit_cifs(self):
         """Override to CIFS, CIFS supported and configured."""
