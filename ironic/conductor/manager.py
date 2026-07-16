@@ -2352,6 +2352,11 @@ class ConductorManager(base_manager.BaseConductorManager):
                 raise
 
             node.destroy()
+            # Clear the node reference so release_resources() in
+            # __exit__ does not attempt to release the reservation
+            # on a row that no longer exists, which can race and
+            # raise NodeLocked instead of NodeNotFound.
+            task.node = None
             LOG.info('Successfully deleted node %(node)s.',
                      {'node': node.uuid})
 
