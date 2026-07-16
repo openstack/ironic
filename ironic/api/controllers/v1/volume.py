@@ -20,9 +20,12 @@ from pecan import rest
 from ironic import api
 from ironic.api.controllers import link
 from ironic.api.controllers.v1 import utils as api_utils
+from ironic.api.controllers.v1 import versions
 from ironic.api.controllers.v1 import volume_connector
 from ironic.api.controllers.v1 import volume_target
 from ironic.api import method
+from ironic.api.schemas.v1 import volume as schema
+from ironic.api import validation
 from ironic.common import exception
 
 
@@ -67,6 +70,8 @@ class VolumeController(rest.RestController):
         self.parent_node_ident = node_ident
 
     @method.expose()
+    @validation.api_version(min_version=versions.MINOR_32_VOLUME)
+    @validation.response_body_schema(schema.get_response_body)
     def get(self):
         if not api_utils.allow_volume():
             raise exception.NotFound()
