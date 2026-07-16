@@ -1,0 +1,10 @@
+---
+security:
+  - |
+    Kickstart configdrive URL fetches and inspection rule
+    ``api-call`` actions now use TLS-hardened sessions, applying
+    the ``webserver_verify_ca``, ``webserver_tls_minimum_version``,
+    and ``webserver_tls_ciphers`` settings. Previously these code
+    paths used bare ``requests.get()`` or ``requests.Session()``
+    calls without TLS hardening, potentially allowing TLS
+    downgrade attacks on these connections.
