@@ -11,7 +11,6 @@
       - ^.*\.rst$
       - ^api-ref/.*$
       - ^doc/.*$
-      - ^driver-requirements.txt$
       - ^install-guide/.*$
       - ^ironic/locale/.*$
       - ^ironic/tests/.*$

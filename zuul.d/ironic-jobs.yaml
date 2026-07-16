@@ -70,7 +70,6 @@
       - ^.*\.rst$
       - ^api-ref/.*$
       - ^doc/.*$
-      - ^driver-requirements.txt$
       - ^install-guide/.*$
       - ^ironic/locale/.*$
       - ^ironic/tests/.*$
@@ -628,7 +627,6 @@
       - ^.*\.rst$
       - ^api-ref/.*$
       - ^doc/.*$
-      - ^driver-requirements.txt$
       - ^install-guide/.*$
       - ^ironic/locale/.*$
       - ^ironic/tests/.*$
@@ -1192,7 +1190,6 @@
     parent: grenade
     timeout: 10800
     irrelevant-files:
-      - ^driver-requirements.txt$
       - ^.*\.rst$
       - ^api-ref/.*$
       - ^doc/.*$

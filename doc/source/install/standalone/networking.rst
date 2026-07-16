@@ -74,10 +74,10 @@ Installation and Dependencies
 =============================
 
 The standalone networking service requires the ``networking-generic-switch``
-library for the generic-switch driver. Install it from the driver requirements
-file::
+library for the generic-switch driver. Install it as specified in the optional
+dependencies::
 
-    $ pip install -r driver-requirements.txt
+    $ pip install networking-generic-switch
 
 Configuration
 =============

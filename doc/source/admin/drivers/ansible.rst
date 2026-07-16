@@ -154,8 +154,7 @@ Setting up your environment
      and the Bare Metal service is configured accordingly, see
      :doc:`Configure the Image service for temporary URLs <../../install/configure-glance-swift>`.
 
-#. Install Ansible version as specified in ``ironic/driver-requirements.txt``
-   file
+#. Install Ansible version as specified in the optional dependencies.
 #. Edit ironic configuration file
 
    A. Add ``ansible`` to the list of deploy interfaces defined in
