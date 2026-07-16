@@ -2058,6 +2058,12 @@ class ConductorManager(base_manager.BaseConductorManager):
             # above, and task.driver.power.validate() could be called, it
             # is called as part of the transition from ENROLL to MANAGEABLE
             # states. As such it is redundant to call here.
+
+            # Give the deploy interface the opportunity to switch
+            # interfaces, e.g. the autodetect deploy interface needs
+            # to resolve to a concrete interface before takeover.
+            task.driver.deploy.switch_interface(task)
+
             self._do_takeover(task)
 
             LOG.info("Successfully adopted node %(node)s",
@@ -2067,6 +2073,10 @@ class ConductorManager(base_manager.BaseConductorManager):
             msg = (_('Error while attempting to adopt node %(node)s: '
                      '%(err)s.') % {'node': node.uuid, 'err': err})
             LOG.error(msg)
+            # Restore the deploy interface if it was switched, so
+            # the node's deploy_interface is not left pointing at a
+            # concrete interface when it should be 'autodetect'.
+            task.driver.deploy.restore_interface(task)
             # Wipe power state from being preserved as it is likely invalid.
             node.power_state = states.NOSTATE
             utils.node_history_record(task.node, event=msg,

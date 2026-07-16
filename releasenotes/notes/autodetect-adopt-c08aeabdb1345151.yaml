@@ -1,0 +1,4 @@
+---
+fixes:
+  - |
+    The autodetect deploy interface now supports adopting nodes.
