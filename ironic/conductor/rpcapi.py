@@ -221,8 +221,28 @@ class ConductorAPI(object):
                 _("Cannot use 'none' RPC to connect to remote conductor %s")
                 % host)
 
-        # Normal RPC path
-        return self.client.prepare(topic=topic, version=version)
+        # The JSON RPC client addresses the conductor purely by the
+        # per-host topic string (it parses host/port back out of the
+        # topic), so it must keep receiving the <prefix>.<host> topic.
+        if CONF.rpc_transport == 'json-rpc':
+            return self.client.prepare(topic=topic, version=version)
+
+        # For oslo.messaging, express the destination the idiomatic way:
+        # a constant topic plus an explicit ``server``.  This is exactly
+        # how the conductor binds its listener (see
+        # ironic/common/rpc_service.py:
+        # ``Target(topic=self.topic, server=self.host)``) and how other
+        # OpenStack services (nova/cinder/neutron) address a specific
+        # host.  oslo.messaging builds the same ``<topic>.<server>``
+        # routing key as the historical per-host topic string, so this is
+        # behaviourally identical on the current rabbit driver -- but it
+        # lets any oslo.messaging transport route directed conductor RPC
+        # natively via ``Target.server`` instead of having to re-parse the
+        # host out of the topic.  ``host`` is empty for the bare topic
+        # (any-conductor) case, which oslo.messaging treats as an
+        # anycast, matching the previous behaviour.
+        return self.client.prepare(topic=self.topic, server=host or None,
+                                   version=version)
 
     def get_conductor_for(self, node):
         """Get the conductor which the node is mapped to.

@@ -251,8 +251,13 @@ class RPCAPITestCase(db_base.DbTestCase):
 
         expected_topic = kwargs.get('topic', 'fake-topic')
 
+        # For oslo.messaging the destination host is expressed as
+        # ``server`` (a constant topic + explicit server), rather than
+        # embedded in the topic string.  These tests exercise the
+        # any-conductor case (no per-host topic), so ``server`` is None.
         target = {
             "topic": expected_topic,
+            "server": kwargs.pop('server', None),
             "version": kwargs.pop('version', rpcapi.RPC_API_VERSION)
         }
         expected_msg = copy.deepcopy(kwargs)

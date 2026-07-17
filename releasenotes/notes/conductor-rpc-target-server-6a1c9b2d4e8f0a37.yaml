@@ -1,0 +1,15 @@
+---
+upgrade:
+  - |
+    Conductor-directed RPC now expresses the destination conductor using
+    the oslo.messaging ``Target.server`` field (a constant topic plus an
+    explicit ``server``) instead of embedding the hostname in the RPC
+    topic string.  This matches how the conductor already binds its RPC
+    listener (``Target(topic=..., server=self.host)``) and how other
+    OpenStack services address a specific host.  On the default RabbitMQ
+    transport this produces the identical ``<topic>.<server>`` routing
+    key, so the change is behaviourally equivalent and requires no
+    operator action.  The JSON RPC transport is unchanged.  The benefit
+    is that alternative oslo.messaging transports can now route directed
+    conductor RPC natively via ``Target.server`` rather than having to
+    re-parse the host out of the topic string.
