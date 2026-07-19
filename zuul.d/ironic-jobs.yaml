@@ -326,7 +326,9 @@
         IRONIC_ENABLED_HARDWARE_TYPES: redfish
         IRONIC_ENABLED_POWER_INTERFACES: redfish
         IRONIC_ENABLED_MANAGEMENT_INTERFACES: redfish
-        IRONIC_ENABLED_DEPLOY_INTERFACES: "direct,ansible,ramdisk"
+        IRONIC_DEFAULT_DEPLOY_INTERFACE: autodetect
+        IRONIC_ENABLED_DEPLOY_INTERFACES: "autodetect,direct,ansible,ramdisk"
+        IRONIC_AUTODETECT_DEPLOY_INTERFACES: "ramdisk,ansible,direct"
         IRONIC_RPC_TRANSPORT: json-rpc
         IRONIC_VM_COUNT: 5
         IRONIC_VM_VOLUME_COUNT: 2
