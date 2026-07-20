@@ -736,7 +736,8 @@ class RedfishManagementTestCase(db_base.DbTestCase):
         current_datetime = datetime.datetime(2025, 7, 13, 3, 0, 0)
         mock_utcnow.return_value = current_datetime
 
-        self.node.updated_at = datetime.datetime.utcnow()
+        self.node.updated_at = datetime.datetime.now(
+            datetime.timezone.utc).replace(tzinfo=None)
         self.node.save()
 
         with task_manager.acquire(self.context, self.node.uuid,
@@ -767,7 +768,8 @@ class RedfishManagementTestCase(db_base.DbTestCase):
         current_datetime = datetime.datetime(2025, 7, 13, 3, 0, 0)
         mock_utcnow.return_value = current_datetime
 
-        self.node.updated_at = datetime.datetime.utcnow()
+        self.node.updated_at = datetime.datetime.now(
+            datetime.timezone.utc).replace(tzinfo=None)
         self.node.save()
 
         with task_manager.acquire(self.context, self.node.uuid,
