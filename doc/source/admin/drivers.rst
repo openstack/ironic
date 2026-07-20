@@ -9,6 +9,48 @@
 Drivers, Hardware Types, and Hardware Interfaces for Ironic
 ===========================================================
 
+Before configuring Ironic, it helps to understand three closely related
+concepts: *hardware interfaces*, *hardware types*, and *drivers*.
+
+Hardware interfaces
+~~~~~~~~~~~~~~~~~~~
+
+A **hardware interface** (often just called an *interface*) implements one of
+the operational abstractions that Ironic needs to perform against hardware.
+Each interface covers a single category of operations. For example, the
+``power`` interface defines the operations needed to control a node's power
+state, and the ``boot`` interface defines the operations needed to boot a
+node. Ironic defines a number of these interfaces, including ``power``,
+``boot``, ``deploy``, ``management``, ``inspect``, and more.
+
+A given category of operation can usually be carried out in more than one way.
+Managing a node's power, for instance, might be done over the Redfish protocol
+or over IPMI. Each of these is a separate *implementation* of the ``power``
+interface (for example, ``redfish`` and ``ipmitool``).
+
+Hardware types
+~~~~~~~~~~~~~~
+
+A **hardware type** describes a class of hardware in terms of the interface
+implementations it is able to support. It does not, by itself, pick which
+implementation is used; instead it declares the set of compatible options for
+each interface. For example, a hardware type might report that it supports both
+the ``redfish`` and ``ipmitool`` implementations of the ``power`` interface,
+leaving the actual choice to be made later.
+
+Drivers
+~~~~~~~
+
+A **driver** is a hardware type as it has been loaded and configured for use.
+Where a hardware type offers a menu of compatible interface implementations, a
+driver is the fully-resolved result of selecting exactly one implementation for
+each interface — one ``power`` implementation, one ``boot`` implementation, and
+so on. In short: the hardware type says what is *possible*, and the driver
+captures what has actually been *chosen* for a node.
+
+The rest of this document describes the interfaces and hardware types Ironic
+ships with, and how to select and change them.
+
 Generic Interfaces
 ------------------
 
