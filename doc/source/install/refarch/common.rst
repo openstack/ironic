@@ -91,10 +91,9 @@ driver has to support is as follows:
 
 Once you make sure that the hardware supports these capabilities, you need to
 find a suitable driver. Most of enterprise-grade hardware has support for
-IPMI_ and thus can utilize :doc:`/admin/drivers/ipmitool`. Some newer hardware
-also supports :doc:`/admin/drivers/redfish`. Several vendors
-provide more specific drivers that usually provide additional capabilities.
-Check :doc:`/admin/drivers` to find the most suitable one.
+IPMI_ and thus can utilize :doc:`/admin/drivers/ipmitool`. Hardware produced
+after 2020 also tends to support :doc:`/admin/drivers/redfish`, although the
+implementation quality and available features vary between vendors.
 
 .. _refarch-common-boot:
 
@@ -105,11 +104,18 @@ The boot interface of a node manages booting of both the deploy ramdisk and
 the user instances on the bare metal node. The deploy interface orchestrates
 the deployment and defines how the image gets transferred to the target disk.
 
-The main alternatives are to use PXE/iPXE or virtual media - see
-:doc:`/admin/interfaces/boot` for a detailed explanation. If a virtual media
-implementation is available for the hardware, it is recommended using it
-for better scalability and security. Otherwise, it is recommended to use iPXE,
-when it is supported by target hardware.
+The main alternatives are to use network boot (PXE, iPXE, UEFI HTTP boot) or
+virtual media - see :doc:`/admin/interfaces/boot` for a detailed explanation.
+
+If a virtual media implementation is available for the hardware, it is
+recommended using it for better scalability and security. The largest
+bottleneck in this case is the performance of the BMC network, where all
+virtual media images will be transferred.
+
+Otherwise, it is recommended to use UEFI HTTP boot or iPXE, when it is
+supported by target hardware. The BMC network is not an issue in this case, but
+the requirement of DHCP on a shared L2 broadcast domain will limit the number
+of simultaneously running processes to maximum a few dozens.
 
 Hardware specifications
 ~~~~~~~~~~~~~~~~~~~~~~~
@@ -261,16 +267,6 @@ required number of conductors in a deployment depends on several factors:
 * the maximum number of bare metal nodes that are provisioned simultaneously
   (see the ``max_concurrent_builds`` option for the Compute service).
 
-We recommend a target of **100** bare metal nodes per conductor for maximum
-reliability and performance. There is some tolerance for a larger number per
-conductor. However, it was reported [1]_ [2]_ that reliability degrades when
-handling approximately 300 bare metal nodes per conductor.
-
-.. note::
-   For very large deployments, consider using :doc:`../../admin/availability-zones`
-   strategies such as conductor groups to distribute load across multiple
-   conductors, or even multiple Ironic deployments for complete isolation.
-
 Disk space
 ^^^^^^^^^^
 
@@ -304,6 +300,64 @@ the space requirements are different:
     The caching can be configured via the ``image_cache_size`` and
     ``image_cache_ttl`` configuration options in the ``pxe`` group.
 
+Nodes per conductor
+^^^^^^^^^^^^^^^^^^^
+
+We recommend a target of **300** bare metal nodes per conductor for maximum
+reliability and performance. This is a very safe bet across different
+configurations and drivers. Long time ago, it was reported [1]_ [2]_ that
+reliability may degrade after this number, but these findings don't necessarily
+apply to modern Ironic, especially now that it no longer relies on Eventlet and
+green threads.
+
+Anecdotally, more recent versions can handle 800-1000 with per conductor with
+minimum site-specific optimizations. To handle a much higher number of
+machines, you need to scale your cluster horizontally, and/or apply performance
+tuning.
+
+For scaling, consider using :doc:`../../admin/availability-zones`
+strategies such as conductor groups to distribute load across multiple
+conductors, or even multiple Ironic deployments for complete isolation.
+
+To get a higher nodes-per-conductor ratio, consider these tricks:
+
+- Prefer Redfish or other HTTP-based drivers to using IPMI.
+
+  IPMI is UDP-based and is therefore more prone to transient networking issues
+  and behaves poorly on heavily congested networks. The Ironic implementation
+  executes ``ipmitool``, which is also less performant than pure HTTP(s) calls.
+
+- Prefer virtual media boot over a performant BMC network to using network boot
+  (see `boot interface`_).
+
+  If network boot is required, prefer UEFI HTTP boot or iPXE to plain PXE,
+  since the latter requires downloading a pretty large IPA image over TFTP.
+
+- Serve raw images directly from Swift or from an external HTTP server using
+  ``image_download_source`` as described in `disk space`_.
+
+- Always batch both enrollment of new nodes or deployments of instances. 50
+  parallel processes seems to be a good starting point in practice.
+
+- Significantly decrease frequency of various periodic processes, including the
+  :doc:`power synchronization loop </admin/power-sync>`. Turn off periodic
+  tasks for feature you don't use (e.g. firmware upgrades, BIOS settings).
+  Check :doc:`configuration </configuration/config>` for relevant options.
+
+  Do not enable drivers and interfaces that you're not planning to use (some of
+  them require additional periodic tasks).
+
+- If operating an OpenStack cloud with a busy messaging bus, check if using
+  JSON RPC makes the API more responsive. For a single-conductor Ironic,
+  compare the all-in-one ``ironic`` script against using WSGI and RPC.
+
+- See :doc:`tuning guide </admin/tuning>` for memory and database tuning.
+
+Some Metal3_ users have reported successfully deploying up to 3500 nodes per
+single Ironic API+conductor process by using a combination of these tricks.
+If unsure, start with 300 and work your way from there.
+
+.. _Metal3: https://metal3.io/
 .. [1] http://lists.openstack.org/pipermail/openstack-dev/2017-June/118033.html
 .. [2] http://lists.openstack.org/pipermail/openstack-dev/2017-June/118327.html
 
