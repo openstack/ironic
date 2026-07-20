@@ -1191,7 +1191,7 @@ function install_ironic {
     fi
 
     if is_ansible_deploy_enabled; then
-      setup_develop $IRONIC_DIR[ansible]
+      setup_develop $IRONIC_DIR ansible
     else
       setup_develop $IRONIC_DIR
     fi
