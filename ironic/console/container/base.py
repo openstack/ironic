@@ -16,10 +16,27 @@ Abstract base class for console container providers.
 """
 
 import abc
+import socket
+import time
+
+from oslo_log import log as logging
+
+from ironic.common import exception
+from ironic.conf import CONF
+from ironic.console.rfb import auth
+
+LOG = logging.getLogger(__name__)
 
 
 class BaseConsoleContainer(object, metaclass=abc.ABCMeta):
     """Base class for console container provider APIs."""
+
+    # Provider name used in error messages, to be set by subclasses
+    @property
+    @abc.abstractmethod
+    def provider_name(self) -> str:
+        """Provider name used in error messages"""
+        ...
 
     @abc.abstractmethod
     def start_container(self, task, app_name, app_info):
@@ -53,3 +70,30 @@ class BaseConsoleContainer(object, metaclass=abc.ABCMeta):
         no console containers are running.
         :raises: ConsoleContainerError
         """
+
+    def _wait_for_listen(self, host, port):
+        """Blocks until VNC port is returning data
+
+        :param host: Host IP address to connect to
+        :param port: TCP port to connect to
+        :raises: ConsoleContainerError when no RFB data is returned within
+            [vnc]wait_for_ready_timeout seconds
+        """
+        for i in range(CONF.vnc.wait_for_ready_timeout):
+            try:
+                # open a TCP socket using host and port and request 12 bytes of
+                # data. This will either fail to connect, or return zero bytes
+                # until the container is listening on the port.
+                LOG.debug("Attempt %s to connect to %s:%s", i, host, port)
+                with socket.create_connection((host, port), timeout=1) as sock:
+                    b = sock.recv(auth.VERSION_LENGTH)
+                    if len(b) == auth.VERSION_LENGTH:
+                        return
+                    LOG.debug("Expected %s bytes, got %s",
+                              auth.VERSION_LENGTH, len(b))
+            except Exception:
+                pass
+            time.sleep(1)
+        reason = f"RFB data not returned by {host}:{port}"
+        raise exception.ConsoleContainerError(
+            provider=self.provider_name, reason=reason)

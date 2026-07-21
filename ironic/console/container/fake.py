@@ -20,6 +20,8 @@ from ironic.console.container import base
 
 class FakeConsoleContainer(base.BaseConsoleContainer):
 
+    provider_name = 'fake'
+
     def start_container(self, task, app_name, app_info):
         # return a test-net-1 address
         return '192.0.2.1', 5900
