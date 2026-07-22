@@ -338,25 +338,8 @@ The following command can be used to create a RAID configuration:
 
 
 When the physical disk names or controller names are not known, the
-following Python code example shows how the ``python-dracclient`` can
+following Python code example shows how the ``sushy`` library with Redfish can
 be used to fetch the information directly from the Dell bare metal:
-
-.. code-block:: python
-
-  import dracclient.client
-
-
-  client = dracclient.client.DRACClient(
-      host="192.168.1.1",
-      username="root",
-      password="calvin")
-  controllers = client.list_raid_controllers()
-  print(controllers)
-
-  physical_disks = client.list_physical_disks()
-  print(physical_disks)
-
-Or using ``sushy`` with Redfish:
 
 .. code-block:: python
 

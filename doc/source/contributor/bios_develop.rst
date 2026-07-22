@@ -66,7 +66,7 @@ the following three methods:
 
   .. note::
      ``driver.client`` is vendor specific library to control and manage
-     the bare metal hardware, for example: python-dracclient, sushy.
+     the bare metal hardware, for example: sushy.
 
 * Implement a method named ``factory_reset``. This method needs to use the
   ``clean_step`` decorator. It resets BIOS settings to factory default on the
