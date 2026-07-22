@@ -50,10 +50,6 @@ opts = [
                 default=['--rm', '--network=host', '--tls-verify=false'],
                 help=_('Options to pass when running containers, as a comma '
                        'separated list (e.g. "--rm,--network=host").')),
-    cfg.StrOpt('container_conf_file',
-               default='/etc/containers/containers.conf',
-               help=_('Path to the container configuration file'
-                      'in the IPA ramdisk.'))
 ]
 
 
