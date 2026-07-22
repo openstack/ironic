@@ -70,8 +70,6 @@
       - ^.*\.rst$
       - ^api-ref/.*$
       - ^doc/.*$
-      - ^install-guide/.*$
-      - ^ironic/locale/.*$
       - ^ironic/tests/.*$
       - ^\.pre-commit-config\.yaml$
       - ^redfish-interop-profiles/.*$
@@ -168,8 +166,6 @@
       - ^.*\.rst$
       - ^api-ref/.*$
       - ^doc/.*$
-      - ^install-guide/.*$
-      - ^ironic/locale/.*$
       - ^ironic/tests/.*$
       - ^\.pre-commit-config\.yaml$
       - ^releasenotes/.*$
@@ -240,8 +236,6 @@
       - ^.*\.rst$
       - ^api-ref/.*$
       - ^doc/.*$
-      - ^install-guide/.*$
-      - ^ironic/locale/.*$
       - ^ironic/tests/.*$
       - ^\.pre-commit-config\.yaml$
       - ^redfish-interop-profiles/.*$
@@ -627,8 +621,6 @@
       - ^.*\.rst$
       - ^api-ref/.*$
       - ^doc/.*$
-      - ^install-guide/.*$
-      - ^ironic/locale/.*$
       - ^ironic/tests/.*$
       - ^\.pre-commit-config\.yaml$
       - ^redfish-interop-profiles/.*$
@@ -1193,8 +1185,6 @@
       - ^.*\.rst$
       - ^api-ref/.*$
       - ^doc/.*$
-      - ^install-guide/.*$
-      - ^ironic/locale/.*$
       - ^ironic/tests/.*$
       - ^\.pre-commit-config\.yaml$
       - ^redfish-interop-profiles/.*$

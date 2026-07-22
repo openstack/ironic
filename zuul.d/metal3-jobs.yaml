@@ -10,10 +10,11 @@
     irrelevant-files:
       - ^.*\.rst$
       - ^api-ref/.*$
+      - ^devstack/.*$
       - ^doc/.*$
-      - ^install-guide/.*$
-      - ^ironic/locale/.*$
       - ^ironic/tests/.*$
+      - ^\.pre-commit-config\.yaml$
+      - ^redfish-interop-profiles/.*$
       - ^releasenotes/.*$
       - ^setup.cfg$
       - ^test-requirements.txt$
