@@ -1212,10 +1212,6 @@ function install_ironic {
         fi
     fi
 
-    if is_drac_enabled; then
-        pip_install python-dracclient
-    fi
-
     if is_service_enabled ir-novnc; then
         # a websockets/html5 VNC console for bare metal hosts
         NOVNC_FROM_PACKAGE=$(trueorfalse False NOVNC_FROM_PACKAGE)
