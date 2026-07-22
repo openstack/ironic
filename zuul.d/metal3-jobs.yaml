@@ -3,7 +3,6 @@
     name: metal3-base
     abstract: true
     description: Base job for metal3 based ironic jobs.
-    nodeset: ironic-single-node-noble
     timeout: 5400
     required-projects:
       - opendev.org/openstack/ironic
@@ -23,6 +22,7 @@
     name: metal3-integration
     description: Run metal3 CI on ironic.
     parent: metal3-base
+    nodeset: ironic-single-node-noble
     timeout: 7200
     run: playbooks/metal3-ci/run.yaml
     post-run: playbooks/metal3-ci/post.yaml
@@ -41,6 +41,7 @@
 
       Details: https://docs.openstack.org/ironic/latest/contributor/metal3-integration.html
     parent: metal3-base
+    nodeset: ubuntu-noble-16GB
     pre-run: playbooks/irso-ci/pre.yaml
     run: playbooks/irso-ci/run.yaml
     post-run: playbooks/irso-ci/post.yaml
@@ -76,6 +77,7 @@
 
       Details: https://docs.openstack.org/ironic/latest/contributor/metal3-integration.html
     parent: metal3-base
+    nodeset: ubuntu-noble-16GB
     pre-run: playbooks/bmo-ci/pre.yaml
     run: playbooks/bmo-ci/run.yaml
     post-run: playbooks/bmo-ci/post.yaml
