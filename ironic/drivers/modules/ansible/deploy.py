@@ -396,6 +396,19 @@ class AnsibleDeploy(agent_base.HeartbeatMixin,
         props.update(agent_base.VENDOR_PROPERTIES)
         return props
 
+    def supports_deploy(self, task):
+        """Check if deploy is supported for the given node by this interface.
+
+        Ansible deploy is appropriate when any driver_info key starting
+        with ``ansible_`` is present, indicating the node has been
+        configured for Ansible-based deployment.
+
+        :param task: A TaskManager instance containing the node to act on.
+        :returns: True if the node has ansible-specific driver_info keys.
+        """
+        return any(key.startswith('ansible_')
+                   for key in task.node.driver_info)
+
     @METRICS.timer('AnsibleDeploy.validate')
     def validate(self, task):
         """Validate the driver-specific Node deployment info."""

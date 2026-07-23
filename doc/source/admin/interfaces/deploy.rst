@@ -219,6 +219,15 @@ a node:
 For more information about this deploy interface, its features and how to use
 it, see :doc:`Ansible deploy interface <../drivers/ansible>`.
 
+Autodetect support
+------------------
+
+The ``ansible`` deploy interface supports being auto-detected by the
+``autodetect`` deploy interface (see :ref:`autodetect-deploy` for details).
+It checks whether the node's ``driver_info`` contains any key starting with
+``ansible_`` (for example ``ansible_username``, ``ansible_key_file``, or
+``ansible_deploy_playbook``). When at least one such key is present,
+autodetect will select the ``ansible`` deploy interface.
 
 .. toctree::
    :hidden:

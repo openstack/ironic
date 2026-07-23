@@ -668,6 +668,24 @@ class TestAnsibleDeploy(AnsibleDeployTestCaseBase):
                 + ['agent_verify_ca', 'deploy_forces_oob_reboot']),
             set(self.driver.get_properties()))
 
+    def test_supports_deploy_with_ansible_keys(self):
+        """Test supports_deploy returns True with ansible driver_info keys."""
+        with task_manager.acquire(
+                self.context, self.node['uuid'], shared=False) as task:
+            self.assertTrue(self.driver.supports_deploy(task))
+
+    def test_supports_deploy_without_ansible_keys(self):
+        """Test supports_deploy returns False without ansible driver_info."""
+        self.node.driver_info = {
+            'deploy_kernel': 'glance://deploy_kernel_uuid',
+            'deploy_ramdisk': 'glance://deploy_ramdisk_uuid',
+            'ipmi_address': '127.0.0.1',
+        }
+        self.node.save()
+        with task_manager.acquire(
+                self.context, self.node['uuid'], shared=False) as task:
+            self.assertFalse(self.driver.supports_deploy(task))
+
     @mock.patch.object(deploy_utils, 'check_for_missing_params',
                        autospec=True)
     @mock.patch.object(pxe.PXEBoot, 'validate', autospec=True)
