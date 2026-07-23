@@ -41,6 +41,7 @@ develop-eggs
 .venv
 .*.swp
 .coverage
+.coverage.*
 cover
 AUTHORS
 ChangeLog
