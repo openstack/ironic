@@ -1569,7 +1569,7 @@ class TestAgentDeploy(CommonTestsMixin, db_base.DbTestCase):
 
     @mock.patch.object(deploy_utils, 'destroy_images', autospec=True)
     @mock.patch.object(agent.LOG, 'warning', spec_set=True, autospec=True)
-    @mock.patch.object(manager_utils, 'node_set_boot_device', autospec=True)
+    @mock.patch.object(agent, 'set_boot_to_disk', autospec=True)
     @mock.patch.object(agent_client.AgentClient, 'get_partition_uuids',
                        autospec=True)
     @mock.patch.object(agent.AgentDeploy, 'prepare_instance_to_boot',
@@ -1591,7 +1591,7 @@ class TestAgentDeploy(CommonTestsMixin, db_base.DbTestCase):
                              task.node.driver_internal_info)
             self.assertFalse(log_mock.called)
             self.assertFalse(prepare_instance_mock.called)
-            bootdev_mock.assert_called_once_with(task, 'disk', persistent=True)
+            bootdev_mock.assert_called_once_with(task)
             self.assertEqual(states.DEPLOYING, task.node.provision_state)
             self.assertEqual(states.ACTIVE, task.node.target_provision_state)
 

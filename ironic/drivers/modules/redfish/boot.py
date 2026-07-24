@@ -824,6 +824,24 @@ def _select_transport_protocol(task, supported_protocols):
     return TRANSPORT_HTTP
 
 
+def _skip_lenovo_uefi_disk_boot_device(task, device):
+    """Return True if setting disk boot device should be skipped.
+
+    On Lenovo UEFI systems, setting boot to generic HDD via Redfish can
+    bypass the OS UEFI shim and cause boot loops. Rely on UEFI boot order
+    instead. For more information see
+    https://bugs.launchpad.net/ironic/+bug/2053064
+    """
+    if device != boot_devices.DISK:
+        return False
+
+    vendor = task.node.properties.get('vendor')
+    boot_mode = boot_mode_utils.get_boot_mode(task.node)
+    return (task.node.provision_state == states.DEPLOYING
+            and vendor and vendor.lower() == 'lenovo'
+            and boot_mode == 'uefi')
+
+
 class RedfishVirtualMediaBoot(base.BootInterface):
     """Virtual media boot interface over Redfish.
 
@@ -1276,6 +1294,13 @@ class RedfishVirtualMediaBoot(base.BootInterface):
         :raises: InvalidParameterValue if the validation of the
             ManagementInterface fails.
         """
+        if _skip_lenovo_uefi_disk_boot_device(task, device):
+            LOG.debug('Skipping setting boot device to %(device)s for Lenovo '
+                      'UEFI node %(node)s; relying on UEFI boot order '
+                      'instead.',
+                      {'device': device, 'node': task.node.uuid})
+            return
+
         manager_utils.node_set_boot_device(task, device, persistent)
 
     def validate_rescue(self, task):
@@ -1576,4 +1601,12 @@ class RedfishHttpsBoot(base.BootInterface):
                 task.node, 'driver_internal_info',
                 'redfish_uefi_http_url', http_boot_url)
             task.node.save()
+
+        if _skip_lenovo_uefi_disk_boot_device(task, device):
+            LOG.debug('Skipping setting boot device to %(device)s for Lenovo '
+                      'UEFI node %(node)s; relying on UEFI boot order '
+                      'instead.',
+                      {'device': device, 'node': task.node.uuid})
+            return
+
         manager_utils.node_set_boot_device(task, device, persistent)
