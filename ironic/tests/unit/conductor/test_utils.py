@@ -2687,6 +2687,15 @@ class FastTrackTestCase(db_base.DbTestCase):
                                                [{'url': 'http://test'}])
             self.assertFalse(conductor_utils.is_fast_track(task))
 
+    def test_is_fast_track_no_agent_url_during_inspection(
+            self, mock_get_power):
+        mock_get_power.return_value = states.POWER_ON
+        with task_manager.acquire(
+                self.context, self.node.uuid, shared=False) as task:
+            task.node.driver_internal_info.pop('agent_url')
+            task.node.provision_state = states.INSPECTING
+            self.assertTrue(conductor_utils.is_fast_track(task))
+
 
 class GetNodeNextStepsTestCase(db_base.DbTestCase):
     def setUp(self):
