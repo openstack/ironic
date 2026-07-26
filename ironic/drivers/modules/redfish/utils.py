@@ -343,6 +343,7 @@ class SessionCache(object):
             sushy_params['tls_ciphers'] = (
                 self._driver_info['tls_ciphers'])
         sushy_params['connect_timeout'] = CONF.redfish.connect_timeout
+        sushy_params['read_timeout'] = CONF.redfish.read_timeout
         conn = sushy.Sushy(
             self._driver_info['address'],
             **sushy_params

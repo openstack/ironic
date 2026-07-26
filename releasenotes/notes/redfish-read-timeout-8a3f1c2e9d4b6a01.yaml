@@ -1,0 +1,13 @@
+---
+fixes:
+  - |
+    Adds a ``[redfish]read_timeout`` configuration option with a default of
+    60 seconds for the HTTP read timeout when waiting for a response from
+    Redfish BMCs. Previously, the read timeout was hardcoded to 60 seconds
+    in sushy and could not be changed. Some BMCs hold long-running requests,
+    such as BIOS settings updates, open for longer than 60 seconds before
+    responding, causing Ironic to report operations as failed even though
+    the BMC accepts and completes them later. The new option allows
+    operators of such hardware to increase the read timeout while keeping
+    the previous 60-second behavior as the default.
+    Requires sushy >= 5.10.0 which added the ``read_timeout`` parameter.
