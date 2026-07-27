@@ -64,6 +64,22 @@
       become: true
       ignore_errors: true
 
+    - name: Fetch system logs
+      shell: "journalctl -u {{ item }} > {{ logdir }}/{{ item }}.log 2>&1"
+      become: true
+      ignore_errors: true
+      loop:
+        - libvirtd
+        - qemu-kvm
+
+    - name: Fetch libvirt capabilities
+      shell: "virsh {{ item }} > {{ logdir }}/libvirt-{{ item }}.xml"
+      become: true
+      ignore_errors: true
+      loop:
+        - capabilities
+        - domcapabilities
+
     - name: Copy logs to the zuul location
       synchronize:
         src: "{{ logdir }}/"
