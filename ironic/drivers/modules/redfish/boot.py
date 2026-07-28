@@ -1111,6 +1111,7 @@ class RedfishVirtualMediaBoot(base.BootInterface):
 
         LOG.debug("Cleaning up deploy boot for "
                   "%(node)s", {'node': task.node.uuid})
+        manager_utils.node_power_action(task, states.POWER_OFF)
         self._eject_all(task)
 
     def prepare_instance(self, task):
