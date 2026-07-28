@@ -1,0 +1,10 @@
+---
+fixes:
+  - |
+    Fixes filesystem corruption errors (particularly visible on iDRAC
+    consoles) that could occur when Redfish virtual media was ejected
+    while the ramdisk OS was still running. The soft power off previously
+    added during inspection tear-down is reverted; instead, the
+    ``redfish-virtual-media`` boot interface now powers the node off
+    before ejecting virtual media during ramdisk cleanup.
+    See `bug 2160374 <https://bugs.launchpad.net/ironic/+bug/2160374>`_.
