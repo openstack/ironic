@@ -1,0 +1,7 @@
+---
+security:
+  - |
+    Hardens the Ironic inspector LLDP parsing by checking for maximum length of
+    TLV value as defined in the standard (511 octets). Furthermore, adds an
+    upper bound for possible interfaces that a device can send inspection data
+    about (64). `bug 2155051 <https://bugs.launchpad.net/ironic/+bug/2155051>`

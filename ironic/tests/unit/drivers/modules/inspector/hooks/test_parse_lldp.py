@@ -420,3 +420,34 @@ class ParseLLDPTestCase(db_base.DbTestCase):
                                           self.plugin_data)
             self.assertNotIn('parsed_lldp', self.plugin_data)
             self.assertEqual(2, mock_log.call_count)
+
+    @mock.patch.object(nv.LOG, 'warning', autospec=True)
+    def test_too_long_tlv(self, mock_log):
+        self.inventory['interfaces'] = [{
+            'name': 'em1',
+            'lldp': [
+                [1, 1024 * "0"],
+            ]
+        }]
+        with task_manager.acquire(self.context, self.node.id) as task:
+            hook.ParseLLDPHook().__call__(task, self.inventory,
+                                          self.plugin_data)
+            self.assertNotIn('parsed_lldp', self.plugin_data)
+            self.assertEqual(1, mock_log.call_count)
+
+    @mock.patch.object(hook.LOG, 'warning', autospec=True)
+    def test_too_many_interfaces(self, mock_log):
+        self.inventory['interfaces'] = [{
+            'name': f'em{i}',
+            'lldp': [
+                [1, "04112233aabbcc"],
+            ]
+        } for i in range(1, 66)]
+        self.expected = {f'em{i}': {
+            nv.LLDP_CHASSIS_ID_NM: "11:22:33:aa:bb:cc",
+        } for i in range(1, 65)}
+        with task_manager.acquire(self.context, self.node.id) as task:
+            hook.ParseLLDPHook().__call__(task, self.inventory,
+                                          self.plugin_data)
+            self.assertEqual(self.expected, self.plugin_data['parsed_lldp'])
+            self.assertEqual(1, mock_log.call_count)

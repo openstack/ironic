@@ -39,6 +39,9 @@ LLDP_TLV_SYS_CAPABILITIES = 7
 LLDP_TLV_MGMT_ADDRESS = 8
 LLDP_TLV_ORG_SPECIFIC = 127
 
+# Maximum length for TLV value
+LLDP_TLV_VALUE_MAX_LEN = 511
+
 # 802.1Q defines from http://www.ieee802.org/1/pages/802.1Q-2014.html, Annex D
 LLDP_802dot1_OUI = "0080c2"
 # subtypes
