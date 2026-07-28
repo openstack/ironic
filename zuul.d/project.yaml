@@ -17,6 +17,8 @@
         - ironic-tempest-functional-python3
         - ironic-standalone-redfish:
             voting: false
+        - ironic-tempest-vnc-container:
+            voting: false
         - ironic-tempest-standalone-advanced:
             voting: false
         - ironic-tempest-bios-redfish-pxe
