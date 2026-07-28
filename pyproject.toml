@@ -253,6 +253,10 @@ allow_untyped_globals = true
 # NOTE: strict_optional (None-safety) is deliberately left at its default
 # of *enabled*; it is the main property we want out of mypy.
 
+# Enables mypy to type check objects derived from oslo.versionedobjects
+# like ironic.objects.
+plugins = ["oslo_versionedobjects.mypy"]
+
 [[tool.mypy.overrides]]
 # TEMPORARY: the unit tests lean heavily on dynamic patterns (e.g.
 # attributes on ironic.objects that only exist after register_all(), mock
