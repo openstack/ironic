@@ -1158,6 +1158,11 @@ class TBNComparatorPrefixMatchTypeMismatch(TraitBasedNetworkingException):
     pass
 
 
+class TBNComparatorCollectionTypeMismatch(TraitBasedNetworkingException):
+    """Only equality, inequality, and prefix match support collections."""
+    pass
+
+
 class TBNAttributeRetrievalException(TraitBasedNetworkingException):
     """Specified attribute could not be found."""
     _msg_fmt = _("Could not retrieve attribute %(attr_name)s from "
