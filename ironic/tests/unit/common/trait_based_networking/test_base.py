@@ -168,6 +168,56 @@ class TraitBasedNetworkingBaseTestCase(base.TestCase):
         self.assertRaises(exc.TraitBasedNetworkingException,
                           exp.eval, obj, net)
 
+    def test_filter_comparator_eval_equality_network_tags(self):
+        exp = tbn.SingleExpression(
+            tbn.Variables.NETWORK_TAGS, tbn.Comparator.EQUALITY, "storage"
+        )
+        port = tbn.Port.from_ironic_port(tbn_test_utils.FauxPortLikeObject())
+
+        net = tbn.Network("fake_id", "test", frozenset({"storage", "other"}))
+        self.assertTrue(exp.eval(port, net))
+
+        net = tbn.Network("fake_id", "test", frozenset({"other"}))
+        self.assertFalse(exp.eval(port, net))
+
+    def test_filter_comparator_eval_inequality_network_tags(self):
+        exp = tbn.SingleExpression(
+            tbn.Variables.NETWORK_TAGS, tbn.Comparator.INEQUALITY, "storage"
+        )
+        port = tbn.Port.from_ironic_port(tbn_test_utils.FauxPortLikeObject())
+
+        net = tbn.Network("fake_id", "test", frozenset({"storage"}))
+        self.assertFalse(exp.eval(port, net))
+
+        net = tbn.Network("fake_id", "test", frozenset({"other"}))
+        self.assertTrue(exp.eval(port, net))
+
+    def test_filter_comparator_eval_prefix_match_network_tags(self):
+        exp = tbn.SingleExpression(
+            tbn.Variables.NETWORK_TAGS, tbn.Comparator.PREFIX_MATCH, "stor"
+        )
+        port = tbn.Port.from_ironic_port(tbn_test_utils.FauxPortLikeObject())
+
+        net = tbn.Network("fake_id", "test", frozenset({"storage"}))
+        self.assertTrue(exp.eval(port, net))
+
+        net = tbn.Network("fake_id", "test", frozenset({"other"}))
+        self.assertFalse(exp.eval(port, net))
+
+    def test_filter_comparator_eval_network_tags_ordering_unsupported(self):
+        exp = tbn.SingleExpression(
+            tbn.Variables.NETWORK_TAGS, tbn.Comparator.GT, "storage"
+        )
+        port = tbn.Port.from_ironic_port(tbn_test_utils.FauxPortLikeObject())
+        net = tbn.Network("fake_id", "test", frozenset({"storage"}))
+
+        self.assertRaises(exc.TBNComparatorCollectionTypeMismatch,
+                          exp.eval, port, net)
+
+    def test_network_from_vif_info_defaults_tags_to_empty_frozenset(self):
+        net = tbn.Network.from_vif_info({'id': 'fake_id'})
+        self.assertEqual(frozenset(), net.tags)
+
     def test_filter_operator_eval_and(self):
         exp = tbn.CompoundExpression(
             tbn.FunctionExpression(tbn.Variables.PORT_IS_PORT),
@@ -204,6 +254,37 @@ class TraitBasedNetworkingBaseTestCase(base.TestCase):
         )
         obj = tbn.Port.from_ironic_port(tbn_test_utils.FauxPortLikeObject())
         self.assertTrue(exp.eval(obj, net))
+
+    def test_filter_operator_eval_or_short_circuits(self):
+        # The right expression would raise if evaluated (PREFIX_MATCH
+        # requires a string variable, but port.is_port is a method). Since
+        # the left expression already satisfies the OR, the right side must
+        # never be evaluated.
+        left = tbn.SingleExpression(
+            tbn.Variables.PORT_CATEGORY, tbn.Comparator.EQUALITY, "cat")
+        right = tbn.SingleExpression(
+            tbn.Variables.PORT_IS_PORT, tbn.Comparator.PREFIX_MATCH, "some")
+        exp = tbn.CompoundExpression(left, tbn.Operator.OR, right)
+
+        obj = tbn.Port.from_ironic_port(
+            tbn_test_utils.FauxPortLikeObject(category="cat"))
+        net = tbn_test_utils.FauxNetwork()
+        self.assertTrue(exp.eval(obj, net))
+
+    def test_filter_operator_eval_and_short_circuits(self):
+        # The right expression would raise if evaluated. Since the left
+        # expression already fails the AND, the right side must never be
+        # evaluated.
+        left = tbn.SingleExpression(
+            tbn.Variables.PORT_CATEGORY, tbn.Comparator.EQUALITY, "nope")
+        right = tbn.SingleExpression(
+            tbn.Variables.PORT_IS_PORT, tbn.Comparator.PREFIX_MATCH, "some")
+        exp = tbn.CompoundExpression(left, tbn.Operator.AND, right)
+
+        obj = tbn.Port.from_ironic_port(
+            tbn_test_utils.FauxPortLikeObject(category="cat"))
+        net = tbn_test_utils.FauxNetwork()
+        self.assertFalse(exp.eval(obj, net))
 
     def test_attach_port_equality(self):
         self.assertEqual(
