@@ -62,6 +62,14 @@ class KernelParameter:
 
 
 @dataclass(frozen=True)
+class UnstructuredParameters:
+    value: str
+
+    def __str__(self):
+        return self.value
+
+
+@dataclass(frozen=True)
 class KernelCommandLine:
     """Represents a kernel command line.
 
@@ -93,14 +101,38 @@ class KernelCommandLine:
 
 
 @dataclass(frozen=True)
+class UnsafeKernelCommandLine(KernelCommandLine):
+    """Represents a kernel command line that has not been parsed.
+
+    Includes the field 'unstructured_params', which are treated as opaque
+    strings which haven't been parsed. To convert this to a
+    ParsedKernelCommandLine, use KernelCommandLine.parse(str(unsafe_cmd_line)).
+    """
+    unstructured_params: list[UnstructuredParameters]
+
+    def __str__(self):
+        output = ' '.join(
+            ' '.join(str(param) for param in param_list)
+            for param_list in self.parameters.values())
+
+        output += ' ' + ' '.join(str(up) for up in self.unstructured_params)
+
+        if len(self.init_args) > 0:
+            output += " -- " + self.init_args
+
+        return output.strip()
+
+
+@dataclass(frozen=True)
 class ParsedKernelCommandLine(KernelCommandLine):
     """Represents a parsed kernel command line.
 
     NOTE: This object should only be instantiated via passing a kernel
     command line string through KernelParameterParser.parse() and then
     the resultant parse tree through KernelParameterTransformer.transform().
+    Constructing this directly is almost certainly a mistake.
 
-    This helps distinguish between kernel command lines that have been
+    This class helps distinguish between kernel command lines that have been
     validated by parsing and those that have not.
     """
     pass
