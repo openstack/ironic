@@ -1,0 +1,7 @@
+---
+fixes:
+  - |
+    Fixed Trait Based Networking (TBN) filter expressions that reference
+    ``network.tags``. These filters could never match correctly and would
+    often raise an error instead, because lists of tags were not properly
+    evaluated, so trait actions relying on ``network.tags`` were unusable.

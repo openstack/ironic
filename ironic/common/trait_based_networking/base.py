@@ -61,6 +61,12 @@ class Comparator(enum.Enum):
     def eval(self, variable, value):
         # TODO(clif): Should we some sort of checking of variable type vs
         # requested operator?
+        # Collection-valued variables (e.g. network.tags) are
+        # matched by membership rather than by comparing the collection
+        # itself to the string literal.
+        if isinstance(variable, (frozenset, set, list, tuple)):
+            return self._eval_collection(variable, value)
+
         match self.name:
             case self.EQUALITY.name:
                 return variable == value
@@ -80,6 +86,27 @@ class Comparator(enum.Enum):
                 raise exc.TBNComparatorPrefixMatchTypeMismatch(
                     _("Prefix match can only be used with variables "
                       "of type string")
+                )
+
+    def _eval_collection(self, variable, value):
+        """Evaluate this comparator against a collection variable.
+
+        Used for variables like network.tags: checks whether value is (or
+        is not) a member of the collection, or whether any member of the
+        collection starts with value.
+        """
+        match self.name:
+            case self.EQUALITY.name:
+                return value in variable
+            case self.INEQUALITY.name:
+                return value not in variable
+            case self.PREFIX_MATCH.name:
+                return any(isinstance(item, str) and item.startswith(value)
+                           for item in variable)
+            case _:
+                raise exc.TBNComparatorCollectionTypeMismatch(
+                    _(f"Comparator '{self}' can only be used with "
+                      "variables of type string, not a collection")
                 )
 
     def __str__(self):
@@ -224,13 +251,20 @@ class CompoundExpression(object):
         self._right_expression = right_expression
 
     def eval(self, port, network):
+        # Short-circuits like normal boolean and/or, so the right
+        # expression is only evaluated when necessary. This matters for
+        # filters like `network.name =~ 'x' || network.tags =~ 'x'`: if the
+        # left side already satisfies the expression, the right side isn't
+        # evaluated even if it wouldn't otherwise be applicable to network.
         left_result = self._left_expression.eval(port, network)
-        right_result = self._right_expression.eval(port, network)
+
         match self._operator:
             case Operator.OR:
-                return left_result or right_result
+                return (left_result
+                        or self._right_expression.eval(port, network))
             case Operator.AND:
-                return left_result and right_result
+                return (left_result
+                        and self._right_expression.eval(port, network))
 
     def __str__(self):
         return (f"{self._left_expression} {self._operator} "
@@ -461,16 +495,20 @@ class Network:
     @classmethod
     def from_vif_info(cls, vif_info):
         """Helper method to create Networks from vif_info dictionaries"""
+        # tags defaults to an empty frozenset (rather than None)
+        # so that filters referencing network.tags don't raise
+        # TBNAttributeRetrievalException just because the vif_attach caller
+        # didn't supply a 'tags' key.
         return cls(vif_info['id'], # vif_info is guaranteed to have 'id'.
                    vif_info.get('name'),
-                   vif_info.get('tags'))
+                   frozenset(vif_info.get('tags') or []))
 
     @classmethod
     def universal_network(cls):
         return cls(
             id=0,
             name=UNIVERSAL_NETWORK_NAME,
-            tags=[]
+            tags=frozenset()
         )
 
 
