@@ -419,11 +419,13 @@ class OciImageService(BaseImageService):
     _client = None
 
     def __init__(self):
+        verify = (CONF.webserver_verify_ca if CONF.oci.verify_ca is None
+                  else CONF.oci.verify_ca)
         try:
-            verify = strutils.bool_from_string(CONF.webserver_verify_ca,
-                                               strict=True)
+            verify = strutils.bool_from_string(verify, strict=True)
         except ValueError:
-            verify = CONF.webserver_verify_ca
+            pass  # Assume a path to a CA bundle
+
         # Creates a client which we can use for actions.
         # Note, this is not yet authenticated!
         self._client = oci_registry.OciClient(verify=verify)

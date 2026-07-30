@@ -369,9 +369,9 @@ class OciClient(object):
         """Initialize the OCI container registry client class.
 
         :param verify: If certificate verification should be leveraged for
-                       the underlying HTTP client.
+                       the underlying HTTP client. If set to a string,
+                       it is interpreted as a path to a CA bundle.
         """
-        # FIXME(TheJulia): This should come from configuration
         self.session = MakeSession(verify=verify).create()
 
     def authenticate(self, image_url, username=None, password=None):

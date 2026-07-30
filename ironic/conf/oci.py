@@ -67,6 +67,22 @@ opts = [
                        'utilized to allow the internal OCI mechanism to '
                        'fallback to HTTP if the remote endpoint lacks '
                        'support for HTTPS.')),
+    cfg.StrOpt('verify_ca',
+               mutable=True,
+               help=_('CA certificates to be used for certificate '
+                      'verification. This can be either a Boolean value '
+                      'or a path to a CA_BUNDLE file. '
+                      'If set to True, the certificates present in the '
+                      'standard path are used to verify the host '
+                      'certificates. '
+                      'If set to False, the conductor will ignore verifying '
+                      'the SSL certificate presented by the host. '
+                      'If it\'s a path, conductor uses the specified '
+                      'certificate for SSL verification. If the path does '
+                      'not exist, the behavior is same as when this value '
+                      'is set to True i.e the certificates present in the '
+                      'standard path are used for SSL verification. '
+                      'If unset, the value of webserver_verify_ca is used.')),
 ]
 
 
