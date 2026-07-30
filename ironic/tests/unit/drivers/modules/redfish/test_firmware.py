@@ -991,7 +991,7 @@ class RedfishFirmwareTestCase(db_base.DbTestCase):
                 # Verify touch_provisioning was NOT called on connection error
                 mock_touch.assert_not_called()
 
-    @mock.patch.object(redfish_fw.manager_utils, 'servicing_error_handler',
+    @mock.patch.object(redfish_fw.manager_utils, 'cleaning_error_handler',
                        autospec=True)
     @mock.patch.object(redfish_utils, 'get_update_service', autospec=True)
     def test_check_overall_timeout_exceeded(self, mock_get_update_service,
@@ -1000,8 +1000,12 @@ class RedfishFirmwareTestCase(db_base.DbTestCase):
 
         This ensures firmware updates don't run indefinitely - if the
         overall timeout is exceeded, the update should fail with an error.
+        Uses clean_step so the error is routed to cleaning_error_handler,
+        verifying the fix where _check_overall_timeout unconditionally
+        called servicing_error_handler.
         """
         self._generate_new_driver_internal_info(['bmc'])
+        self.node.provision_state = states.CLEANING
 
         # Set start time to 3 hours ago (exceeds 2 hour default timeout)
         past_time = (timeutils.utcnow()

@@ -640,21 +640,20 @@ class RedfishFirmware(base.FirmwareInterface):
 
         self._continue_updates(task, update_service, settings)
 
-    def _execute_firmware_update(self, node, update_service, settings):
-        """Executes the next firmware update to the node
+    def _submit_simple_update(self, node, update_service, fw_upd):
+        """Submit a SimpleUpdate request and track cleanup.
 
-        Executes the first firmware update in the settings list to the node.
+        Handles systems-collection targeting, firmware file staging,
+        the SimpleUpdate call, and cleanup tracking.
 
         :param node: the node that will have a firmware update executed.
         :param update_service: the sushy firmware update service.
-        :param settings: remaining settings for firmware update that needs
-            to be executed.
+        :param fw_upd: single firmware update settings dict (mutated
+            in-place: task_monitor and power_timeout are added).
+        :returns: task_monitor_uri string
         """
-        fw_upd = settings[0]
-        # Store power timeout to use on reboot operations
         fw_upd['power_timeout'] = CONF.redfish.firmware_update_reboot_delay
-        # NOTE(janders) try to get the collection of Systems on the BMC
-        # to determine if there may be more than one System
+
         try:
             systems_collection = redfish_utils.get_system_collection(node)
         except exception.RedfishError as e:
@@ -691,12 +690,7 @@ class RedfishFirmware(base.FirmwareInterface):
                       {'node': node.uuid, 'error': e.message})
             raise exception.RedfishError(error=e)
 
-        # Store task monitor URI for periodic task polling
-        # NOTE(janders): Component-specific wait/reboot behavior is now
-        # handled by the update() method and periodic polling, not here
-
         fw_upd['task_monitor'] = task_monitor.task_monitor_uri
-        node.set_driver_internal_info('redfish_fw_updates', settings)
 
         if cleanup:
             fw_clean = node.driver_internal_info.get('firmware_cleanup')
@@ -705,6 +699,22 @@ class RedfishFirmware(base.FirmwareInterface):
             elif cleanup not in fw_clean:
                 fw_clean.append(cleanup)
             node.set_driver_internal_info('firmware_cleanup', fw_clean)
+
+        return task_monitor.task_monitor_uri
+
+    def _execute_firmware_update(self, node, update_service, settings):
+        """Executes the next firmware update to the node
+
+        Executes the first firmware update in the settings list to the node.
+
+        :param node: the node that will have a firmware update executed.
+        :param update_service: the sushy firmware update service.
+        :param settings: remaining settings for firmware update that needs
+            to be executed.
+        """
+        fw_upd = settings[0]
+        self._submit_simple_update(node, update_service, fw_upd)
+        node.set_driver_internal_info('redfish_fw_updates', settings)
 
         component = fw_upd.get('component', '')
         component_type = redfish_utils.get_component_type(component)
@@ -820,6 +830,45 @@ class RedfishFirmware(base.FirmwareInterface):
         LOG.error(error_msg)
         raise exception.RedfishError(error=error_msg)
 
+    def _report_step_error(self, task, error_msg, traceback=True):
+        """Route a step error to the correct error handler.
+
+        :param task: a TaskManager instance
+        :param error_msg: the error message string
+        :param traceback: whether to include traceback (default True)
+        """
+        if task.node.clean_step:
+            manager_utils.cleaning_error_handler(
+                task, error_msg, traceback=traceback)
+        elif task.node.service_step:
+            manager_utils.servicing_error_handler(
+                task, error_msg, traceback=traceback)
+        elif task.node.deploy_step:
+            manager_utils.deploying_error_handler(
+                task, error_msg, traceback=traceback)
+        else:
+            LOG.error('No step type set on node %(node)s when attempting '
+                      'to report firmware update error: %(error)s',
+                      {'node': task.node.uuid, 'error': error_msg})
+            node = task.node
+            node.maintenance = True
+            node.maintenance_reason = error_msg
+            manager_utils.node_history_record(
+                node, event=error_msg, error=True)
+            node.save()
+
+    def _resume_step(self, task):
+        """Notify the conductor to resume the current step.
+
+        :param task: a TaskManager instance
+        """
+        if task.node.clean_step:
+            manager_utils.notify_conductor_resume_clean(task)
+        elif task.node.service_step:
+            manager_utils.notify_conductor_resume_service(task)
+        elif task.node.deploy_step:
+            manager_utils.notify_conductor_resume_deploy(task)
+
     def _continue_updates(self, task, update_service, settings):
         """Continues processing the firmware updates
 
@@ -876,12 +925,14 @@ class RedfishFirmware(base.FirmwareInterface):
                       {'node': node.uuid})
             self._validate_resources_stability(node)
 
-            if task.node.clean_step:
-                manager_utils.notify_conductor_resume_clean(task)
-            elif task.node.service_step:
-                manager_utils.notify_conductor_resume_service(task)
-            elif task.node.deploy_step:
-                manager_utils.notify_conductor_resume_deploy(task)
+            try:
+                self.cache_firmware_components(task)
+            except Exception as e:
+                LOG.warning('Failed to refresh firmware components for node '
+                            '%(node)s after firmware update: %(error)s',
+                            {'node': node.uuid, 'error': e})
+
+            self._resume_step(task)
 
         else:
             # Validate BMC resources are stable before continuing next update
@@ -1048,12 +1099,7 @@ class RedfishFirmware(base.FirmwareInterface):
                           'errors': ",  ".join(messages)})
 
             self._clear_updates(node)
-            if task.node.clean_step:
-                manager_utils.cleaning_error_handler(task, error_msg)
-            elif task.node.deploy_step:
-                manager_utils.deploying_error_handler(task, error_msg)
-            elif task.node.service_step:
-                manager_utils.servicing_error_handler(task, error_msg)
+            self._report_step_error(task, error_msg)
 
     def _handle_nic_task_starting(self, task, task_monitor, settings,
                                   current_update):
@@ -1421,7 +1467,7 @@ class RedfishFirmware(base.FirmwareInterface):
         LOG.error(msg)
         task.upgrade_lock()
         self._clear_updates(node)
-        manager_utils.servicing_error_handler(task, msg, traceback=False)
+        self._report_step_error(task, msg, traceback=False)
         return True
 
     def _handle_firmware_update_task(self, task, node, current_update,
