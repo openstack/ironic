@@ -23,6 +23,7 @@ from oslo_utils import uuidutils
 
 from ironic.common import image_service
 from ironic.common import images
+from ironic.common import kernel_parameters as kp
 from ironic.common import states
 from ironic.common import utils
 from ironic.conductor import task_manager
@@ -468,8 +469,29 @@ class RedfishImageUtilsTestCase(db_base.DbTestCase):
             mock_create_boot_iso.assert_called_once_with(
                 mock.ANY, mock.ANY, 'http://kernel/img', 'http://ramdisk/img',
                 boot_mode='uefi', esp_image_href='http://bootloader/img',
-                kernel_params='nofb vga=normal ir_pub_id=1-23-4',
-                root_uuid='1be26c0b-03f2-4d2e-ae87-c02d7f33c123',
+                kernel_cmd_line=kp.ParsedKernelCommandLine(
+                    parameters={
+                        'nofb': [kp.KernelParameter(
+                            key=kp.ParameterKey(key='nofb'),
+                            value=kp.ParameterValue(value='')
+                        )],
+                        'vga': [kp.KernelParameter(
+                            key=kp.ParameterKey(key='vga'),
+                            value=kp.ParameterValue(value='normal')
+                        )],
+                        'ir_pub_id': [kp.KernelParameter(
+                            key=kp.ParameterKey(key='ir_pub_id'),
+                            value=kp.ParameterValue(value='1-23-4')
+                        )],
+                        'root': [kp.KernelParameter(
+                            key=kp.ParameterKey(key='root'),
+                            value=kp.ParameterValue(
+                                value='UUID=1be26c0b-03f2-4d2e-ae87-'
+                                      'c02d7f33c123')
+                        )],
+                    },
+                    init_args='',
+                ),
                 inject_files=None, publisher_id='1-23-4')
 
             self.assertEqual(expected_url, url)
@@ -492,8 +514,29 @@ class RedfishImageUtilsTestCase(db_base.DbTestCase):
             mock_create_boot_iso.assert_called_once_with(
                 mock.ANY, mock.ANY, 'http://kernel/img', 'http://ramdisk/img',
                 boot_mode='uefi', esp_image_href=None,
-                kernel_params='nofb vga=normal ir_pub_id=1-23-4',
-                root_uuid='1be26c0b-03f2-4d2e-ae87-c02d7f33c123',
+                kernel_cmd_line=kp.ParsedKernelCommandLine(
+                    parameters={
+                        'nofb': [kp.KernelParameter(
+                            key=kp.ParameterKey(key='nofb'),
+                            value=kp.ParameterValue(value='')
+                        )],
+                        'vga': [kp.KernelParameter(
+                            key=kp.ParameterKey(key='vga'),
+                            value=kp.ParameterValue(value='normal')
+                        )],
+                        'ir_pub_id': [kp.KernelParameter(
+                            key=kp.ParameterKey(key='ir_pub_id'),
+                            value=kp.ParameterValue(value='1-23-4')
+                        )],
+                        'root': [kp.KernelParameter(
+                            key=kp.ParameterKey(key='root'),
+                            value=kp.ParameterValue(
+                                value='UUID=1be26c0b-03f2-4d2e-ae87-'
+                                      'c02d7f33c123')
+                        )],
+                    },
+                    init_args='',
+                ),
                 inject_files=None, publisher_id='1-23-4')
 
     @mock.patch.object(uuidutils, 'generate_uuid', autospec=True)
@@ -525,8 +568,29 @@ class RedfishImageUtilsTestCase(db_base.DbTestCase):
             mock_create_boot_iso.assert_called_once_with(
                 mock.ANY, mock.ANY, 'http://kernel/img', 'http://ramdisk/img',
                 boot_mode='uefi', esp_image_href='http://bootloader/img',
-                kernel_params='nofb vga=normal ir_pub_id=1-23-4',
-                root_uuid='1be26c0b-03f2-4d2e-ae87-c02d7f33c123',
+                kernel_cmd_line=kp.ParsedKernelCommandLine(
+                    parameters={
+                        'nofb': [kp.KernelParameter(
+                            key=kp.ParameterKey(key='nofb'),
+                            value=kp.ParameterValue(value='')
+                        )],
+                        'vga': [kp.KernelParameter(
+                            key=kp.ParameterKey(key='vga'),
+                            value=kp.ParameterValue(value='normal')
+                        )],
+                        'ir_pub_id': [kp.KernelParameter(
+                            key=kp.ParameterKey(key='ir_pub_id'),
+                            value=kp.ParameterValue(value='1-23-4')
+                        )],
+                        'root': [kp.KernelParameter(
+                            key=kp.ParameterKey(key='root'),
+                            value=kp.ParameterValue(
+                                value='UUID=1be26c0b-03f2-4d2e-ae87-'
+                                      'c02d7f33c123')
+                        )],
+                    },
+                    init_args='',
+                ),
                 inject_files=None, publisher_id='1-23-4')
 
             self.assertEqual(expected_url, url)
@@ -559,8 +623,29 @@ class RedfishImageUtilsTestCase(db_base.DbTestCase):
             mock_create_boot_iso.assert_called_once_with(
                 mock.ANY, mock.ANY, 'http://kernel/img', 'http://ramdisk/img',
                 boot_mode='bios', esp_image_href=None,
-                kernel_params='nofb vga=normal ir_pub_id=1-23-4',
-                root_uuid='1be26c0b-03f2-4d2e-ae87-c02d7f33c123',
+                kernel_cmd_line=kp.ParsedKernelCommandLine(
+                    parameters={
+                        'nofb': [kp.KernelParameter(
+                            key=kp.ParameterKey(key='nofb'),
+                            value=kp.ParameterValue(value='')
+                        )],
+                        'vga': [kp.KernelParameter(
+                            key=kp.ParameterKey(key='vga'),
+                            value=kp.ParameterValue(value='normal')
+                        )],
+                        'ir_pub_id': [kp.KernelParameter(
+                            key=kp.ParameterKey(key='ir_pub_id'),
+                            value=kp.ParameterValue(value='1-23-4')
+                        )],
+                        'root': [kp.KernelParameter(
+                            key=kp.ParameterKey(key='root'),
+                            value=kp.ParameterValue(
+                                value='UUID=1be26c0b-03f2-4d2e-ae87-'
+                                      'c02d7f33c123')
+                        )],
+                    },
+                    init_args='',
+                ),
                 inject_files=None, publisher_id='1-23-4')
 
             self.assertEqual(expected_url, url)
@@ -586,8 +671,26 @@ class RedfishImageUtilsTestCase(db_base.DbTestCase):
             mock_create_boot_iso.assert_called_once_with(
                 mock.ANY, mock.ANY, 'http://kernel/img', 'http://ramdisk/img',
                 boot_mode='uefi', esp_image_href=None,
-                kernel_params=f'{kernel_params} ir_pub_id=1-23-4',
-                root_uuid='1be26c0b-03f2-4d2e-ae87-c02d7f33c123',
+                kernel_cmd_line=kp.ParsedKernelCommandLine(
+                    parameters={
+                        'network-config': [kp.KernelParameter(
+                            key=kp.ParameterKey(key='network-config'),
+                            value=kp.ParameterValue(
+                                value='base64-cloudinit-blob')
+                        )],
+                        'ir_pub_id': [kp.KernelParameter(
+                            key=kp.ParameterKey(key='ir_pub_id'),
+                            value=kp.ParameterValue(value='1-23-4')
+                        )],
+                        'root': [kp.KernelParameter(
+                            key=kp.ParameterKey(key='root'),
+                            value=kp.ParameterValue(
+                                value='UUID=1be26c0b-03f2-4d2e-ae87-'
+                                      'c02d7f33c123')
+                        )],
+                    },
+                    init_args=''
+                ),
                 inject_files=None, publisher_id='1-23-4')
         self.assertEqual(1, mock_generate_uuid.call_count)
 
@@ -612,8 +715,26 @@ class RedfishImageUtilsTestCase(db_base.DbTestCase):
             mock_create_boot_iso.assert_called_once_with(
                 mock.ANY, mock.ANY, 'http://kernel/img', 'http://ramdisk/img',
                 boot_mode='uefi', esp_image_href=None,
-                kernel_params=f'{kernel_params} ir_pub_id=1-23-4',
-                root_uuid='1be26c0b-03f2-4d2e-ae87-c02d7f33c123',
+                kernel_cmd_line=kp.ParsedKernelCommandLine(
+                    parameters={
+                        'network-config': [kp.KernelParameter(
+                            key=kp.ParameterKey(key='network-config'),
+                            value=kp.ParameterValue(
+                                value='base64-cloudinit-blob')
+                        )],
+                        'ir_pub_id': [kp.KernelParameter(
+                            key=kp.ParameterKey(key='ir_pub_id'),
+                            value=kp.ParameterValue(value='1-23-4')
+                        )],
+                        'root': [kp.KernelParameter(
+                            key=kp.ParameterKey(key='root'),
+                            value=kp.ParameterValue(
+                                value='UUID=1be26c0b-03f2-4d2e-ae87-'
+                                      'c02d7f33c123')
+                        )],
+                    },
+                    init_args=''
+                ),
                 inject_files=None, publisher_id='1-23-4')
         self.assertEqual(1, mock_generate_uuid.call_count)
 
@@ -639,9 +760,34 @@ class RedfishImageUtilsTestCase(db_base.DbTestCase):
             mock_create_boot_iso.assert_called_once_with(
                 mock.ANY, mock.ANY, 'http://kernel/img', 'http://ramdisk/img',
                 boot_mode='uefi', esp_image_href=None,
-                kernel_params=(f'nofb vga=normal {kernel_params} '
-                               'ir_pub_id=1-23-4'),
-                root_uuid='1be26c0b-03f2-4d2e-ae87-c02d7f33c123',
+                kernel_cmd_line=kp.ParsedKernelCommandLine(
+                    parameters={
+                        'nofb': [kp.KernelParameter(
+                            key=kp.ParameterKey(key='nofb'),
+                            value=kp.ParameterValue(value='')
+                        )],
+                        'vga': [kp.KernelParameter(
+                            key=kp.ParameterKey(key='vga'),
+                            value=kp.ParameterValue(value='normal')
+                        )],
+                        'network-config': [kp.KernelParameter(
+                            key=kp.ParameterKey(key='network-config'),
+                            value=kp.ParameterValue(
+                                value='base64-cloudinit-blob')
+                        )],
+                        'ir_pub_id': [kp.KernelParameter(
+                            key=kp.ParameterKey(key='ir_pub_id'),
+                            value=kp.ParameterValue(value='1-23-4')
+                        )],
+                        'root': [kp.KernelParameter(
+                            key=kp.ParameterKey(key='root'),
+                            value=kp.ParameterValue(
+                                value='UUID=1be26c0b-03f2-4d2e-ae87-'
+                                      'c02d7f33c123')
+                        )],
+                    },
+                    init_args='',
+                ),
                 inject_files=None, publisher_id='1-23-4')
         self.assertEqual(1, mock_generate_uuid.call_count)
 
@@ -667,8 +813,28 @@ class RedfishImageUtilsTestCase(db_base.DbTestCase):
             mock_create_boot_iso.assert_called_once_with(
                 mock.ANY, mock.ANY, 'http://kernel/img', 'http://ramdisk/img',
                 boot_mode='bios', esp_image_href=None,
-                kernel_params=f'{kernel_params} ir_pub_id=1-23-4',
-                root_uuid='1be26c0b-03f2-4d2e-ae87-c02d7f33c123',
+                kernel_cmd_line=kp.ParsedKernelCommandLine(
+                    parameters={
+                        'network-config': [kp.KernelParameter(
+                            key=kp.ParameterKey(key='network-config'),
+                            value=kp.ParameterValue(
+                                value='base64-cloudinit-blob')
+                        )],
+                        'ir_pub_id': [kp.KernelParameter(
+                            key=kp.ParameterKey(key='ir_pub_id'),
+                            value=kp.ParameterValue(value='1-23-4')
+                        )],
+                        'root': [
+                            kp.KernelParameter(
+                                key=kp.ParameterKey(key='root'),
+                                value=kp.ParameterValue(
+                                    value='UUID=1be26c0b-03f2-4d2e-ae87-'
+                                          'c02d7f33c123')
+                            )
+                        ],
+                    },
+                    init_args=''
+                ),
                 inject_files=None,
                 publisher_id='1-23-4')
         self.assertEqual(1, mock_generate_uuid.call_count)
@@ -694,8 +860,32 @@ class RedfishImageUtilsTestCase(db_base.DbTestCase):
             mock_create_boot_iso.assert_called_once_with(
                 mock.ANY, mock.ANY, 'http://kernel/img', 'http://ramdisk/img',
                 boot_mode='uefi', esp_image_href=None,
-                kernel_params=f'root=/dev/ram0 text {kernel_params}',
-                root_uuid='1be26c0b-03f2-4d2e-ae87-c02d7f33c123',
+                kernel_cmd_line=kp.ParsedKernelCommandLine(
+                    parameters={
+                        'network-config': [kp.KernelParameter(
+                            key=kp.ParameterKey(key='network-config'),
+                            value=kp.ParameterValue(
+                                value='base64-cloudinit-blob')
+                        )],
+                        'text': [kp.KernelParameter(
+                            key=kp.ParameterKey(key='text'),
+                            value=kp.ParameterValue(value='')
+                        )],
+                        'root': [
+                            kp.KernelParameter(
+                                key=kp.ParameterKey(key='root'),
+                                value=kp.ParameterValue(value='/dev/ram0')
+                            ),
+                            kp.KernelParameter(
+                                key=kp.ParameterKey(key='root'),
+                                value=kp.ParameterValue(
+                                    value='UUID=1be26c0b-03f2-4d2e-ae87-'
+                                          'c02d7f33c123')
+                            )
+                        ],
+                    },
+                    init_args=''
+                ),
                 inject_files=None)
         mock_generate_uuid.assert_not_called()
 
@@ -722,8 +912,32 @@ class RedfishImageUtilsTestCase(db_base.DbTestCase):
             mock_create_boot_iso.assert_called_once_with(
                 mock.ANY, mock.ANY, 'http://kernel/img', 'http://ramdisk/img',
                 boot_mode='bios', esp_image_href=None,
-                kernel_params=f'root=/dev/ram0 text {kernel_params}',
-                root_uuid='1be26c0b-03f2-4d2e-ae87-c02d7f33c123',
+                kernel_cmd_line=kp.ParsedKernelCommandLine(
+                    parameters={
+                        'network-config': [kp.KernelParameter(
+                            key=kp.ParameterKey(key='network-config'),
+                            value=kp.ParameterValue(
+                                value='base64-cloudinit-blob')
+                        )],
+                        'text': [kp.KernelParameter(
+                            key=kp.ParameterKey(key='text'),
+                            value=kp.ParameterValue(value='')
+                        )],
+                        'root': [
+                            kp.KernelParameter(
+                                key=kp.ParameterKey(key='root'),
+                                value=kp.ParameterValue(value='/dev/ram0')
+                            ),
+                            kp.KernelParameter(
+                                key=kp.ParameterKey(key='root'),
+                                value=kp.ParameterValue(
+                                    value='UUID=1be26c0b-03f2-4d2e-ae87-'
+                                          'c02d7f33c123')
+                            )
+                        ],
+                    },
+                    init_args=''
+                ),
                 inject_files=None)
         mock_generate_uuid.assert_not_called()
 
@@ -750,8 +964,26 @@ class RedfishImageUtilsTestCase(db_base.DbTestCase):
             mock_create_boot_iso.assert_called_once_with(
                 mock.ANY, mock.ANY, 'http://kernel/img', 'http://ramdisk/img',
                 boot_mode='uefi', esp_image_href=None,
-                kernel_params=f'{kernel_params} ir_pub_id=1-23-4',
-                root_uuid='1be26c0b-03f2-4d2e-ae87-c02d7f33c123',
+                kernel_cmd_line=kp.ParsedKernelCommandLine(
+                    parameters={
+                        'network-config': [kp.KernelParameter(
+                            key=kp.ParameterKey(key='network-config'),
+                            value=kp.ParameterValue(
+                                value='base64-cloudinit-blob')
+                        )],
+                        'ir_pub_id': [kp.KernelParameter(
+                            key=kp.ParameterKey(key='ir_pub_id'),
+                            value=kp.ParameterValue(value='1-23-4')
+                        )],
+                        'root': [kp.KernelParameter(
+                            key=kp.ParameterKey(key='root'),
+                            value=kp.ParameterValue(
+                                value='UUID=1be26c0b-03f2-4d2e-ae87-'
+                                      'c02d7f33c123')
+                        )],
+                    },
+                    init_args='',
+                ),
                 inject_files=None, publisher_id='1-23-4')
         self.assertEqual(1, mock_generate_uuid.call_count)
 
@@ -777,9 +1009,34 @@ class RedfishImageUtilsTestCase(db_base.DbTestCase):
             mock_create_boot_iso.assert_called_once_with(
                 mock.ANY, mock.ANY, 'http://kernel/img', 'http://ramdisk/img',
                 boot_mode='uefi', esp_image_href=None,
-                kernel_params=(f'{kernel_params} ir_pub_id=1-23-4 '
-                               'foo=bar banana'),
-                root_uuid='1be26c0b-03f2-4d2e-ae87-c02d7f33c123',
+                kernel_cmd_line=kp.ParsedKernelCommandLine(
+                    parameters={
+                        'network-config': [kp.KernelParameter(
+                            key=kp.ParameterKey(key='network-config'),
+                            value=kp.ParameterValue(
+                                value='base64-cloudinit-blob')
+                        )],
+                        'ir_pub_id': [kp.KernelParameter(
+                            key=kp.ParameterKey(key='ir_pub_id'),
+                            value=kp.ParameterValue(value='1-23-4')
+                        )],
+                        'foo': [kp.KernelParameter(
+                            key=kp.ParameterKey(key='foo'),
+                            value=kp.ParameterValue(value='bar')
+                        )],
+                        'banana': [kp.KernelParameter(
+                            key=kp.ParameterKey(key='banana'),
+                            value=kp.ParameterValue(value='')
+                        )],
+                        'root': [kp.KernelParameter(
+                            key=kp.ParameterKey(key='root'),
+                            value=kp.ParameterValue(
+                                value='UUID=1be26c0b-03f2-4d2e-ae87-'
+                                      'c02d7f33c123')
+                        )],
+                    },
+                    init_args='',
+                ),
                 inject_files=None, publisher_id='1-23-4')
         self.assertEqual(1, mock_generate_uuid.call_count)
         self.assertEqual(1, mock_generate_uuid.call_count)
@@ -818,6 +1075,23 @@ class RedfishImageUtilsTestCase(db_base.DbTestCase):
                 task, base_image_url, file_name=f'boot-{self.node.uuid}.iso',
                 download_source='http')
             mock_create_boot_iso.assert_not_called()
+
+    def test__prepare_kernel_cmd_line(self):
+        with task_manager.acquire(self.context, self.node.uuid,
+                                  shared=True) as task:
+            result = image_utils._prepare_kernel_cmd_line(
+                    task.node, '', False, 'pub-id', 'some-root-uuid', {})
+            self.assertIsInstance(result, kp.ParsedKernelCommandLine)
+
+    def test__prepare_kernel_cmd_line_parsing_disabled(self):
+        cfg.CONF.set_override('disable_kernel_parameter_parsing',
+                              True,
+                              group='conductor')
+        with task_manager.acquire(self.context, self.node.uuid,
+                                  shared=True) as task:
+            result = image_utils._prepare_kernel_cmd_line(
+                    task.node, '', False, 'pub-id', 'some-root-uuid', {})
+            self.assertIsInstance(result, kp.UnsafeKernelCommandLine)
 
     def test__find_param(self):
         param_dict = {

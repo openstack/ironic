@@ -31,6 +31,7 @@ from ironic.common import exception
 from ironic.common.glance_service import service_utils as glance_utils
 from ironic.common import image_service
 from ironic.common import images
+from ironic.common import kernel_parameters
 from ironic.common import qemu_img
 from ironic.common import utils
 from ironic.tests import base
@@ -836,20 +837,22 @@ class FsImageTestCase(base.TestCase):
 
     def test__generate_isolinux_cfg(self):
 
-        kernel_params = ['key1=value1', 'key2']
+        kernel_cmd_line = kernel_parameters.KernelCommandLine.parse(
+            ' '.join(['key1=value1', 'key2']))
         options = {'kernel': '/vmlinuz', 'ramdisk': '/initrd'}
         expected_cfg = ("default boot\n"
                         "\n"
                         "label boot\n"
                         "kernel /vmlinuz\n"
                         "append initrd=/initrd text key1=value1 key2 --")
-        cfg = images._generate_cfg(kernel_params,
+        cfg = images._generate_cfg(kernel_cmd_line,
                                    CONF.isolinux_config_template,
                                    options)
         self.assertEqual(expected_cfg, cfg)
 
     def test__generate_grub_cfg(self):
-        kernel_params = ['key1=value1', 'key2']
+        kernel_cmd_line = kernel_parameters.KernelCommandLine.parse(
+            ' '.join(['key1=value1', 'key2']))
         options = {'linux': '/vmlinuz', 'initrd': '/initrd'}
         expected_cfg = ("set default=0\n"
                         "set timeout=5\n"
@@ -860,7 +863,7 @@ class FsImageTestCase(base.TestCase):
                         "initrd /initrd\n"
                         "}")
 
-        cfg = images._generate_cfg(kernel_params,
+        cfg = images._generate_cfg(kernel_cmd_line,
                                    CONF.grub_config_template,
                                    options)
         self.assertEqual(expected_cfg, cfg)
@@ -1056,7 +1059,8 @@ class FsImageTestCase(base.TestCase):
         grub_file = 'tmpdir/relpath/to/grub.cfg'
         gen_cfg_mock.side_effect = (grubcfg,)
 
-        params = ['a=b', 'c']
+        kernel_cmd_line = kernel_parameters.KernelCommandLine.parse(
+            ' '.join(['a=b', 'c']))
         grub_options = {'linux': '/vmlinuz',
                         'initrd': '/initrd'}
 
@@ -1077,12 +1081,13 @@ class FsImageTestCase(base.TestCase):
                                          'path/to/kernel',
                                          'path/to/ramdisk',
                                          deploy_iso='path/to/deploy_iso',
-                                         kernel_params=params,
+                                         kernel_cmd_line=kernel_cmd_line,
                                          publisher_id='1-23-4')
         get_iso_files_mock.assert_called_once_with('path/to/deploy_iso',
                                                    'mountdir')
         create_root_fs_mock.assert_called_once_with('tmpdir', files_info)
-        gen_cfg_mock.assert_any_call(params, CONF.grub_config_template,
+        gen_cfg_mock.assert_any_call(kernel_cmd_line,
+                                     CONF.grub_config_template,
                                      grub_options)
         write_to_file_mock.assert_any_call(grub_file, grubcfg)
         execute_mock.assert_called_once_with(
@@ -1112,7 +1117,8 @@ class FsImageTestCase(base.TestCase):
         grubcfg = "grubcfg"
         gen_cfg_mock.side_effect = (grubcfg,)
 
-        params = ['a=b', 'c']
+        kernel_cmd_line = kernel_parameters.KernelCommandLine.parse(
+            ' '.join(['a=b', 'c']))
         grub_options = {'linux': '/vmlinuz',
                         'initrd': '/initrd'}
 
@@ -1126,9 +1132,10 @@ class FsImageTestCase(base.TestCase):
         images.create_esp_image_for_uefi(
             'tgt_file', 'path/to/kernel', 'path/to/ramdisk',
             esp_image='sourceabspath/to/efiboot.img',
-            kernel_params=params)
+            kernel_cmd_line=kernel_cmd_line)
         create_root_fs_mock.assert_called_once_with('tmpdir', files_info)
-        gen_cfg_mock.assert_any_call(params, CONF.grub_config_template,
+        gen_cfg_mock.assert_any_call(kernel_cmd_line,
+                                     CONF.grub_config_template,
                                      grub_options)
         write_to_file_mock.assert_any_call(mountdir_grub_cfg_path, grubcfg)
         execute_mock.assert_called_once_with(
@@ -1154,16 +1161,18 @@ class FsImageTestCase(base.TestCase):
         cfg_file = 'tmpdir/isolinux/isolinux.cfg'
         gen_cfg_mock.return_value = cfg
 
-        params = ['a=b', 'c']
+        kernel_cmd_line = kernel_parameters.KernelCommandLine.parse(
+            ' '.join(['a=b', 'c']))
         isolinux_options = {'kernel': '/vmlinuz',
                             'ramdisk': '/initrd'}
 
-        images.create_isolinux_image_for_bios('tgt_file',
-                                              'path/to/kernel',
-                                              'path/to/ramdisk',
-                                              kernel_params=params,
-                                              inject_files=inject_files,
-                                              publisher_id='1-23-4')
+        images.create_isolinux_image_for_bios(
+            'tgt_file',
+            'path/to/kernel',
+            'path/to/ramdisk',
+            kernel_cmd_line=kernel_cmd_line,
+            inject_files=inject_files,
+            publisher_id='1-23-4')
 
         files_info = {
             'path/to/kernel': 'vmlinuz',
@@ -1175,7 +1184,7 @@ class FsImageTestCase(base.TestCase):
         if ldlinux_path:
             files_info[ldlinux_path] = 'isolinux/ldlinux.c32'
         create_root_fs_mock.assert_called_once_with('tmpdir', files_info)
-        gen_cfg_mock.assert_called_once_with(params,
+        gen_cfg_mock.assert_called_once_with(kernel_cmd_line,
                                              CONF.isolinux_config_template,
                                              isolinux_options)
         write_to_file_mock.assert_called_once_with(cfg_file, cfg)
@@ -1305,10 +1314,13 @@ class FsImageTestCase(base.TestCase):
         mock_file_handle.__enter__.return_value = 'tmpdir'
         tempdir_mock.return_value = mock_file_handle
 
+        kernel_cmd_line = kernel_parameters.KernelCommandLine.parse(
+            ' '.join(['root=UUID=root-uuid', 'kernel-params']))
+
         images.create_boot_iso(
             'ctx', 'output_file', 'kernel-uuid',
             'ramdisk-uuid', deploy_iso_href='deploy_iso-uuid',
-            root_uuid='root-uuid', kernel_params='kernel-params',
+            kernel_cmd_line=kernel_cmd_line,
             boot_mode='uefi')
 
         fetch_images_mock.assert_any_call(
@@ -1318,12 +1330,11 @@ class FsImageTestCase(base.TestCase):
         fetch_images_mock.assert_any_call(
             'ctx', 'deploy_iso-uuid', 'tmpdir/iso')
 
-        params = ['root=UUID=root-uuid', 'kernel-params']
         create_isolinux_mock.assert_called_once_with(
             'output_file', 'tmpdir/kernel', 'tmpdir/ramdisk',
             deploy_iso='tmpdir/iso',
-            esp_image=None, kernel_params=params, inject_files=None,
-            publisher_id=None)
+            esp_image=None, kernel_cmd_line=kernel_cmd_line,
+            inject_files=None, publisher_id=None)
 
     @mock.patch.object(images, 'create_esp_image_for_uefi', autospec=True)
     @mock.patch.object(images, 'fetch', autospec=True)
@@ -1334,10 +1345,13 @@ class FsImageTestCase(base.TestCase):
         mock_file_handle.__enter__.return_value = 'tmpdir'
         tempdir_mock.return_value = mock_file_handle
 
+        kernel_cmd_line = kernel_parameters.KernelCommandLine.parse(
+            ' '.join(['root=UUID=root-uuid', 'kernel-params']))
+
         images.create_boot_iso(
             'ctx', 'output_file', 'kernel-uuid',
             'ramdisk-uuid', esp_image_href='efiboot-uuid',
-            root_uuid='root-uuid', kernel_params='kernel-params',
+            kernel_cmd_line=kernel_cmd_line,
             boot_mode='uefi')
 
         fetch_images_mock.assert_any_call(
@@ -1347,11 +1361,10 @@ class FsImageTestCase(base.TestCase):
         fetch_images_mock.assert_any_call(
             'ctx', 'efiboot-uuid', 'tmpdir/esp')
 
-        params = ['root=UUID=root-uuid', 'kernel-params']
         create_isolinux_mock.assert_called_once_with(
             'output_file', 'tmpdir/kernel', 'tmpdir/ramdisk',
             deploy_iso=None, esp_image='tmpdir/esp',
-            kernel_params=params, inject_files=None,
+            kernel_cmd_line=kernel_cmd_line, inject_files=None,
             publisher_id=None)
 
     @mock.patch.object(images, 'create_esp_image_for_uefi', autospec=True)
@@ -1362,11 +1375,13 @@ class FsImageTestCase(base.TestCase):
         mock_file_handle = mock.MagicMock(spec=io.BytesIO)
         mock_file_handle.__enter__.return_value = 'tmpdir'
         tempdir_mock.return_value = mock_file_handle
+        kernel_cmd_line = kernel_parameters.KernelCommandLine.parse(
+            ' '.join(['root=UUID=root-uuid', 'kernel-params']))
 
         images.create_boot_iso(
             'ctx', 'output_file', 'http://kernel-href', 'http://ramdisk-href',
             deploy_iso_href='http://deploy_iso-href',
-            root_uuid='root-uuid', kernel_params='kernel-params',
+            kernel_cmd_line=kernel_cmd_line,
             boot_mode='uefi')
 
         expected_calls = [mock.call('ctx', 'http://kernel-href',
@@ -1376,11 +1391,12 @@ class FsImageTestCase(base.TestCase):
                           mock.call('ctx', 'http://deploy_iso-href',
                                     'tmpdir/iso')]
         fetch_images_mock.assert_has_calls(expected_calls)
-        params = ['root=UUID=root-uuid', 'kernel-params']
         create_isolinux_mock.assert_called_once_with(
             'output_file', 'tmpdir/kernel', 'tmpdir/ramdisk',
             deploy_iso='tmpdir/iso',
-            esp_image=None, kernel_params=params, inject_files=None,
+            esp_image=None,
+            kernel_cmd_line=kernel_cmd_line,
+            inject_files=None,
             publisher_id=None)
 
     @mock.patch.object(images, 'create_esp_image_for_uefi', autospec=True)
@@ -1391,11 +1407,13 @@ class FsImageTestCase(base.TestCase):
         mock_file_handle = mock.MagicMock(spec=io.BytesIO)
         mock_file_handle.__enter__.return_value = 'tmpdir'
         tempdir_mock.return_value = mock_file_handle
+        kernel_cmd_line = kernel_parameters.KernelCommandLine.parse(
+            ' '.join(['root=UUID=root-uuid', 'kernel-params']))
 
         images.create_boot_iso(
             'ctx', 'output_file', 'http://kernel-href', 'http://ramdisk-href',
             esp_image_href='http://efiboot-href',
-            root_uuid='root-uuid', kernel_params='kernel-params',
+            kernel_cmd_line=kernel_cmd_line,
             boot_mode='uefi', publisher_id='1-23-4')
 
         expected_calls = [mock.call('ctx', 'http://kernel-href',
@@ -1405,11 +1423,10 @@ class FsImageTestCase(base.TestCase):
                           mock.call('ctx', 'http://efiboot-href',
                                     'tmpdir/esp')]
         fetch_images_mock.assert_has_calls(expected_calls)
-        params = ['root=UUID=root-uuid', 'kernel-params']
         create_isolinux_mock.assert_called_once_with(
             'output_file', 'tmpdir/kernel', 'tmpdir/ramdisk',
             deploy_iso=None, esp_image='tmpdir/esp',
-            kernel_params=params, inject_files=None,
+            kernel_cmd_line=kernel_cmd_line, inject_files=None,
             publisher_id='1-23-4')
 
     @mock.patch.object(images, 'create_isolinux_image_for_bios', autospec=True)
@@ -1421,10 +1438,14 @@ class FsImageTestCase(base.TestCase):
         mock_file_handle.__enter__.return_value = 'tmpdir'
         tempdir_mock.return_value = mock_file_handle
 
+        kernel_cmd_line = kernel_parameters.KernelCommandLine.parse(
+            ' '.join(['root=UUID=root-uuid', 'kernel-params']))
+
         images.create_boot_iso('ctx', 'output_file', 'kernel-uuid',
                                'ramdisk-uuid', 'deploy_iso-uuid',
-                               'efiboot-uuid', 'root-uuid',
-                               'kernel-params', 'bios',
+                               'efiboot-uuid',
+                               kernel_cmd_line=kernel_cmd_line,
+                               boot_mode='bios',
                                publisher_id='1-23-4')
 
         fetch_images_mock.assert_any_call(
@@ -1439,10 +1460,9 @@ class FsImageTestCase(base.TestCase):
         #                   asserts.
         self.assertEqual(2, fetch_images_mock.call_count)
 
-        params = ['root=UUID=root-uuid', 'kernel-params']
         create_isolinux_mock.assert_called_once_with(
             'output_file', 'tmpdir/kernel', 'tmpdir/ramdisk',
-            kernel_params=params, inject_files=None,
+            kernel_cmd_line=kernel_cmd_line, inject_files=None,
             publisher_id='1-23-4')
 
     @mock.patch.object(images, 'create_isolinux_image_for_bios', autospec=True)
@@ -1455,20 +1475,23 @@ class FsImageTestCase(base.TestCase):
         mock_file_handle.__enter__.return_value = 'tmpdir'
         tempdir_mock.return_value = mock_file_handle
 
+        kernel_cmd_line = kernel_parameters.KernelCommandLine.parse(
+            ' '.join(['root=UUID=root-uuid', 'kernel-params']))
+
         images.create_boot_iso('ctx', 'output_file', 'kernel-uuid',
                                'ramdisk-uuid', 'deploy_iso-uuid',
-                               'efiboot-uuid', 'root-uuid',
-                               'kernel-params', None)
+                               'efiboot-uuid',
+                               kernel_cmd_line=kernel_cmd_line,
+                               boot_mode=None)
 
         fetch_images_mock.assert_any_call(
             'ctx', 'kernel-uuid', 'tmpdir/kernel')
         fetch_images_mock.assert_any_call(
             'ctx', 'ramdisk-uuid', 'tmpdir/ramdisk')
 
-        params = ['root=UUID=root-uuid', 'kernel-params']
         create_isolinux_mock.assert_called_once_with(
             'output_file', 'tmpdir/kernel', 'tmpdir/ramdisk',
-            kernel_params=params, inject_files=None,
+            kernel_cmd_line=kernel_cmd_line, inject_files=None,
             publisher_id=None)
 
     @mock.patch.object(image_service, 'get_image_service', autospec=True)
