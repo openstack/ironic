@@ -1,0 +1,13 @@
+---
+features:
+  - |
+    Configuration options which are explicitly meant to be kernel
+    parameters are now strongly typed as such. This exhaustively includes -
+    `inspector.extra_kernel_params`, `pxe.kernel_append_params`, and
+    `redfish.extra_kernel_params`. These options will now be validated by
+    attempting to parse them as kernel parameters. Options failing parsing will
+    must be corrected by the operator. If for some reason the kernel parameters
+    are correct for the operator's application but fail parsing, set the
+    configuration option `conductor.disable_kernel_parameter_parsing` to
+    `True`, and please file a bug report against Ironic and include the valid
+    kernel command line that fails parsing.

@@ -17,6 +17,7 @@ import os
 from oslo_config import cfg
 
 from ironic.common.i18n import _
+from ironic.conf import types as ir_types
 
 
 VALID_ADD_PORTS_VALUES = {
@@ -51,10 +52,11 @@ opts = [
                        'interfaces and avoid injecting any static network '
                        'configuration into the virtual media ISO. This '
                        'ensures LLDP collection across all interfaces.')),
-    cfg.StrOpt('extra_kernel_params', default='',
-               help=_('extra kernel parameters to pass to the inspection '
-                      'ramdisk when boot is managed by ironic. Pairs '
-                      'key=value separated by spaces.')),
+    cfg.Opt('extra_kernel_params', default='',
+            type=ir_types.KernelParameterString(),
+            help=_('extra kernel parameters to pass to the inspection '
+                   'ramdisk when boot is managed by ironic. Pairs '
+                   'key=value separated by spaces.')),
     cfg.BoolOpt('power_off', default=True,
                 help=_('whether to power off a node after inspection '
                        'finishes. Ignored for nodes that have fast '

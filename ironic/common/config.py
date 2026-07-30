@@ -43,3 +43,27 @@ def parse_args(argv, default_config_files=None):
              default_config_dirs=default_config_dirs)
     rpc.init(cfg.CONF)
     profiler_opts.set_defaults(cfg.CONF)
+    validate_opts_using_custom_ironic_config_types()
+
+
+def validate_opts_using_custom_ironic_config_types():
+    # Options using KernelParameterString
+    kernel_param_opts = [
+        ('inspector', 'extra_kernel_params'),
+        ('pxe', 'kernel_append_params'),
+        ('redfish', 'kernel_append_params'),
+    ]
+    # Options using ExplicitAbsolutePath
+    explicit_abs_path_opts = [
+        ('conductor', 'file_url_allowed_paths'),
+    ]
+    custom_opts = kernel_param_opts + explicit_abs_path_opts
+
+    for opt_tuple in custom_opts:
+        group_name, opt_name = opt_tuple
+        group = getattr(cfg.CONF, group_name)
+        # NOTE(clif) Simply retrieving the option causes type
+        # conversion/checking through the custom type's
+        # types.ConfigType.__call__ override/implementation.
+        # If conversion fails, a ValueError exception will be raised.
+        getattr(group, opt_name)

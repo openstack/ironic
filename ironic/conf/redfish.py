@@ -16,6 +16,7 @@
 from oslo_config import cfg
 
 from ironic.common.i18n import _
+from ironic.conf import types as ir_types
 
 opts = [
     cfg.IntOpt('connection_attempts',
@@ -73,15 +74,16 @@ opts = [
                help=_('Amount of time in seconds for Swift objects to '
                       'auto-expire. Applies only when `use_swift` is '
                       'enabled.')),
-    cfg.StrOpt('kernel_append_params',
-               default='nofb vga=normal',
-               mutable=True,
-               help=_('Additional kernel parameters to pass down to the '
-                      'instance kernel. These parameters can be consumed by '
-                      'the kernel or by the applications by reading '
-                      '/proc/cmdline. Mind severe cmdline size limit! Can be '
-                      'overridden by `instance_info/kernel_append_params` '
-                      'property.')),
+    cfg.Opt('kernel_append_params',
+            default='nofb vga=normal',
+            type=ir_types.KernelParameterString(),
+            mutable=True,
+            help=_('Additional kernel parameters to pass down to the '
+                   'instance kernel. These parameters can be consumed by '
+                   'the kernel or by the applications by reading '
+                   '/proc/cmdline. Mind severe cmdline size limit! Can be '
+                   'overridden by `instance_info/kernel_append_params` '
+                   'property.')),
     cfg.IntOpt('file_permission',
                default=0o644,
                help=_('File permission for swift-less image hosting with the '
