@@ -1882,6 +1882,7 @@ class PXEBuildConfigOptionsTestCase(db_base.DbTestCase):
     def _test_build_pxe_config_options_pxe(self, render_mock,
                                            whle_dsk_img=False,
                                            debug=False, mode='deploy',
+                                           expect_raise=False,
                                            ramdisk_params=None,
                                            expected_pxe_params=None,
                                            ramdisk_kernel_opt=None):
@@ -1955,9 +1956,17 @@ class PXEBuildConfigOptionsTestCase(db_base.DbTestCase):
 
         with task_manager.acquire(self.context, self.node.uuid,
                                   shared=True) as task:
-            options = pxe_utils.build_pxe_config_options(
-                task, image_info, ramdisk_params=ramdisk_params)
-        self.assertEqual(expected_options, options)
+            if expect_raise:
+                self.assertRaises(
+                    exception.InvalidParameterValue,
+                    pxe_utils.build_pxe_config_options,
+                    task, image_info,
+                    ramdisk_params=ramdisk_params
+                )
+            else:
+                options = pxe_utils.build_pxe_config_options(
+                    task, image_info, ramdisk_params=ramdisk_params)
+                self.assertEqual(expected_options, options)
 
     def test_build_pxe_config_options_pxe(self):
         self._test_build_pxe_config_options_pxe(whle_dsk_img=True)
@@ -2021,6 +2030,14 @@ class PXEBuildConfigOptionsTestCase(db_base.DbTestCase):
             ramdisk_params=collections.OrderedDict([('foo', 'bar'),
                                                     ('banana', None)]),
             expected_pxe_params='test_param foo=bar banana')
+
+    def test_build_pxe_config_options_ramdisk_params_invalid(self):
+        self._test_build_pxe_config_options_pxe(
+            whle_dsk_img=True,
+            ramdisk_params=collections.OrderedDict([('fo\no', 'bar'),
+                                                    ('banana', None)]),
+            expected_pxe_params='test_param foo=bar banana',
+            expect_raise=True)
 
     def test_build_pxe_config_options_pxe_no_kernel_no_ramdisk(self):
         del self.node.driver_internal_info['is_whole_disk_image']
