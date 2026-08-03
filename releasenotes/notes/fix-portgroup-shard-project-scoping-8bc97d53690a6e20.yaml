@@ -1,0 +1,14 @@
+---
+security:
+  - |
+    Fixes a security issue where a project scoped user could list portgroups
+    belonging to nodes owned or leased by another project by supplying a
+    valid shard name to ``GET /v1/portgroups?shard=<shard>`` or
+    ``GET /v1/portgroups/detail?shard=<shard>``. With detailed output this
+    disclosed the related node UUID along with portgroup mode, extra and
+    internal metadata. The node owner and lessee filter is now applied to
+    the portgroup shard query, as it already was for the other portgroup
+    list filters. This completes the fix for ports, volume connectors and
+    volume targets described in
+    `bug 2150461 <https://bugs.launchpad.net/ironic/+bug/2150461>`_, which
+    did not extend the project filter through the portgroup shard path.

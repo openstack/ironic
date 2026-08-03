@@ -168,6 +168,20 @@ class TestPortgroupObject(db_base.DbTestCase, obj_utils.SchemasTestMixIn):
             self.assertIsInstance(portgroups[0], objects.Portgroup)
             self.assertEqual(self.context, portgroups[0]._context)
 
+    def test_list_by_node_shards(self):
+        with mock.patch.object(self.dbapi, 'get_portgroups_by_shards',
+                               autospec=True) as mock_get_list:
+            mock_get_list.return_value = [self.fake_portgroup]
+            portgroups = objects.Portgroup.list_by_node_shards(
+                self.context, ['shard1'], project='12345')
+            mock_get_list.assert_called_once_with(['shard1'],
+                                                  limit=None, marker=None,
+                                                  sort_key=None, sort_dir=None,
+                                                  project='12345')
+            self.assertThat(portgroups, matchers.HasLength(1))
+            self.assertIsInstance(portgroups[0], objects.Portgroup)
+            self.assertEqual(self.context, portgroups[0]._context)
+
     def test_payload_schemas(self):
         self._check_payload_schemas(objects.portgroup,
                                     objects.Portgroup.fields)

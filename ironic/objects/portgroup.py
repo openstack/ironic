@@ -283,7 +283,7 @@ class Portgroup(base.IronicObject, object_base.VersionedObjectDictCompat):
 
     @classmethod
     def list_by_node_shards(cls, context, shards, limit=None, marker=None,
-                            sort_key=None, sort_dir=None):
+                            sort_key=None, sort_dir=None, project=None):
         """Return a list of Portgroup objects associated with nodes in shards.
 
         :param context: Security context.
@@ -292,6 +292,7 @@ class Portgroup(base.IronicObject, object_base.VersionedObjectDictCompat):
         :param marker: Pagination marker for large data sets.
         :param sort_key: Column to sort results by.
         :param sort_dir: Direction to sort. "asc" or "desc".
+        :param project: a node owner or lessee to match against.
         :returns: A list of :class:`Portgroup` object.
 
         """
@@ -299,7 +300,8 @@ class Portgroup(base.IronicObject, object_base.VersionedObjectDictCompat):
                                                            limit=limit,
                                                            marker=marker,
                                                            sort_key=sort_key,
-                                                           sort_dir=sort_dir)
+                                                           sort_dir=sort_dir,
+                                                           project=project)
         return cls._from_db_object_list(context, db_portgroups)
 
     @object_base.remotable
