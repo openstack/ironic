@@ -606,6 +606,22 @@
         # tests can also exercised as part of CI.
 
 - job:
+    name: ironic-tempest-vnc-container
+    description: |
+      Runs the graphical console API tests from ironic-tempest-plugin
+      with ir-novnc enabled and [vnc]container_provider set to
+      container. Enabling a console only succeeds once the provider has
+      run a container and its published VNC endpoint answers, so a
+      failure here is in the provider rather than in a deploy.
+    parent: ironic-tempest-functional-python3
+    vars:
+      tempest_test_regex: TestGraphicalConsole
+      devstack_localrc:
+        IRONIC_VNC_CONTAINER_PROVIDER: container
+      devstack_services:
+        ir-novnc: True
+
+- job:
     name: ironic-tempest-ipa-wholedisk-direct-multinode
     description: Utilizes multiple devstack nodes to test
       ML2 integration between Ironic, Neutron, and
