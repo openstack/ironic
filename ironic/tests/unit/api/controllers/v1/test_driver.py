@@ -23,6 +23,8 @@ from testtools import matchers
 from ironic.api.controllers import base as api_base
 from ironic.api.controllers.v1 import driver
 from ironic.api.controllers.v1 import versions as api_versions
+from ironic.api.schemas.v1 import driver as driver_schema
+from ironic.api.validation import validators
 from ironic.common import exception
 from ironic.conductor import rpcapi
 from ironic.drivers import base as driver_base
@@ -458,7 +460,14 @@ class TestListDrivers(base.BaseApiTest):
                        autospec=True)
     def test_driver_vendor_passthru_methods(self, get_methods_mock):
         self.register_fake_conductors()
-        return_value = {'foo': 'bar'}
+        return_value = {
+            'foo': {
+                'async': False,
+                'attach': False,
+                'description': 'Do foo.',
+                'http_methods': ['POST'],
+            },
+        }
         get_methods_mock.return_value = return_value
         path = '/drivers/%s/vendor_passthru/methods' % self.hw1
 
@@ -475,6 +484,52 @@ class TestListDrivers(base.BaseApiTest):
         self.assertEqual(return_value, data)
         # Assert RPC method wasn't called this time
         self.assertFalse(get_methods_mock.called)
+
+    def test_driver_response_schema_microversion_boundaries(self):
+        base_driver = {
+            'name': self.hw1,
+            'hosts': [self.h1],
+            'links': [],
+        }
+        response_schemas = [
+            (driver_schema.show_response_body_v1_13, {}),
+            (driver_schema.show_response_body_v14_29, {
+                'properties': [],
+            }),
+            (driver_schema.show_response_body_v30_32, {
+                'properties': [],
+                'type': 'dynamic',
+                'default_deploy_interface': 'direct',
+                'enabled_deploy_interfaces': ['direct'],
+            }),
+            (driver_schema.show_response_body_v33_37, {
+                'properties': [],
+                'type': 'dynamic',
+                'default_storage_interface': 'noop',
+                'enabled_storage_interfaces': ['noop'],
+            }),
+            (driver_schema.show_response_body_v38_39, {
+                'properties': [],
+                'type': 'dynamic',
+                'default_rescue_interface': 'no-rescue',
+                'enabled_rescue_interfaces': ['no-rescue'],
+            }),
+            (driver_schema.show_response_body_v40_85, {
+                'properties': [],
+                'type': 'dynamic',
+                'default_bios_interface': 'no-bios',
+                'enabled_bios_interfaces': ['no-bios'],
+            }),
+            (driver_schema.show_response_body_v86, {
+                'properties': [],
+                'type': 'dynamic',
+                'default_firmware_interface': 'no-firmware',
+                'enabled_firmware_interfaces': ['no-firmware'],
+            }),
+        ]
+        for response_schema, additions in response_schemas:
+            validators.SchemaValidator(response_schema).validate(
+                {**base_driver, **additions})
 
     @mock.patch.object(rpcapi.ConductorAPI, 'get_raid_logical_disk_properties',
                        autospec=True)
