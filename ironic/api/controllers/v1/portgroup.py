@@ -261,7 +261,8 @@ class PortgroupsController(pecan.rest.RestController):
         elif shard:
             portgroups = objects.Portgroup.list_by_node_shards(
                 api.request.context, shard, limit,
-                marker_obj, sort_key=sort_key, sort_dir=sort_dir)
+                marker_obj, sort_key=sort_key, sort_dir=sort_dir,
+                project=project)
         else:
             portgroups = objects.Portgroup.list(
                 api.request.context, limit,
