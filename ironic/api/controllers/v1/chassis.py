@@ -25,6 +25,8 @@ from ironic.api.controllers.v1 import node
 from ironic.api.controllers.v1 import notification_utils as notify
 from ironic.api.controllers.v1 import utils as api_utils
 from ironic.api import method
+from ironic.api.schemas.v1 import chassis as schema
+from ironic.api import validation
 from ironic.common import args
 from ironic.common import exception
 from ironic.common.i18n import _
@@ -142,6 +144,8 @@ class ChassisController(rest.RestController):
     @args.validate(marker=args.uuid, limit=args.integer, sort_key=args.string,
                    sort_dir=args.string, fields=args.string_list,
                    detail=args.boolean)
+    @validation.request_query_schema(schema.index_request_query)
+    @validation.response_body_schema(schema.index_response_body)
     def get_all(self, marker=None, limit=None, sort_key='id', sort_dir='asc',
                 fields=None, detail=None):
         """Retrieve a list of chassis.
@@ -171,6 +175,8 @@ class ChassisController(rest.RestController):
     @method.expose()
     @args.validate(marker=args.uuid, limit=args.integer, sort_key=args.string,
                    sort_dir=args.string)
+    @validation.request_query_schema(schema.detail_request_query)
+    @validation.response_body_schema(schema.index_response_body)
     def detail(self, marker=None, limit=None, sort_key='id', sort_dir='asc'):
         """Retrieve a list of chassis with detail.
 
@@ -195,6 +201,9 @@ class ChassisController(rest.RestController):
     @METRICS.timer('ChassisController.get_one')
     @method.expose()
     @args.validate(chassis_uuid=args.uuid, fields=args.string_list)
+    @validation.request_parameter_schema(schema.show_request_parameter)
+    @validation.request_query_schema(schema.show_request_query)
+    @validation.response_body_schema(schema.show_response_body)
     def get_one(self, chassis_uuid, fields=None):
         """Retrieve information about the given chassis.
 
@@ -213,6 +222,8 @@ class ChassisController(rest.RestController):
     @method.expose(status_code=http_client.CREATED)
     @method.body('chassis')
     @args.validate(chassis=CHASSIS_VALIDATOR)
+    @validation.request_body_schema(schema.create_request_body)
+    @validation.response_body_schema(schema.create_response_body)
     def post(self, chassis):
         """Create a new chassis.
 
@@ -238,6 +249,9 @@ class ChassisController(rest.RestController):
     @method.expose()
     @method.body('patch')
     @args.validate(chassis_uuid=args.string, patch=args.patch)
+    @validation.request_parameter_schema(schema.update_request_parameter)
+    @validation.request_body_schema(schema.update_request_body)
+    @validation.response_body_schema(schema.update_response_body)
     def patch(self, chassis_uuid, patch):
         """Update an existing chassis.
 
@@ -270,6 +284,7 @@ class ChassisController(rest.RestController):
     @METRICS.timer('ChassisController.delete')
     @method.expose(status_code=http_client.NO_CONTENT)
     @args.validate(chassis_uuid=args.uuid)
+    @validation.request_parameter_schema(schema.delete_request_parameter)
     def delete(self, chassis_uuid):
         """Delete a chassis.
 
