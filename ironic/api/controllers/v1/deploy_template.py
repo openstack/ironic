@@ -25,6 +25,8 @@ from ironic.api.controllers.v1 import collection
 from ironic.api.controllers.v1 import notification_utils as notify
 from ironic.api.controllers.v1 import utils as api_utils
 from ironic.api import method
+from ironic.api.schemas.v1 import deploy_template as schema
+from ironic.api import validation
 from ironic.common import args
 from ironic.common import exception
 from ironic.common.i18n import _
@@ -134,6 +136,8 @@ class DeployTemplatesController(rest.RestController):
     @args.validate(marker=args.name, limit=args.integer, sort_key=args.string,
                    sort_dir=args.string, fields=args.string_list,
                    detail=args.boolean)
+    @validation.request_query_schema(schema.index_request_query)
+    @validation.response_body_schema(schema.index_response_body)
     def get_all(self, marker=None, limit=None, sort_key='id', sort_dir='asc',
                 fields=None, detail=None):
         """Retrieve a list of deploy templates.
@@ -186,6 +190,9 @@ class DeployTemplatesController(rest.RestController):
     @METRICS.timer('DeployTemplatesController.get_one')
     @method.expose()
     @args.validate(template_ident=args.uuid_or_name, fields=args.string_list)
+    @validation.request_parameter_schema(schema.show_request_parameter)
+    @validation.request_query_schema(schema.show_request_query)
+    @validation.response_body_schema(schema.show_response_body)
     def get_one(self, template_ident, fields=None):
         """Retrieve information about the given deploy template.
 
@@ -206,6 +213,8 @@ class DeployTemplatesController(rest.RestController):
     @method.expose(status_code=http_client.CREATED)
     @method.body('template')
     @args.validate(template=TEMPLATE_VALIDATOR)
+    @validation.request_body_schema(schema.create_request_body)
+    @validation.response_body_schema(schema.create_response_body)
     def post(self, template):
         """Create a new deploy template.
 
@@ -235,6 +244,9 @@ class DeployTemplatesController(rest.RestController):
     @method.expose()
     @method.body('patch')
     @args.validate(template_ident=args.uuid_or_name, patch=args.patch)
+    @validation.request_parameter_schema(schema.update_request_parameter)
+    @validation.request_body_schema(schema.update_request_body)
+    @validation.response_body_schema(schema.update_response_body)
     def patch(self, template_ident, patch=None):
         """Update an existing deploy template.
 
@@ -292,6 +304,7 @@ class DeployTemplatesController(rest.RestController):
     @METRICS.timer('DeployTemplatesController.delete')
     @method.expose(status_code=http_client.NO_CONTENT)
     @args.validate(template_ident=args.uuid_or_name)
+    @validation.request_parameter_schema(schema.delete_request_parameter)
     def delete(self, template_ident):
         """Delete a deploy template.
 
