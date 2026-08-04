@@ -15,7 +15,9 @@
 from unittest import mock
 
 from ironic.common import exception
+from ironic.common import states
 from ironic.conductor import task_manager
+from ironic.drivers.modules import agent_base
 from ironic.drivers.modules import autodetect
 from ironic.tests.unit.db import base as db_base
 from ironic.tests.unit.objects import utils as obj_utils
@@ -344,3 +346,29 @@ class AutodetectDeployTestCase(db_base.DbTestCase):
             self.assertTrue(supports)
             self.assertEqual(
                 mock_ramdisk_interface, interface)
+
+    def test_inherits_heartbeat_mixin(self):
+        """Test AutodetectDeploy inherits from HeartbeatMixin."""
+        self.assertIsInstance(self.deploy, agent_base.HeartbeatMixin)
+
+    def test_heartbeat_stores_agent_url(self):
+        """Test that heartbeat stores agent_url during inspection.
+
+        When the node is inspecting with fast_track enabled, a heartbeat
+        should store agent_url in driver_internal_info so that a
+        subsequent fast-track deployment can contact the agent.
+        """
+        self.config(fast_track=True, group='deploy')
+
+        with task_manager.acquire(self.context, self.node.uuid) as task:
+            task.node.provision_state = states.INSPECTING
+            callback_url = 'https://192.168.1.100:9999'
+
+            self.deploy.heartbeat(
+                task, callback_url, agent_version='1.0.0')
+
+            self.assertEqual(
+                callback_url,
+                task.node.driver_internal_info.get('agent_url'))
+            self.assertIsNotNone(
+                task.node.driver_internal_info.get('agent_last_heartbeat'))
