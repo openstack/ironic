@@ -589,11 +589,24 @@ class ConsoleUtilsTestCase(db_base.DbTestCase):
         mock_popen.assert_called_once_with(mock.ANY, stderr=subprocess.PIPE)
         return mock_popen.call_args[0][0]
 
-    def test_escape_start_socat_console_command(self):
-        command = ";cat /etc/passwd; && echo it\'s tricky"
-        quoted_command = ';cat /etc/passwd; && echo it\'"\'"\'s tricky'
+    def test_start_socat_console_check_arg_command(self):
+        command = ('ipmitool -I lanplus -H 192.0.2.1 -L ADMINISTRATOR '
+                   '-U root -f /tmp/pw sol activate')
         args = self._test_start_socat_console_check_arg(console_cmd=command)
-        self.assertIn(quoted_command, args[-1])
+        self.assertEqual('EXEC:"%s",pty,stderr' % command, args[-1])
+
+    def test_escape_start_socat_console_command(self):
+        command = ';cat /etc/passwd; && echo it\'s "tricky",su=root'
+        escaped_command = (';cat /etc/passwd; && echo it\\\\\\\'s '
+                           '\\\\\\"tricky\\\\\\"\\\\\\,su=root')
+        args = self._test_start_socat_console_check_arg(console_cmd=command)
+        self.assertEqual('EXEC:"%s",pty,stderr' % escaped_command, args[-1])
+
+    def test_escape_socat_console_cmd_ipv6_address(self):
+        self.assertEqual(
+            'ipmitool -H 2001\\\\\\:db8\\\\\\:\\\\\\:1 sol activate',
+            console_utils._escape_socat_console_cmd(
+                'ipmitool -H 2001:db8::1 sol activate'))
 
     def test_start_socat_console_check_arg_default_timeout(self):
         args = self._test_start_socat_console_check_arg()

@@ -23,7 +23,6 @@ import errno
 import fcntl
 import ipaddress
 import os
-import shlex
 import signal
 import socket
 import subprocess
@@ -388,13 +387,38 @@ def get_socat_console_url(port):
                                         'port': port}
 
 
+_SOCAT_METACHARACTERS = frozenset(',:!\'"()[]{}\\')
+
+
+def _escape_socat_console_cmd(console_cmd):
+    """Escape socat's metacharacters in an ``EXEC:`` command line.
+
+    socat lexes the command line twice, once when parsing the address
+    specification and again when splitting the ``EXEC:`` command line into
+    arguments, and each pass consumes one level of escaping. Spaces are left
+    alone, since they are what the second pass separates arguments at. No
+    shell is involved anywhere.
+
+    Address syntax (separators, quoting, nesting and escaping):
+    http://www.dest-unreach.org/socat/doc/socat.html#ADDRESS_SPECIFICATIONS
+    ``EXEC:``, whose arguments are separated by single spaces:
+    http://www.dest-unreach.org/socat/doc/socat.html#ADDRESS_EXEC
+
+    :param console_cmd: the command line for socat to execute
+    :return: the command line with socat's metacharacters escaped
+    """
+    return ''.join('\\' * 3 + char if char in _SOCAT_METACHARACTERS else char
+                   for char in console_cmd)
+
+
 def start_socat_console(node_uuid, port, console_cmd, env_variables=None):
     """Open the serial console for a node.
 
     :param node_uuid: the uuid of the node
     :param port: the terminal port for the node
-    :param console_cmd: the shell command that will be executed by socat to
-        establish console to the node
+    :param console_cmd: the command that will be executed by socat to
+        establish console to the node. Arguments are separated by single
+        spaces; socat runs the command directly, without a shell.
     :param env_variables: optional dict of environment variables to pass to
         the subprocess (e.g. IPMI_PASSWORD for ipmitool -E).
     :raises ConsoleError: if the directory for the PID file or the PID file
@@ -430,8 +454,8 @@ def start_socat_console(node_uuid, port, console_cmd, env_variables=None):
     args.append(arg % {'host': console_host,
                        'port': port})
 
-    quoted_cmd = shlex.quote(console_cmd)
-    args.append('EXEC:"%s",pty,stderr' % quoted_cmd)
+    escaped_cmd = _escape_socat_console_cmd(console_cmd)
+    args.append('EXEC:"%s",pty,stderr' % escaped_cmd)
 
     # run the command as a subprocess
     try:
