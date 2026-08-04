@@ -1,0 +1,10 @@
+---
+fixes:
+  - |
+    Fixes the ``socat`` serial console failing to start. The console command
+    was quoted for a shell, but ``socat`` executes it directly without one, so
+    it tried to run the whole quoted command line as a single program name and
+    failed with ``No such file or directory``. The command is now escaped for
+    ``socat``'s own address syntax instead, which keeps the arguments
+    separated while still preventing ``socat`` options from being injected
+    through it.
