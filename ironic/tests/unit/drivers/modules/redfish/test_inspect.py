@@ -439,8 +439,10 @@ class RedfishInspectTestCase(db_base.DbTestCase):
     def test_inspect_hardware_ignore_missing_simple_storage_and_storage(
             self, mock_get_system, mock_get_enabled_macs):
         system_mock = self.init_system_mock(mock_get_system.return_value)
-        system_mock.simple_storage = {}
-        system_mock.storage = {}
+        type(system_mock).simple_storage = mock.PropertyMock(
+            side_effect=sushy.exceptions.MissingAttributeError)
+        type(system_mock).storage = mock.PropertyMock(
+            side_effect=sushy.exceptions.MissingAttributeError)
 
         expected_properties = {
             'capabilities': 'boot_mode:uefi',
@@ -464,7 +466,8 @@ class RedfishInspectTestCase(db_base.DbTestCase):
     def test_inspect_hardware_ignore_missing_simple_storage(
             self, mock_get_system, mock_get_enabled_macs):
         system_mock = self.init_system_mock(mock_get_system.return_value)
-        system_mock.simple_storage = {}
+        type(system_mock).simple_storage = mock.PropertyMock(
+            side_effect=sushy.exceptions.MissingAttributeError)
 
         expected_properties = {
             'capabilities': 'boot_mode:uefi',
@@ -488,7 +491,8 @@ class RedfishInspectTestCase(db_base.DbTestCase):
     def test_inspect_hardware_ignore_missing_storage(self, mock_get_system,
                                                      mock_get_enabled_macs):
         system_mock = self.init_system_mock(mock_get_system.return_value)
-        system_mock.storage = {}
+        type(system_mock).storage = mock.PropertyMock(
+            side_effect=sushy.exceptions.MissingAttributeError)
 
         expected_properties = {
             'capabilities': 'boot_mode:uefi',

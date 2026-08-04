@@ -129,7 +129,18 @@ class RedfishInspect(base.InspectInterface):
                         {'node': task.node.uuid})
             inspected_properties['local_gb'] = 0
 
-        if storages := system.storage or system.simple_storage:
+        try:
+            storages = system.storage
+        except sushy.exceptions.MissingAttributeError:
+            storages = None
+
+        if not storages:
+            try:
+                storages = system.simple_storage
+            except sushy.exceptions.MissingAttributeError:
+                pass
+
+        if storages:
             disks = list()
             for storage in storages.get_members():
                 drives = storage.drives if hasattr(
@@ -358,10 +369,9 @@ class RedfishInspect(base.InspectInterface):
         """
         controllers = []
 
-        if not system.storage:
-            return controllers
-
         try:
+            if not system.storage:
+                return controllers
             members = system.storage.get_members()
         except sushy.exceptions.SushyError as ex:
             LOG.debug('Failed to get storage members for node %(node)s: '
