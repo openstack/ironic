@@ -672,11 +672,14 @@ class AgentDeploy(CustomAgentDeploy):
             'stream_raw_images': CONF.agent.stream_raw_images,
         }
 
-        if (CONF.deploy.image_server_auth_strategy != 'noauth'):
+        if (CONF.deploy.image_server_auth_strategy != 'noauth'
+                and image_service.is_host_auth_permitted(
+                    node.instance_info['image_url'])):
             image_info['image_server_auth_strategy'] = \
                 CONF.deploy.image_server_auth_strategy
-            image_info['image_server_user'] = CONF.deploy.image_server_user
-            image_info['image_server_password'] =\
+            image_info['image_server_user'] = \
+                CONF.deploy.image_server_user
+            image_info['image_server_password'] = \
                 CONF.deploy.image_server_password
 
         if node.instance_info.get('image_checksum'):

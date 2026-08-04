@@ -116,6 +116,71 @@ class BaseImageService(object, metaclass=abc.ABCMeta):
         return None
 
 
+def is_host_auth_permitted(image_href):
+    """Check if credentials should be sent to the host in image_href.
+
+    When ``[deploy]image_server_auth_hosts`` is configured, the image
+    URL's hostname must match an entry in the list for credentials to
+    be sent.
+
+    When ``[deploy]image_server_auth_hosts`` is not configured, the
+    behavior depends on
+    ``[deploy]image_server_auth_permit_unknown_hosts``:
+
+    * ``True`` (default): credentials are sent to all hosts, preserving
+      backwards-compatible behavior.
+    * ``False``: credentials are not sent to any host unless it is
+      listed in ``image_server_auth_hosts``.
+
+    Schemes which do not transmit credentials to a remote host, such
+    as ``file://`` and bare references without a scheme (e.g. a Glance
+    image UUID), are always permitted. Remote schemes which may carry
+    credentials, namely ``http``, ``https`` and ``oci``, are subject to
+    host filtering.
+
+    Entries in the list may be exact hostnames or domain suffixes
+    prefixed with a dot. For example, ``.example.com`` matches
+    ``images.example.com`` and ``backup.example.com`` but does
+    not match the bare ``example.com``.
+
+    :param image_href: URL of the image being accessed.
+    :returns: True if credentials may be sent, False otherwise.
+    """
+    parsed = urlparse.urlparse(image_href)
+    if parsed.scheme not in ('http', 'https', 'oci'):
+        return True
+    permitted_hosts = CONF.deploy.image_server_auth_hosts
+    if not permitted_hosts:
+        if CONF.deploy.image_server_auth_permit_unknown_hosts:
+            return True
+        LOG.debug(
+            'Credentials will not be sent for image %s '
+            'because image_server_auth_hosts is not '
+            'configured and '
+            'image_server_auth_permit_unknown_hosts '
+            'is False.', image_href)
+        return False
+    # NOTE(TheJulia): Match on the hostname only; the port is
+    # intentionally ignored so that an entry such as
+    # ``images.example.com`` matches regardless of the port used
+    # in the image URL. ``parsed.hostname`` excludes any port.
+    hostname = parsed.hostname
+    if not hostname:
+        return False
+    for entry in permitted_hosts:
+        if entry.startswith('.'):
+            if hostname.endswith(entry):
+                return True
+        elif hostname == entry:
+            return True
+    LOG.debug(
+        'Credentials will not be sent for image %s '
+        'because host %s is not in the permitted '
+        'image_server_auth_hosts list.',
+        image_href, hostname)
+    return False
+
+
 class HttpImageService(BaseImageService):
     """Provides retrieval of disk images using HTTP."""
 
@@ -148,6 +213,8 @@ class HttpImageService(BaseImageService):
         image_server_password = None
 
         if CONF.deploy.image_server_auth_strategy == 'http_basic':
+            if not is_host_auth_permitted(image_href):
+                return None
             HttpImageService.verify_basic_auth_cred_format(
                 CONF.deploy.image_server_user,
                 CONF.deploy.image_server_password,
@@ -1358,11 +1425,17 @@ def get_image_service_auth_override(node, permit_user_auth=True):
                 "Obtained OCI credential from node %s driver_info field.",
                 node.uuid
             )
+    # TODO(TheJulia): Allow users to supply per-node HTTP basic
+    # auth credentials via instance_info, removing the need
+    # for global credentials. See bug 2162816.
     if (not possible_secret
             and CONF.deploy.image_server_user
-            and CONF.deploy.image_server_password):
-        # Fallback to image_server_user and image_server_password if configured
-        # on the deploy interface.
+            and CONF.deploy.image_server_password
+            and is_host_auth_permitted(
+                node.instance_info.get('image_source', ''))):
+        # Fallback to image_server_user and image_server_password
+        # if configured on the deploy interface and the image
+        # source host is permitted to receive credentials.
         possible_secret = {
             'username': CONF.deploy.image_server_user,
             'password': CONF.deploy.image_server_password,
