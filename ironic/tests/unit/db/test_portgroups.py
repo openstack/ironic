@@ -146,10 +146,11 @@ class DbportgroupTestCase(base.DbTestCase):
         res_uuids = [r.uuid for r in res]
         self.assertJsonEqual(group_a_uuids + group_b_uuids, res_uuids)
 
-    def _create_test_portgroup_with_shard(self, shard, address):
+    def _create_test_portgroup_with_shard(self, shard, address,
+                                          owner='12345', lessee='54321'):
         node = db_utils.create_test_node(
             uuid=uuidutils.generate_uuid(),
-            owner='12345', lessee='54321', shard=shard)
+            owner=owner, lessee=lessee, shard=shard)
         return db_utils.create_test_portgroup(
             name='portgroup-%s' % shard,
             uuid=uuidutils.generate_uuid(),
@@ -177,6 +178,34 @@ class DbportgroupTestCase(base.DbTestCase):
         # note(JayF): We do not query for shard3; ensure we don't get it.
         self.assertNotEqual('portgroup-shard3', res[0].name)
         self.assertNotEqual('portgroup-shard3', res[1].name)
+
+    def test_get_portgroups_by_shard_with_invalid_project(self):
+        self._create_test_portgroup_with_shard('shard1', 'aa:bb:cc:dd:ee:ff')
+        self._create_test_portgroup_with_shard('shard2', 'ff:ee:dd:cc:bb:aa',
+                                               owner='67890', lessee='09876')
+
+        res = self.dbapi.get_portgroups_by_shards(['shard2'], project='12345')
+        self.assertEqual(0, len(res))
+
+    def test_get_portgroups_by_shard_with_owner_project(self):
+        self._create_test_portgroup_with_shard('shard1', 'aa:bb:cc:dd:ee:ff')
+        self._create_test_portgroup_with_shard('shard2', 'ff:ee:dd:cc:bb:aa',
+                                               owner='67890', lessee='09876')
+
+        res = self.dbapi.get_portgroups_by_shards(['shard1', 'shard2'],
+                                                  project='12345')
+        self.assertEqual(1, len(res))
+        self.assertEqual('portgroup-shard1', res[0].name)
+
+    def test_get_portgroups_by_shard_with_lessee_project(self):
+        self._create_test_portgroup_with_shard('shard1', 'aa:bb:cc:dd:ee:ff')
+        self._create_test_portgroup_with_shard('shard2', 'ff:ee:dd:cc:bb:aa',
+                                               owner='67890', lessee='09876')
+
+        res = self.dbapi.get_portgroups_by_shards(['shard1', 'shard2'],
+                                                  project='09876')
+        self.assertEqual(1, len(res))
+        self.assertEqual('portgroup-shard2', res[0].name)
 
     def test_destroy_portgroup(self):
         self.dbapi.destroy_portgroup(self.portgroup.id)

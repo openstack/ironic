@@ -650,12 +650,13 @@ class TestListPortgroupsByShard(test_api_base.BaseApiTest):
             versions.MINOR_106_PORTGROUP_SHARD
         }
 
-    def _create_portgroup_with_shard(self, shard, address):
-        node = obj_utils.create_test_node(self.context, owner='12345',
-                                          shard=shard,
+    def _create_portgroup_with_shard(self, shard, address, owner='12345',
+                                     lessee=None, name=None):
+        node = obj_utils.create_test_node(self.context, owner=owner,
+                                          lessee=lessee, shard=shard,
                                           uuid=uuidutils.generate_uuid())
         return obj_utils.create_test_portgroup(
-            self.context, name='portgroup_%s' % shard,
+            self.context, name=name or 'portgroup_%s' % shard,
             node_id=node.id, address=address,
             uuid=uuidutils.generate_uuid())
 
@@ -697,6 +698,55 @@ class TestListPortgroupsByShard(test_api_base.BaseApiTest):
         self.assertEqual(portgroup.uuid, data['portgroups'][0]["uuid"])
         self.assertIn('extra', data['portgroups'][0])
         self.assertIn('node_uuid', data['portgroups'][0])
+
+    @mock.patch.object(api_utils, 'check_port_list_policy', autospec=True)
+    def test_get_by_shard_other_project_hidden(self, mock_policy):
+        # A project scoped reader must not see portgroups of nodes owned
+        # or leased by another project, even with a valid shard.
+        mock_policy.return_value = '12345'
+        self._create_portgroup_with_shard('test_shard', 'aa:bb:cc:dd:ee:ff',
+                                          owner='67890', lessee='09876')
+
+        data = self.get_json('/portgroups?shard=test_shard',
+                             headers=self.headers)
+        self.assertEqual([], data['portgroups'])
+
+    @mock.patch.object(api_utils, 'check_port_list_policy', autospec=True)
+    def test_get_by_shard_detail_other_project_hidden(self, mock_policy):
+        mock_policy.return_value = '12345'
+        self._create_portgroup_with_shard('test_shard', 'aa:bb:cc:dd:ee:ff',
+                                          owner='67890', lessee='09876')
+
+        data = self.get_json('/portgroups/detail?shard=test_shard',
+                             headers=self.headers)
+        self.assertEqual([], data['portgroups'])
+
+    @mock.patch.object(api_utils, 'check_port_list_policy', autospec=True)
+    def test_get_by_shard_own_project_visible(self, mock_policy):
+        mock_policy.return_value = '12345'
+        portgroup = self._create_portgroup_with_shard('test_shard',
+                                                      'aa:bb:cc:dd:ee:ff')
+        self._create_portgroup_with_shard('test_shard', 'ff:ee:dd:cc:bb:aa',
+                                          owner='67890', lessee='09876',
+                                          name='portgroup_other_project')
+
+        data = self.get_json('/portgroups?shard=test_shard',
+                             headers=self.headers)
+        self.assertEqual(1, len(data['portgroups']))
+        self.assertEqual(portgroup.uuid, data['portgroups'][0]['uuid'])
+
+    @mock.patch.object(api_utils, 'check_port_list_policy', autospec=True)
+    def test_get_by_shard_lessee_project_visible(self, mock_policy):
+        mock_policy.return_value = '09876'
+        portgroup = self._create_portgroup_with_shard('test_shard',
+                                                      'ff:ee:dd:cc:bb:aa',
+                                                      owner='67890',
+                                                      lessee='09876')
+
+        data = self.get_json('/portgroups?shard=test_shard',
+                             headers=self.headers)
+        self.assertEqual(1, len(data['portgroups']))
+        self.assertEqual(portgroup.uuid, data['portgroups'][0]['uuid'])
 
     def test_get_by_shard_and_node_fails(self):
         portgroup = self._create_portgroup_with_shard('test_shard',
