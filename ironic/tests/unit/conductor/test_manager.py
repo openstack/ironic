@@ -9168,6 +9168,53 @@ class HeartbeatTestCase(mgr_utils.ServiceSetUpMixin, db_base.DbTestCase):
             mock.ANY, mock.ANY, 'https://callback', '6.1.0', '/path/to/crt',
             None, None)
 
+    @mock.patch('ironic.drivers.modules.fake.FakeDeploy.heartbeat',
+                autospec=True)
+    @mock.patch('ironic.conductor.manager.ConductorManager._spawn_worker',
+                autospec=True)
+    def test_heartbeat_node_locked_no_agent_url(self, mock_spawn,
+                                                mock_heartbeat):
+        node = obj_utils.create_test_node(
+            self.context, driver='fake-hardware',
+            provision_state=states.INSPECTING,
+            target_provision_state=states.MANAGEABLE,
+            reservation='fake-host',
+            driver_internal_info={'agent_secret_token': 'magic'})
+
+        self._start_service()
+        mock_spawn.reset_mock()
+        mock_spawn.side_effect = self._fake_spawn
+
+        exc = self.assertRaises(
+            messaging.rpc.ExpectedException,
+            self.service.heartbeat,
+            self.context, node.uuid, 'https://callback',
+            agent_version='6.1.0', agent_token='magic')
+        self.assertEqual(exception.NodeLocked, exc.exc_info[0])
+        mock_heartbeat.assert_not_called()
+
+    @mock.patch('ironic.drivers.modules.fake.FakeDeploy.heartbeat',
+                autospec=True)
+    @mock.patch('ironic.conductor.manager.ConductorManager._spawn_worker',
+                autospec=True)
+    def test_heartbeat_node_locked_with_agent_url(self, mock_spawn,
+                                                  mock_heartbeat):
+        node = obj_utils.create_test_node(
+            self.context, driver='fake-hardware',
+            provision_state=states.DEPLOYWAIT,
+            target_provision_state=states.ACTIVE,
+            reservation='fake-host',
+            driver_internal_info={'agent_secret_token': 'magic',
+                                  'agent_url': 'https://1.2.3.4:9999'})
+
+        self._start_service()
+        mock_spawn.reset_mock()
+        mock_spawn.side_effect = self._fake_spawn
+
+        self.service.heartbeat(self.context, node.uuid, 'https://callback',
+                               agent_version='6.1.0', agent_token='magic')
+        mock_heartbeat.assert_called_once()
+
 
 @mgr_utils.mock_record_keepalive
 class DestroyVolumeConnectorTestCase(mgr_utils.ServiceSetUpMixin,
