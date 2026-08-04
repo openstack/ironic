@@ -411,6 +411,16 @@ def do_next_deploy_step(task, step_index):
                         async_steps.SKIP_CURRENT_DEPLOY_STEP, False)
                     task.process_event('wait')
                     return
+                if not node.driver_internal_info.get('agent_url'):
+                    LOG.info('Agent URL is not yet available for node '
+                             '%(node)s (fast-track from inspection), '
+                             'waiting for the next heartbeat to run '
+                             'deploy step %(step)s.',
+                             {'node': node.uuid, 'step': step})
+                    node.set_driver_internal_info(
+                        async_steps.SKIP_CURRENT_DEPLOY_STEP, False)
+                    task.process_event('wait')
+                    return
 
             # Avoid double handling of failures. For example, set_failed_state
             # from deploy_utils already calls deploying_error_handler.

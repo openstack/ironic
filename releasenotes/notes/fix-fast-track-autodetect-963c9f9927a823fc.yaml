@@ -1,0 +1,25 @@
+---
+fixes:
+  - |
+    Fixes fast-track deployment failure when using the ``autodetect`` deploy
+    interface after inspection.  The ``autodetect`` interface did not inherit
+    from ``HeartbeatMixin``, causing heartbeats during inspection to be
+    silently dropped and ``agent_url`` to never be recorded.  Ironic would
+    then attempt a fast-track deployment based on ``inspection_finished_at``
+    but fail with ``AgentConnectionFailed`` because it had no way to contact
+    the agent.
+
+    Three changes address this:
+
+    * ``AutodetectDeploy`` now inherits from ``HeartbeatMixin`` so that
+      heartbeats are processed and ``agent_url`` is stored when the node
+      lock can be acquired.
+    * When a deploy step fails with ``AgentConnectionFailed`` and
+      ``agent_url`` was never recorded, the node is moved to
+      ``deploy wait`` instead of ``deploy failed``.  The next heartbeat
+      stores ``agent_url`` and resumes the deployment.
+    * The conductor heartbeat handler now returns ``409 Conflict`` early
+      when ``agent_url`` is missing and the node is locked, instead of
+      silently dropping the heartbeat in a background thread.  This
+      allows IPA to retry quickly (5-10 s) rather than waiting a full
+      heartbeat interval.
