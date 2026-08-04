@@ -1,0 +1,5 @@
+---
+fixes:
+  - |
+    Fixes Redfish out-of-band inspection of nodes that do not have a Storage
+    API endpoint.
