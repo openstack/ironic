@@ -3525,6 +3525,7 @@ class ConductorManager(base_manager.BaseConductorManager):
     @METRICS.timer('ConductorManager.heartbeat')
     @messaging.expected_exceptions(exception.InvalidParameterValue)
     @messaging.expected_exceptions(exception.NoFreeConductorWorker)
+    @messaging.expected_exceptions(exception.NodeLocked)
     def heartbeat(self, context, node_id, callback_url, agent_version=None,
                   agent_token=None, agent_verify_ca=None, agent_status=None,
                   agent_status_message=None):
@@ -3586,6 +3587,19 @@ class ConductorManager(base_manager.BaseConductorManager):
             if agent_verify_ca:
                 agent_verify_ca = utils.store_agent_certificate(
                     task.node, agent_verify_ca)
+
+            # NOTE(rpittau): Return 409 early when agent_url is
+            # missing and the node is locked by another process
+            # (e.g. the inspector). Without this, the heartbeat
+            # would be silently swallowed by the spawned worker and
+            # IPA would wait a full interval before retrying. The
+            # 409 triggers IPA's conflict-retry logic (5-10s),
+            # increasing the chance of recording agent_url between
+            # inspection steps.
+            if (not task.node.driver_internal_info.get('agent_url')
+                    and task.node.reservation):
+                raise exception.NodeLocked(
+                    node=node_id, host=task.node.reservation)
 
             task.spawn_after(
                 self._spawn_worker, task.driver.deploy.heartbeat,

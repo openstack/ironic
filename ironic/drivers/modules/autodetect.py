@@ -19,15 +19,21 @@ from ironic.common.i18n import _
 from ironic.common import metrics_utils
 from ironic.conf import CONF
 from ironic.drivers import base
+from ironic.drivers.modules import agent_base
 
 LOG = logging.getLogger(__name__)
 
 METRICS = metrics_utils.get_metrics_logger(__name__)
 
 
-class AutodetectDeploy(base.DeployInterface):
+class AutodetectDeploy(agent_base.HeartbeatMixin, base.DeployInterface):
     """Deploy interface that auto-detects the appropriate deployment method.
 
+    Inherits from HeartbeatMixin so that heartbeats received while
+    autodetect is the active deploy interface (e.g. during inspection)
+    store agent_url in driver_internal_info.  Without this, fast-track
+    deployment fails with AgentConnectionFailed because agent_url was
+    never recorded.
     """
 
     def __init__(self):

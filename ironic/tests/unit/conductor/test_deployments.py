@@ -1079,8 +1079,9 @@ class DoNextDeployStepTestCase(mgr_utils.ServiceSetUpMixin,
 
     @mock.patch('ironic.drivers.modules.fake.FakeDeploy.execute_deploy_step',
                 autospec=True)
-    def test_do_next_deploy_step_oob_reboot_fail(self, mock_execute):
-        # When a deploy step fails with no reboot requested go to DEPLOYFAIL
+    def test_do_next_deploy_step_no_agent_url(self, mock_execute):
+        # When a deploy step fails with AgentConnectionFailed and agent_url
+        # was never recorded, go to DEPLOYWAIT to wait for a heartbeat.
         tgt_prov_state = states.ACTIVE
 
         node = obj_utils.create_test_node(
@@ -1100,7 +1101,40 @@ class DoNextDeployStepTestCase(mgr_utils.ServiceSetUpMixin,
 
         node.refresh()
 
-        # Make sure we go to DEPLOYFAIL, clear deploy_steps
+        self.assertEqual(states.DEPLOYWAIT, node.provision_state)
+        self.assertEqual(tgt_prov_state, node.target_provision_state)
+        self.assertEqual(self.deploy_steps[0], node.deploy_step)
+        self.assertEqual(0, node.driver_internal_info['deploy_step_index'])
+        self.assertFalse(
+            node.driver_internal_info['skip_current_deploy_step'])
+        mock_execute.assert_called_once_with(
+            mock.ANY, mock.ANY, self.deploy_steps[0])
+
+    @mock.patch('ironic.drivers.modules.fake.FakeDeploy.execute_deploy_step',
+                autospec=True)
+    def test_do_next_deploy_step_agent_conn_failed_with_url(self,
+                                                            mock_execute):
+        # When agent_url is present but agent is unreachable, go to DEPLOYFAIL
+        tgt_prov_state = states.ACTIVE
+
+        node = obj_utils.create_test_node(
+            self.context, driver='fake-hardware',
+            provision_state=states.DEPLOYING,
+            target_provision_state=tgt_prov_state,
+            last_error=None,
+            driver_internal_info={'deploy_steps': self.deploy_steps,
+                                  'deploy_step_index': None,
+                                  'agent_url': 'https://1.2.3.4:9999'},
+            deploy_step={})
+        mock_execute.side_effect = exception.AgentConnectionFailed(
+            reason='failed')
+
+        with task_manager.acquire(
+                self.context, node.uuid, shared=False) as task:
+            deployments.do_next_deploy_step(task, 0)
+
+        node.refresh()
+
         self.assertEqual(states.DEPLOYFAIL, node.provision_state)
         self.assertEqual(tgt_prov_state, node.target_provision_state)
         self.assertEqual({}, node.deploy_step)
