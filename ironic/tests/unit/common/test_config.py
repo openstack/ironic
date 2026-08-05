@@ -11,6 +11,7 @@
 #    under the License.
 
 from ironic.common import config
+from ironic.common import exception
 from ironic.conf import CONF
 from ironic.tests.base import TestCase
 
@@ -22,3 +23,33 @@ class CommonConfigTestCase(TestCase):
         self.assertFalse(CONF.conductor.disable_kernel_parameter_parsing)
         self.assertIsNone(
             config.validate_opts_using_custom_ironic_config_types())
+
+    def test_validate_image_server_auth_opts_noauth(self):
+        # Default strategy is noauth; credentials are ignored.
+        self.config(image_server_auth_strategy='noauth', group='deploy')
+        self.config(image_server_password='password', group='deploy')
+        self.assertIsNone(config.validate_image_server_auth_opts())
+
+    def test_validate_image_server_auth_opts_no_password(self):
+        self.config(image_server_auth_strategy='http_basic', group='deploy')
+        self.assertIsNone(config.validate_image_server_auth_opts())
+
+    def test_validate_image_server_auth_opts_with_hosts(self):
+        self.config(image_server_auth_strategy='http_basic', group='deploy')
+        self.config(image_server_password='password', group='deploy')
+        self.config(image_server_auth_hosts=['images.example.com'],
+                    group='deploy')
+        self.assertIsNone(config.validate_image_server_auth_opts())
+
+    def test_validate_image_server_auth_opts_permit_unknown(self):
+        self.config(image_server_auth_strategy='http_basic', group='deploy')
+        self.config(image_server_password='password', group='deploy')
+        self.config(image_server_auth_permit_unknown_hosts=True,
+                    group='deploy')
+        self.assertIsNone(config.validate_image_server_auth_opts())
+
+    def test_validate_image_server_auth_opts_missing_host_policy(self):
+        self.config(image_server_auth_strategy='http_basic', group='deploy')
+        self.config(image_server_password='password', group='deploy')
+        self.assertRaises(exception.ConfigInvalid,
+                          config.validate_image_server_auth_opts)

@@ -1367,6 +1367,9 @@ class TestAgentDeploy(CommonTestsMixin, db_base.DbTestCase):
         cfg.CONF.set_override('image_server_password',
                               'SquarePants',
                               'deploy')
+        cfg.CONF.set_override('image_server_auth_hosts',
+                              ['image'],
+                              'deploy')
         self._test_write_image(
             additional_expected_image_info={
                 'image_server_auth_strategy': 'http_basic',

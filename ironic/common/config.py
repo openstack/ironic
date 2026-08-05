@@ -20,6 +20,8 @@ import os
 from oslo_config import cfg
 import osprofiler.opts as profiler_opts
 
+from ironic.common import exception
+from ironic.common.i18n import _
 from ironic.common import rpc
 from ironic import version
 
@@ -44,6 +46,36 @@ def parse_args(argv, default_config_files=None):
     rpc.init(cfg.CONF)
     profiler_opts.set_defaults(cfg.CONF)
     validate_opts_using_custom_ironic_config_types()
+    validate_image_server_auth_opts()
+
+
+def validate_image_server_auth_opts():
+    """Validate the image server authentication configuration.
+
+    When an image server authentication strategy requiring credentials is
+    configured, credentials must only be sent to an explicit set of trusted
+    hosts unless the operator has opted in to sending them to any host. Refuse
+    to start with credentials configured but no host policy, to avoid silently
+    leaking them to untrusted, potentially user-supplied, hosts.
+
+    :raises: exception.ConfigInvalid if credentials are configured without
+        either ``image_server_auth_hosts`` or
+        ``image_server_auth_permit_unknown_hosts``.
+    """
+    if cfg.CONF.deploy.image_server_auth_strategy == 'noauth':
+        return
+    if (cfg.CONF.deploy.image_server_password
+            and not cfg.CONF.deploy.image_server_auth_hosts
+            and not cfg.CONF.deploy.image_server_auth_permit_unknown_hosts):
+        raise exception.ConfigInvalid(
+            error_msg=_(
+                "[deploy]image_server_password is configured without "
+                "[deploy]image_server_auth_hosts. This would send image "
+                "server credentials to every host from which images are "
+                "requested, including user-supplied URLs. Configure "
+                "[deploy]image_server_auth_hosts with the trusted hosts, or "
+                "set [deploy]image_server_auth_permit_unknown_hosts to True "
+                "to send credentials to any host."))
 
 
 def validate_opts_using_custom_ironic_config_types():

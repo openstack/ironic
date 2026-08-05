@@ -48,7 +48,16 @@ Example of activating the ``http-basic`` strategy via
   image_server_auth_strategy = http_basic
   image_server_user = username
   image_server_password = password
+  image_server_auth_hosts = images.example.com,.internal
   ...
+
+The ``image_server_auth_permit_unknown_hosts`` setting  defaults
+to ``False``. Configuring ``image_server_password`` without also configuring
+``image_server_auth_hosts`` (or explicitly setting
+``image_server_auth_permit_unknown_hosts`` to ``True``) is a configuration
+error and will prevent the service from starting. This prevents credentials
+from being silently sent to hosts the operator does not control. See
+`Restricting credential scope`_ for details.
 
 Restricting credential scope
 ----------------------------
@@ -91,15 +100,13 @@ ironic-python-agent for image downloads.
   ...
 
 .. note::
-   In this release, ``image_server_auth_permit_unknown_hosts`` defaults
-   to ``True``. When ``image_server_auth_hosts`` is not configured,
-   credentials are therefore still sent to every host, preserving the
-   prior behavior. To restrict credentials in this release, either
-   configure ``image_server_auth_hosts`` or set
-   ``image_server_auth_permit_unknown_hosts`` to ``False``. The default
-   of ``image_server_auth_permit_unknown_hosts`` will change to
-   ``False`` in the 2026.2 release, after which credentials are not sent
-   to any host unless ``image_server_auth_hosts`` is configured.
+   The ``image_server_auth_permit_unknown_hosts`` option defaults to
+   ``False``, so when ``image_server_auth_hosts`` is not configured,
+   credentials are not sent to any host. Configure
+   ``image_server_auth_hosts`` to send credentials to the trusted
+   hosts. Setting ``image_server_auth_permit_unknown_hosts`` to
+   ``True`` restores the prior behavior of sending credentials to
+   every host.
 
 .. note::
    Only the hostname is considered when matching entries; the port is
@@ -130,9 +137,7 @@ credentials against all sources. Operators who have configured
 ``image_server_auth_hosts`` to restrict which hosts receive credentials.
 
 .. note::
-   The default value of ``image_server_auth_permit_unknown_hosts`` will
-   change from ``True`` to ``False`` in the 2026.2 release. After that
-   change, operators who have configured ``http_basic`` authentication
-   must also explicitly configure ``image_server_auth_hosts`` for
-   credentials to be sent. Operators are encouraged to configure
-   ``image_server_auth_hosts`` before the 2026.2 release.
+   The default value of ``image_server_auth_permit_unknown_hosts`` is
+   ``False``. Operators who have configured ``http_basic``
+   authentication must explicitly configure ``image_server_auth_hosts``
+   for credentials to be sent.

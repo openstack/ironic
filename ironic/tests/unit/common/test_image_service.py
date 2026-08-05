@@ -156,6 +156,8 @@ class HttpImageServiceTestCase(base.TestCase):
                               'deploy')
         cfg.CONF.set_override('image_server_user', 'test', 'deploy')
         cfg.CONF.set_override('image_server_password', 'test', 'deploy')
+        cfg.CONF.set_override('image_server_auth_hosts',
+                              ['127.0.0.1'], 'deploy')
         user = cfg.CONF.deploy.image_server_user
         password = cfg.CONF.deploy.image_server_password
         auth_creds = requests.auth.HTTPBasicAuth(user, password)
@@ -314,6 +316,8 @@ class HttpImageServiceTestCase(base.TestCase):
                               'deploy')
         cfg.CONF.set_override('image_server_password', 'SpongeBob', 'deploy')
         cfg.CONF.set_override('image_server_user', 'SquarePants', 'deploy')
+        cfg.CONF.set_override('image_server_auth_hosts',
+                              ['127.0.0.1'], 'deploy')
         correct_auth = \
             requests.auth.HTTPBasicAuth('SquarePants',
                                         'SpongeBob')
@@ -368,9 +372,7 @@ class HttpImageServiceTestCase(base.TestCase):
                               [], 'deploy')
         return_auth = \
             self.service.gen_auth_from_conf_user_pass(self.href)
-        expected = requests.auth.HTTPBasicAuth(
-            'SquarePants', 'SpongeBob')
-        self.assertEqual(expected, return_auth)
+        self.assertIsNone(return_auth)
 
     @mock.patch.object(requests.Session, 'head', autospec=True)
     def _test_show(self, head_mock, mtime, mtime_date):
@@ -480,6 +482,8 @@ class HttpImageServiceTestCase(base.TestCase):
                               'deploy')
         cfg.CONF.set_override('image_server_user', 'test', 'deploy')
         cfg.CONF.set_override('image_server_password', 'test', 'deploy')
+        cfg.CONF.set_override('image_server_auth_hosts',
+                              ['127.0.0.1'], 'deploy')
         user = cfg.CONF.deploy.image_server_user
         password = cfg.CONF.deploy.image_server_password
         auth_creds = requests.auth.HTTPBasicAuth(user, password)
@@ -502,6 +506,8 @@ class HttpImageServiceTestCase(base.TestCase):
         cfg.CONF.set_override('image_server_auth_strategy',
                               'http_basic',
                               'deploy')
+        cfg.CONF.set_override('image_server_auth_hosts',
+                              ['127.0.0.1'], 'deploy')
         file_mock = mock.Mock(spec=io.BytesIO)
         self.assertRaises(exception.ImageRefValidationFailed,
                           self.service.download, self.href, file_mock)
@@ -664,10 +670,10 @@ class HttpImageServiceTestCase(base.TestCase):
 
 class IsHostAuthPermittedTestCase(base.TestCase):
 
-    def test_empty_list_permits_all(self):
+    def test_empty_list_denies_by_default(self):
         cfg.CONF.set_override('image_server_auth_hosts',
                               [], 'deploy')
-        self.assertTrue(
+        self.assertFalse(
             image_service.is_host_auth_permitted(
                 'http://any.host.example.com/image'))
 
