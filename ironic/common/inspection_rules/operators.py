@@ -127,6 +127,7 @@ class OperatorBase(base.Base, metaclass=abc.ABCMeta):
 
 class SimpleOperator(OperatorBase):
 
+    FORMATTED_ARGS = ['values']
     op = None
 
     def __call__(self, task, values, force_strings=False):
