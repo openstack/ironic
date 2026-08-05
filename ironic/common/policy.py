@@ -1528,7 +1528,7 @@ utility_policies = [
     policy.DocumentedRuleDefault(
         name='baremetal:driver:ipa_lookup',
         check_str='',
-        description='Access IPA ramdisk functions',
+        description='Access IPA ramdisk lookup endpoint',
         operations=[{'path': '/lookup', 'method': 'GET'}],
         deprecated_rule=deprecated_ipa_lookup
     ),
