@@ -262,6 +262,24 @@ opts = [
                       'for POST-related boot device errors. Exponential '
                       'backoff is applied, starting from this value up to '
                       '6x this value.')),
+    cfg.IntOpt('power_on_conflict_retry_attempts',
+               min=0,
+               default=6,
+               help=_('Maximum number of times to retry a power-on when the '
+                      'BMC rejects it with an HTTP 409 '
+                      '"ActionParameterValueConflict". Some BMCs (e.g. Dell '
+                      'iDRAC10) transiently reject the "On" reset type for a '
+                      'short window (observed up to ~60 seconds) after a '
+                      'power-off, until the BMC settles. This is a ceiling: '
+                      'the power-on is retried only until the BMC accepts it, '
+                      'so a node that settles sooner returns sooner. Set to 0 '
+                      'to disable retrying.')),
+    cfg.IntOpt('power_on_conflict_retry_interval',
+               min=1,
+               default=10,
+               help=_('Number of seconds to wait between power-on retries '
+                      'triggered by an HTTP 409 '
+                      '"ActionParameterValueConflict" from the BMC.')),
 ]
 
 
