@@ -431,9 +431,11 @@ class RunbooksController(rest.RestController):
         if not runbook.get('uuid'):
             runbook['uuid'] = uuidutils.generate_uuid()
 
-        # Ensure traits is always set so the notification payload can be
-        # populated (RunbookCRUDPayload.SCHEMA includes 'traits').
+        # Ensure traits and disable_ramdisk are always set so the
+        # notification payload can be populated (RunbookCRUDPayload.SCHEMA
+        # includes both fields).
         runbook.setdefault('traits', [])
+        runbook.setdefault('disable_ramdisk', False)
 
         new_runbook = objects.Runbook(context, **runbook)
 
