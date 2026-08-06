@@ -1,0 +1,11 @@
+---
+fixes:
+  - |
+    Fixed bare-metal deploys failing at the ``boot_instance`` step on BMCs
+    (such as Dell iDRAC10 / PowerEdge 17G) that transiently reject the Redfish
+    ``On`` reset type with an HTTP 409 ``ActionParameterValueConflict`` for a
+    short window after a power-off, until the BMC settles. The ``redfish``
+    power interface now retries the power-on until the BMC accepts it,
+    controlled by the new ``[redfish]power_on_conflict_retry_attempts`` and
+    ``[redfish]power_on_conflict_retry_interval`` options. See `bug 2162995
+    <https://bugs.launchpad.net/ironic/+bug/2162995>`_.
