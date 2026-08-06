@@ -463,6 +463,23 @@ You can use these modules in your playbooks as well.
     The name is chosen so that the ``parted`` module included in Ansible
     is not shadowed.
 
+Security Considerations
+=======================
+
+The bundled ``ansible.cfg`` sets ``host_key_checking = False`` because
+the deploy ramdisk generates ephemeral SSH host keys on every boot.
+There is no secure channel to learn these keys ahead of time, so
+strict host key verification cannot be enforced in the general case.
+
+Operators should ensure the provisioning network is isolated from
+tenant and public networks. For additional hardening, a static host
+key can be baked into the deploy ramdisk and added to
+``~/.ssh/known_hosts`` on all conductor nodes, allowing
+``host_key_checking`` to be set to ``True`` in ``ansible.cfg``.
+
+See `bug 2162820 <https://bugs.launchpad.net/ironic/+bug/2162820>`_
+for further details.
+
 .. _Ansible: https://docs.ansible.com/ansible/latest/index.html
 .. _ironic-staging-drivers: https://opendev.org/x/ironic-staging-drivers/src/branch/stable/pike/imagebuild
 .. _ironic-python-agent-builder: https://opendev.org/openstack/ironic-python-agent-builder

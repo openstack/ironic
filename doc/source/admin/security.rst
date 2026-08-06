@@ -396,6 +396,14 @@ secure.  If IPMI is enabled, in most cases a local OS administrator is able to
 work in-band with IPMI settings without specifying any credentials, as this
 is a DCMI specification requirement.
 
+Ansible deploy interface
+------------------------
+
+The ``ansible`` deploy interface disables SSH host key checking by
+default because deploy ramdisks generate ephemeral host keys on each
+boot. See :doc:`/admin/drivers/ansible` for details and hardening
+guidance.
+
 Tenant network isolation
 ------------------------
 
