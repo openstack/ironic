@@ -70,6 +70,19 @@ class UnstructuredParameters:
 
 
 @dataclass(frozen=True)
+class ParameterSet:
+    parameters: dict[str, KernelParameter]
+
+    def __str__(self):
+        return ' '.join(str(kp) for kp in self.parameters.values())
+
+    def asdict(self):
+        return {
+            kp.key.key: kp.value.value for kp in self.parameters.values()
+        }
+
+
+@dataclass(frozen=True)
 class KernelCommandLine:
     """Represents a kernel command line.
 
@@ -99,6 +112,10 @@ class KernelCommandLine:
                 _('Kernel command line did not parse: "%s" -- %s') \
                 % (command_line, str(e))) from None
 
+    def as_parameter_set(self):
+        return ParameterSet({
+            kp[0].key.key: kp[0] for kp in self.parameters.values()
+        })
 
 @dataclass(frozen=True)
 class UnsafeKernelCommandLine(KernelCommandLine):
