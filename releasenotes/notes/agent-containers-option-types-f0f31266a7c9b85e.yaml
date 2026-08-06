@@ -1,0 +1,19 @@
+---
+upgrade:
+  - |
+    ``[agent_containers]pull_options`` and ``[agent_containers]run_options``
+    are now list valued instead of string valued, matching the type the agent
+    expects. Values must be written as a comma separated list, for example
+    ``run_options = --rm,--network=host``. A space separated value such as
+    ``--rm --network=host`` was previously sent to the agent as a single
+    argument, which the container runtime rejected, so container steps could
+    not run at all with the shipped defaults.
+  - |
+    ``[agent_containers]runner`` is now restricted to the runtimes the agent
+    understands, ``podman`` and ``docker``. A conductor configured with any
+    other value previously caused the agent to raise an unhandled error while
+    processing its lookup response.
+fixes:
+  - |
+    Corrects several ``[agent_containers]`` option descriptions where missing
+    whitespace ran adjacent words together in the generated documentation.
