@@ -1,0 +1,6 @@
+---
+upgrade:
+  - |
+    The ``[agent_containers]container_conf_file`` option has been removed and
+    is no longer sent to the agent in the lookup response. It was registered
+    on both sides but never read by any code path.

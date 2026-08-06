@@ -78,7 +78,6 @@ def config(token, node=None):
             'runner': CONF.agent_containers.runner,
             'pull_options': CONF.agent_containers.pull_options,
             'run_options': CONF.agent_containers.run_options,
-            'container_conf_file': CONF.agent_containers.container_conf_file,
         },
         'agent_token': token,
         # Since this is for the Victoria release, we send this as an
