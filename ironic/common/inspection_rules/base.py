@@ -13,6 +13,7 @@
 import inspect
 
 from oslo_log import log
+from oslo_log import versionutils
 
 from ironic.common import exception
 from ironic.common.i18n import _
@@ -50,6 +51,13 @@ class Base(object):
             if isinstance(op_args, dict) and self.REQUIRES_PLUGIN_DATA:
                 op_args['plugin_data'] = {}
             return op_args
+
+        versionutils.report_deprecated_feature(
+            LOG,
+            _("Specifying inspection rule operation 'args' as a list is "
+              "deprecated and will be removed in a future release. Use the "
+              "dictionary (named-argument) form instead, e.g. "
+              "'args: {values: [...]}' rather than 'args: [...]'."))
 
         # Initialize required context fields if needed
         if self.REQUIRES_PLUGIN_DATA:

@@ -83,8 +83,14 @@ Actions & Conditions
 Conditions and actions have the same base structure:
 
 * ``op`` - operation: either boolean (conditions) or an action (actions).
-* ``args`` - a list (in the sense of Python ``*args``)
-  or a dict (in the sense of Python ``**kwargs``) with arguments.
+* ``args`` - a dict (in the sense of Python ``**kwargs``) of named arguments.
+
+  .. deprecated:: 2026.2
+     Passing ``args`` as a list (in the sense of Python ``*args``) is
+     deprecated and will be removed in a future release. Use the dictionary
+     (named-argument) form instead. The dictionary form is unambiguous and
+     avoids surprises with operators such as ``eq`` whose ``values`` argument
+     is itself a list.
 
 Conditions
 ~~~~~~~~~~
@@ -179,7 +185,8 @@ iteration, the 'system' is any of the models in the ``loop`` list:
 .. code-block:: yaml
 
     - op: eq
-      args: ["{inventory.system.product_name}", "{item}"]
+      args:
+        values: ["{inventory[system_vendor][product_name]}", "{item}"]
       loop: ["HPE ProLiant DL380 Gen10", "PowerEdge R640", "Cisco UCS"]
       multiple: any
 
@@ -191,7 +198,9 @@ Example of setting multiple attributes using loop:
 .. code-block:: yaml
 
     - op: set-attribute
-      args: ["{item[path]}", "{item[value]}"]
+      args:
+        path: "{item[path]}"
+        value: "{item[value]}"
       loop:
         - {path: "/driver_info/ipmi_username", value: "admin"}
         - {path: "/driver_info/ipmi_password", value: "password"}

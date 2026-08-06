@@ -506,6 +506,27 @@ class TestOperators(TestInspectionRules):
             self.assertFalse(eq_op.check_condition(
                 task, not_matching, self.inventory, self.plugin_data))
 
+    @mock.patch.object(base.versionutils, 'report_deprecated_feature',
+                       autospec=True)
+    def test_list_style_args_deprecated(self, mock_deprecated):
+        """List-style args still evaluate but emit a deprecation warning."""
+        contains_op = inspection_rules.operators.ContainsOperator()
+        with task_manager.acquire(self.context, self.node.uuid) as task:
+            # List (positional) form: deprecated, but still works.
+            self.assertTrue(contains_op.check_condition(
+                task, {'op': 'contains', 'args': ['testvalue', 'test']},
+                self.inventory, self.plugin_data))
+            mock_deprecated.assert_called_once()
+
+            # Dict (kwargs) form: no deprecation warning.
+            mock_deprecated.reset_mock()
+            self.assertTrue(contains_op.check_condition(
+                task,
+                {'op': 'contains',
+                 'args': {'value': 'testvalue', 'regex': 'test'}},
+                self.inventory, self.plugin_data))
+            mock_deprecated.assert_not_called()
+
     def test_rule_operators(self):
         """Test all inspection_rules.operators with True and False cases."""
         operator_tests = {
