@@ -120,6 +120,18 @@ def do_node_clean(task, clean_steps=None, disable_ramdisk=False,
                                             tear_down_cleaning=False)
 
     try:
+        # Give the deploy interface the opportunity to switch interfaces,
+        # e.g. the autodetect deploy interface needs to resolve to a
+        # concrete interface before it can prepare the ramdisk. Nothing has
+        # been prepared yet, so there is nothing to tear down on failure.
+        task.driver.deploy.switch_interface(task)
+    except exception.InvalidParameterValue as e:
+        msg = (_('Failed to select a deploy interface for cleaning node '
+                 '%(node)s: %(err)s') % {'node': node.uuid, 'err': e})
+        return utils.cleaning_error_handler(task, msg,
+                                            tear_down_cleaning=False)
+
+    try:
         # NOTE(ghe): Valid power and network values are needed to perform
         # a cleaning.
         task.driver.power.validate(task)
@@ -481,6 +493,10 @@ def do_node_clean_abort(task):
     node.clean_step = None
     utils.wipe_cleaning_internal_info(task)
     node.save()
+
+    # Switch back to original interface, if necessary
+    task.driver.deploy.restore_interface(task)
+
     LOG.info(info_message)
 
 

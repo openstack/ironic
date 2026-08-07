@@ -19,6 +19,7 @@ from ironic.common import states
 from ironic.conductor import task_manager
 from ironic.drivers.modules import agent_base
 from ironic.drivers.modules import autodetect
+from ironic.drivers.modules import fake
 from ironic.tests.unit.db import base as db_base
 from ironic.tests.unit.objects import utils as obj_utils
 
@@ -109,46 +110,23 @@ class AutodetectDeployTestCase(db_base.DbTestCase):
             mock_create_switch.assert_called_once_with(self.deploy, task)
             mock_interface.validate.assert_called_once_with(task)
 
-    def test_deploy_raises_exception(self):
-        """Test deploy raises InstanceDeployFailure.
+    def test_work_methods_raise(self):
+        """Test every method which does real work fails loudly.
 
-        The deploy method should never be called since autodetect
-        should switch to a concrete interface before deployment.
+        The conductor switches to a concrete interface at the start of
+        each flow, so none of these should ever be reached. They must not
+        silently no-op, which would skip the operation entirely.
         """
-        with task_manager.acquire(self.context, self.node.uuid) as task:
-            self.assertRaises(exception.InstanceDeployFailure,
-                              self.deploy.deploy, task)
+        methods = ['deploy', 'prepare', 'take_over', 'tear_down', 'clean_up',
+                   'prepare_cleaning', 'tear_down_cleaning', 'prepare_service',
+                   'tear_down_service']
 
-    def test_tear_down(self):
-        """Test tear_down completes without error."""
         with task_manager.acquire(self.context, self.node.uuid) as task:
-            result = self.deploy.tear_down(task)
-            # Should return None and not raise any exceptions
-            self.assertIsNone(result)
-
-    def test_prepare_raises_exception(self):
-        """Test prepare raises InstanceDeployFailure.
-
-        The prepare method should never be called since autodetect
-        should switch to a concrete interface before deployment.
-        """
-        with task_manager.acquire(self.context, self.node.uuid) as task:
-            self.assertRaises(exception.InstanceDeployFailure,
-                              self.deploy.prepare, task)
-
-    def test_clean_up(self):
-        """Test clean_up completes without error."""
-        with task_manager.acquire(self.context, self.node.uuid) as task:
-            result = self.deploy.clean_up(task)
-            # Should return None and not raise any exceptions
-            self.assertIsNone(result)
-
-    def test_take_over(self):
-        """Test take_over completes without error."""
-        with task_manager.acquire(self.context, self.node.uuid) as task:
-            result = self.deploy.take_over(task)
-            # Should return None and not raise any exceptions
-            self.assertIsNone(result)
+            for method in methods:
+                exc = self.assertRaises(exception.InstanceDeployFailure,
+                                        getattr(self.deploy, method), task)
+                self.assertIn(method, str(exc))
+                self.assertIn(self.node.uuid, str(exc))
 
     @mock.patch('ironic.common.driver_factory.get_interface', autospec=True)
     @mock.patch('ironic.common.driver_factory.get_hardware_type',
@@ -290,6 +268,30 @@ class AutodetectDeployTestCase(db_base.DbTestCase):
             self.assertEqual('direct', task.node.deploy_interface)
             self.assertEqual(mock_interface, task.driver.deploy)
 
+    @mock.patch.object(autodetect.LOG, 'warning', autospec=True)
+    @mock.patch.object(autodetect.LOG, 'info', autospec=True)
+    @mock.patch.object(autodetect.AutodetectDeploy,
+                       '_create_switchable_interface', autospec=True)
+    def test_switch_interface_not_supported_no_image(self, mock_create_switch,
+                                                     mock_log_info,
+                                                     mock_log_warning):
+        """Test no warning is logged when there is no image to detect from.
+
+        This is the normal case when cleaning a node which has never been
+        deployed, so the fallback is expected rather than notable.
+        """
+        mock_interface = mock.MagicMock()
+        mock_create_switch.return_value = (mock_interface, 'direct', False)
+
+        self.node.instance_info = {}
+        self.node.save()
+
+        with task_manager.acquire(self.context, self.node.uuid) as task:
+            self.deploy.switch_interface(task)
+
+            self.assertFalse(mock_log_warning.called)
+            self.assertEqual('direct', task.node.deploy_interface)
+
     @mock.patch.object(autodetect.AutodetectDeploy,
                        '_create_switchable_interface', autospec=True)
     def test_switch_interface_preserves_node_state(self, mock_create_switch):
@@ -310,6 +312,38 @@ class AutodetectDeployTestCase(db_base.DbTestCase):
             self.assertEqual(
                 original_interface,
                 task.node.driver_internal_info['original_deploy_interface'])
+
+    @mock.patch.object(autodetect.AutodetectDeploy,
+                       '_create_switchable_interface', autospec=True)
+    def test_switch_interface_restore_round_trip(self, mock_create_switch):
+        """Test a switch can be undone by a non-agent-based interface.
+
+        restore_interface() is dispatched on the interface autodetect
+        switched *to*, so it must live on the base class. fake is not
+        derived from AgentBaseMixin, so this would silently do nothing if
+        the implementation only existed there.
+        """
+        mock_interface = fake.FakeDeploy()
+        mock_create_switch.return_value = (mock_interface, 'direct', True)
+
+        with task_manager.acquire(self.context, self.node.uuid) as task:
+            self.deploy.switch_interface(task)
+            self.assertEqual('direct', task.node.deploy_interface)
+
+            task.driver.deploy.restore_interface(task)
+
+            task.node.refresh()
+            self.assertEqual('autodetect', task.node.deploy_interface)
+            self.assertNotIn('original_deploy_interface',
+                             task.node.driver_internal_info)
+
+    def test_restore_interface_without_switch_is_a_noop(self):
+        """Test restoring a node which was never switched changes nothing."""
+        with task_manager.acquire(self.context, self.node.uuid) as task:
+            task.driver.deploy.restore_interface(task)
+
+            task.node.refresh()
+            self.assertEqual('autodetect', task.node.deploy_interface)
 
     @mock.patch('ironic.common.driver_factory.get_interface',
                 autospec=True)

@@ -249,6 +249,17 @@ class ConductorManager(base_manager.BaseConductorManager):
         if check_interfaces:
             driver_factory.check_and_update_node_interfaces(node_obj)
 
+        # NOTE(JayF): The autodetect deploy interface stashes the interface
+        # it switched away from in driver_internal_info, and restores it when
+        # the node leaves cleaning or servicing. An operator setting
+        # deploy_interface explicitly outranks that stashed value, so drop it
+        # rather than silently reverting their choice on the next clean.
+        # reset_interfaces nulls deploy_interface above, after delta was
+        # captured, so it has to be checked separately.
+        if 'deploy_interface' in delta or (updating_driver
+                                           and reset_interfaces):
+            node_obj.del_driver_internal_info('original_deploy_interface')
+
         # NOTE(dtantsur): if we're updating the driver from an invalid value,
         # loading the old driver may be impossible. Since we only need to
         # update the node record in the database, skip loading the driver
@@ -1135,9 +1146,21 @@ class ConductorManager(base_manager.BaseConductorManager):
                     notify_utils.emit_console_notification(
                         task, 'console_stop', fields.NotificationStatus.END)
 
+            # Give the deploy interface the opportunity to switch
+            # interfaces, e.g. the autodetect deploy interface needs to
+            # resolve to a concrete interface before it can tear anything
+            # down.
+            task.driver.deploy.switch_interface(task)
+
             task.driver.deploy.clean_up(task)
             task.driver.deploy.tear_down(task)
         except Exception as e:
+            # NOTE(JayF): Unlike cleaning, we deliberately do not call
+            # restore_interface() here. A DELETE FAILED node keeps the
+            # concrete interface so that a retried tear down operates on
+            # the interface which actually ran. The original interface is
+            # restored once tear down succeeds and the node moves on to
+            # cleaning, in cleaning.do_next_clean_step/do_node_clean.
             LOG.exception('Error in tear_down of node %s', node.uuid)
             error = _("Failed to tear down: %s") % e
             utils.node_history_record(task.node, event=error,
@@ -2059,11 +2082,6 @@ class ConductorManager(base_manager.BaseConductorManager):
             # is called as part of the transition from ENROLL to MANAGEABLE
             # states. As such it is redundant to call here.
 
-            # Give the deploy interface the opportunity to switch
-            # interfaces, e.g. the autodetect deploy interface needs
-            # to resolve to a concrete interface before takeover.
-            task.driver.deploy.switch_interface(task)
-
             self._do_takeover(task)
 
             LOG.info("Successfully adopted node %(node)s",
@@ -2097,6 +2115,13 @@ class ConductorManager(base_manager.BaseConductorManager):
         """
         LOG.debug('Conductor %(cdr)s taking over node %(node)s',
                   {'cdr': self.host, 'node': task.node.uuid})
+        # Give the deploy interface the opportunity to switch interfaces,
+        # e.g. the autodetect deploy interface needs to resolve to a
+        # concrete interface before takeover. Both callers reach the switch
+        # here: _do_adoption, and the periodic _sync_local_state takeover.
+        # It is a no-op once the node is on a concrete interface, which is
+        # always the case for the ACTIVE nodes _sync_local_state hands us.
+        task.driver.deploy.switch_interface(task)
         task.driver.deploy.prepare(task)
         task.driver.deploy.take_over(task)
         # NOTE(zhenguo): If console enabled, take over the console session
