@@ -29,6 +29,14 @@ METRICS = metrics_utils.get_metrics_logger(__name__)
 class AutodetectDeploy(agent_base.HeartbeatMixin, base.DeployInterface):
     """Deploy interface that auto-detects the appropriate deployment method.
 
+    This interface never performs any real work itself: it only resolves
+    which concrete deploy interface should be used and switches the node
+    over to it. The conductor calls switch_interface() at the start of
+    every flow which may act on a node, so by the time any work method
+    would run, a concrete interface is in place. Every method which would
+    otherwise do actual work therefore fails loudly rather than silently
+    doing nothing.
+
     Inherits from HeartbeatMixin so that heartbeats received while
     autodetect is the active deploy interface (e.g. during inspection)
     store agent_url in driver_internal_info.  Without this, fast-track
@@ -60,6 +68,21 @@ class AutodetectDeploy(agent_base.HeartbeatMixin, base.DeployInterface):
                     "autodetect_deploy_interfaces.")
                 % {'interface': interface_name})
 
+    def _fail_not_switched(self, task, method_name):
+        """Raise a clear error when a work method is called on autodetect.
+
+        :param task: A TaskManager instance containing the node to act on.
+        :param method_name: Name of the method which was called.
+        :raises: InstanceDeployFailure always.
+        """
+        raise exception.InstanceDeployFailure(
+            _("%(method)s was called on the autodetect deploy interface for "
+              "node %(node)s, which does not perform any deployment itself. "
+              "The autodetect interface did not switch to a concrete "
+              "interface during switch_interface(). This indicates a bug or "
+              "misconfiguration.")
+            % {'method': method_name, 'node': task.node.uuid})
+
     def get_properties(self):
         """Return the properties of the interface.
 
@@ -77,8 +100,7 @@ class AutodetectDeploy(agent_base.HeartbeatMixin, base.DeployInterface):
         :param task: A TaskManager instance containing the node to act on.
         :raises: MissingParameterValue if required parameters are missing.
         """
-        switchable = self._create_switchable_interface(task)
-        interface, interface_name, interface_supports = switchable
+        interface, _name, _supports = self._create_switchable_interface(task)
         return interface.validate(task)
 
     @METRICS.timer('AutodetectDeploy.deploy')
@@ -86,58 +108,109 @@ class AutodetectDeploy(agent_base.HeartbeatMixin, base.DeployInterface):
     def deploy(self, task):
         """Perform a deployment to the task's node.
 
-        This method should not be called directly as the autodetect interface
-        is expected to switch to a concrete interface during
-        switch_interface(). If this is called, it means the interface switch
-        did not happen.
+        Never reached: the conductor switches to a concrete interface
+        first. See the class docstring.
 
         :param task: A TaskManager instance containing the node to act on.
-        :raises: InstanceDeployFailure if deployment fails.
+        :raises: InstanceDeployFailure always.
         """
-        raise exception.InstanceDeployFailure(
-            _("Autodetect deploy interface did not switch to a concrete "
-              "interface during switch_interface(). This indicates a bug or "
-              "misconfiguration."))
-
-    @METRICS.timer('AutodetectDeploy.tear_down')
-    def tear_down(self, task):
-        """Tear down a previous deployment on the task's node.
-
-        :param task: A TaskManager instance containing the node to act on.
-        :returns: deploy state DELETED.
-        """
-        # Autodetect deploy interface does not perform any actual deployment.
-        # This is handled by AgentBaseMixin.tear_down() for actual deployments
-        pass
-
+        self._fail_not_switched(task, 'deploy')
 
     @METRICS.timer('AutodetectDeploy.prepare')
     def prepare(self, task):
         """Prepare the deployment environment for the task's node.
 
+        Never reached: the conductor switches to a concrete interface
+        first. See the class docstring.
+
+        :param task: A TaskManager instance containing the node to act on.
+        :raises: InstanceDeployFailure always.
         """
-        # Autodetect deploy interface does not perform any actual deployment.
-        # This is handled by AgentBaseMixin.prepare() for actual deployments
-        raise exception.InstanceDeployFailure(
-            _("Autodetect deploy interface did not switch to a concrete "
-              "interface during switch_interface(). This indicates a bug or "
-              "misconfiguration."))
+        self._fail_not_switched(task, 'prepare')
+
+    @METRICS.timer('AutodetectDeploy.take_over')
+    def take_over(self, task):
+        """Take over management of this task's node.
+
+        Never reached: the conductor switches to a concrete interface
+        first. See the class docstring.
+
+        :param task: A TaskManager instance containing the node to act on.
+        :raises: InstanceDeployFailure always.
+        """
+        self._fail_not_switched(task, 'take_over')
+
+    @METRICS.timer('AutodetectDeploy.tear_down')
+    def tear_down(self, task):
+        """Tear down a previous deployment on the task's node.
+
+        Never reached: the conductor switches to a concrete interface
+        first. See the class docstring.
+
+        :param task: A TaskManager instance containing the node to act on.
+        :raises: InstanceDeployFailure always.
+        """
+        self._fail_not_switched(task, 'tear_down')
 
     @METRICS.timer('AutodetectDeploy.clean_up')
     def clean_up(self, task):
         """Clean up the deployment environment for the task's node.
 
-        :param task: A TaskManager instance containing the node to act on.
-        """
-        pass
-
-    @METRICS.timer('AutodetectDeploy.take_over')
-    def take_over(self, task):
-        """Take over management of this task's node from a dead conductor.
+        Never reached: the conductor switches to a concrete interface
+        first. See the class docstring.
 
         :param task: A TaskManager instance containing the node to act on.
+        :raises: InstanceDeployFailure always.
         """
-        pass
+        self._fail_not_switched(task, 'clean_up')
+
+    @METRICS.timer('AutodetectDeploy.prepare_cleaning')
+    def prepare_cleaning(self, task):
+        """Prepare the node for cleaning tasks.
+
+        Never reached: the conductor switches to a concrete interface
+        first. See the class docstring.
+
+        :param task: A TaskManager instance containing the node to act on.
+        :raises: InstanceDeployFailure always.
+        """
+        self._fail_not_switched(task, 'prepare_cleaning')
+
+    @METRICS.timer('AutodetectDeploy.tear_down_cleaning')
+    def tear_down_cleaning(self, task):
+        """Tear down after cleaning is completed.
+
+        Never reached: the conductor switches to a concrete interface
+        first. See the class docstring.
+
+        :param task: A TaskManager instance containing the node to act on.
+        :raises: InstanceDeployFailure always.
+        """
+        self._fail_not_switched(task, 'tear_down_cleaning')
+
+    @METRICS.timer('AutodetectDeploy.prepare_service')
+    def prepare_service(self, task):
+        """Prepare the node for servicing tasks.
+
+        Never reached: the conductor switches to a concrete interface
+        first. See the class docstring.
+
+        :param task: A TaskManager instance containing the node to act on.
+        :raises: InstanceDeployFailure always.
+        """
+        self._fail_not_switched(task, 'prepare_service')
+
+    @METRICS.timer('AutodetectDeploy.tear_down_service')
+    def tear_down_service(self, task):
+        """Tear down after servicing is completed.
+
+        Never reached: the conductor switches to a concrete interface
+        first. See the class docstring.
+
+        :param task: A TaskManager instance containing the node to act on.
+        :raises: InstanceDeployFailure always.
+        """
+        self._fail_not_switched(task, 'tear_down_service')
 
     def _create_switchable_interface(self, task):
         """Detect and create the deploy interface to switch to.
@@ -188,9 +261,18 @@ class AutodetectDeploy(agent_base.HeartbeatMixin, base.DeployInterface):
         switchable = self._create_switchable_interface(task)
         interface, interface_name, interface_supports = switchable
         if not interface_supports:
-            LOG.warning("No deploy interfaces in autodetect_deploy_interfaces "
-                        "are supported for this node/image. "
-                        "Using last interface: %s", interface_name)
+            if task.node.instance_info.get('image_source'):
+                LOG.warning("No deploy interfaces in "
+                            "autodetect_deploy_interfaces are supported for "
+                            "this node/image. Using last interface: %s",
+                            interface_name)
+            else:
+                # No image to detect from, which is normal outside of a
+                # deployment, e.g. when cleaning a node which has never
+                # been deployed. The fallback is the expected outcome.
+                LOG.debug("No image to detect a deploy interface from for "
+                          "node %(node)s. Using last interface: %(iface)s",
+                          {'node': task.node.uuid, 'iface': interface_name})
 
         LOG.info("autodetect switching to deploy interface: %s",
                  interface_name)

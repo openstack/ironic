@@ -39,6 +39,19 @@ def do_node_service(task, service_steps=None, disable_ramdisk=False):
     """
     node = task.node
     ramdisk_needed = None
+
+    try:
+        # Give the deploy interface the opportunity to switch interfaces,
+        # e.g. the autodetect deploy interface needs to resolve to a
+        # concrete interface before it can prepare the ramdisk. Nothing has
+        # been prepared yet, so there is nothing to tear down on failure.
+        task.driver.deploy.switch_interface(task)
+    except exception.InvalidParameterValue as e:
+        msg = (_('Failed to select a deploy interface for servicing node '
+                 '%(node)s: %(err)s') % {'node': node.uuid, 'err': e})
+        return utils.servicing_error_handler(task, msg,
+                                             tear_down_service=False)
+
     try:
         # NOTE(ghe): Valid power and network values are needed to perform
         # a service operation.
@@ -269,6 +282,10 @@ def _tear_down_node_service(task, disable_ramdisk):
                                                  tear_down_service=False)
     utils.node_update_cache(task)
     LOG.info('Node %s service complete.', task.node.uuid)
+
+    # Switch back to original interface, if necessary
+    task.driver.deploy.restore_interface(task)
+
     task.process_event('done')
 
 
@@ -385,6 +402,10 @@ def do_node_service_abort(task):
     node.service_step = None
     utils.wipe_service_internal_info(task)
     node.save()
+
+    # Switch back to original interface, if necessary
+    task.driver.deploy.restore_interface(task)
+
     LOG.info(info_message)
 
 

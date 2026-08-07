@@ -899,6 +899,53 @@ class UpdateNodeTestCase(mgr_utils.ServiceSetUpMixin, db_base.DbTestCase):
         res = self.service.update_node(self.context, node)
         self.assertEqual({'test': 'two'}, res['extra'])
 
+    def _create_switched_node(self, **kwargs):
+        """Create a node which autodetect has switched to a concrete iface."""
+        return obj_utils.create_test_node(
+            self.context, driver='fake-hardware',
+            uuid=uuidutils.generate_uuid(),
+            deploy_interface='fake',
+            driver_internal_info={
+                'original_deploy_interface': 'autodetect'},
+            **kwargs)
+
+    def test_update_node_deploy_interface_clears_original(self):
+        """An explicit deploy_interface set outranks the stashed original.
+
+        Otherwise the next cleaning would silently revert the operator's
+        choice back to autodetect.
+        """
+        node = self._create_switched_node()
+
+        node.deploy_interface = 'fake'
+        res = self.service.update_node(self.context, node)
+
+        self.assertEqual('fake', res['deploy_interface'])
+        self.assertNotIn('original_deploy_interface',
+                         res['driver_internal_info'])
+
+    def test_update_node_reset_interfaces_clears_original(self):
+        """reset_interfaces recomputes deploy_interface, so drop the stash."""
+        node = self._create_switched_node()
+
+        node.driver = 'fake-hardware'
+        res = self.service.update_node(self.context, node,
+                                       reset_interfaces=True)
+
+        self.assertNotIn('original_deploy_interface',
+                         res['driver_internal_info'])
+
+    def test_update_node_unrelated_field_keeps_original(self):
+        """An unrelated update must not disturb a pending restore."""
+        node = self._create_switched_node(extra={'test': 'one'})
+
+        node.extra = {'test': 'two'}
+        res = self.service.update_node(self.context, node)
+
+        self.assertEqual(
+            'autodetect',
+            res['driver_internal_info']['original_deploy_interface'])
+
     def test_update_node_maintenance_set_false(self):
         node = obj_utils.create_test_node(self.context,
                                           driver='fake-hardware',
@@ -2687,6 +2734,32 @@ class DoNodeTearDownTestCase(mgr_utils.ServiceSetUpMixin, db_base.DbTestCase):
 
     def test__do_node_tear_down_with_source_path(self):
         self._test__do_node_tear_down_ok(source_a_path=True)
+
+    @mock.patch('ironic.conductor.cleaning.do_node_clean', autospec=True)
+    @mock.patch('ironic.drivers.modules.fake.FakeDeploy.tear_down',
+                autospec=True)
+    @mock.patch('ironic.drivers.modules.fake.FakeDeploy.clean_up',
+                autospec=True)
+    @mock.patch('ironic.drivers.modules.fake.FakeDeploy.switch_interface',
+                autospec=True)
+    def test__do_node_tear_down_switches_interface(self, mock_switch,
+                                                   mock_clean_up,
+                                                   mock_tear_down,
+                                                   mock_clean):
+        """Test the deploy interface gets to switch before tearing down."""
+        node = obj_utils.create_test_node(
+            self.context, driver='fake-hardware',
+            provision_state=states.ACTIVE,
+            target_provision_state=states.AVAILABLE,
+            driver_internal_info={'is_whole_disk_image': False})
+
+        self._start_service()
+        self.service.do_node_tear_down(self.context, node.uuid)
+        node.refresh()
+        self.assertEqual(states.CLEANING, node.provision_state)
+        mock_switch.assert_called_once_with(mock.ANY, mock.ANY)
+        self.assertTrue(mock_clean_up.called)
+        self.assertTrue(mock_tear_down.called)
 
     @mock.patch('ironic.drivers.modules.fake.FakeRescue.clean_up',
                 autospec=True)
@@ -8545,6 +8618,26 @@ class DoNodeTakeOverTestCase(mgr_utils.ServiceSetUpMixin, db_base.DbTestCase):
         mock_prepare.assert_called_once_with(task.driver.deploy, task)
         mock_take_over.assert_called_once_with(task.driver.deploy, task)
         self.assertFalse(mock_start_console.called)
+
+    @mock.patch('ironic.drivers.modules.fake.FakeDeploy.take_over',
+                autospec=True)
+    @mock.patch('ironic.drivers.modules.fake.FakeDeploy.prepare',
+                autospec=True)
+    @mock.patch('ironic.drivers.modules.fake.FakeDeploy.switch_interface',
+                autospec=True)
+    def test__do_takeover_switches_interface(self, mock_switch, mock_prepare,
+                                             mock_take_over):
+        """Test the deploy interface gets to switch before takeover.
+
+        Takeover is reached from the periodic _sync_local_state without
+        any other opportunity to resolve a concrete interface.
+        """
+        self._start_service()
+        node = obj_utils.create_test_node(self.context, driver='fake-hardware')
+        task = task_manager.TaskManager(self.context, node.uuid)
+
+        self.service._do_takeover(task)
+        mock_switch.assert_called_once_with(task.driver.deploy, task)
 
     @mock.patch.object(notification_utils, 'emit_console_notification',
                        autospec=True)
