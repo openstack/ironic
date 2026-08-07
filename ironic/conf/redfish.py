@@ -36,9 +36,18 @@ opts = [
                       'to the Redfish BMC. This controls how long to wait '
                       'for the initial TCP connection to be established. '
                       'A lower value allows faster failure when a BMC is '
-                      'unreachable, while the default read timeout '
-                      '(60 seconds) still applies for waiting on response '
-                      'data from responsive BMCs.')),
+                      'unreachable.')),
+    cfg.IntOpt('read_timeout',
+               min=1,
+               default=60,
+               help=_('HTTP read timeout in seconds when waiting for a '
+                      'response from the Redfish BMC. Some BMCs hold '
+                      'long-running requests (e.g. BIOS settings updates) '
+                      'open for a long time before responding; increase '
+                      'this value if operations are reported as failed '
+                      'even though the BMC completes them later. A higher '
+                      'value also increases how long a conductor worker '
+                      'waits for an unresponsive but connected BMC.')),
     cfg.IntOpt('connection_cache_size',
                min=0,
                default=1000,
