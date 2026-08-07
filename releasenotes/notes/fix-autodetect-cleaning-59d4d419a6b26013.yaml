@@ -1,0 +1,29 @@
+---
+fixes:
+  - |
+    Fixes the ``autodetect`` ``deploy_interface`` silently skipping cleaning
+    when a node was cleaned before it had ever been deployed. Cleaning,
+    servicing, unprovisioning and takeover now resolve a concrete deploy
+    interface the same way deployment and adoption already did, and the
+    ``autodetect`` interface now raises an error rather than silently doing
+    nothing if one of its methods is reached without a concrete interface
+    having been selected.
+  - |
+    Fixes servicing leaving a node permanently pinned to the concrete deploy
+    interface which was selected for it. Servicing now restores the original
+    ``deploy_interface`` on completion, abort and failure, as cleaning
+    already did.
+  - |
+    Fixes the original ``deploy_interface`` only being restored for deploy
+    interfaces derived from the agent base class. Interfaces such as
+    ``ansible``, and out-of-tree interfaces, silently never restored it.
+  - |
+    Fixes explicitly setting a node's ``deploy_interface`` being silently
+    reverted by the next cleaning, when the node had previously been switched
+    away from the ``autodetect`` interface.
+security:
+  - |
+    Prior to this change, the ``autodetect`` ``deploy_interface`` would
+    silently skip cleaning if automated cleaning was started before a
+    deployment had been attempted, leaving the previous tenant's data on
+    disk.

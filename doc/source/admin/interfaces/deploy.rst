@@ -176,10 +176,28 @@ back to :ref:`Direct deploy <direct-deploy>` for standard disk images.
    The last interface in the list serves as the fallback if no other interface
    is detected as supported.
 
-.. note::
-   After deployment teardown, the node's deploy interface is automatically
-   restored to ``autodetect`` from whatever concrete interface was used during
-   deployment.
+Interface switching and restoration
+-----------------------------------
+
+The switch is recorded on the node, not just held in memory: while the node is
+deployed, ``deploy_interface`` reads back as the concrete interface which was
+selected (for example ``direct``), not as ``autodetect``. Operators and tooling
+inspecting the field should expect this. The interface which was switched away
+from is stashed in ``driver_internal_info`` and restored automatically:
+
+* On every exit from cleaning and servicing -- success, abort, failure, and the
+  case where automated cleaning is disabled and skipped. A normal undeploy ->
+  clean -> ``available`` cycle therefore returns the node to ``autodetect``.
+
+* Nodes left in ``deploy failed`` or ``delete failed`` deliberately keep the
+  concrete interface, so that a retried deployment or teardown runs against the
+  interface which actually did the work. They are restored once the node is
+  successfully torn down and cleaned.
+
+Explicitly setting ``deploy_interface`` on a node discards the stashed value,
+so an interface chosen by an operator is never reverted::
+
+    baremetal node set <NODE> --deploy-interface direct
 
 .. _ansible-deploy:
 
