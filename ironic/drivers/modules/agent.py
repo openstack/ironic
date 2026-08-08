@@ -790,7 +790,7 @@ class AgentDeploy(CustomAgentDeploy):
             self.prepare_instance_to_boot(task, root_uuid,
                                           efi_sys_uuid, prep_boot_part_uuid)
         else:
-            manager_utils.node_set_boot_device(task, 'disk', persistent=True)
+            set_boot_to_disk(task)
 
         # Remove symbolic link and image when deploy is done.
         deploy_utils.destroy_http_instance_images(task.node)
