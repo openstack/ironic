@@ -35,7 +35,7 @@ A workflow for implementing container-based steps with runbooks is:
    via the lookup/heartbeat endpoint. This allows conductor-side settings
    to override any build-time defaults in the ramdisk.
 
-3. When a runbook triggers a ``container_clean_step``, IPA uses podman (or
+3. When a runbook triggers a ``generic_container_step``, IPA uses podman (or
    docker) to pull and run the specified container image on the bare metal
    node.
 
@@ -103,11 +103,16 @@ lookup time, so changes take effect without rebuilding the ramdisk.
     # Container runtime (default: podman)
     runner = podman
 
-    # Options passed to the pull command
+    # Options passed to the pull command (comma separated list)
     pull_options = --tls-verify=false
 
-    # Options passed to the run command
-    run_options = --rm --network=host --tls-verify=false
+    # Options passed to the run command (comma separated list)
+    run_options = --rm,--network=host,--tls-verify=false
+
+.. important::
+   ``pull_options`` and ``run_options`` are **comma** separated lists, not
+   space separated strings. ``--rm --network=host`` is a single option
+   containing spaces, which the container runtime will reject.
 
 .. warning::
    Setting ``allow_arbitrary_containers = true`` allows **any** container
@@ -128,22 +133,34 @@ Example Container-based Runbooks
 The built-in step
 -----------------
 
-The Container Hardware Manager exposes a built-in cleaning step called
-``container_clean_step`` on the ``deploy`` interface. This step has a
+The Container Hardware Manager exposes a built-in step called
+``generic_container_step`` on the ``deploy`` interface. This step has a
 default priority of ``0``, meaning it only runs when explicitly invoked
 via manual cleaning, servicing, or a runbook.
+
+.. note::
+   This step was previously called ``container_clean_step``. That name is
+   deprecated but still works, so existing runbooks keep functioning; it
+   will be removed in a future release. The step serves cleaning, deployment
+   and servicing alike, which is why the name no longer says "clean".
 
 The step accepts the following arguments:
 
 ``container_url`` (required)
     The full container image URL, e.g.
-    ``docker://registry.example.com/firmware-tool:latest``.
+    ``docker://registry.example.com/firmware-tool:latest``. Unless
+    ``allow_arbitrary_containers`` is enabled, this must appear in
+    ``allowed_containers``.
 
 ``pull_options`` (optional)
-    Override the default pull options for this specific container.
+    Override the default pull options for this specific container. Ignored
+    when ``allow_arbitrary_containers`` is ``false``. See
+    `Security Considerations`_.
 
 ``run_options`` (optional)
-    Override the default run options for this specific container.
+    Override the default run options for this specific container. Ignored
+    when ``allow_arbitrary_containers`` is ``false``. See
+    `Security Considerations`_.
 
 Single-container runbook
 ------------------------
@@ -158,7 +175,7 @@ container:
         --steps '[
             {
                 "interface": "deploy",
-                "step": "container_clean_step",
+                "step": "generic_container_step",
                 "args": {
                     "container_url": "docker://registry.example.com/firmware-tool:latest"
                 },
@@ -180,7 +197,7 @@ and finishes with a standard disk metadata erase:
         --steps '[
             {
                 "interface": "deploy",
-                "step": "container_clean_step",
+                "step": "generic_container_step",
                 "args": {
                     "container_url": "docker://registry.example.com/diag-suite:v2"
                 },
@@ -188,10 +205,10 @@ and finishes with a standard disk metadata erase:
             },
             {
                 "interface": "deploy",
-                "step": "container_clean_step",
+                "step": "generic_container_step",
                 "args": {
                     "container_url": "docker://registry.example.com/firmware-tool:latest",
-                    "run_options": "--rm --network=host --privileged"
+                    "run_options": ["--rm", "--network=host", "--privileged"]
                 },
                 "order": 2
             },
@@ -202,6 +219,13 @@ and finishes with a standard disk metadata erase:
                 "order": 3
             }
         ]'
+
+.. note::
+   The ``run_options`` in the second step above only take effect when
+   ``allow_arbitrary_containers`` is ``true``. In the default locked down
+   configuration the conductor's configured ``run_options`` are used
+   instead, because options such as ``--privileged`` would otherwise let a
+   runbook escape the ``allowed_containers`` allowlist entirely.
 
 Adding traits to nodes
 ----------------------
@@ -301,6 +325,20 @@ cleaning steps ``manage_container_cleanup`` and
 ``manage_container_cleanup2`` will be reported as available
 cleaning steps at the indicated priority.
 
+.. note::
+   ``priority`` applies to **automated cleaning** only. The same steps are
+   offered for deployment and servicing at priority ``0``, meaning they can
+   be invoked explicitly from a runbook or deploy template but never run on
+   their own. A non-zero priority would otherwise make a cleaning container
+   run on every deployment, because a deploy step above priority zero runs
+   automatically.
+
+.. note::
+   A step name must not match a step IPA already provides.
+   ``erase_devices_metadata`` or ``write_image`` would shadow the real one;
+   IPA reports a configuration error rather than running your container in
+   its place.
+
 This is useful for high-security environments which would prefer
 the hassle of rebuilding a ramdisk to the risk of permitting
 runtime decisions around what containers to clean with.
@@ -308,14 +346,59 @@ runtime decisions around what containers to clean with.
 Security Considerations
 =======================
 
+Two kinds of container step, two levels of trust
+------------------------------------------------
+
+Container steps reach IPA by two different routes, and they are not trusted
+equally:
+
+**Steps baked into the ramdisk** via ``container_steps_file`` are authored by
+the operator at image build time and cannot be changed at run time. They are
+trusted and are not checked against ``allowed_containers``.
+
+**Steps driven by step arguments**, such as from a runbook, deploy template,
+manual cleaning or servicing, carry an image chosen by whoever made the API
+call. These are untrusted and are checked against ``allowed_containers``
+unless ``allow_arbitrary_containers`` is ``true``.
+
+This matters because creating and using a runbook does not require full
+administrative rights: ``baremetal:runbook:create`` is available to
+``role:manager`` at project scope. Anyone who can run a runbook on a node can
+therefore choose what executes as root on that node, bounded only by
+``allowed_containers``.
+
+General guidance
+----------------
+
 * **Prefer allowlisting** over ``allow_arbitrary_containers = true``.
   The allowlist (``allowed_containers``) restricts which images IPA will
-  accept, reducing the risk of running untrusted code.
+  accept, reducing the risk of running untrusted code. The transport prefix
+  is ignored when matching, so ``docker://example.com/tool:1`` and
+  ``example.com/tool:1`` are the same entry.
+
+* **Allowlist digests, not tags.** An entry naming a tag permits whatever
+  that tag points at, so anyone able to push to the registry chooses what
+  runs as root on your nodes. Only a pinned digest, such as
+  ``example.com/tool@sha256:...``, actually constrains the content.
+
+* **Options are part of the boundary.** When ``allow_arbitrary_containers``
+  is ``false``, ``pull_options`` and ``run_options`` supplied as step
+  arguments are ignored and the conductor's configured values are used.
+  Flags alone are enough to defeat an image allowlist, since ``--privileged``,
+  ``-v /:/host`` or ``--entrypoint`` turn any permitted image into arbitrary
+  host access, so the caller who may not choose the image may not choose the
+  flags either.
+
+* **Step names must not collide** with existing hardware manager steps. A
+  container step named after a real one, such as ``erase_devices_metadata``,
+  would shadow it. IPA refuses such names, reporting a configuration error
+  rather than silently substituting a container for the real step.
 
 * **TLS verification** -- the default ``pull_options`` and ``run_options``
-  include ``--tls-verify=false`` for development convenience. In
-  production, remove this flag and ensure proper TLS certificates are
-  available in the ramdisk.
+  include ``--tls-verify=false`` for development convenience. Remove it in
+  production and make proper TLS certificates available in the ramdisk.
+  Left in place it undoes the allowlist: anything able to answer for the
+  registry can serve its own image under a permitted name.
 
 * **Container privileges** -- by default, containers run with
   ``--network=host``, giving them full access to the node's network
@@ -331,16 +414,31 @@ Container pull failures
     ensure certificates are configured correctly in the ramdisk or
     add ``--tls-verify=false`` to ``pull_options`` for testing.
 
-Step not found: container_clean_step
+Step not found: generic_container_step
     The IPA ramdisk was not built with the ``ironic-python-agent-podman``
     element. Rebuild the ramdisk with podman support as described in
     `Prerequisites`_.
 
-Container rejected by allowlist
+Container image not permitted
     The container URL does not match any entry in ``allowed_containers``
     and ``allow_arbitrary_containers`` is ``false``. Either add the image
     to the allowlist or set ``allow_arbitrary_containers = true`` in
-    ``[agent_containers]``.
+    ``[agent_containers]``. Note that steps baked into the ramdisk are not
+    subject to the allowlist, so this only applies to images named in step
+    arguments.
+
+Container runtime is not available in this ramdisk
+    ``[agent_containers]runner`` names a runtime the ramdisk does not
+    contain. Either install it or change the option to match what was built
+    into the image.
+
+Container step collides with an existing hardware manager method
+    A step in ``container_steps_file`` is named after a step IPA already
+    provides and would shadow it. Rename the step in the YAML file.
+
+Unknown flag, or the runtime rejects its arguments
+    ``pull_options`` or ``run_options`` were written space separated. They
+    are comma separated lists; see `Ironic Conductor Configuration`_.
 
 Trait mismatch
     The node does not have a trait matching the runbook name. Add the
