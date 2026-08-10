@@ -1,0 +1,18 @@
+---
+upgrade:
+  - |
+    ``[agent_containers]pull_options`` no longer defaults to
+    ``--tls-verify=false``, and ``--tls-verify=false`` has been dropped from
+    the ``[agent_containers]run_options`` default, so the container runtime
+    now verifies the registry certificate as it normally would. Deployments
+    that pull step containers from a registry whose certificate the ramdisk
+    does not trust must either make that certificate available in the ramdisk
+    or opt back out explicitly, for example
+    ``pull_options = --tls-verify=false``.
+security:
+  - |
+    The ``[agent_containers]`` defaults no longer disable registry TLS
+    verification. Both ``pull_options`` and ``run_options`` previously
+    shipped ``--tls-verify=false``, which left image pulls for container
+    based steps open to interception on any deployment that had not
+    overridden them.

@@ -43,13 +43,19 @@ opts = [
                       'be a runtime the agent understands, otherwise the '
                       'agent ignores this value and keeps its own.')),
     cfg.ListOpt('pull_options',
-                default=['--tls-verify=false'],
+                default=[],
                 help=_('Options to pass when pulling container images, as a '
-                       'comma separated list (e.g. "--tls-verify=false").')),
+                       'comma separated list. The container runtime verifies '
+                       'the registry certificate by default; '
+                       '"--tls-verify=false" turns that off and is only '
+                       'appropriate against a local test registry.')),
     cfg.ListOpt('run_options',
-                default=['--rm', '--network=host', '--tls-verify=false'],
+                default=['--rm', '--network=host'],
                 help=_('Options to pass when running containers, as a comma '
-                       'separated list (e.g. "--rm,--network=host").')),
+                       'separated list (e.g. "--rm,--network=host"). The '
+                       'runtime may pull the image at this point as well, so '
+                       'the note on "--tls-verify=false" in pull_options '
+                       'applies here too.')),
 ]
 
 

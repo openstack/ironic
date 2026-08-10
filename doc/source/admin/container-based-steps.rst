@@ -103,11 +103,12 @@ lookup time, so changes take effect without rebuilding the ramdisk.
     # Container runtime (default: podman)
     runner = podman
 
-    # Options passed to the pull command (comma separated list)
-    pull_options = --tls-verify=false
+    # Options passed to the pull command (comma separated list, empty
+    # by default)
+    pull_options =
 
     # Options passed to the run command (comma separated list)
-    run_options = --rm,--network=host,--tls-verify=false
+    run_options = --rm,--network=host
 
 .. important::
    ``pull_options`` and ``run_options`` are **comma** separated lists, not
@@ -394,11 +395,12 @@ General guidance
   would shadow it. IPA refuses such names, reporting a configuration error
   rather than silently substituting a container for the real step.
 
-* **TLS verification** -- the default ``pull_options`` and ``run_options``
-  include ``--tls-verify=false`` for development convenience. Remove it in
-  production and make proper TLS certificates available in the ramdisk.
-  Left in place it undoes the allowlist: anything able to answer for the
-  registry can serve its own image under a permitted name.
+* **TLS verification** -- the registry certificate is verified by default.
+  Adding ``--tls-verify=false`` to ``pull_options`` or ``run_options``
+  turns that off, which undoes the allowlist: anything able to answer for
+  the registry can serve its own image under a permitted name. Keep it to
+  test registries and make the registry certificate available in the
+  ramdisk instead.
 
 * **Container privileges** -- by default, containers run with
   ``--network=host``, giving them full access to the node's network
