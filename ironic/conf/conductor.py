@@ -775,8 +775,14 @@ opts = [
                        'parameter parsing allows Ironic to detect and prevent '
                        'malformed kernel parameters before they are passed to '
                        'nodes. Malformed kernel parameters can pose a '
-                       'security risk therefore it is not recommended to '
-                       'disable this option unless absolutely necessary.')),
+                       'security risk. Therefore, it is not recommended to '
+                       'disable this option unless absolutely necessary.'
+                       'This option will be deprecated in the 2028.1 release, '
+                       'and kernel parameter parsing will be strictly '
+                       'enforced. If you encounter valid kernel parameters '
+                       'that fail parsing, please file a bug report against '
+                       'Ironic. Include the parameter string that fails '
+                       'parsing in the report.')),
 ]
 
 

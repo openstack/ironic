@@ -1,0 +1,12 @@
+---
+deprecations:
+  - |
+    The option ``conductor.disable_kernel_parameter_parsing`` will be
+    deprecated and removed no sooner than the 2028.1 release.
+    This option exists as a work-around for operators who may encounter
+    valid kernel parameters/command lines but fail Ironic's kernel parameter
+    parser. Kernel parameter parsing exists to provide a stronger guarantee
+    of security and correctness before passing them to Ironic nodes. Operators
+    who encounter valid parameters which fail parsing are encouraged to file
+    bug reports against Ironic. Please include the valid parameter(s) which
+    fail to parse.
