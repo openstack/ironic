@@ -1976,12 +1976,14 @@ class Connection(api.Connection):
             if not supported_versions:
                 continue
 
-            if permit_initial_version and supported_versions == {'1.0'}:
+            if permit_initial_version and '1.0' in supported_versions:
                 # We're getting called from someplace it is okay to handle
                 # a missing table, i.e. database upgrades which will create
-                # the table *and* the field version is 1.0, which means we
-                # are likely about to *create* the table, but first have to
-                # pass the version/compatibility checking logic.
+                # the table *and* the initial version 1.0 is still in the
+                # set of supported versions, which means the object was
+                # introduced recently enough that the table may not exist
+                # yet on the source database. We have to pass the
+                # version/compatibility checking logic first.
                 table_missing_ok = True
 
             # NOTE(mgagne): Additional safety check to detect old database
