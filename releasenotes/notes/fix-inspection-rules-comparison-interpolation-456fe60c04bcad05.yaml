@@ -1,0 +1,8 @@
+---
+fixes:
+  - |
+    Fixes variable interpolation for the comparison operators (``eq``, ``ne``,
+    ``lt``, ``gt``, ``le``, ``ge``) in inspection rules. Previously the
+    ``values`` argument of these operators was not interpolated outside of a
+    loop, so a reference such as ``{node.driver}`` was compared literally
+    instead of being replaced with the node's value.
