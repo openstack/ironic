@@ -152,7 +152,12 @@ class LookupController(rest.RestController):
             state is not allowed for the lookup.
         :raises: IncompleteLookup if neither node UUID nor any valid MAC
             address was provided.
+        :raises: HTTPForbidden if ramdisk endpoints are disabled via
+            configuration.
         """
+        if not CONF.api.enable_ramdisk_endpoints:
+            raise exception.HTTPForbidden(
+                resource=api.request.path)
         if not api_utils.allow_ramdisk_endpoints():
             raise exception.NotFound()
 
@@ -229,7 +234,12 @@ class HeartbeatController(rest.RestController):
         :raises: NoValidHost if RPC topic for node could not be retrieved.
         :raises: NotFound if requested API version does not allow this
             endpoint.
+        :raises: HTTPForbidden if ramdisk endpoints are disabled via
+            configuration.
         """
+        if not CONF.api.enable_ramdisk_endpoints:
+            raise exception.HTTPForbidden(
+                resource=api.request.path)
         if not api_utils.allow_ramdisk_endpoints():
             raise exception.NotFound()
 
@@ -396,7 +406,12 @@ class ContinueInspectionController(rest.RestController):
         :raises: NoValidHost if RPC topic for node could not be retrieved.
         :raises: NotFound if requested API version does not allow this
             endpoint or if lookup fails.
+        :raises: HTTPForbidden if ramdisk endpoints are disabled via
+            configuration.
         """
+        if not CONF.api.enable_ramdisk_endpoints:
+            raise exception.HTTPForbidden(
+                resource=api.request.path)
         if (not api_utils.allow_continue_inspection_endpoint()
                 # Node UUID support is a new addition
                 or (node_uuid

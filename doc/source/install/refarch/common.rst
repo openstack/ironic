@@ -179,13 +179,18 @@ networks.
   to the provisioning/cleaning/rescuing network.
 
   .. note::
-      Only two endpoints need to be exposed there::
+      Only these endpoints need to be exposed there::
 
         GET /v1/lookup
         POST /v1/heartbeat/[a-z0-9\-]+
+        POST /v1/continue_inspection
 
-      You may want to limit access from this network to only these endpoints,
-      and make these endpoint not accessible from other networks.
+      You may want to limit access from this network to only these
+      endpoints. If you run separate API instances for public and
+      provisioning traffic (a split-horizon deployment), set
+      ``[api] enable_ramdisk_endpoints = False`` on the
+      public-facing instances to disable these endpoints there.
+      See :doc:`/admin/security` for details.
 
 * If the ``pxe`` boot interface (or any boot interface based on it) is used,
   then the baremetal nodes should have untagged (access mode) connectivity

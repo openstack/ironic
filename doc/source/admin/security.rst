@@ -414,31 +414,93 @@ a node by default, once the node has been provisioned.
 API endpoints for RAM disk use
 ------------------------------
 
-There are `three (unauthorized) endpoints
+There are `three (unauthenticated) endpoints
 <https://docs.openstack.org/api-ref/baremetal/#utility>`_ in the
-Bare Metal API that are intended for use by the ironic-python-agent RAM disk.
-They are not intended for public use.
+Bare Metal API that are intended for use by the ironic-python-agent
+RAM disk. They are not intended for public use.
 
-These endpoints can potentially cause security issues even though the logic
-around these endpoints is intended to be defensive in nature. Access to
-these endpoints from external or untrusted networks should be prohibited.
-An easy way to do this is to:
+* ``GET /v1/lookup`` -- used by IPA to discover which node it is
+  running on and to obtain an agent token.
+* ``POST /v1/heartbeat/{node_ident}`` -- used by IPA to report
+  liveness and progress during deployment and other workflows.
+* ``POST /v1/continue_inspection`` -- used by IPA to submit
+  inspection data.
 
-* set up two groups of API services: one for external requests, the second for
-  deploy RAM disks' requests.
-* to disable unauthorized access to these endpoints in the (first) API services
-  group that serves external requests, the following lines should be
-  added to the
-  :ironic-doc:`policy.yaml file <configuration/sample-policy.html>`::
+These endpoints bypass authentication and can potentially cause
+security issues even though the logic around these endpoints is
+intended to be defensive in nature. In particular, the ``lookup``
+endpoint mints an ``agent_secret_token`` that grants the caller
+the ability to send heartbeats on behalf of that node. Access to
+these endpoints from external or untrusted networks should be
+prohibited. See also :doc:`agent-token` for more information on
+the agent token mechanism and its limitations.
 
-    # Send heartbeats from IPA ramdisk
-    "baremetal:node:ipa_heartbeat": "!"
+The recommended approach is to set up a **split-horizon**
+deployment with two groups of API services:
 
-    # Access IPA ramdisk functions
+* A **public-facing** API cluster that serves end-user and
+  service-to-service requests, with ramdisk endpoints disabled.
+* A **backend** API cluster on the provisioning network that
+  accepts requests from RAM disks.
+
+.. warning::
+   A split-horizon deployment (separate public and backend API
+   instances) is **required** regardless of which mechanism you
+   use to disable the endpoints. IPA *must* be able to reach
+   the ramdisk endpoints on the backend API instance in order
+   for deployments, cleaning, and inspection to function.
+   Disabling these endpoints on a single API instance that also
+   serves IPA traffic will prevent Ironic from working.
+
+There are two mechanisms for disabling the ramdisk endpoints on
+the **public-facing** API instances:
+
+**Configuration option (recommended)**
+
+The ``[api] enable_ramdisk_endpoints`` option was added so that
+operators can disable ramdisk endpoints without needing to
+maintain custom policy overrides. Set the following in
+``ironic.conf`` on each public-facing API instance::
+
+    [api]
+    enable_ramdisk_endpoints = False
+
+When disabled, all three endpoints return HTTP 403 (Forbidden).
+This option works regardless of authentication strategy and is
+mutable -- it can be reloaded via ``SIGHUP`` without restarting
+the service.
+
+**Custom policy rules (Keystone only)**
+
+When using Keystone authentication (``auth_strategy=keystone``),
+you can alternatively deny access to these endpoints via custom
+policy rules. However, maintaining custom policy files adds
+operational complexity and the Ironic team recommends the
+configuration option above instead. If you still prefer the
+policy approach, add the following to the
+:ironic-doc:`policy.yaml file <configuration/sample-policy.html>`
+on each **public-facing** API instance::
+
+    # Deny IPA ramdisk node lookup
     "baremetal:driver:ipa_lookup": "!"
 
-    # Continue introspection IPA ramdisk endpoint
+    # Deny IPA ramdisk heartbeat
+    "baremetal:node:ipa_heartbeat": "!"
+
+    # Deny IPA ramdisk continue inspection
     "baremetal:driver:ipa_continue_inspection": "!"
+
+Do **not** apply these policy overrides to the backend API
+instances; doing so will block IPA and break provisioning
+workflows.
+
+.. note::
+   The policy approach only works when ``auth_strategy`` is set
+   to ``keystone``. When using ``noauth`` or ``http_basic``
+   authentication, policy rules are not evaluated for these
+   endpoints and the ``"!"`` rules have no effect. Use the
+   ``[api] enable_ramdisk_endpoints`` configuration option
+   instead.
 
 Rate Limiting
 -------------

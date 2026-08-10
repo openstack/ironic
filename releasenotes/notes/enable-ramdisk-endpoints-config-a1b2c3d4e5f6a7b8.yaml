@@ -1,0 +1,27 @@
+---
+features:
+  - |
+    Adds a new ``[api] enable_ramdisk_endpoints`` configuration option
+    (default ``True``) that allows operators to disable the
+    ``/v1/lookup``, ``/v1/heartbeat``, and ``/v1/continue_inspection``
+    endpoints on a per-API-instance basis. When set to ``False``, these
+    endpoints return HTTP 403. This is intended for split-horizon
+    deployments where a public-facing API cluster should not accept
+    requests from ramdisk agents, while a separate backend API cluster
+    on the provisioning network serves agent traffic. The option is
+    mutable and can be reloaded via SIGHUP.
+    See `bug 2162821
+    <https://bugs.launchpad.net/ironic/+bug/2162821>`_ for details.
+security:
+  - |
+    Operators can now disable the unauthenticated ramdisk agent
+    endpoints (``/v1/lookup``, ``/v1/heartbeat``,
+    ``/v1/continue_inspection``) by setting
+    ``[api] enable_ramdisk_endpoints = False``. This mitigates the
+    risk described in `bug 2162821
+    <https://bugs.launchpad.net/ironic/+bug/2162821>`_ where an
+    attacker on the provisioning network could call ``/v1/lookup``
+    to obtain an agent token and impersonate heartbeats. In a
+    split-horizon deployment, disabling these endpoints on the
+    public API ensures that agent traffic is only accepted on the
+    trusted backend network.

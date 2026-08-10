@@ -74,6 +74,17 @@ opts = [
                        "[oslo_middleware]enable_proxy_headers_parsing "
                        "option or configure [api]public_endpoint option "
                        "to set URLs in responses to the SSL terminated one.")),
+    cfg.BoolOpt('enable_ramdisk_endpoints',
+                default=True,
+                mutable=True,
+                help=_('Whether to enable the ramdisk agent API '
+                       'endpoints (lookup, heartbeat, and '
+                       'continue_inspection). Set this to False on '
+                       'API instances that should not accept requests '
+                       'from ramdisk agents, for example the '
+                       'public-facing API in a split-horizon '
+                       'deployment. When disabled, these endpoints '
+                       'return HTTP 403.')),
     cfg.BoolOpt('restrict_lookup',
                 default=True,
                 mutable=True,

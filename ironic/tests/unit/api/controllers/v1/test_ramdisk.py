@@ -102,6 +102,15 @@ class TestLookup(test_api_base.BaseApiTest):
         self.assertIsNotNone(data['config']['agent_token'])
         self.assertNotEqual('******', data['config']['agent_token'])
 
+    def test_disabled_by_config(self):
+        CONF.set_override('enable_ramdisk_endpoints', False, 'api')
+        response = self.get_json(
+            '/lookup?node_uuid=%s' % self.node.uuid,
+            headers={api_base.Version.string: str(
+                api_v1.max_version())},
+            expect_errors=True)
+        self.assertEqual(http_client.FORBIDDEN, response.status_int)
+
     def test_nothing_provided(self):
         response = self.get_json(
             '/lookup',
@@ -308,6 +317,18 @@ class TestLookup(test_api_base.BaseApiTest):
 @mock.patch.object(rpcapi.ConductorAPI, 'get_topic_for',
                    lambda *n: 'test-topic')
 class TestHeartbeat(test_api_base.BaseApiTest):
+    def test_disabled_by_config(self):
+        node = obj_utils.create_test_node(self.context)
+        CONF.set_override('enable_ramdisk_endpoints', False, 'api')
+        response = self.post_json(
+            '/heartbeat/%s' % node.uuid,
+            {'callback_url': 'https://url',
+             'agent_token': 'x'},
+            headers={api_base.Version.string: str(
+                api_v1.max_version())},
+            expect_errors=True)
+        self.assertEqual(http_client.FORBIDDEN, response.status_int)
+
     def test_old_api_version(self):
         response = self.post_json(
             '/heartbeat/%s' % uuidutils.generate_uuid(),
@@ -581,6 +602,17 @@ class TestContinueInspection(test_api_base.BaseApiTest):
         self.node = obj_utils.create_test_node(self.context,
                                                uuid=uuidutils.generate_uuid(),
                                                provision_state='inspect wait')
+
+    def test_disabled_by_config(self, mock_lookup, mock_continue):
+        CONF.set_override('enable_ramdisk_endpoints', False, 'api')
+        response = self.post_json(
+            '/continue_inspection', self.data,
+            headers={api_base.Version.string: str(
+                api_v1.max_version())},
+            expect_errors=True)
+        self.assertEqual(http_client.FORBIDDEN, response.status_int)
+        mock_lookup.assert_not_called()
+        mock_continue.assert_not_called()
 
     def test_inspector_compatibility(self, mock_lookup, mock_continue):
         mock_lookup.return_value = self.node
