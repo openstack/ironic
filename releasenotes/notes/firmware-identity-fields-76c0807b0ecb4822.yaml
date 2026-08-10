@@ -1,0 +1,23 @@
+---
+features:
+  - |
+    Adds version 1.114 of the Bare Metal API. The
+    ``GET /v1/nodes/{node_ident}/firmware`` response now includes three
+    optional hardware identity fields: ``vendor``, ``model``, and
+    ``serial_number``. These allow operators to correlate firmware
+    records with NIC entries in the inventory endpoint.
+
+    For NICs the fields are populated from the Redfish
+    ``NetworkAdapter`` resource (Manufacturer, Model, SerialNumber).
+    For BMC the ``model`` field is populated from ``Manager.Model``.
+    BIOS identity fields are null.
+
+    The new fields are nullable and will remain empty on existing nodes
+    until the next inspection or cleaning pass runs
+    ``cache_firmware_components``.
+upgrade:
+  - |
+    A database migration adds three nullable columns (``vendor``,
+    ``model``, ``serial_number``) to the ``firmware_information`` table.
+    Existing rows are unaffected. New values are populated on the next
+    ``cache_firmware_components`` run (inspection or cleaning).

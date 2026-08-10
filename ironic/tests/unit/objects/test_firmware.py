@@ -164,3 +164,42 @@ class TestFirmwareComponentObject(db_base.DbTestCase,
         self.assertEqual(create, [])
         self.assertEqual(update, [])
         self.assertEqual(unchanged, components)
+
+    @mock.patch(
+        'ironic.objects.firmware.FirmwareComponentList.get_by_node_id',
+        spec_set=types.FunctionType)
+    def test_sync_firmware_components_identity_change_triggers_update(
+            self, mock_get):
+        node = obj_utils.create_test_node(self.context)
+        fw_obj = obj_utils.create_test_firmware_component(
+            self.context, node_id=node.id,
+            vendor=None, model=None, serial_number=None)
+        mock_get.return_value = [fw_obj]
+
+        components = [{'component': 'bmc', 'current_version': 'v1.0.0',
+                       'vendor': 'Acme', 'model': 'BMC-X',
+                       'serial_number': None}]
+
+        create, update, unchanged = (
+            objects.FirmwareComponentList.sync_firmware_components(
+                self.context, node.id, components))
+
+        self.assertEqual([], create)
+        self.assertEqual([components[0]], update)
+        self.assertEqual([], unchanged)
+
+    def test_obj_make_compatible_strips_identity_fields_for_v1_1(self):
+        fw_cmp = objects.FirmwareComponent(self.context)
+        fw_cmp.component = 'bmc'
+        fw_cmp.initial_version = 'v1.0.0'
+        fw_cmp.current_version = 'v1.0.0'
+        fw_cmp.vendor = 'Acme'
+        fw_cmp.model = 'BMC-X'
+        fw_cmp.serial_number = None
+
+        primitive = fw_cmp.obj_to_primitive(target_version='1.1')
+        data = primitive['ironic_object.data']
+
+        self.assertNotIn('vendor', data)
+        self.assertNotIn('model', data)
+        self.assertNotIn('serial_number', data)

@@ -1091,11 +1091,39 @@ firmware_component_last_version_flashed:
   in: body
   required: true
   type: string
+firmware_component_model:
+  description: |
+    The hardware model of a Firmware Component, sourced from the Redfish
+    ``NetworkAdapter.Model`` (NICs) or ``Manager.Model`` (BMC) resource.
+    ``null`` when not available (BIOS).
+    Available starting with API microversion 1.114.
+  in: body
+  required: false
+  type: string
+firmware_component_serial_number:
+  description: |
+    The serial number of a Firmware Component, sourced from the Redfish
+    ``NetworkAdapter.SerialNumber`` resource. ``null`` for BMC and BIOS
+    components, and for NICs that do not expose a serial number.
+    Available starting with API microversion 1.114.
+  in: body
+  required: false
+  type: string
+firmware_component_vendor:
+  description: |
+    The hardware vendor of a Firmware Component, sourced from the Redfish
+    ``NetworkAdapter.Manufacturer`` (NICs) or ``Manager`` (BMC) resource.
+    ``null`` when not available (BIOS, BMC without manufacturer data).
+    Available starting with API microversion 1.114.
+  in: body
+  required: false
+  type: string
 firmware_components:
   description: |
     List of Firmware Components of the node. It includes following fields
     "created_at", "updated_at", "component", "initial_version",
-    "current_version", "last_version_flashed"
+    "current_version", "last_version_flashed". Starting with API microversion
+    1.114, also includes "vendor", "model", "serial_number".
   in: body
   required: true
   type: array

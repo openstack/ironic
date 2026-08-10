@@ -13,6 +13,7 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
+from oslo_utils import versionutils
 from oslo_versionedobjects import base as object_base
 
 from ironic.db import api as dbapi
@@ -24,7 +25,8 @@ from ironic.objects import fields as object_fields
 class FirmwareComponent(base.IronicObject):
     # Version 1.0: Initial version
     # Version 1.1: Relevant methods changed to be remotable methods.
-    VERSION = '1.1'
+    # Version 1.2: Added vendor, model, serial_number fields.
+    VERSION = '1.2'
 
     dbapi = dbapi.get_instance()
 
@@ -35,7 +37,17 @@ class FirmwareComponent(base.IronicObject):
         'initial_version': object_fields.StringField(nullable=False),
         'current_version': object_fields.StringField(nullable=True),
         'last_version_flashed': object_fields.StringField(nullable=True),
+        'vendor': object_fields.StringField(nullable=True),
+        'model': object_fields.StringField(nullable=True),
+        'serial_number': object_fields.StringField(nullable=True),
     }
+
+    def obj_make_compatible(self, primitive, target_version):
+        target_version = versionutils.convert_version_to_tuple(target_version)
+        if target_version < (1, 2):
+            primitive.pop('vendor', None)
+            primitive.pop('model', None)
+            primitive.pop('serial_number', None)
 
     @object_base.remotable
     def create(self, context=None):
@@ -146,6 +158,9 @@ class FirmwareComponentList(base.IronicObjectListBase, base.IronicObject):
                 'initial_version': cmp.initial_version,
                 'current_version': cmp.current_version,
                 'last_version_flashed': cmp.last_version_flashed,
+                'vendor': cmp.vendor,
+                'model': cmp.model,
+                'serial_number': cmp.serial_number,
             }
 
         for cmp in components:
@@ -161,7 +176,13 @@ class FirmwareComponentList(base.IronicObjectListBase, base.IronicObject):
                     cv_changed = cmp['current_version'] \
                         != values.get('current_version')
 
-                if cv_changed or lvf_changed:
+                identity_changed = (
+                    cmp.get('vendor') != values.get('vendor')
+                    or cmp.get('model') != values.get('model')
+                    or cmp.get('serial_number') != values.get('serial_number')
+                )
+
+                if cv_changed or lvf_changed or identity_changed:
                     update_list.append(cmp)
                 else:
                     unchanged_list.append(cmp)

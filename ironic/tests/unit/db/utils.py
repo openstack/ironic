@@ -778,6 +778,9 @@ def get_test_firmware_component(**kw):
         'initial_version': kw.get('initial_version', 'v1.0.0'),
         'current_version': kw.get('current_version', 'v1.0.0'),
         'last_version_flashed': kw.get('last_version_flashed', None),
+        'vendor': kw.get('vendor', None),
+        'model': kw.get('model', None),
+        'serial_number': kw.get('serial_number', None),
         'version': kw.get('version', firmware.FirmwareComponent.VERSION),
         'created_at': kw.get('created_at'),
         'updated_at': kw.get('updated_at'),
@@ -787,9 +790,11 @@ def get_test_firmware_component(**kw):
 def get_test_firmware_component_list():
     return [
         {'component': 'bmc', 'initial_version': 'v1.0.0',
-         'current_version': 'v1.0.0', 'last_version_flashed': None},
+         'current_version': 'v1.0.0', 'last_version_flashed': None,
+         'vendor': None, 'model': None, 'serial_number': None},
         {'component': 'BIOS', 'initial_version': 'v1.5.0',
-         'current_version': 'v1.5.0', 'last_version_flashed': None},
+         'current_version': 'v1.5.0', 'last_version_flashed': None,
+         'vendor': None, 'model': None, 'serial_number': None},
     ]
 
 

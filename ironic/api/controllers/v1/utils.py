@@ -2335,6 +2335,10 @@ def allow_firmware_interface():
     return api.request.version.minor >= versions.MINOR_86_FIRMWARE_INTERFACE
 
 
+def allow_firmware_identity():
+    return api.request.version.minor >= versions.MINOR_114_FIRMWARE_IDENTITY
+
+
 def allow_port_name():
     """Check if name is allowed for ports.
 

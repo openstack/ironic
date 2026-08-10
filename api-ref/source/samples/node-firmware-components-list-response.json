@@ -2,19 +2,36 @@
   "firmware": [
     {
       "created_at": "2016-08-18T22:28:49.653974+00:00",
-      "updated_at": "2016-08-18T22:28:49.653974+00:00",
+      "updated_at": null,
       "component": "BMC",
       "initial_version": "v1.0.0",
-      "current_version": "v1.2.0",
-      "last_version_flashed": "v1.2.0"
+      "current_version": "v1.0.0",
+      "last_version_flashed": null,
+      "vendor": null,
+      "model": "iDRAC 9",
+      "serial_number": null
+    },
+    {
+      "created_at": "2016-08-18T22:28:49.653974+00:00",
+      "updated_at": null,
+      "component": "BIOS",
+      "initial_version": "v1.0.0",
+      "current_version": "v1.1.5",
+      "last_version_flashed": null,
+      "vendor": null,
+      "model": null,
+      "serial_number": null
     },
     {
       "created_at": "2016-08-18T22:28:49.653974+00:00",
       "updated_at": "2016-08-18T22:28:49.653974+00:00",
-      "component": "BIOS",
-      "initial_version": "v1.0.0",
-      "current_version": "v1.1.5",
-      "last_version_flashed": "v1.1.5"
+      "component": "NIC:ABC12345",
+      "initial_version": "22.0.9",
+      "current_version": "22.5.0",
+      "last_version_flashed": "22.5.0",
+      "vendor": "Intel Corporation",
+      "model": "Intel(R) 25GbE 2P XXV710 Adptr",
+      "serial_number": "ABC12345"
     }
   ]
 }

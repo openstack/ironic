@@ -153,19 +153,23 @@ class RedfishFirmwareTestCase(db_base.DbTestCase):
                        autospec=True)
     def test_missing_bios_component(self, fw_cmp_mock, sync_fw_cmp_mock,
                                     manager_mock, system_mock, log_mock):
-        create_list = [{'component': 'bmc', 'current_version': 'v1.0.0'}]
+        create_list = [{'component': 'bmc', 'current_version': 'v1.0.0',
+                        'vendor': None, 'model': 'BMC Model',
+                        'serial_number': None}]
         sync_fw_cmp_mock.return_value = (
             create_list, [], []
         )
 
         bmc_component = {'component': 'bmc', 'current_version': 'v1.0.0',
-                         'node_id': self.node.id}
+                         'vendor': None, 'model': 'BMC Model',
+                         'serial_number': None, 'node_id': self.node.id}
 
         with task_manager.acquire(self.context, self.node.uuid,
                                   shared=True) as task:
             system_mock.return_value.identity = "System1"
             system_mock.return_value.bios_version = None
             manager_mock.return_value.firmware_version = "v1.0.0"
+            manager_mock.return_value.model = "BMC Model"
 
             task.driver.firmware.cache_firmware_components(task)
             system_mock.assert_called_once_with(task.node)
@@ -176,7 +180,9 @@ class RedfishFirmwareTestCase(db_base.DbTestCase):
                 {'node_uuid': self.node.uuid, 'system': 'System1'})
             sync_fw_cmp_mock.assert_called_once_with(
                 task.context, task.node.id,
-                [{'component': 'bmc', 'current_version': 'v1.0.0'}])
+                [{'component': 'bmc', 'current_version': 'v1.0.0',
+                  'vendor': None, 'model': 'BMC Model',
+                  'serial_number': None}])
             self.assertTrue(fw_cmp_mock.called)
             fw_cmp_mock.assert_called_once_with(task.context, **bmc_component)
 
@@ -189,13 +195,15 @@ class RedfishFirmwareTestCase(db_base.DbTestCase):
                        autospec=True)
     def test_missing_bmc_component(self, fw_cmp_mock, sync_fw_cmp_mock,
                                    manager_mock, system_mock, log_mock):
-        create_list = [{'component': 'bios', 'current_version': 'v1.0.0'}]
+        create_list = [{'component': 'bios', 'current_version': 'v1.0.0',
+                        'vendor': None, 'model': None, 'serial_number': None}]
         sync_fw_cmp_mock.return_value = (
             create_list, [], []
         )
 
         bios_component = {'component': 'bios', 'current_version': 'v1.0.0',
-                          'node_id': self.node.id}
+                          'vendor': None, 'model': None,
+                          'serial_number': None, 'node_id': self.node.id}
 
         with task_manager.acquire(self.context, self.node.uuid,
                                   shared=True) as task:
@@ -211,7 +219,8 @@ class RedfishFirmwareTestCase(db_base.DbTestCase):
             system_mock.assert_called_once_with(task.node)
             sync_fw_cmp_mock.assert_called_once_with(
                 task.context, task.node.id,
-                [{'component': 'bios', 'current_version': 'v1.0.0'}])
+                [{'component': 'bios', 'current_version': 'v1.0.0',
+                  'vendor': None, 'model': None, 'serial_number': None}])
             self.assertTrue(fw_cmp_mock.called)
             fw_cmp_mock.assert_called_once_with(task.context, **bios_component)
 
@@ -225,25 +234,34 @@ class RedfishFirmwareTestCase(db_base.DbTestCase):
     def test_create_all_components(self, fw_cmp_mock, fw_cmp_list_mock,
                                    chassis_mock, manager_mock, system_mock,
                                    log_mock):
-        create_list = [{'component': 'bios', 'current_version': 'v1.0.0'},
-                       {'component': 'bmc', 'current_version': 'v1.0.0'},
-                       {'component': 'nic:NIC1', 'current_version': '1'}]
+        create_list = [
+            {'component': 'bios', 'current_version': 'v1.0.0',
+             'vendor': None, 'model': None, 'serial_number': None},
+            {'component': 'bmc', 'current_version': 'v1.0.0',
+             'vendor': None, 'model': 'BMC Model', 'serial_number': None},
+            {'component': 'nic:NIC1', 'current_version': '1',
+             'vendor': 'Acme', 'model': 'NIC-X', 'serial_number': None},
+        ]
         fw_cmp_list_mock.sync_firmware_components.return_value = (
             create_list, [], []
         )
 
         bios_component = {'component': 'bios', 'current_version': 'v1.0.0',
-                          'node_id': self.node.id}
+                          'vendor': None, 'model': None,
+                          'serial_number': None, 'node_id': self.node.id}
 
         bmc_component = {'component': 'bmc', 'current_version': 'v1.0.0',
-                         'node_id': self.node.id}
+                         'vendor': None, 'model': 'BMC Model',
+                         'serial_number': None, 'node_id': self.node.id}
 
         nic_component = {'component': 'nic:NIC1', 'current_version': '1',
-                         'node_id': self.node.id}
+                         'vendor': 'Acme', 'model': 'NIC-X',
+                         'serial_number': None, 'node_id': self.node.id}
 
         with task_manager.acquire(self.context, self.node.uuid,
                                   shared=True) as task:
             manager_mock.return_value.firmware_version = "v1.0.0"
+            manager_mock.return_value.model = "BMC Model"
             system_mock.return_value.bios_version = "v1.0.0"
             chassis_mock
             netadp_ctrl = mock.MagicMock()
@@ -251,6 +269,8 @@ class RedfishFirmwareTestCase(db_base.DbTestCase):
             netadp = mock.MagicMock()
             netadp.identity = 'NIC1'
             netadp.serial_number = None
+            netadp.manufacturer = 'Acme'
+            netadp.model = 'NIC-X'
             netadp.controllers = [netadp_ctrl]
             net_adapters = mock.MagicMock()
             net_adapters.get_members.return_value = [netadp]
@@ -265,9 +285,12 @@ class RedfishFirmwareTestCase(db_base.DbTestCase):
             system_mock.assert_called_once_with(task.node)
             fw_cmp_list_mock.sync_firmware_components.assert_called_once_with(
                 task.context, task.node.id,
-                [{'component': 'bios', 'current_version': 'v1.0.0'},
-                 {'component': 'bmc', 'current_version': 'v1.0.0'},
-                 {'component': 'nic:NIC1', 'current_version': '1'}])
+                [{'component': 'bios', 'current_version': 'v1.0.0',
+                  'vendor': None, 'model': None, 'serial_number': None},
+                 {'component': 'bmc', 'current_version': 'v1.0.0',
+                  'vendor': None, 'model': 'BMC Model', 'serial_number': None},
+                 {'component': 'nic:NIC1', 'current_version': '1',
+                  'vendor': 'Acme', 'model': 'NIC-X', 'serial_number': None}])
             fw_cmp_calls = [
                 mock.call(task.context, **bios_component),
                 mock.call().create(),
@@ -451,22 +474,29 @@ class RedfishFirmwareTestCase(db_base.DbTestCase):
             fw_cmp_mock.reset_mock()
             log_mock.reset_mock()
 
-            create_list = [{'component': 'bios', 'current_version': 'v1.0.0'},
-                           {'component': 'bmc', 'current_version': 'v1.0.0'}]
+            create_list = [
+                {'component': 'bios', 'current_version': 'v1.0.0',
+                 'vendor': None, 'model': None, 'serial_number': None},
+                {'component': 'bmc', 'current_version': 'v1.0.0',
+                 'vendor': None, 'model': 'BMC Model', 'serial_number': None},
+            ]
             fw_cmp_list.sync_firmware_components.return_value = (
                 create_list, [], []
             )
 
             bios_component = {'component': 'bios',
                               'current_version': 'v1.0.0',
-                              'node_id': self.node.id}
+                              'vendor': None, 'model': None,
+                              'serial_number': None, 'node_id': self.node.id}
 
             bmc_component = {'component': 'bmc', 'current_version': 'v1.0.0',
-                             'node_id': self.node.id}
+                             'vendor': None, 'model': 'BMC Model',
+                             'serial_number': None, 'node_id': self.node.id}
 
             with task_manager.acquire(self.context, self.node.uuid,
                                       shared=True) as task:
                 manager_mock.return_value.firmware_version = "v1.0.0"
+                manager_mock.return_value.model = "BMC Model"
                 system_mock.return_value.bios_version = "v1.0.0"
 
                 netadp_ctrl = mock.MagicMock()
@@ -481,8 +511,11 @@ class RedfishFirmwareTestCase(db_base.DbTestCase):
 
                 fw_cmp_list.sync_firmware_components.assert_called_once_with(
                     task.context, task.node.id,
-                    [{'component': 'bios', 'current_version': 'v1.0.0'},
-                     {'component': 'bmc', 'current_version': 'v1.0.0'}])
+                    [{'component': 'bios', 'current_version': 'v1.0.0',
+                      'vendor': None, 'model': None, 'serial_number': None},
+                     {'component': 'bmc', 'current_version': 'v1.0.0',
+                      'vendor': None, 'model': 'BMC Model',
+                      'serial_number': None}])
 
                 fw_cmp_calls = [
                     mock.call(task.context, **bios_component),
@@ -573,10 +606,14 @@ class RedfishFirmwareTestCase(db_base.DbTestCase):
         so we use the SerialNumber when available for stable identification.
         """
         create_list = [
-            {'component': 'bios', 'current_version': 'v1.0.0'},
-            {'component': 'bmc', 'current_version': 'v1.0.0'},
-            {'component': 'nic:SN12345', 'current_version': '1.2.3'},
-            {'component': 'nic:NIC2', 'current_version': '1.2.4'}
+            {'component': 'bios', 'current_version': 'v1.0.0',
+             'vendor': None, 'model': None, 'serial_number': None},
+            {'component': 'bmc', 'current_version': 'v1.0.0',
+             'vendor': None, 'model': 'BMC Model', 'serial_number': None},
+            {'component': 'nic:SN12345', 'current_version': '1.2.3',
+             'vendor': 'Acme', 'model': 'NIC-A', 'serial_number': 'SN12345'},
+            {'component': 'nic:NIC2', 'current_version': '1.2.4',
+             'vendor': 'Acme', 'model': 'NIC-B', 'serial_number': None},
         ]
         fw_cmp_list.sync_firmware_components.return_value = (
             create_list, [], []
@@ -585,6 +622,7 @@ class RedfishFirmwareTestCase(db_base.DbTestCase):
         with task_manager.acquire(self.context, self.node.uuid,
                                   shared=True) as task:
             manager_mock.return_value.firmware_version = "v1.0.0"
+            manager_mock.return_value.model = "BMC Model"
             system_mock.return_value.bios_version = "v1.0.0"
 
             # First NIC: has serial number - should use serial number
@@ -593,6 +631,8 @@ class RedfishFirmwareTestCase(db_base.DbTestCase):
             netadp1 = mock.MagicMock()
             netadp1.identity = 'NIC1'
             netadp1.serial_number = 'SN12345'
+            netadp1.manufacturer = 'Acme'
+            netadp1.model = 'NIC-A'
             netadp1.controllers = [netadp_ctrl1]
 
             # Second NIC: no serial number - should fall back to identity
@@ -601,6 +641,8 @@ class RedfishFirmwareTestCase(db_base.DbTestCase):
             netadp2 = mock.MagicMock()
             netadp2.identity = 'NIC2'
             netadp2.serial_number = None
+            netadp2.manufacturer = 'Acme'
+            netadp2.model = 'NIC-B'
             netadp2.controllers = [netadp_ctrl2]
 
             net_adapters = mock.MagicMock()
@@ -612,10 +654,15 @@ class RedfishFirmwareTestCase(db_base.DbTestCase):
             # Verify components include serial number for first NIC
             fw_cmp_list.sync_firmware_components.assert_called_once_with(
                 task.context, task.node.id,
-                [{'component': 'bios', 'current_version': 'v1.0.0'},
-                 {'component': 'bmc', 'current_version': 'v1.0.0'},
-                 {'component': 'nic:SN12345', 'current_version': '1.2.3'},
-                 {'component': 'nic:NIC2', 'current_version': '1.2.4'}])
+                [{'component': 'bios', 'current_version': 'v1.0.0',
+                  'vendor': None, 'model': None, 'serial_number': None},
+                 {'component': 'bmc', 'current_version': 'v1.0.0',
+                  'vendor': None, 'model': 'BMC Model', 'serial_number': None},
+                 {'component': 'nic:SN12345', 'current_version': '1.2.3',
+                  'vendor': 'Acme', 'model': 'NIC-A',
+                  'serial_number': 'SN12345'},
+                 {'component': 'nic:NIC2', 'current_version': '1.2.4',
+                  'vendor': 'Acme', 'model': 'NIC-B', 'serial_number': None}])
 
             # Verify debug log was called for serial number usage
             log_mock.debug.assert_any_call(

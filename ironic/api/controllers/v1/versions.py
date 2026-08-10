@@ -271,6 +271,8 @@ MINOR_111_DYNAMIC_PORTGROUP = 111
 #         sub-resource.
 MINOR_112_RUNBOOK_TRAITS = 112
 MINOR_113_NODE_HISTORY_PROJECT = 113
+# v1.114: Add vendor, model, serial_number to firmware component response.
+MINOR_114_FIRMWARE_IDENTITY = 114
 
 # When adding another version, update:
 # - MINOR_MAX_VERSION
@@ -280,7 +282,7 @@ MINOR_113_NODE_HISTORY_PROJECT = 113
 # - Add a comment describing the change above the list of consts
 
 
-MINOR_MAX_VERSION = MINOR_113_NODE_HISTORY_PROJECT
+MINOR_MAX_VERSION = MINOR_114_FIRMWARE_IDENTITY
 
 # String representations of the minor and maximum versions
 _MIN_VERSION_STRING = '{}.{}'.format(BASE_VERSION, MINOR_1_INITIAL_VERSION)

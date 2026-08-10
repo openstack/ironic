@@ -723,7 +723,7 @@ expected_object_fingerprints = {
     'Deployment': '1.1-1f326911955bbb1c24cb6ec0a453f6cc',
     'NodeHistory': '1.2-f799329c546bd3a3cdb2d9634f1e20ca',
     'NodeInventory': '1.1-acc176aeb9358c3866ceecdd13832b44',
-    'FirmwareComponent': '1.1-3fc6cfd07d01b681b69d0b654b42745a',
+    'FirmwareComponent': '1.2-e12837f714cc05b333ed3f10d2241599',
     'FirmwareComponentList': '1.1-b1b32f4ead70f94f71913e39ea628eda',
     'Runbook': '1.2-6d5c9d83e40f8e592625f303770a1903',
     'RunbookCRUDNotification': '1.0-59acc533c11d306f149846f922739c15',

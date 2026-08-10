@@ -97,7 +97,8 @@ class RedfishFirmware(base.FirmwareInterface):
 
         if system.bios_version:
             bios_fw = {'component': redfish_utils.BIOS,
-                       'current_version': system.bios_version}
+                       'current_version': system.bios_version,
+                       'vendor': None, 'model': None, 'serial_number': None}
             settings.append(bios_fw)
         else:
             LOG.debug('Could not retrieve BiosVersion in node %(node_uuid)s '
@@ -111,7 +112,10 @@ class RedfishFirmware(base.FirmwareInterface):
             manager = redfish_utils.get_manager(task.node, system)
             if manager.firmware_version:
                 bmc_fw = {'component': redfish_utils.BMC,
-                          'current_version': manager.firmware_version}
+                          'current_version': manager.firmware_version,
+                          'vendor': None,
+                          'model': manager.model,
+                          'serial_number': None}
                 settings.append(bmc_fw)
             else:
                 LOG.debug('Could not retrieve FirmwareVersion in node '
@@ -160,7 +164,10 @@ class RedfishFirmware(base.FirmwareInterface):
                     task.context,
                     node_id=node_id,
                     component=new_fw['component'],
-                    current_version=new_fw['current_version']
+                    current_version=new_fw['current_version'],
+                    vendor=new_fw.get('vendor'),
+                    model=new_fw.get('model'),
+                    serial_number=new_fw.get('serial_number'),
                 )
                 new_fw_cmp.create()
         if update_list:
@@ -170,8 +177,13 @@ class RedfishFirmware(base.FirmwareInterface):
                     node_id=node_id,
                     name=up_fw['component']
                 )
-                up_fw_cmp.last_version_flashed = up_fw.get('current_version')
-                up_fw_cmp.current_version = up_fw.get('current_version')
+                if up_fw_cmp.current_version != up_fw.get('current_version'):
+                    up_fw_cmp.last_version_flashed = up_fw.get(
+                        'current_version')
+                    up_fw_cmp.current_version = up_fw.get('current_version')
+                up_fw_cmp.vendor = up_fw.get('vendor')
+                up_fw_cmp.model = up_fw.get('model')
+                up_fw_cmp.serial_number = up_fw.get('serial_number')
                 up_fw_cmp.save()
 
     def retrieve_nic_components(self, task, system):
@@ -223,8 +235,15 @@ class RedfishFirmware(base.FirmwareInterface):
                               {'identity': net_adp.identity,
                                'net_adp_id': net_adp.identity})
 
-                net_adp_fw = {'component': redfish_utils.NIC_COMPONENT_PREFIX
-                              + net_adp_id, 'current_version': fw_pkg_v}
+                net_adp_fw = {
+                    'component': (
+                        redfish_utils.NIC_COMPONENT_PREFIX
+                        + net_adp_id),
+                    'current_version': fw_pkg_v,
+                    'vendor': net_adp.manufacturer,
+                    'model': net_adp.model,
+                    'serial_number': net_adp.serial_number,
+                }
                 nic_list.append(net_adp_fw)
 
         return nic_list

@@ -22,6 +22,7 @@ from ironic.api import method
 from ironic.api.schemas.v1 import firmware as schema
 from ironic.api import validation
 from ironic.common import args
+from ironic.common import exception
 from ironic.common.i18n import _
 from ironic.common import metrics_utils
 from ironic import objects
@@ -30,6 +31,7 @@ METRICS = metrics_utils.get_metrics_logger(__name__)
 
 _DEFAULT_RETURN_FIELDS = ('component', 'initial_version', 'current_version',
                           'last_version_flashed')
+_IDENTITY_FIELDS = ('vendor', 'model', 'serial_number')
 
 
 # NOTE(iurygregory): Keeping same parameters just in case we decide
@@ -80,8 +82,19 @@ class NodeFirmwareController(rest.RestController):
             'baremetal:node:firmware:get', self.node_ident)
 
         allow_query = api_utils.allow_firmware_interface
+        default_fields = _DEFAULT_RETURN_FIELDS
+        if api_utils.allow_firmware_identity():
+            default_fields = _DEFAULT_RETURN_FIELDS + _IDENTITY_FIELDS
+        elif fields is not None:
+            disallowed = set(fields) & set(_IDENTITY_FIELDS)
+            if disallowed:
+                raise exception.InvalidParameterValue(
+                    _("Fields %s are not allowed in this API version. "
+                      "They require at least API version 1.%d.")
+                    % (', '.join(sorted(disallowed)),
+                       versions.MINOR_114_FIRMWARE_IDENTITY))
         fields = api_utils.get_request_return_fields(fields, detail,
-                                                     _DEFAULT_RETURN_FIELDS,
+                                                     default_fields,
                                                      allow_query, allow_query)
         components = objects.FirmwareComponentList.get_by_node_id(
             api.request.context, node.id)

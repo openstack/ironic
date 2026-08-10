@@ -570,6 +570,9 @@ class FirmwareComponent(Base):
     initial_version = Column(String(255), nullable=False)
     current_version = Column(String(255), nullable=True)
     last_version_flashed = Column(String(255), nullable=True)
+    vendor = Column(String(255), nullable=True)
+    model = Column(String(255), nullable=True)
+    serial_number = Column(String(255), nullable=True)
 
 
 class Runbook(Base):
