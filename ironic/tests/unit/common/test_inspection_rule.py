@@ -486,6 +486,26 @@ class TestOperators(TestInspectionRules):
             self.assertFalse(oneof_op.check_with_loop(
                 task, oneof_condition, self.inventory, self.plugin_data))
 
+    def test_simple_operator_interpolates_values(self):
+        """SimpleOperator values are interpolated outside of a loop."""
+        eq_op = inspection_rules.operators.EqOperator()
+        with task_manager.acquire(self.context, self.node.uuid) as task:
+            # node.driver is 'fake-hardware' in the test node; the reference
+            # must be interpolated before comparison, not compared literally.
+            matching = {
+                'op': 'eq',
+                'args': {'values': ['{node.driver}', 'fake-hardware']},
+            }
+            self.assertTrue(eq_op.check_condition(
+                task, matching, self.inventory, self.plugin_data))
+
+            not_matching = {
+                'op': 'eq',
+                'args': {'values': ['{node.driver}', 'other']},
+            }
+            self.assertFalse(eq_op.check_condition(
+                task, not_matching, self.inventory, self.plugin_data))
+
     def test_rule_operators(self):
         """Test all inspection_rules.operators with True and False cases."""
         operator_tests = {
