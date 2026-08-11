@@ -23,6 +23,7 @@ from ironic.common.i18n import _
 from ironic.common import states
 from ironic.conductor import task_manager
 from ironic.conductor import utils as cond_utils
+from ironic.conf import CONF
 from ironic.drivers import base
 from ironic.drivers.modules.redfish import management as redfish_mgmt
 from ironic.drivers.modules.redfish import utils as redfish_utils
@@ -62,7 +63,31 @@ def _set_power_state(task, system, power_state, timeout=None):
     :raises: RedfishConnectionError when it fails to connect to Redfish
     :raises: RedfishError on an error from the Sushy library
     """
-    system.reset_system(SET_POWER_STATE_MAP.get(power_state))
+    reset_type = SET_POWER_STATE_MAP.get(power_state)
+    # NOTE(jayjahns): Some BMCs (e.g. Dell iDRAC10) transiently reject the
+    # "On" reset type with an HTTP 409 ActionParameterValueConflict for a
+    # short window after a power-off, until the BMC settles. The value is
+    # correct (the same "On" is accepted once settled) and such BMCs may not
+    # implement "ForceOn", so retry the power-on until the BMC accepts it or
+    # the configured attempts are exhausted.
+    max_retries = CONF.redfish.power_on_conflict_retry_attempts
+    for attempt in range(max_retries + 1):
+        try:
+            system.reset_system(reset_type)
+            break
+        except sushy.exceptions.HTTPError as e:
+            if (power_state == states.POWER_ON
+                    and e.status_code == 409
+                    and 'ActionParameterValueConflict' in str(e)
+                    and attempt < max_retries):
+                LOG.warning('Node %(node)s: BMC rejected power-on with 409 '
+                            '(ActionParameterValueConflict); retry %(n)d of '
+                            '%(max)d after the BMC settles.',
+                            {'node': task.node.uuid, 'n': attempt + 1,
+                             'max': max_retries})
+                time.sleep(CONF.redfish.power_on_conflict_retry_interval)
+                continue
+            raise
     target_state = TARGET_STATE_MAP.get(power_state, power_state)
     if power_state == states.REBOOT:
         LOG.debug('Waiting 15 seconds to give the node %s a chance to power '
