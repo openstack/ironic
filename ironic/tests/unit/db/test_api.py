@@ -59,10 +59,25 @@ class UpgradingTestCase(base.DbTestCase):
 
     @mock.patch.object(release_mappings, 'get_object_versions', autospec=True)
     @mock.patch.object(db_utils, 'column_exists', autospec=True)
-    def test_check_versions_raises_missing_table(
+    def test_check_versions_handles_missing_table_with_multiple_versions(
             self, column_exists, mock_release_mappings):
+        # When an object was introduced at 1.0 and later bumped to 1.1,
+        # the table may still be missing during an upgrade from an older
+        # release. This should be handled gracefully as long as 1.0 is
+        # in the supported versions set.
         column_exists.side_effect = sa.exc.NoSuchTableError('meow')
         mock_release_mappings.return_value = {'Node': {'1.0', '1.1'}}
+        self.assertTrue(
+            self.dbapi.check_versions(permit_initial_version=True))
+        self.assertEqual(1, column_exists.call_count)
+
+    @mock.patch.object(release_mappings, 'get_object_versions', autospec=True)
+    @mock.patch.object(db_utils, 'column_exists', autospec=True)
+    def test_check_versions_raises_missing_table(
+            self, column_exists, mock_release_mappings):
+        # A table that was never at version 1.0 should not be missing.
+        column_exists.side_effect = sa.exc.NoSuchTableError('meow')
+        mock_release_mappings.return_value = {'Node': {'1.5', '1.6'}}
         self.assertRaises(sa.exc.NoSuchTableError, self.dbapi.check_versions)
         self.assertEqual(1, column_exists.call_count)
 
