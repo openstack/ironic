@@ -1932,6 +1932,17 @@ def node_history_record(node, conductor=None, event=None,
         conductor = CONF.host
 
     if CONF.conductor.node_history:
+        duration = None
+        if node.provision_updated_at is not None:
+            try:
+                now = timeutils.utcnow(with_timezone=True)
+                time_spent = now - node.provision_updated_at
+                duration = int(time_spent.total_seconds())
+            except TypeError:
+                LOG.debug("Unable to parse duration for node %s. "
+                          "'provision_updated_at' is not a valid "
+                          "datetime type.", node.uuid)
+
         # If the maximum number of entries is not set to zero,
         # then we should record the entry.
         # NOTE(TheJulia): DB API automatically adds in a uuid.
@@ -1944,7 +1955,11 @@ def node_history_record(node, conductor=None, event=None,
             project=project,
             severity=error and "ERROR" or "INFO",
             event=event,
-            event_type=event_type or "UNKNOWN").create()
+            event_type=event_type or "UNKNOWN",
+            state=node.provision_state,
+            target_provision_state=node.target_provision_state,
+            duration_seconds=duration
+            ).create()
 
 
 def update_image_type(context, node):
