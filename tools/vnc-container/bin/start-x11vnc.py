@@ -274,7 +274,7 @@ def main():
     # Build and start x11vnc command
     cmd = [
         'runuser', '-u', 'firefox', '--',
-        'x11vnc', '-ncache', '10'
+        'x11vnc'
     ]
     if READ_ONLY == 'True':
         cmd += ['-viewonly', '-nocursor']
