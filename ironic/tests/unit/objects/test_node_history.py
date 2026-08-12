@@ -140,3 +140,46 @@ class TestNodeHistoryObject(db_base.DbTestCase, obj_utils.SchemasTestMixIn):
             history = objects.NodeHistory.list(
                 self.context, limit=4, sort_key='uuid', sort_dir='asc')
             self.assertEqual('test-project', history[0].project)
+
+    def test_fields(self):
+        history = objects.NodeHistory(self.context)
+        self.assertIn('project', history.fields)
+        self.assertIn('state', history.fields)
+        self.assertIn('target_provision_state', history.fields)
+        self.assertIn('duration_seconds', history.fields)
+        self.assertTrue(history.fields['project'].nullable)
+        self.assertTrue(history.fields['state'].nullable)
+        self.assertTrue(history.fields['target_provision_state'].nullable)
+        self.assertTrue(history.fields['duration_seconds'].nullable)
+
+    def test_convert_to_version_1_2(self):
+        history = objects.NodeHistory(
+            self.context,
+            project='fake-project',
+            state='available',
+            target_provision_state='deploying',
+            duration_seconds=120
+        )
+
+        history._convert_to_version('1.2', remove_unavailable_fields=True)
+
+        self.assertEqual('fake-project', history.project)
+        self.assertFalse(history.obj_attr_is_set('state'))
+        self.assertFalse(history.obj_attr_is_set('target_provision_state'))
+        self.assertFalse(history.obj_attr_is_set('duration_seconds'))
+
+    def test_convert_to_version_1_1(self):
+        history = objects.NodeHistory(
+            self.context,
+            project='fake-project',
+            state='available',
+            target_provision_state='deploying',
+            duration_seconds=120
+        )
+
+        history._convert_to_version('1.1', remove_unavailable_fields=True)
+
+        self.assertFalse(history.obj_attr_is_set('project'))
+        self.assertFalse(history.obj_attr_is_set('state'))
+        self.assertFalse(history.obj_attr_is_set('target_provision_state'))
+        self.assertFalse(history.obj_attr_is_set('duration_seconds'))

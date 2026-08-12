@@ -721,7 +721,7 @@ expected_object_fingerprints = {
     'DeployTemplateCRUDNotification': '1.0-59acc533c11d306f149846f922739c15',
     'DeployTemplateCRUDPayload': '1.0-200857e7e715f58a5b6d6b700ab73a3b',
     'Deployment': '1.1-1f326911955bbb1c24cb6ec0a453f6cc',
-    'NodeHistory': '1.2-f799329c546bd3a3cdb2d9634f1e20ca',
+    'NodeHistory': '1.3-ab4a2c3403a9faec1d5edcf305344df5',
     'NodeInventory': '1.1-acc176aeb9358c3866ceecdd13832b44',
     'FirmwareComponent': '1.2-e12837f714cc05b333ed3f10d2241599',
     'FirmwareComponentList': '1.1-b1b32f4ead70f94f71913e39ea628eda',

@@ -12,6 +12,7 @@
 
 from oslo_utils import strutils
 from oslo_utils import uuidutils
+from oslo_utils import versionutils
 from oslo_versionedobjects import base as object_base
 
 from ironic.common import exception
@@ -25,7 +26,9 @@ class NodeHistory(base.IronicObject, object_base.VersionedObjectDictCompat):
     # Version 1.0: Initial version
     # Version 1.1: Relevant methods changed to be remotable methods.
     # Version 1.2: Added project field.
-    VERSION = '1.2'
+    # Version 1.3: Added state, target_provision_state,
+    #              and duration_seconds fields.
+    VERSION = '1.3'
 
     dbapi = dbapi.get_instance()
 
@@ -39,6 +42,9 @@ class NodeHistory(base.IronicObject, object_base.VersionedObjectDictCompat):
         'node_id': object_fields.IntegerField(nullable=True),
         'event_type': object_fields.StringField(nullable=True),
         'severity': object_fields.StringField(nullable=True),
+        'state': object_fields.StringField(nullable=True),
+        'target_provision_state': object_fields.StringField(nullable=True),
+        'duration_seconds': object_fields.IntegerField(nullable=True),
     }
 
     @classmethod
@@ -162,3 +168,33 @@ class NodeHistory(base.IronicObject, object_base.VersionedObjectDictCompat):
         """
         self.dbapi.destroy_node_history_by_uuid(self.uuid)
         self.obj_reset_changes()
+
+    def _convert_to_version(self, target_version,
+                            remove_unavailable_fields=True):
+        """Convert the object instance to requested target version."""
+        super(NodeHistory, self)._convert_to_version(
+            target_version,
+            remove_unavailable_fields=remove_unavailable_fields)
+
+        target_version = versionutils.convert_version_to_tuple(target_version)
+
+        # Version 1.3 added 'state', 'target_provision_state',
+        # and 'duration_seconds'
+        if target_version < (1, 3):
+            fields_to_remove = [
+                'state', 'target_provision_state', 'duration_seconds'
+            ]
+            for field in fields_to_remove:
+                if self.obj_attr_is_set(field):
+                    if remove_unavailable_fields:
+                        delattr(self, field)
+                    else:
+                        setattr(self, field, None)
+
+        # Version 1.2 added 'project'
+        if target_version < (1, 2):
+            if self.obj_attr_is_set('project'):
+                if remove_unavailable_fields:
+                    delattr(self, 'project')
+                else:
+                    setattr(self, 'project', None)

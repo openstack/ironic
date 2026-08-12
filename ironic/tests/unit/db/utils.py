@@ -710,6 +710,9 @@ def get_test_history(**kw):
         'project': kw.get('project', 'fake-project'),
         'created_at': kw.get('created_at'),
         'updated_at': kw.get('updated_at'),
+        'state': kw.get('state', 'available'),
+        'target_provision_state': kw.get('target_provision_state'),
+        'duration_seconds': kw.get('duration_seconds'),
     }
 
 
