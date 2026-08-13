@@ -97,6 +97,8 @@ class TestLookup(test_api_base.BaseApiTest):
             'permitted_image_formats': CONF.conductor.permitted_image_formats,
             'agent_skip_bmc_detect': skip_bmc_detect,
             'enable_bios_bootloader_install': CONF.agent.enable_bios_bootloader_install, # noqa
+            'tls_min_version': CONF.agent.tls_minimum_version,
+            'tls_cipher_suites': CONF.agent.tls_ciphers,
         }
         self.assertEqual(expected_config, data['config'])
         self.assertIsNotNone(data['config']['agent_token'])

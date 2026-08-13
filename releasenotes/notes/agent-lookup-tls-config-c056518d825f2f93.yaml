@@ -1,0 +1,9 @@
+---
+features:
+  - |
+    The ``/v1/lookup`` endpoint now includes TLS configuration in the
+    response to ironic-python-agent. The ``tls_min_version`` and
+    ``tls_cipher_suites`` configuration is passed to IPA, sourced from the
+    ``[agent] tls_minimum_version`` and ``[agent] tls_ciphers`` config
+    options, allowing IPA to apply the same TLS security policy when
+    making callbacks to the Ironic API.
