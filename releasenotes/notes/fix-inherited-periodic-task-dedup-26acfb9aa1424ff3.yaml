@@ -1,0 +1,24 @@
+---
+fixes:
+  - |
+    Fixes a bug where a clean, service, or deploy step immediately
+    following a BIOS settings change or RAID configuration could be
+    silently skipped.  The problem occurs when both a base driver
+    interface and a subclass that inherits its periodic task are
+    enabled on a conductor, for example ``redfish`` and
+    ``idrac-redfish`` BIOS or RAID interfaces.  Operators who observed
+    firmware update or RAID steps not executing after a BIOS apply,
+    factory reset, or RAID configuration were likely hitting this
+    issue.  The root cause was that a periodic task's node match used
+    ``isinstance()``, so the base interface's task also matched nodes
+    whose interface was a subclass.  With both interfaces enabled the
+    same node was processed by two tasks, issuing duplicate
+    ``resume`` RPCs that advanced past the next step.  Periodic tasks
+    now match a node's interface by exact type.
+upgrade:
+  - |
+    Periodic tasks defined on a driver interface now match a node's
+    interface by exact type rather than ``isinstance()``.  Nodes using
+    a subclass interface (for example ``idrac-redfish``) are now
+    handled by their own interface instance instead of possibly the
+    parent interface's, so any subclass-specific overrides are applied.
