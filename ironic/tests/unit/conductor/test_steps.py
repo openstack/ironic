@@ -13,9 +13,11 @@
 from unittest import mock
 
 from oslo_config import cfg
+from oslo_policy import policy as oslo_policy
 from oslo_utils import uuidutils
 
 from ironic.common import exception
+from ironic.common import policy
 from ironic.common import states
 from ironic.conductor import steps as conductor_steps
 from ironic.conductor import task_manager
@@ -1825,3 +1827,147 @@ class CheckDisallowedStepsTestCase(db_base.DbTestCase):
         result = conductor_steps.check_disallowed_steps(
             self.steps, 'deploy', raise_on_disallowed=True)
         self.assertEqual(self.steps, result)
+
+
+class StepPolicyTestCase(db_base.DbTestCase):
+
+    def setUp(self):
+        super(StepPolicyTestCase, self).setUp()
+        self.node = obj_utils.create_test_node(
+            self.context, driver='fake-hardware')
+
+    def _register_step_policy(self, interface, step,
+                              check_str='role:admin'):
+        rule_name = ('baremetal:step:execute:%s.%s'
+                     % (interface, step))
+        rule = oslo_policy.RuleDefault(rule_name, check_str)
+        enforcer = policy.get_enforcer()
+        enforcer.register_default(rule)
+        enforcer.load_rules()
+        return rule_name
+
+    def test_check_step_policy_no_rule(self):
+        user_step = {'interface': 'deploy',
+                     'step': 'deploy_start'}
+        result = conductor_steps._check_step_policy(
+            self.context, user_step)
+        self.assertIsNone(result)
+
+    @mock.patch.object(policy, 'authorize', autospec=True)
+    def test_check_step_policy_allowed(self, mock_auth):
+        mock_auth.return_value = True
+        self._register_step_policy('deploy', 'deploy_start')
+        user_step = {'interface': 'deploy',
+                     'step': 'deploy_start'}
+        result = conductor_steps._check_step_policy(
+            self.context, user_step)
+        self.assertIsNone(result)
+        mock_auth.assert_called_once_with(
+            'baremetal:step:execute:deploy.deploy_start',
+            mock.ANY, self.context)
+
+    @mock.patch.object(policy, 'authorize', autospec=True)
+    def test_check_step_policy_denied(self, mock_auth):
+        mock_auth.side_effect = exception.HTTPForbidden(
+            resource='test')
+        self._register_step_policy('deploy', 'deploy_start')
+        user_step = {'interface': 'deploy',
+                     'step': 'deploy_start'}
+        result = conductor_steps._check_step_policy(
+            self.context, user_step)
+        self.assertIn('insufficient privileges', result)
+        self.assertIn('deploy_start', result)
+
+    @mock.patch.object(policy, 'authorize', autospec=True)
+    def test_check_step_policy_with_node(self, mock_auth):
+        mock_auth.return_value = True
+        self._register_step_policy('deploy', 'deploy_start')
+        user_step = {'interface': 'deploy',
+                     'step': 'deploy_start'}
+        with task_manager.acquire(
+                self.context, self.node.uuid,
+                shared=False) as task:
+            conductor_steps._check_step_policy(
+                self.context, user_step, node=task.node)
+        target = mock_auth.call_args[0][1]
+        self.assertIn('node.owner', target)
+        self.assertIn('node.lessee', target)
+
+    @mock.patch.object(policy, 'authorize', autospec=True)
+    def test_check_step_policy_without_node(self, mock_auth):
+        mock_auth.return_value = True
+        self._register_step_policy('deploy', 'deploy_start')
+        user_step = {'interface': 'deploy',
+                     'step': 'deploy_start'}
+        conductor_steps._check_step_policy(
+            self.context, user_step)
+        target = mock_auth.call_args[0][1]
+        self.assertNotIn('node.owner', target)
+        self.assertNotIn('node.lessee', target)
+
+    @mock.patch.object(policy, 'authorize', autospec=True)
+    def test_check_step_policy_owner_lessee_values(
+            self, mock_auth):
+        mock_auth.return_value = True
+        self._register_step_policy('deploy', 'deploy_start')
+        node = obj_utils.create_test_node(
+            self.context, driver='fake-hardware',
+            uuid=uuidutils.generate_uuid(),
+            owner='owner-project-id',
+            lessee='lessee-project-id')
+        user_step = {'interface': 'deploy',
+                     'step': 'deploy_start'}
+        conductor_steps._check_step_policy(
+            self.context, user_step, node=node)
+        target = mock_auth.call_args[0][1]
+        self.assertEqual('owner-project-id',
+                         target['node.owner'])
+        self.assertEqual('lessee-project-id',
+                         target['node.lessee'])
+
+    @mock.patch.object(policy, 'authorize', autospec=True)
+    def test_validate_user_steps_policy_denied(
+            self, mock_auth):
+        mock_auth.side_effect = exception.HTTPForbidden(
+            resource='test')
+        self._register_step_policy('deploy', 'deploy_start')
+        user_steps = [{'step': 'deploy_start',
+                       'interface': 'deploy'}]
+        self.assertRaisesRegex(
+            exception.NotAuthorized,
+            'insufficient privileges',
+            conductor_steps.validate_user_steps_policy,
+            self.context, user_steps)
+
+    @mock.patch.object(policy, 'authorize', autospec=True)
+    def test_validate_user_steps_policy_allowed(
+            self, mock_auth):
+        mock_auth.return_value = True
+        self._register_step_policy('deploy', 'deploy_start')
+        user_steps = [{'step': 'deploy_start',
+                       'interface': 'deploy'}]
+        conductor_steps.validate_user_steps_policy(
+            self.context, user_steps)
+
+    @mock.patch.object(policy, 'authorize', autospec=True)
+    def test_validate_user_steps_policy_with_node(
+            self, mock_auth):
+        mock_auth.return_value = True
+        self._register_step_policy('deploy', 'deploy_start')
+        user_steps = [{'step': 'deploy_start',
+                       'interface': 'deploy'}]
+        with task_manager.acquire(
+                self.context, self.node.uuid,
+                shared=False) as task:
+            conductor_steps.validate_user_steps_policy(
+                self.context, user_steps, node=task.node)
+        target = mock_auth.call_args[0][1]
+        self.assertIn('node.owner', target)
+
+    def test_validate_user_steps_policy_non_list(self):
+        conductor_steps.validate_user_steps_policy(
+            self.context, None)
+
+    def test_validate_user_steps_policy_empty_list(self):
+        conductor_steps.validate_user_steps_policy(
+            self.context, [])

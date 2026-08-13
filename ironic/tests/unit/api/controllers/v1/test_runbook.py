@@ -22,10 +22,12 @@ from oslo_config import cfg
 from oslo_utils import timeutils
 from oslo_utils import uuidutils
 
+
 from ironic.api.controllers import base as api_base
 from ironic.api.controllers import v1 as api_v1
 from ironic.api.controllers.v1 import notification_utils
 from ironic.common import exception
+from ironic.conductor import steps as conductor_steps
 from ironic import objects
 from ironic.objects import fields as obj_fields
 from ironic.tests.unit.api import base as test_api_base
@@ -788,6 +790,32 @@ class TestPatch(BaseRunbooksAPITest):
                                    patch, headers=headers, expect_errors=True)
         self.assertEqual(http_client.BAD_REQUEST, response.status_int)
 
+    @mock.patch.object(conductor_steps,
+                       'validate_user_steps_policy', autospec=True)
+    def test_patch_steps_policy_denied(self, mock_policy, mock_save):
+        mock_policy.side_effect = (
+            exception.NotAuthorized('policy'))
+        patch = [{'path': '/steps/0/step', 'value': 'new_step',
+                  'op': 'replace'}]
+        response = self.patch_json(
+            '/runbooks/%s' % self.runbook.uuid,
+            patch, headers=self.headers,
+            expect_errors=True)
+        self.assertEqual(http_client.FORBIDDEN,
+                         response.status_int)
+        mock_policy.assert_called_once()
+        self.assertFalse(mock_save.called)
+
+    @mock.patch.object(conductor_steps,
+                       'validate_user_steps_policy', autospec=True)
+    def test_patch_non_steps_skips_policy(
+            self, mock_policy, mock_save):
+        patch = [{'path': '/extra/foo', 'value': 'bar',
+                  'op': 'add'}]
+        self.patch_json('/runbooks/%s' % self.runbook.uuid,
+                        patch, headers=self.headers)
+        mock_policy.assert_not_called()
+
 
 class TestPost(BaseRunbooksAPITest):
 
@@ -1080,6 +1108,31 @@ class TestPost(BaseRunbooksAPITest):
                                            'X-Project-Id': 'projectX'},
                                   expect_errors=True)
         self.assertEqual(http_client.BAD_REQUEST, response.status_int)
+
+    @mock.patch.object(conductor_steps,
+                       'validate_user_steps_policy', autospec=True)
+    def test_create_step_policy_denied(self, mock_policy):
+        mock_policy.side_effect = (
+            exception.NotAuthorized('policy'))
+        tdict = test_api_utils.post_get_test_runbook()
+        response = self.post_json('/runbooks', tdict,
+                                  headers=self.headers,
+                                  expect_errors=True)
+        self.assertEqual(http_client.FORBIDDEN,
+                         response.status_int)
+        mock_policy.assert_called_once_with(
+            mock.ANY, tdict['steps'])
+
+    @mock.patch.object(conductor_steps,
+                       'validate_user_steps_policy', autospec=True)
+    def test_create_step_policy_allowed(self, mock_policy):
+        mock_policy.return_value = None
+        tdict = test_api_utils.post_get_test_runbook()
+        response = self.post_json('/runbooks', tdict,
+                                  headers=self.headers)
+        self.assertEqual(http_client.CREATED, response.status_int)
+        mock_policy.assert_called_once_with(
+            mock.ANY, tdict['steps'])
 
 
 @mock.patch.object(objects.Runbook, 'destroy', autospec=True)

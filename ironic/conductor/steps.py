@@ -18,6 +18,7 @@ from oslo_log import log
 
 from ironic.common import exception
 from ironic.common.i18n import _
+from ironic.common import policy
 from ironic.common import states
 from ironic.conductor import utils
 from ironic.objects import deploy_template
@@ -743,6 +744,67 @@ def _validate_user_step(task, user_step, driver_step, step_type,
             errors.append(error)
 
     return errors
+
+
+def _check_step_policy(context, user_step, node=None):
+    """Check if a step-level policy rule exists and enforce it.
+
+    Policy rules use the naming convention
+    ``baremetal:step:execute:<interface>.<step>``.
+    If no matching rule is loaded, the step is unrestricted.
+
+    :param context: A request context.
+    :param user_step: A user step dictionary with 'interface' and
+        'step' keys.
+    :param node: Optional node object. When provided,
+        ``node.owner`` and ``node.lessee`` are included in the
+        policy target so that ownership-based rules can be
+        evaluated. When None (e.g. during runbook creation),
+        only the requester's credentials are checked.
+    :returns: An error message string if the policy check fails,
+        or None if the step is allowed or no rule exists.
+    """
+    rule = 'baremetal:step:execute:%s.%s' % (
+        user_step['interface'], user_step['step'])
+    enforcer = policy.get_enforcer()
+    if rule not in enforcer.rules:
+        return None
+    cdict = context.to_policy_values()
+    target_dict = dict(cdict)
+    if node is not None:
+        target_dict['node.owner'] = node.owner
+        target_dict['node.lessee'] = node.lessee
+    try:
+        policy.authorize(rule, target_dict, context)
+    except exception.HTTPForbidden:
+        return (_('insufficient privileges to execute step '
+                  '%(step)s on interface %(interface)s')
+                % {'step': user_step['step'],
+                   'interface': user_step['interface']})
+    return None
+
+
+def validate_user_steps_policy(context, user_steps, node=None):
+    """Validate step-level RBAC policies for user-requested steps.
+
+    Checks each step against per-step policy rules. Called from
+    the API layer during runbook creation (no node context) and
+    during provision state changes (with node context).
+
+    :param context: A request context.
+    :param user_steps: A list of user step dictionaries.
+    :param node: Optional node object for ownership-based rules.
+    :raises: NotAuthorized if any step fails its policy check.
+    """
+    if not user_steps:
+        return
+    errors = []
+    for step in user_steps:
+        error = _check_step_policy(context, step, node=node)
+        if error:
+            errors.append(error)
+    if errors:
+        raise exception.NotAuthorized('; '.join(errors))
 
 
 def _validate_user_steps(task, user_steps, driver_steps, step_type,

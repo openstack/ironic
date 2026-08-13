@@ -1060,6 +1060,14 @@ class NodeStatesController(rest.RestController):
                     msg, status_code=http_client.BAD_REQUEST)
             service_steps = list(api_utils.convert_steps(
                 rpc_runbook.steps))
+
+        admin_approved = (rpc_runbook.owner is None
+                          or rpc_runbook.public)
+        if not admin_approved:
+            steps = clean_steps or service_steps or []
+            conductor_steps.validate_user_steps_policy(
+                api.request.context, steps, node=rpc_node)
+
         return clean_steps, service_steps, disable_ramdisk
 
     def _do_provision_action(self, rpc_node, target, configdrive=None,
@@ -1254,6 +1262,12 @@ class NodeStatesController(rest.RestController):
                     'baremetal:node:set_provision_state:service_steps',
                     rpc_node['owner'], rpc_node['lessee'],
                     conceal_node=False)
+            all_steps = (deploy_steps or []) \
+                + (clean_steps or []) \
+                + (service_steps or [])
+            conductor_steps.validate_user_steps_policy(
+                api.request.context, all_steps,
+                node=rpc_node)
 
         if (target in (ir_states.ACTIVE, ir_states.REBUILD)
                 and rpc_node.maintenance):
