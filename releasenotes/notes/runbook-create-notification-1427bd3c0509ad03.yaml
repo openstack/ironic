@@ -1,0 +1,5 @@
+---
+fixes:
+  - |
+    Fix notifications on the creation of a runbook due to a field not being
+    populated.
