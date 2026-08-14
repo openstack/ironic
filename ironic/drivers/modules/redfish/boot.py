@@ -824,6 +824,23 @@ def _select_transport_protocol(task, supported_protocols):
     return TRANSPORT_HTTP
 
 
+def _image_publisher_settings():
+    """Image publisher settings shared by the Redfish boot interfaces.
+
+    Resolved on access so that mutable ``[redfish]`` configuration is
+    honored. Consumed via ``BootInterface.image_publisher_settings`` by
+    :class:`ironic.drivers.modules.image_utils.ImageHandler`.
+    """
+    return base.ImagePublisherSettings(
+        swift_enabled=CONF.redfish.use_swift,
+        container=CONF.redfish.swift_container,
+        timeout=CONF.redfish.swift_object_expiry_timeout,
+        image_subdir="redfish",
+        file_permission=CONF.redfish.file_permission,
+        kernel_params=CONF.redfish.kernel_append_params,
+    )
+
+
 class RedfishVirtualMediaBoot(base.BootInterface):
     """Virtual media boot interface over Redfish.
 
@@ -856,6 +873,10 @@ class RedfishVirtualMediaBoot(base.BootInterface):
 
     capabilities = ['iscsi_volume_boot', 'ramdisk_boot',
                     'ramdisk_boot_configdrive']
+
+    @property
+    def image_publisher_settings(self):
+        return _image_publisher_settings()
 
     def get_properties(self):
         """Return the properties of the interface.
@@ -1305,6 +1326,10 @@ class RedfishHttpsBoot(base.BootInterface):
     """
 
     capabilities = ['ramdisk_boot']
+
+    @property
+    def image_publisher_settings(self):
+        return _image_publisher_settings()
 
     def get_properties(self):
         """Return the properties of the interface.

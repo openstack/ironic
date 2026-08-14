@@ -21,6 +21,8 @@ from unittest import mock
 from oslo_config import cfg
 from oslo_utils import uuidutils
 
+from ironic.common import exception
+from ironic.common import image_publisher
 from ironic.common import image_service
 from ironic.common import images
 from ironic.common import kernel_parameters as kp
@@ -28,8 +30,10 @@ from ironic.common import states
 from ironic.common import utils
 from ironic.conductor import task_manager
 from ironic.drivers.modules import deploy_utils
+from ironic.drivers.modules import fake
 from ironic.drivers.modules import image_cache
 from ironic.drivers.modules import image_utils
+from ironic.drivers.modules.redfish import boot as redfish_boot
 from ironic.tests import base
 from ironic.tests.unit.db import base as db_base
 from ironic.tests.unit.db import utils as db_utils
@@ -98,6 +102,45 @@ class RedfishImageHandlerTestCase(db_base.DbTestCase):
         expected_k_param = "console=ttyS1"
 
         self.assertEqual(expected_k_param, actual_k_param)
+
+    def test_boot_interface_declares_image_publisher_settings(self):
+        # An out-of-tree hardware type name that the legacy map does not
+        # know about still works when its boot interface declares
+        # image_publisher_settings.
+        self.config(kernel_append_params="console=ttyS2", group='redfish')
+        self.config(use_swift=False, file_permission=0o600, group='redfish')
+        boot = redfish_boot.RedfishVirtualMediaBoot()
+        img_handler_obj = image_utils.ImageHandler('custom-oot', boot)
+
+        self.assertEqual("console=ttyS2", img_handler_obj.kernel_params)
+        self.assertIsInstance(img_handler_obj._publisher,
+                              image_publisher.LocalPublisher)
+        self.assertEqual('redfish', img_handler_obj._publisher.image_subdir)
+        self.assertEqual(0o600, img_handler_obj._publisher.file_permission)
+
+    def test_boot_interface_declaration_uses_swift(self):
+        self.config(use_swift=True, swift_container='a-container',
+                    swift_object_expiry_timeout=42, group='redfish')
+        boot = redfish_boot.RedfishVirtualMediaBoot()
+        img_handler_obj = image_utils.ImageHandler('custom-oot', boot)
+
+        self.assertIsInstance(img_handler_obj._publisher,
+                              image_publisher.SwiftPublisher)
+        self.assertEqual('a-container', img_handler_obj._publisher.container)
+        self.assertEqual(42, img_handler_obj._publisher.delete_after)
+
+    def test_unknown_driver_without_declaration_raises(self):
+        # No boot interface declaration and an unknown hardware type name
+        # falls through the legacy map and is rejected.
+        self.assertRaises(exception.UnsupportedDriverExtension,
+                          image_utils.ImageHandler, 'custom-oot')
+
+    def test_boot_interface_not_publishing_images_raises(self):
+        # A boot interface that does not publish images leaves the base
+        # class property at its default.
+        self.assertRaises(exception.UnsupportedDriverExtension,
+                          image_utils.ImageHandler, 'custom-oot',
+                          fake.FakeBoot())
 
 
 class RedfishImageUtilsTestCase(db_base.DbTestCase):

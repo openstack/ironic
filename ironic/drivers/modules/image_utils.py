@@ -35,6 +35,7 @@ from ironic.common import kernel_parameters as kp
 from ironic.common import states
 from ironic.common import utils
 from ironic.conf import CONF
+from ironic.drivers import base as drivers_base
 from ironic.drivers.modules import boot_mode_utils
 from ironic.drivers.modules import deploy_utils
 from ironic.drivers.modules import image_cache
@@ -47,44 +48,73 @@ LOG = log.getLogger(__name__)
 
 class ImageHandler(object):
 
-    def __init__(self, driver):
-        self.update_driver_config(driver)
+    def __init__(self, driver, boot=None):
+        """Create an image handler for a node's boot interface.
 
-    def update_driver_config(self, driver):
-        _SWIFT_MAP = {
-            "redfish": {
-                "swift_enabled": CONF.redfish.use_swift,
-                "container": CONF.redfish.swift_container,
-                "timeout": CONF.redfish.swift_object_expiry_timeout,
-                "image_subdir": "redfish",
-                "file_permission": CONF.redfish.file_permission,
-                "kernel_params": CONF.redfish.kernel_append_params
-            },
-            "idrac": {
-                "swift_enabled": CONF.redfish.use_swift,
-                "container": CONF.redfish.swift_container,
-                "timeout": CONF.redfish.swift_object_expiry_timeout,
-                "image_subdir": "redfish",
-                "file_permission": CONF.redfish.file_permission,
-                "kernel_params": CONF.redfish.kernel_append_params
-            },
-        }
+        :param driver: the node's hardware type name. Only used for the
+            legacy, name-keyed fallback and error messages.
+        :param boot: the node's boot interface instance. When it declares
+            :attr:`~ironic.drivers.base.BootInterface.image_publisher_settings`
+            those settings are used directly, so out-of-tree hardware types
+            reusing a supported boot interface work without configuration.
+        """
+        self.update_driver_config(driver, boot=boot)
 
-        if driver not in _SWIFT_MAP:
+    def update_driver_config(self, driver, boot=None):
+        settings = boot.image_publisher_settings if boot else None
+        if settings is None:
+            # Legacy fallback: resolve publisher settings from the hardware
+            # type name. Deprecated in favor of the boot interface declaring
+            # its own image_publisher_settings.
+            settings = self._legacy_settings(driver)
+
+        if settings is None:
             raise exception.UnsupportedDriverExtension(
                 _("Publishing images is not supported for driver %s") % driver)
 
-        if _SWIFT_MAP[driver].get("swift_enabled"):
+        if settings.swift_enabled:
             self._publisher = image_publisher.SwiftPublisher(
-                container=_SWIFT_MAP[driver].get("container"),
-                delete_after=_SWIFT_MAP[driver].get("timeout"))
+                container=settings.container,
+                delete_after=settings.timeout)
         else:
             self._publisher = image_publisher.LocalPublisher(
-                image_subdir=_SWIFT_MAP[driver].get("image_subdir"),
-                file_permission=_SWIFT_MAP[driver].get("file_permission"))
+                image_subdir=settings.image_subdir,
+                file_permission=settings.file_permission)
 
         # To get the kernel parameters
-        self.kernel_params = _SWIFT_MAP[driver].get("kernel_params")
+        self.kernel_params = settings.kernel_params
+
+    @staticmethod
+    def _legacy_settings(driver):
+        """Resolve publisher settings from the hardware type name.
+
+        Deprecated fallback for boot interfaces that do not declare
+        :attr:`~ironic.drivers.base.BootInterface.image_publisher_settings`.
+        Retained only so callers passing a bare hardware type name keep
+        working; the boot interface declaring its own settings is the
+        supported path and requires no operator configuration.
+        """
+        # DEPRECATED(TheJulia): This name-keyed fallback map should be
+        # removed before the 2028.1 release. The in-tree redfish boot
+        # interfaces declare their own image_publisher_settings, so this
+        # only serves out-of-tree callers that have not yet migrated.
+        _SWIFT_MAP = {
+            "redfish": drivers_base.ImagePublisherSettings(
+                swift_enabled=CONF.redfish.use_swift,
+                container=CONF.redfish.swift_container,
+                timeout=CONF.redfish.swift_object_expiry_timeout,
+                image_subdir="redfish",
+                file_permission=CONF.redfish.file_permission,
+                kernel_params=CONF.redfish.kernel_append_params),
+            "idrac": drivers_base.ImagePublisherSettings(
+                swift_enabled=CONF.redfish.use_swift,
+                container=CONF.redfish.swift_container,
+                timeout=CONF.redfish.swift_object_expiry_timeout,
+                image_subdir="redfish",
+                file_permission=CONF.redfish.file_permission,
+                kernel_params=CONF.redfish.kernel_append_params),
+        }
+        return _SWIFT_MAP.get(driver)
 
     def unpublish_image(self, object_name):
         """Withdraw the image previously made downloadable.
@@ -98,19 +128,21 @@ class ImageHandler(object):
         self._publisher.unpublish(object_name)
 
     @classmethod
-    def unpublish_image_for_node(cls, node, prefix='', suffix=''):
+    def unpublish_image_for_node(cls, task, prefix='', suffix=''):
         """Withdraw the image previously made downloadable.
 
         Depending on ironic settings, removes previously published file
         from where it has been published - Swift or local HTTP server's
         document root.
 
-        :param node: the node for which image was published.
+        :param task: a TaskManager instance containing the node for which
+            the image was published.
         :param prefix: object name prefix.
         :param suffix: object name suffix.
         """
+        node = task.node
         name = _get_name(node, prefix=prefix, suffix=suffix)
-        cls(node.driver).unpublish_image(name)
+        cls(node.driver, task.driver.boot).unpublish_image(name)
         LOG.debug('Removed image %(name)s for node %(node)s',
                   {'node': node.uuid, 'name': name})
 
@@ -165,7 +197,7 @@ def cleanup_iso_image(task):
 
     :param task: A task from TaskManager.
     """
-    ImageHandler.unpublish_image_for_node(task.node, prefix='boot',
+    ImageHandler.unpublish_image_for_node(task, prefix='boot',
                                           suffix='.iso')
     # Also clean up from NFS/CIFS shares if applicable
     protocol = task.node.driver_internal_info.get('vmedia_transport_protocol')
@@ -231,7 +263,7 @@ def prepare_floppy_image(task, params=None):
         images.create_vfat_image(vfat_image_tmpfile, fs_size_kib=1440,
                                  parameters=params)
 
-        img_handler = ImageHandler(task.node.driver)
+        img_handler = ImageHandler(task.node.driver, task.driver.boot)
         node_http_url = task.node.driver_info.get("external_http_url")
         image_url = img_handler.publish_image(vfat_image_tmpfile, object_name,
                                               node_http_url)
@@ -250,7 +282,7 @@ def cleanup_floppy_image(task):
 
     :param task: an ironic node object.
     """
-    ImageHandler.unpublish_image_for_node(task.node, prefix='image',
+    ImageHandler.unpublish_image_for_node(task, prefix='image',
                                           suffix='.img')
 
 
@@ -310,7 +342,7 @@ def prepare_disk_image(task, content, prefix=None):
 
     LOG.debug("Creating a disk image for node %s", task.node.uuid)
 
-    img_handler = ImageHandler(task.node.driver)
+    img_handler = ImageHandler(task.node.driver, task.driver.boot)
     if isinstance(content, str):
         image_url = img_handler.publish_image(content, object_name)
     else:
@@ -338,7 +370,7 @@ def cleanup_disk_image(task, prefix=None):
     :param task: an ironic node object.
     :param prefix: Prefix to use for the object name.
     """
-    ImageHandler.unpublish_image_for_node(task.node, prefix=prefix)
+    ImageHandler.unpublish_image_for_node(task, prefix=prefix)
 
 
 # FIXME(dtantsur): file_name is not node-specific, we should probably replace
@@ -392,7 +424,7 @@ def prepare_remote_image(task, image_url, file_name='boot.iso',
                   "the image is not an HTTP/NFS/CIFS URL: %(image_url)s",
                   {"image_url": image_url, "download_source": download_source})
 
-    img_handler = ImageHandler(task.node.driver)
+    img_handler = ImageHandler(task.node.driver, task.driver.boot)
     if cache is None:
         cache = ISOImageCache()
 
@@ -406,7 +438,8 @@ def prepare_remote_image(task, image_url, file_name='boot.iso',
 
 def cleanup_remote_image(task, file_name):
     """Cleanup image created via prepare_remote_image."""
-    ImageHandler(task.node.driver).unpublish_image(file_name)
+    ImageHandler(task.node.driver, task.driver.boot).unpublish_image(
+        file_name)
 
 
 def _prepare_iso_image(task, kernel_href, ramdisk_href,
@@ -468,7 +501,7 @@ def _prepare_iso_image(task, kernel_href, ramdisk_href,
                                     file_name=iso_object_name,
                                     download_source=download_source)
 
-    img_handler = ImageHandler(task.node.driver)
+    img_handler = ImageHandler(task.node.driver, task.driver.boot)
 
     publisher_id = ''
     if not is_ramdisk_boot:
