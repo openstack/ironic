@@ -99,6 +99,7 @@ RUNBOOK_TRAITS_SCHEMA = {
 }
 
 _PATCH_ALLOWED_FIELDS_BASE = [
+    'disable_ramdisk',
     'extra',
     'name',
     'owner',

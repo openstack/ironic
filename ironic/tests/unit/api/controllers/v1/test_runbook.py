@@ -366,6 +366,11 @@ class TestPatch(BaseRunbooksAPITest):
         mock_save.assert_called_once_with(mock.ANY)
         self.assertEqual(steps, response.json['steps'])
 
+    def test_update_disable_ramdisk(self, mock_save):
+        patch = [{'path': '/disable_ramdisk', 'value': True, 'op': 'replace'}]
+        response = self._test_update_ok(mock_save, patch)
+        self.assertEqual(True, response.json['disable_ramdisk'])
+
     def test_update_name_standard_trait(self, mock_save):
         name = 'HW_CPU_X86_VMX'
         patch = [{'path': '/name', 'value': name, 'op': 'replace'}]

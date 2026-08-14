@@ -1,0 +1,6 @@
+---
+fixes:
+  - |
+    Fixes an issue where the ``disable_ramdisk`` field of a runbook could
+    not be updated via the runbook PATCH API, even though it is settable
+    at creation time and returned in GET responses.
