@@ -1494,6 +1494,9 @@ def allow_node_history_project():
     """Check if node history project field is available."""
     return api.request.version.minor >= versions.MINOR_113_NODE_HISTORY_PROJECT
 
+def allow_node_history_fields():
+    """Check if advanced node history fields are available."""
+    return api.request.version.minor >= versions.MINOR_115_NODE_HISTORY_FIELDS
 
 def allow_node_inventory():
     """Check if node inventory is allowed."""

@@ -2170,7 +2170,8 @@ class NodeVIFController(rest.RestController, GetNodeAndTopicMixin):
 class NodeHistoryController(rest.RestController):
 
     detail_fields = ['uuid', 'created_at', 'severity', 'event_type',
-                     'event', 'conductor', 'user', 'project']
+                     'event', 'conductor', 'user', 'project', 'state',
+                     'target_provision_state', 'duration_seconds']
 
     standard_fields = ['uuid', 'created_at', 'severity', 'event']
 
@@ -2194,6 +2195,11 @@ class NodeHistoryController(rest.RestController):
 
         if detail and not api_utils.allow_node_history_project():
             event_entry.pop('project', None)
+
+        if detail and not api_utils.allow_node_history_fields():
+            event_entry.pop('state', None)
+            event_entry.pop('target_provision_state', None)
+            event_entry.pop('duration_seconds', None)
 
         if not detail:
             # The spec for this feature calls to truncate the event

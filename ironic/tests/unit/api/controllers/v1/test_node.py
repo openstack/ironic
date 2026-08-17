@@ -9128,6 +9128,26 @@ class TestNodeHistory(test_api_base.BaseApiTest):
         self.assertEqual(8, len(record))
         self.assertNotIn('project', record)
 
+    def test_get_history_item_with_state_and_provision_fields(self):
+        self._add_history_entries()
+        record = self.get_json('/nodes/%s/history/%s' % (self.node.uuid,
+                                                         self.event1.uuid),
+                               headers={api_base.Version.string: '1.115'})
+        self.assertEqual(12, len(record))
+        self.assertIn('state', record)
+        self.assertIn('target_provision_state', record)
+        self.assertIn('duration_seconds', record)
+
+    def test_get_history_item_no_state_and_provision_fields_old_version(self):
+        self._add_history_entries()
+        record = self.get_json('/nodes/%s/history/%s' % (self.node.uuid,
+                                                         self.event1.uuid),
+                               headers={api_base.Version.string: '1.114'})
+        self.assertIn('project', record)
+        self.assertNotIn('state', record)
+        self.assertNotIn('target_provision_state', record)
+        self.assertNotIn('duration_seconds', record)
+
     def test_get_history_item_not_found(self):
         self._add_history_entries()
         ret = self.get_json('/nodes/%s/history/52949728-59fc-'

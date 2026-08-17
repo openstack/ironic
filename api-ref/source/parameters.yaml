@@ -972,6 +972,12 @@ drivers:
   in: body
   required: true
   type: array
+duration_seconds:
+  description: |
+    The total execution time or duration of the recorded event in seconds.
+  in: body
+  required: true
+  type: integer
 enabled_bios_interfaces:
   description: |
     The enabled bios interfaces for this driver.
@@ -1729,6 +1735,12 @@ power_timeout:
   in: body
   required: false
   type: integer
+project:
+  description: |
+    The UUID or name of the project that triggered this history event.
+  in: body
+  required: true
+  type: string
 properties:
   description: |
     A list of links to driver properties.
@@ -2405,6 +2417,12 @@ standalone_ports_supported:
   in: body
   required: true
   type: boolean
+state:
+  description: |
+    The provisioning state of the baremetal node when the history event was logged.
+  in: body
+  required: true
+  type: string
 storage_interface:
   description: |
     Interface used for attaching and detaching volumes on this node, e.g.

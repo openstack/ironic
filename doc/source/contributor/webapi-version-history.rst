@@ -2,6 +2,14 @@
 REST API Version History
 ========================
 
+1.115 (Hibiscus)
+----------------
+
+Add ``state``, ``target_provision_state``, and ``duration_seconds`` fields
+to the node history detail response. Clients requesting microversion 1.115
+or higher will receive these fields, providing additional information about
+the node's provisioning state and the duration of each history event.
+
 1.114 (Hibiscus)
 ----------------
 
