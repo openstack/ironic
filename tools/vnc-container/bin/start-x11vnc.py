@@ -31,6 +31,7 @@ READ_ONLY = os.environ.get('READ_ONLY') or 'False'
 DISPLAY_WIDTH = os.environ.get('DISPLAY_WIDTH') or '1280'
 DISPLAY_HEIGHT = os.environ.get('DISPLAY_HEIGHT') or '960'
 FIREFOX = os.environ.get('FIREFOX') or 'firefox'
+FIREFOX_USER = os.environ.get('FIREFOX_USER') or 'firefox'
 
 REDFISH_SUPPORTED = {'Dell', 'Hpe', 'Supermicro'}
 
@@ -273,7 +274,7 @@ def main():
 
     # Build and start x11vnc command
     cmd = [
-        'runuser', '-u', 'firefox', '--',
+        'runuser', '-u', FIREFOX_USER, '--',
         'x11vnc'
     ]
     if READ_ONLY == 'True':

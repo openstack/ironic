@@ -3,6 +3,9 @@ FROM ubuntu:noble
 # firefox-esr is installed from the mozillateam ppa because the ubuntu
 # packaged fedora exits with a message to install the snap
 
+ENV FIREFOX_USER=firefox
+ENV FIREFOX_USER_HOME=/home/${FIREFOX_USER}
+
 RUN apt-get update && \
     apt-get install -y \
     dumb-init \
@@ -16,7 +19,7 @@ RUN apt-get update && \
     add-apt-repository ppa:mozillateam/ppa && \
     apt-get install -y \
     firefox-esr && \
-    useradd --create-home --shell /bin/bash firefox
+    useradd --create-home --home-dir ${FIREFOX_USER_HOME} --shell /bin/bash ${FIREFOX_USER}
 
 ENV DISPLAY_WIDTH=1280
 ENV DISPLAY_HEIGHT=960
@@ -26,7 +29,7 @@ ENV APP_INFO={}
 ENV READ_ONLY=False
 ENV DEBUG=0
 ENV FIREFOX=firefox-esr
-ENV FIREFOX_CONFIG_DIR=/home/firefox/.mozilla/firefox-esr
+ENV FIREFOX_CONFIG_DIR=${FIREFOX_USER_HOME}/.mozilla/firefox
 ENV EXTENSION_PATH="/usr/lib/firefox-esr-addons/extensions/@ironic-console.openstack.org"
 
 ADD bin/* /usr/local/bin
