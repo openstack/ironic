@@ -1,0 +1,14 @@
+---
+features:
+  - |
+    Adds ``HTTPS`` to explicit Redfish virtual-media transport selection and
+    forwards an explicitly configured ``vmedia_transport_protocol`` to
+    Sushy. This allows ``TransferProtocolType`` to be present in the initial
+    Redfish ``InsertMedia`` request while preserving the existing behavior
+    for nodes without an explicit override.
+fixes:
+  - |
+    Corrects Redfish virtual-media protocol discovery to read the JSON
+    document exposed by Sushy. This allows protocols advertised through the
+    standard ``TransferProtocolType@Redfish.AllowableValues`` action annotation
+    to be selected.
