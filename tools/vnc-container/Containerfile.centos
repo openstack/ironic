@@ -1,5 +1,8 @@
 FROM quay.io/centos/centos:stream9
 
+ENV FIREFOX_USER=firefox
+ENV FIREFOX_USER_HOME=/home/${FIREFOX_USER}
+
 RUN dnf -y install \
     epel-release && \
     dnf -y install \
@@ -11,7 +14,7 @@ RUN dnf -y install \
     python3-requests \
     x11vnc \
     xorg-x11-server-Xvfb && \
-    useradd --create-home --shell /bin/bash firefox
+    useradd --create-home --home-dir ${FIREFOX_USER_HOME} --shell /bin/bash ${FIREFOX_USER}
 
 ENV DISPLAY_WIDTH=1280
 ENV DISPLAY_HEIGHT=960
@@ -21,7 +24,7 @@ ENV APP_INFO={}
 ENV READ_ONLY=False
 ENV DEBUG=0
 ENV FIREFOX=firefox
-ENV FIREFOX_CONFIG_DIR=/home/firefox/.mozilla/firefox
+ENV FIREFOX_CONFIG_DIR=${FIREFOX_USER_HOME}/.mozilla/firefox
 ENV EXTENSION_PATH="/usr/share/mozilla/extensions/{ec8030f7-c20a-464f-9b0e-13a3a9e97384}/@ironic-console.openstack.org"
 
 ADD bin/* /usr/local/bin
