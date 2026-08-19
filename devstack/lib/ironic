@@ -543,9 +543,12 @@ if [[ "$IRONIC_IP_VERSION" != '6' ]]; then
     IRONIC_PROVISION_ALLOCATION_POOL=${IRONIC_PROVISION_ALLOCATION_POOL:-'start=10.0.5.10,end=10.0.5.100'}
 
     # With multinode case all ironic-conductors should have IP from provisioning network.
-    # IRONIC_PROVISION_SUBNET_GATEWAY - is configured on primary node.
+    # IRONIC_PROVISION_SUBNET_GATEWAY - is the gateway IP for routing, not the conductor endpoint
     # Ironic provision subnet gateway.
     IRONIC_PROVISION_SUBNET_GATEWAY=${IRONIC_PROVISION_SUBNET_GATEWAY:-'10.0.5.1'}
+    # Primary node's IP on the provisioning network (distinct from gateway)
+    IRONIC_PROVISION_PRIMARY_IP=${IRONIC_PROVISION_PRIMARY_IP:-'10.0.5.2'}
+    # Subnode IPs start from .3 to avoid conflict with primary
     IRONIC_PROVISION_SUBNET_SUBNODE_IP=${IRONIC_PROVISION_SUBNET_SUBNODE_IP:-'10.0.5.'$SUBNODE_FINAL}
 
     # Ironic provision subnet prefix
@@ -557,6 +560,8 @@ else
     # HOST_IPV6 cannot be used for v6 testing.
     IRONIC_HOST_IPV6='fc00::1'
     IRONIC_PROVISION_SUBNET_GATEWAY=${IRONIC_PROVISION_SUBNET_GATEWAY:-'fc01::1'}
+    # Primary node's IPv6 on the provisioning network
+    IRONIC_PROVISION_PRIMARY_IPV6=${IRONIC_PROVISION_PRIMARY_IPV6:-'fc01::2'}
     IRONIC_PROVISION_SUBNET_SUBNODE_IP=${IRONIC_PROVISION_SUBNET_SUBNODE_IP:-'fc01::'$SUBNODE_FINAL}
     IRONIC_PROVISION_SUBNET_PREFIX=${IRONIC_PROVISION_SUBNET_PREFIX:-'fc01::/64'}
     IRONIC_TFTPSERVER_IP=$IRONIC_HOST_IPV6
@@ -589,10 +594,12 @@ IRONIC_STORAGE_INTERFACE=${IRONIC_STORAGE_INTERFACE:-}
 
 
 # With multinode case all ironic-conductors should have IP from provisioning network.
-# IRONIC_PROVISION_SUBNET_GATEWAY - is configured on primary node.
+# IRONIC_PROVISION_SUBNET_GATEWAY - is the gateway IP for routing, not the conductor endpoint
 # Ironic provision subnet gateway.
 IRONIC_PROVISION_SUBNET_GATEWAY=${IRONIC_PROVISION_SUBNET_GATEWAY:-'10.0.5.1'}
-IRONIC_PROVISION_SUBNET_SUBNODE_IP=${IRONIC_PROVISION_SUBNET_SUBNODE_IP:-'10.0.5.2'}
+# Primary node's IP on the provisioning network
+IRONIC_PROVISION_PRIMARY_IP=${IRONIC_PROVISION_PRIMARY_IP:-'10.0.5.2'}
+IRONIC_PROVISION_SUBNET_SUBNODE_IP=${IRONIC_PROVISION_SUBNET_SUBNODE_IP:-'10.0.5.3'}
 
 # Ironic provision subnet prefix
 # Example: IRONIC_PROVISION_SUBNET_PREFIX=10.0.5.0/24
@@ -601,8 +608,9 @@ IRONIC_PROVISION_SUBNET_PREFIX=${IRONIC_PROVISION_SUBNET_PREFIX:-'10.0.5.0/24'}
 if [[ "$HOST_TOPOLOGY_ROLE" == "primary" ]]; then
     # Some CI jobs get triggered without a HOST_TOPOLOGY_ROLE
     # If so, none of this logic is, or needs to be executed.
-    IRONIC_TFTPSERVER_IP=$IRONIC_PROVISION_SUBNET_GATEWAY
-    IRONIC_HTTP_SERVER=$IRONIC_PROVISION_SUBNET_GATEWAY
+    # Use the primary node's dedicated IP, not the gateway IP
+    IRONIC_TFTPSERVER_IP=${IRONIC_PROVISION_PRIMARY_IPV6:-$IRONIC_PROVISION_PRIMARY_IP}
+    IRONIC_HTTP_SERVER=${IRONIC_PROVISION_PRIMARY_IPV6:-$IRONIC_PROVISION_PRIMARY_IP}
 fi
 if [[ "$HOST_TOPOLOGY_ROLE" == "subnode" ]]; then
     IRONIC_TFTPSERVER_IP=$IRONIC_PROVISION_SUBNET_SUBNODE_IP
@@ -1566,7 +1574,7 @@ function configure_ironic_provision_network {
 
         die_if_not_set $LINENO subnet_id "Failure creating SUBNET_ID for $IRONIC_PROVISION_NETWORK_NAME"
 
-        ironic_provision_network_ip=$IRONIC_PROVISION_SUBNET_GATEWAY
+        ironic_provision_network_ip=${IRONIC_PROVISION_PRIMARY_IPV6:-$IRONIC_PROVISION_PRIMARY_IP}
     else
         net_id=$(openstack --os-cloud $OS_CLOUD network show $IRONIC_PROVISION_NETWORK_NAME -f value -c id)
         ironic_provision_network_ip=$IRONIC_PROVISION_SUBNET_SUBNODE_IP
