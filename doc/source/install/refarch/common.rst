@@ -254,6 +254,8 @@ conductors. When a conductor is considered offline, its nodes are taken over by
 other conductors. As a result of this, you need at least 2 conductor hosts
 for an HA deployment.
 
+.. _refarch-conductor-scaling:
+
 Performance
 ^^^^^^^^^^^
 
