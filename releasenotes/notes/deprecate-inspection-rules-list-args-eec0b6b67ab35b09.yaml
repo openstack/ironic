@@ -1,0 +1,10 @@
+---
+deprecations:
+  - |
+    Specifying the ``args`` of an inspection rule condition or action as a
+    list (positional, Python ``*args`` style) is deprecated and will be
+    removed in a future release. Use the dictionary (named-argument,
+    ``**kwargs``) form instead, for example ``args: {value: "...",
+    regex: "..."}`` rather than ``args: ["...", "..."]``. The dictionary form
+    is unambiguous and avoids surprises with operators such as ``eq`` whose
+    ``values`` argument is itself a list.
