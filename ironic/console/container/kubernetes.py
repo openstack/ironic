@@ -42,7 +42,7 @@ class KubernetesConsoleContainer(base.BaseConsoleContainer):
         # confirm kubectl is available
         try:
             utils.execute("kubectl", "version")
-        except processutils.ProcessExecutionError as e:
+        except (processutils.ProcessExecutionError, OSError) as e:
             LOG.exception(
                 "kubectl not available, " "this provider cannot be used."
             )

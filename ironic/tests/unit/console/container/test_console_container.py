@@ -1258,6 +1258,14 @@ class TestContainerConsoleContainer(base.TestCase):
                 exception.ConsoleContainerError, 'ouch',
                 container.ContainerConsoleContainer)
 
+    def test_init_cli_missing(self):
+        with mock.patch.object(utils, 'execute', autospec=True) as mock_exec:
+            mock_exec.side_effect = FileNotFoundError(
+                2, 'No such file or directory', 'docker')
+            self.assertRaisesRegex(
+                exception.ConsoleContainerError, 'docker',
+                container.ContainerConsoleContainer)
+
     def test_init_no_image(self):
         CONF.set_override('console_image', None, 'vnc')
         with mock.patch.object(utils, 'execute', autospec=True):
