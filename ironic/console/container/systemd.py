@@ -48,13 +48,13 @@ class SystemdConsoleContainer(base.BaseConsoleContainer):
         # confirm podman and systemctl are available
         try:
             utils.execute('systemctl', '--version')
-        except processutils.ProcessExecutionError as e:
+        except (processutils.ProcessExecutionError, OSError) as e:
             LOG.exception('systemctl not available, '
                           'this provider cannot be used.')
             raise exception.ConsoleContainerError(provider='systemd', reason=e)
         try:
             utils.execute('podman', '--version')
-        except processutils.ProcessExecutionError as e:
+        except (processutils.ProcessExecutionError, OSError) as e:
             LOG.exception('podman not available, '
                           'it is mandatory to use this provider.')
             raise exception.ConsoleContainerError(provider='systemd', reason=e)

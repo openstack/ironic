@@ -42,7 +42,7 @@ class ContainerConsoleContainer(base.BaseConsoleContainer):
         # confirm the CLI is available and can talk to the engine
         try:
             self._execute('version')
-        except processutils.ProcessExecutionError as e:
+        except (processutils.ProcessExecutionError, OSError) as e:
             LOG.exception('%s not available or the container engine is not '
                           'reachable, this provider cannot be used.',
                           CONF.vnc.container_executable)
