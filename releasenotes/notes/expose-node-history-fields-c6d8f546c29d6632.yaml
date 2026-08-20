@@ -1,0 +1,6 @@
+---
+features:
+  - |
+    Adds the ``state``, ``target_provision_state``, and
+    ``duration_seconds`` fields in ``node_history`` API responses
+    starting with microversion 1.115.

@@ -273,6 +273,9 @@ MINOR_112_RUNBOOK_TRAITS = 112
 MINOR_113_NODE_HISTORY_PROJECT = 113
 # v1.114: Add vendor, model, serial_number to firmware component response.
 MINOR_114_FIRMWARE_IDENTITY = 114
+# v1.115: Add state, target_provision_state, and
+# duration_seconds to node history.
+MINOR_115_NODE_HISTORY_FIELDS = 115
 
 # When adding another version, update:
 # - MINOR_MAX_VERSION
@@ -282,7 +285,7 @@ MINOR_114_FIRMWARE_IDENTITY = 114
 # - Add a comment describing the change above the list of consts
 
 
-MINOR_MAX_VERSION = MINOR_114_FIRMWARE_IDENTITY
+MINOR_MAX_VERSION = MINOR_115_NODE_HISTORY_FIELDS
 
 # String representations of the minor and maximum versions
 _MIN_VERSION_STRING = '{}.{}'.format(BASE_VERSION, MINOR_1_INITIAL_VERSION)

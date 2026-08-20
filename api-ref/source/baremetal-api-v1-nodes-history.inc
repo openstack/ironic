@@ -67,6 +67,10 @@ Response
    - event: history_event
    - event_type: history_event_type
    - conductor: hostname
+   - project: project
+   - state: state
+   - target_provision_state: target_provision_state
+   - duration_seconds: duration_seconds
 
 Deleting history entries for a node
 ===================================
