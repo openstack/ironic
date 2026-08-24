@@ -6,9 +6,10 @@ This script:
 1. Discovers the console app (vendor) by querying the BMC
 2. Writes the extension config and patches the manifest
 3. Generates Firefox policies
-4. Starts an HTTP server for extension shutdown signalling
-5. Starts x11vnc with hooks to start/stop Firefox
-6. Handles SIGTERM for graceful shutdown of console websockets
+4. Starts Xvfb virtual display
+5. Starts an HTTP server for extension shutdown signalling
+6. Starts x11vnc with hooks to start/stop Firefox
+7. Handles SIGTERM for graceful shutdown of console websockets
 """
 
 import http.server
@@ -17,6 +18,7 @@ import logging
 import os
 import signal
 import subprocess
+import time
 import threading
 from urllib import parse
 
@@ -242,6 +244,38 @@ def graceful_shutdown_browser():
     shutdown_complete.clear()
 
 
+def start_xvfb(display_num, width, height, user):
+    """Start Xvfb on the given display number without xauth.
+
+    Launches Xvfb as the specified user with no authentication,
+    waits for the X socket to appear, and returns the process.
+    """
+    display = f':{display_num}'
+    geometry = f'{width}x{height}x24'
+    cmd = [
+        'runuser', '-u', user, '--',
+        'Xvfb', display,
+        '-screen', '0', geometry,
+        '-nolisten', 'tcp',
+        '-cc', '4',
+    ]
+    LOG.info('Starting Xvfb on display %s (%s)', display, geometry)
+    xvfb = subprocess.Popen(cmd)
+
+    # Wait for the X socket to appear
+    socket_path = f'/tmp/.X11-unix/X{display_num}'  # nosec B108
+    for _ in range(50):
+        if xvfb.poll() is not None:
+            raise RuntimeError(
+                f'Xvfb exited immediately with code {xvfb.returncode}')
+        if os.path.exists(socket_path):
+            LOG.info('Xvfb ready on display %s', display)
+            return xvfb
+        time.sleep(0.1)
+    xvfb.terminate()
+    raise RuntimeError(f'Xvfb failed to create socket {socket_path}')
+
+
 def main():
     logging.basicConfig(
         level=logging.DEBUG,
@@ -265,9 +299,13 @@ def main():
     patch_manifest(app_name)
     write_policies(app_name, app_info, error)
 
-    os.environ['X11VNC_CREATE_GEOM'] = (
-        f'{DISPLAY_WIDTH}x{DISPLAY_HEIGHT}x24'
-    )
+    # Start Xvfb virtual display (without xauth, since x11vnc and
+    # Firefox run as the same user in an isolated container)
+    display_num = 20
+    xvfb = start_xvfb(display_num, DISPLAY_WIDTH, DISPLAY_HEIGHT,
+                       FIREFOX_USER)
+    display = f':{display_num}'
+    os.environ['DISPLAY'] = display
 
     # Start HTTP server for extension shutdown signalling
     http_server = start_http_server()
@@ -275,12 +313,13 @@ def main():
     # Build and start x11vnc command
     cmd = [
         'runuser', '-u', FIREFOX_USER, '--',
-        'x11vnc'
+        'x11vnc',
+        '-display', display,
     ]
     if READ_ONLY == 'True':
         cmd += ['-viewonly', '-nocursor']
     cmd += [
-        '-create', '-shared', '-forever',
+        '-shared', '-forever',
         '-afteraccept', 'start-firefox.sh',
         '-gone', 'stop-firefox.sh',
     ]
@@ -309,6 +348,10 @@ def main():
     if shutdown_requested:
         LOG.info('Waiting for browser shutdown to complete')
         shutdown_complete.wait(timeout=10)
+
+    xvfb.terminate()
+    xvfb.wait()
+    LOG.info('Xvfb terminated')
 
     http_server.shutdown()
     LOG.info('Shutdown complete')
