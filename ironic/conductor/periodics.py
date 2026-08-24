@@ -143,7 +143,19 @@ def node_periodic(purpose, spacing, enabled=True, filters=None,
                                               shared=shared_task) as task:
                         if interface_type is not None:
                             impl = getattr(task.driver, interface_type)
-                            if not isinstance(impl, self.__class__):
+                            # Match the node's interface by exact type
+                            # rather than isinstance().  When a subclass
+                            # (e.g. DracRedfishBIOS) inherits a periodic
+                            # from its base (RedfishBIOS) and both are
+                            # enabled, each interface is collected as its
+                            # own task.  An isinstance() check would let
+                            # the base task also match subclass nodes, so
+                            # the same node would be processed by two
+                            # tasks (duplicate resume RPCs).  Exact-type
+                            # matching keeps the node sets disjoint and
+                            # ensures each node is handled by its own
+                            # implementation.
+                            if type(impl) is not type(self):
                                 continue
 
                         result = func(self, task, *args, **kwargs)
