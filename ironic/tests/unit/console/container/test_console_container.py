@@ -53,6 +53,20 @@ class TestConsoleContainerFactory(base.TestCase):
         provider2 = console_factory.ConsoleContainerFactory().provider
         self.assertEqual(provider, provider2)
 
+    def test_factory_provider_error(self):
+        # an error raised by the provider is already specific, the
+        # factory must not wrap it in a second identical message
+        _reset_provider('container')
+        CONF.set_override('console_image', 'test-image', 'vnc')
+        with mock.patch.object(utils, 'execute',
+                               autospec=True) as mock_exec:
+            mock_exec.side_effect = FileNotFoundError(
+                2, 'No such file or directory', 'docker')
+            error = self.assertRaises(
+                exception.ConsoleContainerError,
+                console_factory.ConsoleContainerFactory)
+        self.assertEqual(1, str(error).count('Console container error'))
+
 
 class TestSystemdConsoleContainer(base.TestCase):
 

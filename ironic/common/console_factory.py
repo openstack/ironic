@@ -52,6 +52,10 @@ class ConsoleContainerFactory(object):
                 provider_name,
                 invoke_kwds=kwargs,
                 invoke_on_load=True)
+        except exception.ConsoleContainerError:
+            # the provider already reported the failure with its
+            # own context, wrapping it repeats the same message
+            raise
         except Exception as e:
             LOG.exception('Could not create console container provider')
             raise exception.ConsoleContainerError(
