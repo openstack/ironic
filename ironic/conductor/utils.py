@@ -1355,8 +1355,11 @@ def agent_is_alive(node, timeout=None):
         return True
 
     # If no agent_url is present then we have powered down since the
-    # last agent heartbeat
-    if not node.driver_internal_info.get('agent_url'):
+    # last agent heartbeat. Ignore this check while inspection since agent URL
+    # is not available at that point.
+    if (not node.driver_internal_info.get('agent_url')
+            and node.provision_state not in (states.INSPECTING,
+                                             states.INSPECTWAIT)):
         return False
 
     return value_within_timeout(

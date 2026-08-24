@@ -1,0 +1,6 @@
+---
+fixes:
+  - |
+    Fixes fast-track after inspection, if the first heartbeat is blocked by
+    ongoing processing. Previously in this case ``agent_url`` would not be
+    recorded on the node, and the agent was wrongly presumed dead.
