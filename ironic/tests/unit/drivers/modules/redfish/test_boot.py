@@ -1025,9 +1025,11 @@ class RedfishVirtualMediaBootTestCase(db_base.DbTestCase):
     @mock.patch.object(image_utils, 'cleanup_iso_image', autospec=True)
     @mock.patch.object(image_utils, 'cleanup_floppy_image', autospec=True)
     @mock.patch.object(redfish_boot, '_parse_driver_info', autospec=True)
+    @mock.patch.object(redfish_boot.manager_utils, 'node_power_action',
+                       autospec=True)
     @mock.patch.object(redfish_utils, 'get_system', autospec=True)
     def test_clean_up_ramdisk(
-            self, mock_system, mock__parse_driver_info,
+            self, mock_system, mock_node_power_action, mock__parse_driver_info,
             mock_cleanup_floppy_image, mock_cleanup_iso_image,
             mock__eject_vmedia):
 
@@ -1039,6 +1041,8 @@ class RedfishVirtualMediaBootTestCase(db_base.DbTestCase):
 
             task.driver.boot.clean_up_ramdisk(task)
 
+            mock_node_power_action.assert_called_once_with(
+                task, states.POWER_OFF)
             mock_cleanup_iso_image.assert_called_once_with(task)
 
             mock_cleanup_floppy_image.assert_called_once_with(task)
@@ -1050,6 +1054,29 @@ class RedfishVirtualMediaBootTestCase(db_base.DbTestCase):
             ]
 
             mock__eject_vmedia.assert_has_calls(eject_calls)
+
+    @mock.patch.object(redfish_boot.RedfishVirtualMediaBoot,
+                       '_eject_all', autospec=True)
+    @mock.patch.object(redfish_boot.manager_utils, 'node_power_action',
+                       autospec=True)
+    def test_clean_up_ramdisk_powers_off_before_eject(
+            self, mock_node_power_action, mock_eject_all):
+        call_order = []
+        mock_node_power_action.side_effect = (
+            lambda *args, **kwargs: call_order.append('power_off'))
+        mock_eject_all.side_effect = (
+            lambda *args, **kwargs: call_order.append('eject'))
+
+        with task_manager.acquire(self.context, self.node.uuid,
+                                  shared=True) as task:
+            task.node.provision_state = states.DEPLOYING
+
+            task.driver.boot.clean_up_ramdisk(task)
+
+            mock_node_power_action.assert_called_once_with(
+                task, states.POWER_OFF)
+            mock_eject_all.assert_called_once_with(task.driver.boot, task)
+            self.assertEqual(['power_off', 'eject'], call_order)
 
     @mock.patch.object(redfish_boot.RedfishVirtualMediaBoot,
                        '_eject_all', autospec=True)
