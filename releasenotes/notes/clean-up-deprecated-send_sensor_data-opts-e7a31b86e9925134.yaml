@@ -1,0 +1,12 @@
+---
+upgrade:
+  - |
+    The following deprecated options have been removed. Use the options in
+    the ``sensor_data`` section instead.
+
+    - ``[conductor] send_sensor_data``
+    - ``[conductor] send_sensor_data_interval``
+    - ``[conductor] send_sensor_data_workers``
+    - ``[conductor] send_sensor_data_wait_timeout``
+    - ``[conductor] send_sensor_data_types``
+    - ``[conductor] send_sensor_data_for_undeployed_nodes``
