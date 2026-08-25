@@ -1,0 +1,10 @@
+---
+fixes:
+  - |
+    Fixes an inconsistency where adding a port that has a ``physical_network``
+    to a port group which had no member ports and no ``physical_network`` of
+    its own left the port group on physical network ``None`` while it held a
+    member port on a real physical network. The port group now adopts the
+    physical network of the first such port that joins it, keeping the port
+    group and its member ports consistent. See
+    `bug 2165051 <https://bugs.launchpad.net/ironic/+bug/2165051>`_.
