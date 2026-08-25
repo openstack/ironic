@@ -2211,6 +2211,72 @@ class ValidatePortPhysnetTestCase(db_base.DbTestCase):
                               conductor_utils.validate_port_physnet,
                               task, port)
 
+    def test_validate_port_physnet_empty_portgroup_create_adopts_physnet(self):
+        # Creating a port with a physical network as the first member of a
+        # portgroup that has no physical network of its own should cause the
+        # portgroup to adopt the port's physical network.
+        portgroup = obj_utils.create_test_portgroup(self.context,
+                                                    node_id=self.node.id)
+        self.assertIsNone(portgroup.physical_network)
+        port = db_utils.get_test_port(
+            node_id=self.node.id, portgroup_id=portgroup.id,
+            address='00:11:22:33:44:01', uuid=uuidutils.generate_uuid(),
+            physical_network='physnet1')
+        port = objects.Port(self.context, **port)
+        with task_manager.acquire(self.context, self.node.uuid) as task:
+            conductor_utils.validate_port_physnet(task, port)
+
+        portgroup.refresh()
+        self.assertEqual('physnet1', portgroup.physical_network)
+
+    def test_validate_port_physnet_empty_portgroup_update_adopts_physnet(self):
+        # Adding an existing port that has a physical network to a portgroup
+        # that has no physical network of its own should cause the portgroup
+        # to adopt the port's physical network.
+        portgroup = obj_utils.create_test_portgroup(self.context,
+                                                    node_id=self.node.id)
+        self.assertIsNone(portgroup.physical_network)
+        port = obj_utils.create_test_port(
+            self.context, node_id=self.node.id, portgroup_id=None,
+            address='00:11:22:33:44:01', physical_network='physnet1',
+            uuid=uuidutils.generate_uuid())
+        port.portgroup_id = portgroup.id
+        with task_manager.acquire(self.context, self.node.uuid) as task:
+            conductor_utils.validate_port_physnet(task, port)
+
+        portgroup.refresh()
+        self.assertEqual('physnet1', portgroup.physical_network)
+
+    def test_validate_port_physnet_adopt_physnet_from_ports_added_serially(
+            self):
+        # Reproduces the scenario where ports were created with a physical
+        # network (e.g. by an older client), a portgroup was then created
+        # without a physical network, and the ports were added to it one at a
+        # time. The portgroup should end up with the ports' physical network
+        # rather than remaining on physical network None.
+        port1 = obj_utils.create_test_port(
+            self.context, node_id=self.node.id, portgroup_id=None,
+            address='00:11:22:33:44:01', physical_network='physnet1',
+            uuid=uuidutils.generate_uuid())
+        port2 = obj_utils.create_test_port(
+            self.context, node_id=self.node.id, portgroup_id=None,
+            address='00:11:22:33:44:02', physical_network='physnet1',
+            uuid=uuidutils.generate_uuid())
+        portgroup = obj_utils.create_test_portgroup(self.context,
+                                                    node_id=self.node.id)
+        self.assertIsNone(portgroup.physical_network)
+
+        for port in (port1, port2):
+            port.portgroup_id = portgroup.id
+            with task_manager.acquire(self.context, self.node.uuid) as task:
+                conductor_utils.validate_port_physnet(task, port)
+            port.save()
+
+        portgroup.refresh()
+        self.assertEqual('physnet1', portgroup.physical_network)
+        self.assertEqual('physnet1', port1.physical_network)
+        self.assertEqual('physnet1', port2.physical_network)
+
     # 1-port portgroup, no physnet.
 
     def test_validate_port_physnet_1_port_portgroup_no_physnet_create_1(self):
