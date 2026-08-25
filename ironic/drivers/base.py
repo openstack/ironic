@@ -21,6 +21,7 @@ from __future__ import annotations
 import abc
 import collections
 import copy
+import dataclasses
 import functools
 import inspect
 import json
@@ -241,6 +242,35 @@ class VerifyStep(BaseStep):
 
 class ServiceStep(BaseStep, _StepWithAbortAndArgsinfo):
     requires_ramdisk: bool
+
+
+@dataclasses.dataclass(frozen=True)
+class ImagePublisherSettings:
+    """Settings describing how a boot interface publishes images.
+
+    Consumed by :class:`ironic.drivers.modules.image_utils.ImageHandler` to
+    build the publisher an interface needs.
+
+    :param swift_enabled: Whether images are published to Swift instead of
+        the conductor's local HTTP server.
+    :param container: Swift container to publish into. Only used when
+        ``swift_enabled`` is set.
+    :param timeout: Amount of time in seconds after which published Swift
+        objects expire. Only used when ``swift_enabled`` is set.
+    :param image_subdir: Subdirectory of the local HTTP server's document
+        root to publish into. Only used when ``swift_enabled`` is unset.
+    :param file_permission: Octal permissions for locally published files.
+        Only used when ``swift_enabled`` is unset.
+    :param kernel_params: Additional kernel parameters to pass to the
+        published image.
+    """
+
+    swift_enabled: bool = False
+    container: str | None = None
+    timeout: int | None = None
+    image_subdir: str | None = None
+    file_permission: int = 0o644
+    kernel_params: str = ''
 
 
 class BaseInterface(abc.ABC):
@@ -720,6 +750,26 @@ class BootInterface(BaseInterface):
     """Interface for boot-related actions."""
     interface_type = 'boot'
     capabilities = []
+
+    @property
+    def image_publisher_settings(self) -> ImagePublisherSettings | None:
+        """Settings describing how this interface publishes images.
+
+        Boot interfaces that publish images for a BMC to consume (for
+        example over virtual media) declare their publisher settings here
+        so that :class:`ironic.drivers.modules.image_utils.ImageHandler`
+        can build the appropriate publisher without a hardcoded,
+        hardware-type-name-keyed lookup. This allows an out-of-tree
+        hardware type to reuse a supported boot interface without
+        modifying Ironic or adding operator configuration.
+
+        This is a property so that interfaces reading mutable
+        configuration resolve the values on access.
+
+        :returns: an :class:`ImagePublisherSettings` instance, or ``None``
+            (the default) if the interface does not publish images.
+        """
+        return None
 
     @abc.abstractmethod
     def prepare_ramdisk(self, task: TaskManager, ramdisk_params):

@@ -1,0 +1,12 @@
+---
+features:
+  - |
+    Boot interfaces can now declare their virtual media image publisher
+    settings via the ``image_publisher_settings`` property on
+    ``ironic.drivers.base.BootInterface``, which returns an
+    ``ironic.drivers.base.ImagePublisherSettings`` instance. Out-of-tree
+    hardware types that reuse or subclass a supported boot interface (such as
+    the Redfish virtual media boot interface) can publish images without
+    modifying Ironic and without any operator configuration. The legacy
+    hardware-type-name lookup is retained as an internal fallback for callers
+    that pass a bare hardware type name.
