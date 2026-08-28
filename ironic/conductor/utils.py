@@ -729,6 +729,11 @@ def deploying_error_handler(task, logmsg, errmsg=None, traceback=False,
                         error=True)
     node.save()
 
+    # NOTE(JayF): Unlike cleaning_error_handler, we deliberately do not call
+    # restore_interface() here. A DEPLOY FAILED node keeps the concrete
+    # interface so that a retried deploy or a tear down operates on the
+    # interface which actually ran. The original interface is restored once
+    # the node is torn down and cleaned.
     cleanup_err = None
     if clean_up:
         try:
@@ -2130,6 +2135,9 @@ def servicing_error_handler(task, logmsg, errmsg=None, traceback=False,
         node_power_action(task, states.POWER_OFF)
 
     node.save()
+
+    # Switch back to original interface, if necessary
+    task.driver.deploy.restore_interface(task)
 
     if set_fail_state and node.provision_state != states.SERVICEFAIL:
         task.process_event('fail')

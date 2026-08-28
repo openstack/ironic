@@ -729,9 +729,24 @@ class DeployInterface(BaseInterface):
         This restores the deploy interface to the original interface
         in case it was changed by switch_interface.
 
+        NOTE(JayF): switch_interface replaces task.driver.deploy with the
+        concrete interface, so this is always dispatched on the concrete
+        interface rather than on the one which performed the switch. It
+        therefore lives here, on the base class, so that every deploy
+        interface can undo a switch, not just the agent-based ones.
+
         :param task: a TaskManager instance containing the node to act on.
         """
-        pass
+        original_deploy_interface = task.node.driver_internal_info.get(
+            'original_deploy_interface')
+        if original_deploy_interface:
+            LOG.info('Restoring deploy interface from "%s" to "%s" '
+                     'for node %s',
+                     task.node.deploy_interface, original_deploy_interface,
+                     task.node.uuid)
+            task.node.deploy_interface = original_deploy_interface
+            task.node.del_driver_internal_info('original_deploy_interface')
+            task.node.save()
 
     def supports_deploy(self, task: TaskManager):
         """Check if deploy is supported for the given node by this interface.
