@@ -18,15 +18,11 @@ from ironic.common.i18n import _
 opts = [
     cfg.BoolOpt('send_sensor_data',
                 default=False,
-                deprecated_group='conductor',
-                deprecated_name='send_sensor_data',
                 help=_('Enable sending sensor data message via the '
                        'notification bus.')),
     cfg.IntOpt('interval',
                default=600,
                min=1,
-               deprecated_group='conductor',
-               deprecated_name='send_sensor_data_interval',
                help=_('Seconds between conductor sending sensor data message '
                       'via the notification bus. This was originally for '
                       'consumption via ceilometer, but the data may also '
@@ -35,23 +31,17 @@ opts = [
                       'data collector.')),
     cfg.IntOpt('workers',
                default=4, min=1,
-               deprecated_group='conductor',
-               deprecated_name='send_sensor_data_workers',
                help=_('The maximum number of workers that can be started '
                       'simultaneously for send data from sensors periodic '
                       'task.')),
     cfg.IntOpt('wait_timeout',
                default=300,
-               deprecated_group='conductor',
-               deprecated_name='send_sensor_data_wait_timeout',
                help=_('The time in seconds to wait for send sensors data '
                       'periodic task to be finished before allowing periodic '
                       'call to happen again. Should be less than '
                       'send_sensor_data_interval value.')),
     cfg.ListOpt('data_types',
                 default=['ALL'],
-                deprecated_group='conductor',
-                deprecated_name='send_sensor_data_types',
                 help=_('List of comma separated meter types which need to be '
                        'sent to Ceilometer. The default value, "ALL", is a '
                        'special value meaning send all the sensor data. '
@@ -59,8 +49,6 @@ opts = [
                        'being processed through the conductor.')),
     cfg.BoolOpt('enable_for_undeployed_nodes',
                 default=False,
-                deprecated_group='conductor',
-                deprecated_name='send_sensor_data_for_undeployed_nodes',
                 help=_('The default for sensor data collection is to only '
                        'collect data for machines that are deployed, however '
                        'operators may desire to know if there are failures '
