@@ -399,7 +399,7 @@ class TestServiceTLS(TestCase):
                     group='json_rpc')
         self.config(key_file='/path/to/key',
                     group='json_rpc')
-        self.config(tls_minimum_version='1.3',
+        self.config(server_tls_minimum_version='1.3',
                     group='json_rpc')
 
         mock_context = mock.Mock()
@@ -430,7 +430,7 @@ class TestServiceTLS(TestCase):
                     group='json_rpc')
         self.config(key_file='/path/to/key',
                     group='json_rpc')
-        self.config(tls_ciphers='ECDHE+AESGCM',
+        self.config(server_tls_ciphers='ECDHE+AESGCM',
                     group='json_rpc')
 
         mock_context = mock.Mock()
@@ -462,9 +462,9 @@ class TestServiceTLS(TestCase):
                     group='json_rpc')
         self.config(key_file='/path/to/key',
                     group='json_rpc')
-        self.config(tls_minimum_version='1.3',
+        self.config(server_tls_minimum_version='1.3',
                     group='json_rpc')
-        self.config(tls_ciphers='ECDHE+AESGCM',
+        self.config(server_tls_ciphers='ECDHE+AESGCM',
                     group='json_rpc')
 
         mock_context = mock.Mock()
@@ -495,7 +495,7 @@ class TestServiceTLS(TestCase):
                     group='json_rpc')
         self.config(key_file='/path/to/key',
                     group='json_rpc')
-        self.config(tls_minimum_version='1.2',
+        self.config(server_tls_minimum_version='1.2',
                     group='json_rpc')
 
         mock_context = mock.Mock()
@@ -547,9 +547,9 @@ class TestServiceTLS(TestCase):
             self, mock_ssl_adapter):
         """TLS hardening options have no effect with SSL off."""
         self.config(use_ssl=False, group='json_rpc')
-        self.config(tls_minimum_version='1.3',
+        self.config(server_tls_minimum_version='1.3',
                     group='json_rpc')
-        self.config(tls_ciphers='ECDHE+AESGCM',
+        self.config(server_tls_ciphers='ECDHE+AESGCM',
                     group='json_rpc')
 
         server.WSGIService(
@@ -571,7 +571,7 @@ class TestServiceTLS(TestCase):
                     group='json_rpc')
         self.config(key_file='/path/to/key',
                     group='json_rpc')
-        self.config(tls_minimum_version='1.3',
+        self.config(server_tls_minimum_version='1.3',
                     group='json_rpc')
 
         mock_context = mock.Mock()
@@ -600,7 +600,7 @@ class TestServiceTLS(TestCase):
                     group='json_rpc')
         self.config(key_file='/path/to/key',
                     group='json_rpc')
-        self.config(tls_ciphers='ECDHE+AESGCM',
+        self.config(server_tls_ciphers='ECDHE+AESGCM',
                     group='json_rpc')
 
         mock_context = mock.Mock()
@@ -628,9 +628,9 @@ class TestServiceTLS(TestCase):
             mock_validate):
         """TLS options work with legacy [ssl] cert path."""
         self.config(use_ssl=True, group='json_rpc')
-        self.config(tls_minimum_version='1.3',
+        self.config(server_tls_minimum_version='1.3',
                     group='json_rpc')
-        self.config(tls_ciphers='ECDHE+AESGCM',
+        self.config(server_tls_ciphers='ECDHE+AESGCM',
                     group='json_rpc')
         from oslo_service import sslutils
         sslutils.register_opts(cfg.CONF)

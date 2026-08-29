@@ -49,7 +49,8 @@ opts = [
     cfg.StrOpt('key_file',
                help=_("Private key file matching cert_file.")),
     cfg.StrOpt(
-        'tls_minimum_version',
+        'server_tls_minimum_version',
+        deprecated_name='tls_minimum_version',
         default='1.3',
         choices=[
             ('1.2',
@@ -66,7 +67,8 @@ opts = [
                "TLS 1.3 since TLS 1.0 and 1.1 are "
                "deprecated (RFC 8996).")),
     cfg.StrOpt(
-        'tls_ciphers',
+        'server_tls_ciphers',
+        deprecated_name='tls_ciphers',
         help=_("Set the list of available ciphers for the "
                "JSON-RPC server. The value should be a "
                "string in the OpenSSL cipher list format. "
