@@ -187,7 +187,7 @@ class BIOSSettingList(base.IronicObjectListBase, base.IronicObject):
         db_setting_list = cls.dbapi.create_bios_setting_list(
             node_id, settings, version)
         return object_base.obj_make_list(
-            context, cls(), BIOSSetting, db_setting_list)
+            context, cls(), db_setting_list)
 
     @classmethod
     @object_base.remotable
@@ -211,7 +211,7 @@ class BIOSSettingList(base.IronicObjectListBase, base.IronicObject):
         updated_setting_list = cls.dbapi.update_bios_setting_list(
             node_id, settings, version)
         return object_base.obj_make_list(
-            context, cls(), BIOSSetting, updated_setting_list)
+            context, cls(), updated_setting_list)
 
     @classmethod
     @object_base.remotable
@@ -238,7 +238,7 @@ class BIOSSettingList(base.IronicObjectListBase, base.IronicObject):
         """
         node_bios_setting = cls.dbapi.get_bios_setting_list(node_id)
         return object_base.obj_make_list(
-            context, cls(), BIOSSetting, node_bios_setting)
+            context, cls(), node_bios_setting)
 
     @classmethod
     @object_base.remotable

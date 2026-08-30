@@ -241,8 +241,7 @@ class Node(base.IronicObject, object_base.VersionedObjectDictCompat):
         if not fields or 'traits' in fields:
             self.traits = object_base.obj_make_list(
                 context, objects.TraitList(context),
-                objects.Trait, db_object['traits'],
-                fields=['trait', 'version'])
+                db_object['traits'], fields=['trait', 'version'])
             self.traits.obj_reset_changes()
 
     @classmethod

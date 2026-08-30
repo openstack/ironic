@@ -114,7 +114,7 @@ class TraitList(base.IronicObjectListBase, base.IronicObject):
         :raises: NodeNotFound if the node no longer appears in the database.
         """
         db_traits = cls.dbapi.get_node_traits_by_node_id(node_id)
-        return object_base.obj_make_list(context, cls(), Trait, db_traits)
+        return object_base.obj_make_list(context, cls(), db_traits)
 
     @classmethod
     @object_base.remotable
@@ -135,7 +135,7 @@ class TraitList(base.IronicObjectListBase, base.IronicObject):
         """
         version = Trait.get_target_version()
         db_traits = cls.dbapi.set_node_traits(node_id, traits, version)
-        return object_base.obj_make_list(context, cls(), Trait, db_traits)
+        return object_base.obj_make_list(context, cls(), db_traits)
 
     @classmethod
     @object_base.remotable

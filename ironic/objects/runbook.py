@@ -336,8 +336,7 @@ class RunbookTraitList(base.IronicObjectListBase, base.IronicObject):
             the database.
         """
         db_traits = cls.dbapi.get_runbook_traits_by_runbook_id(runbook_id)
-        return object_base.obj_make_list(
-            context, cls(), RunbookTrait, db_traits)
+        return object_base.obj_make_list(context, cls(), db_traits)
 
     @classmethod
     @object_base.remotable
@@ -355,8 +354,7 @@ class RunbookTraitList(base.IronicObjectListBase, base.IronicObject):
         """
         version = RunbookTrait.get_target_version()
         db_traits = cls.dbapi.set_runbook_traits(runbook_id, traits, version)
-        return object_base.obj_make_list(
-            context, cls(), RunbookTrait, db_traits)
+        return object_base.obj_make_list(context, cls(), db_traits)
 
     @classmethod
     @object_base.remotable

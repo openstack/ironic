@@ -131,7 +131,7 @@ class FirmwareComponentList(base.IronicObjectListBase, base.IronicObject):
         """
         node_fw_components = cls.dbapi.get_firmware_component_list(node_id)
         return object_base.obj_make_list(
-            context, cls(), FirmwareComponent, node_fw_components)
+            context, cls(), node_fw_components)
 
     @classmethod
     def sync_firmware_components(cls, context, node_id, components):
