@@ -185,7 +185,7 @@ class HttpImageService(BaseImageService):
             # HTTPForbidden or a list of files. Both should be okay to at
             # least know things are okay in a limited fashion.
             response = requests.head(image_href, verify=verify,
-                                     timeout=CONF.webserver_connection_timeout,
+                                     timeout=CONF.webserver_verify_timeout,
                                      auth=auth)
             if (response.status_code == http_client.MOVED_PERMANENTLY
                     or response.status_code == http_client.FOUND
