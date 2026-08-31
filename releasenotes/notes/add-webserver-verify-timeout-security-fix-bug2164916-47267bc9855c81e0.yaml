@@ -1,0 +1,9 @@
+---
+security:
+  - |
+    Fixes a security issue where image URLs pointing to unresponsive endpoints
+    could cause conductor thread starvation. A new configuration option
+    ``[DEFAULT]webserver_verify_timeout`` (default 5 seconds) now controls the
+    timeout for HTTP HEAD requests used during image source validation, separate
+    from ``[DEFAULT]webserver_connection_timeout`` (default 60 seconds) used for
+    actual downloads.
