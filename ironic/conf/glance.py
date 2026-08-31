@@ -16,6 +16,7 @@
 #    under the License.
 
 from oslo_config import cfg
+from oslo_config import types
 
 from ironic.common.i18n import _
 from ironic.conf import auth
@@ -23,8 +24,9 @@ from ironic.conf import auth
 opts = [
     cfg.ListOpt('allowed_direct_url_schemes',
                 default=[],
+                item_type=types.String(choices=('file',)),
                 help=_('A list of URL schemes that can be downloaded directly '
-                       'via the direct_url.  Currently supported schemes: '
+                       'via the direct_url. Currently supported schemes: '
                        '[file].')),
     # To upload this key to Swift:
     # swift post -m Temp-Url-Key:secretkey
