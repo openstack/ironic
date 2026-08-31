@@ -92,14 +92,14 @@ class BaseWSGIService(service.ServiceBase):
 
             validate_cert_paths(cert_file, key_file)
 
-            tls_ciphers = conf.tls_ciphers
+            tls_ciphers = conf.server_tls_ciphers
             self.server.ssl_adapter = cheroot_ssl.BuiltinSSLAdapter(
                 certificate=cert_file,
                 private_key=key_file,
                 ciphers=tls_ciphers,
             )
 
-            tls_min = conf.tls_minimum_version
+            tls_min = conf.server_tls_minimum_version
             if tls_min:
                 tls_utils.check_tls_version_supported(tls_min)
                 version = tls_utils.TLS_VERSION_MAP[tls_min]

@@ -124,7 +124,7 @@ class TestWSGIService(base.TestCase):
         self.config(enable_ssl_api=True, group='api')
         self.config(cert_file='/path/to/cert', group='api')
         self.config(key_file='/path/to/key', group='api')
-        self.config(tls_minimum_version='1.2', group='api')
+        self.config(server_tls_minimum_version='1.2', group='api')
 
         mock_server.return_value = self.server
         mock_context = mock.Mock()
@@ -155,7 +155,7 @@ class TestWSGIService(base.TestCase):
         self.config(enable_ssl_api=True, group='api')
         self.config(cert_file='/path/to/cert', group='api')
         self.config(key_file='/path/to/key', group='api')
-        self.config(tls_ciphers='ECDHE+AESGCM', group='api')
+        self.config(server_tls_ciphers='ECDHE+AESGCM', group='api')
 
         mock_server.return_value = self.server
         mock_context = mock.Mock()
@@ -187,8 +187,8 @@ class TestWSGIService(base.TestCase):
         self.config(enable_ssl_api=True, group='api')
         self.config(cert_file='/path/to/cert', group='api')
         self.config(key_file='/path/to/key', group='api')
-        self.config(tls_minimum_version='1.3', group='api')
-        self.config(tls_ciphers='ECDHE+AESGCM', group='api')
+        self.config(server_tls_minimum_version='1.3', group='api')
+        self.config(server_tls_ciphers='ECDHE+AESGCM', group='api')
 
         mock_server.return_value = self.server
         mock_context = mock.Mock()
@@ -244,8 +244,8 @@ class TestWSGIService(base.TestCase):
             self, mock_server):
         """TLS hardening options have no effect with SSL off."""
         self.config(enable_ssl_api=False, group='api')
-        self.config(tls_minimum_version='1.3', group='api')
-        self.config(tls_ciphers='ECDHE+AESGCM', group='api')
+        self.config(server_tls_minimum_version='1.3', group='api')
+        self.config(server_tls_ciphers='ECDHE+AESGCM', group='api')
 
         mock_server.return_value = self.server
 
@@ -274,8 +274,8 @@ class TestWSGIService(base.TestCase):
             mock_ssl_adapter, mock_server):
         """TLS options work with legacy [ssl] cert path."""
         self.config(enable_ssl_api=True, group='api')
-        self.config(tls_minimum_version='1.3', group='api')
-        self.config(tls_ciphers='ECDHE+AESGCM', group='api')
+        self.config(server_tls_minimum_version='1.3', group='api')
+        self.config(server_tls_ciphers='ECDHE+AESGCM', group='api')
         self.config(cert_file='/path/to/cert', group='ssl')
         self.config(key_file='/path/to/key', group='ssl')
 
@@ -309,7 +309,7 @@ class TestWSGIService(base.TestCase):
         self.config(enable_ssl_api=True, group='api')
         self.config(cert_file='/path/to/cert', group='api')
         self.config(key_file='/path/to/key', group='api')
-        self.config(tls_minimum_version='1.3', group='api')
+        self.config(server_tls_minimum_version='1.3', group='api')
 
         mock_server.return_value = self.server
         mock_context = mock.Mock()
@@ -339,7 +339,7 @@ class TestWSGIService(base.TestCase):
         self.config(enable_ssl_api=True, group='api')
         self.config(cert_file='/path/to/cert', group='api')
         self.config(key_file='/path/to/key', group='api')
-        self.config(tls_minimum_version='1.3', group='api')
+        self.config(server_tls_minimum_version='1.3', group='api')
 
         mock_server.return_value = self.server
         mock_context = mock.Mock()
@@ -364,7 +364,7 @@ class TestWSGIService(base.TestCase):
         self.config(enable_ssl_api=True, group='api')
         self.config(cert_file='/path/to/cert', group='api')
         self.config(key_file='/path/to/key', group='api')
-        self.config(tls_minimum_version='1.3', group='api')
+        self.config(server_tls_minimum_version='1.3', group='api')
 
         mock_server.return_value = self.server
         mock_context = mock.Mock()
@@ -400,7 +400,7 @@ class TestWSGIService(base.TestCase):
         self.config(enable_ssl_api=True, group='api')
         self.config(cert_file='/path/to/cert', group='api')
         self.config(key_file='/path/to/key', group='api')
-        self.config(tls_ciphers='ECDHE+AESGCM', group='api')
+        self.config(server_tls_ciphers='ECDHE+AESGCM', group='api')
 
         mock_server.return_value = self.server
         mock_context = mock.Mock()
