@@ -273,7 +273,7 @@ class HttpImageService(BaseImageService):
             # files, but they can be responded with redirects or a 200 OK....
             response = self.session.head(
                 image_href, verify=verify,
-                timeout=CONF.webserver_connection_timeout,
+                timeout=CONF.webserver_verify_timeout,
                 auth=auth, allow_redirects=True)
 
             if (response.status_code == http_client.FORBIDDEN
