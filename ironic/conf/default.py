@@ -476,6 +476,16 @@ webserver_opts = [
                       'endpoint can result in Ironic service resources '
                       'being consumed waiting for the connection to '
                       'timeout.')),
+    cfg.IntOpt('webserver_verify_timeout',
+               default=5,
+               help=_('Timeout for HTTP HEAD requests used to verify image '
+                      'sources and validate URLs during node validation and '
+                      'other verification operations. This timeout should be '
+                      'kept short to prevent resource exhaustion from '
+                      'malicious or misconfigured image URLs that point to '
+                      'unresponsive endpoints. A shorter timeout helps '
+                      'prevent conductor thread starvation when performing '
+                      'synchronous validation checks.')),
     cfg.StrOpt(
         'webserver_tls_minimum_version',
         default='1.3',
