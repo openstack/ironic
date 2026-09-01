@@ -172,6 +172,24 @@ class LocalPublisherTestCase(db_base.DbTestCase):
         mock_chmod.assert_called_once_with('/httpboot/redfish/boot.iso',
                                            0o644)
 
+    @mock.patch.object(os, 'chmod', autospec=True)
+    @mock.patch.object(shutil, 'copyfile', autospec=True)
+    @mock.patch.object(os, 'link', autospec=True)
+    @mock.patch.object(os, 'mkdir', autospec=True)
+    def test_publish_local_already_published(self, mock_mkdir, mock_link,
+                                             mock_copyfile, mock_chmod):
+        mock_link.side_effect = FileExistsError()
+        mock_copyfile.side_effect = shutil.SameFileError()
+
+        url = self.publisher.publish('file.iso', 'boot.iso')
+
+        self.assertEqual(
+            'http://localhost/redfish/boot.iso', url)
+        mock_copyfile.assert_called_once_with(
+            'file.iso', '/httpboot/redfish/boot.iso')
+        mock_chmod.assert_called_once_with('/httpboot/redfish/boot.iso',
+                                           0o644)
+
     @mock.patch.object(utils, 'unlink_without_raise', autospec=True)
     def test_unpublish_local(self, mock_unlink):
         object_name = 'boot.iso'
