@@ -102,7 +102,13 @@ class LocalPublisher(AbstractPublisher):
                               'public': published_file,
                               'error': exc})
 
-            shutil.copyfile(source_path, published_file)
+            try:
+                shutil.copyfile(source_path, published_file)
+            except shutil.SameFileError:
+                LOG.debug('Image %(image)s is already published at '
+                          '%(public)s',
+                          {'image': source_path,
+                           'public': published_file})
             os.chmod(published_file, self.file_permission)
 
         if self.image_subdir:
