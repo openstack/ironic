@@ -83,19 +83,20 @@ to enable it, you should make the following two changes in ``ironic.conf``:
 
 .. code-block:: ini
 
-    [conductor]
+    [sensor_data]
     send_sensor_data = true
     [oslo_messaging_notifications]
     driver = messagingv2
 
 If you want to customize the sensor types which will be sent to Telemetry,
-change the ``send_sensor_data_types`` option. For example, the below
+change the ``[sensor_data] data_types`` option. For example, the below
 settings will send information about temperature, fan, voltage from sensors
 to the Telemetry service:
 
 .. code-block:: ini
 
-    send_sensor_data_types=Temperature,Fan,Voltage
+    [sensor_data]
+    data_types=Temperature,Fan,Voltage
 
 Supported sensor types are defined by the Telemetry service, currently
 these are ``Temperature``, ``Fan``, ``Voltage``, ``Current``.
