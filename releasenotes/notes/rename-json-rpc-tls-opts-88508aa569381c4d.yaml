@@ -5,3 +5,11 @@ deprecations:
     config options have been renamed to ``[json_rpc]
     server_tls_minimum_version`` and ``[json_rpc] server_tls_ciphers``,
     respectively, to distinguish them from new client-only options.
+upgrade:
+  - |
+    The ``[json_rpc] tls_minimum_version`` and ``[json_rpc] tls_ciphers``
+    config options now control both the TLS configuration of the server
+    and the TLS configuration of the client uses to talk to keystone
+    when using the ``keystone`` auth strategy. Use
+    ``[json_rpc] server_tls_minimum_version`` and ``[json_rpc]
+    server_tls_ciphers`` if you wish to disambiguate between these.
