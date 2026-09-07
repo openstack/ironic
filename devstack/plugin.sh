@@ -50,7 +50,8 @@ if is_service_enabled ir-api ir-cond ir-novnc; then
             # OVN, Ironic must always initialize and start OVN services here,
             # regardless of whether we're setting up virtual machines or using
             # real hardware, to ensure OVN is available for network provisioning.
-            if [[ "$Q_AGENT" == "ovn" ]]; then
+            # Other Nova virt drivers let DevStack start OVN itself.
+            if [[ "$Q_AGENT" == "ovn" && "$IRONIC_START_OVN" == "True" ]]; then
                 echo_summary "Setting up OVN..."
                 init_ovn
                 start_ovn
@@ -101,7 +102,7 @@ if is_service_enabled ir-api ir-cond ir-novnc; then
         elif [[ "$2" == "test-config" ]]; then
         # stack/test-config - Called at the end of devstack used to configure tempest
         # or any other test environments
-            if is_service_enabled tempest; then
+            if is_service_enabled tempest && [[ "$IRONIC_CONFIGURE_TEMPEST" == "True" ]]; then
                 echo_summary "Configuring Tempest for Ironic needs"
                 ironic_configure_tempest
             fi
