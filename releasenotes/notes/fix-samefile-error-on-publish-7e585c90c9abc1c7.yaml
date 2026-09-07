@@ -1,0 +1,9 @@
+---
+fixes:
+  - |
+    Fixes a ``SameFileError`` when publishing an image to the local HTTP
+    server whose destination is already a hardlink to the source, which
+    happens when a previous deployment published the same cached image and
+    did not clean it up. The image is already published in that case, so it
+    is no longer treated as an error. See
+    `bug 2150735 <https://bugs.launchpad.net/ironic/+bug/2150735>`_.
