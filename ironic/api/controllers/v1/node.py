@@ -3161,7 +3161,9 @@ class NodesController(rest.RestController):
             ('/retired', 'baremetal:node:update:retired'),
             ('/shard', 'baremetal:node:update:shard'),
             ('/parent_node', 'baremetal:node:update:parent_node'),
-            ('/disable_power_off', 'baremetal:node:update:disable_power_off')
+            ('/disable_power_off', 'baremetal:node:update:disable_power_off'),
+            ('/maintenance', 'baremetal:node:set_maintenance'),
+            ('/maintenance_reason', 'baremetal:node:set_maintenance')
         )
         for p in patch:
             # Process general direct path to policy map
