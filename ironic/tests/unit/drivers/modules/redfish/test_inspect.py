@@ -842,7 +842,8 @@ class RedfishInspectTestCase(db_base.DbTestCase):
             self, mock_get_system, mock_get_enabled_macs):
         system_mock = self.init_system_mock(mock_get_system.return_value)
         mock_pcie_device = mock.Mock()
-        mock_pcie_device.pcie_functions = None
+        type(mock_pcie_device).pcie_functions = mock.PropertyMock(
+            side_effect=sushy.exceptions.MissingAttributeError)
         system_mock.pcie_devices.get_members.return_value = [mock_pcie_device]
 
         with task_manager.acquire(self.context, self.node.uuid,
