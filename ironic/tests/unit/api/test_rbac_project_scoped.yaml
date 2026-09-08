@@ -863,6 +863,58 @@ lessee_member_cannot_set_maintenance:
   headers: *lessee_member_headers
   assert_status: 403
 
+owner_admin_can_patch_maintenance:
+  path: '/v1/nodes/{owner_node_ident}'
+  method: patch
+  headers: *owner_admin_headers
+  assert_status: 503
+  body: &maintenance_set_patch
+    - op: replace
+      path: /maintenance
+      value: true
+
+owner_manager_can_patch_maintenance:
+  path: '/v1/nodes/{owner_node_ident}'
+  method: patch
+  headers: *owner_manager_headers
+  assert_status: 503
+  body: *maintenance_set_patch
+
+owner_member_can_patch_maintenance:
+  path: '/v1/nodes/{owner_node_ident}'
+  method: patch
+  headers: *owner_member_headers
+  assert_status: 503
+  body: *maintenance_set_patch
+
+lessee_admin_can_patch_maintenance:
+  path: '/v1/nodes/{lessee_node_ident}'
+  method: patch
+  headers: *lessee_admin_headers
+  assert_status: 503
+  body: *maintenance_set_patch
+
+lessee_manager_can_patch_maintenance:
+  path: '/v1/nodes/{lessee_node_ident}'
+  method: patch
+  headers: *lessee_manager_headers
+  assert_status: 503
+  body: *maintenance_set_patch
+
+lessee_member_cannot_patch_maintenance:
+  path: '/v1/nodes/{lessee_node_ident}'
+  method: patch
+  headers: *lessee_member_headers
+  assert_status: 403
+  body: *maintenance_set_patch
+
+third_party_admin_cannot_patch_maintenance:
+  path: '/v1/nodes/{owner_node_ident}'
+  method: patch
+  headers: *third_party_admin_headers
+  assert_status: 404
+  body: *maintenance_set_patch
+
 third_party_admin_cannot_set_maintenance:
   path: '/v1/nodes/{owner_node_ident}/maintenance'
   method: put
