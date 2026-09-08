@@ -1,0 +1,11 @@
+---
+fixes:
+  - |
+    Adds optional polling after a Redfish virtual-media InsertMedia request.
+    When enabled with ``[redfish] enable_vmedia_insert_polling``, Ironic waits
+    for the BMC to report that the media is inserted and fails the operation
+    early if it is not confirmed within the configured timeout. This avoids a
+    later, less-specific deployment or inspection timeout when InsertMedia
+    initially returns HTTP 202 but ultimately fails. For more information
+    see `bug 2166702 <https://bugs.launchpad.net/ironic/+bug/2166702>`_.
+
