@@ -865,9 +865,9 @@ def _extract_hint_operator_and_values(hint_expression, hint_name):
         raise ValueError(
             _('Root device hint "%s" expression is empty') % hint_name)
 
-    # parseString() returns a list of tokens which the operator (if
+    # parse_string() returns a list of tokens which the operator (if
     # present) is always the first element.
-    ast = ROOT_DEVICE_HINTS_GRAMMAR.parseString(expression)
+    ast = ROOT_DEVICE_HINTS_GRAMMAR.parse_string(expression)
     if len(ast) <= 1:
         # hint_expression had no operator
         return {'op': '', 'values': [expression]}
@@ -915,7 +915,7 @@ def _append_operator_to_hints(root_device):
             continue
 
         expression = str(expression)
-        ast = ROOT_DEVICE_HINTS_GRAMMAR.parseString(expression)
+        ast = ROOT_DEVICE_HINTS_GRAMMAR.parse_string(expression)
         if len(ast) > 1:
             continue
 
