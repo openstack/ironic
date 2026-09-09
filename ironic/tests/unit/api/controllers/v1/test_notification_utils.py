@@ -18,6 +18,7 @@ from oslo_utils import uuidutils
 
 from ironic.api.controllers.v1 import notification_utils as notif_utils
 from ironic.objects import fields
+from ironic.objects import node as node_objects
 from ironic.objects import notification
 from ironic.tests import base as tests_base
 from ironic.tests.unit.objects import utils as obj_utils
@@ -35,6 +36,12 @@ class APINotifyTestCase(tests_base.TestCase):
         self.port_notify_mock.__name__ = 'PortCRUDNotification'
         self.chassis_notify_mock.__name__ = 'ChassisCRUDNotification'
         self.portgroup_notify_mock.__name__ = 'PortgroupCRUDNotification'
+        self.volume_target_notify_mock = mock.Mock()
+        self.inspection_rule_notify_mock = mock.Mock()
+        self.volume_target_notify_mock.__name__ = (
+            'VolumeTargetCRUDNotification')
+        self.inspection_rule_notify_mock.__name__ = (
+            'InspectionRuleCRUDNotification')
         _notification_mocks = {
             'chassis': (self.chassis_notify_mock,
                         notif_utils.CRUD_NOTIFY_OBJ['chassis'][1]),
@@ -43,7 +50,13 @@ class APINotifyTestCase(tests_base.TestCase):
             'port': (self.port_notify_mock,
                      notif_utils.CRUD_NOTIFY_OBJ['port'][1]),
             'portgroup': (self.portgroup_notify_mock,
-                          notif_utils.CRUD_NOTIFY_OBJ['portgroup'][1])
+                          notif_utils.CRUD_NOTIFY_OBJ['portgroup'][1]),
+            'volumetarget':
+                (self.volume_target_notify_mock,
+                 notif_utils.CRUD_NOTIFY_OBJ['volumetarget'][1]),
+            'inspectionrule':
+                (self.inspection_rule_notify_mock,
+                 notif_utils.CRUD_NOTIFY_OBJ['inspectionrule'][1]),
         }
         self.addCleanup(self._restore, notif_utils.CRUD_NOTIFY_OBJ.copy())
         notif_utils.CRUD_NOTIFY_OBJ = _notification_mocks
@@ -92,9 +105,11 @@ class APINotifyTestCase(tests_base.TestCase):
         test_info = {'password': 'secret123', 'some_value': 'fake-value'}
         node = obj_utils.get_test_node(self.context,
                                        driver_info=test_info)
-        notification.mask_secrets(node)
-        self.assertEqual('******', node.driver_info['password'])
-        self.assertEqual('fake-value', node.driver_info['some_value'])
+        payload = node_objects.NodeCRUDPayload(node)
+        notification.mask_secrets(payload)
+        self.assertEqual('******', payload.driver_info['password'])
+        self.assertEqual('fake-value',
+                         payload.driver_info['some_value'])
 
     def test_chassis_notification(self):
         chassis = obj_utils.get_test_chassis(self.context,
@@ -162,6 +177,66 @@ class APINotifyTestCase(tests_base.TestCase):
         self.assertEqual(portgroup.extra, payload.extra)
         self.assertEqual(portgroup.standalone_ports_supported,
                          payload.standalone_ports_supported)
+
+    def test_volume_target_notification_redacts_properties(self):
+        node_uuid = uuidutils.generate_uuid()
+        properties = {'target_iqn': 'iqn.foo',
+                      'auth_username': 'chapuser',
+                      'auth_password': 'secret123'}
+        target = obj_utils.get_test_volume_target(self.context,
+                                                  properties=properties)
+        notif_utils._emit_api_notification(self.context, target, 'create',
+                                           fields.NotificationLevel.INFO,
+                                           fields.NotificationStatus.START,
+                                           node_uuid=node_uuid)
+        init_kwargs = self.volume_target_notify_mock.call_args[1]
+        payload = init_kwargs['payload']
+        event_type = init_kwargs['event_type']
+        self.assertEqual('volumetarget', event_type.object)
+        self.assertEqual(target.uuid, payload.uuid)
+        self.assertEqual(node_uuid, payload.node_uuid)
+        self.assertEqual(['redacted_contents'], list(payload.properties))
+        self.assertNotIn('secret123', str(payload.properties))
+        self.assertNotIn('chapuser', str(payload.properties))
+        # The object the API keeps working with is untouched.
+        self.assertEqual(properties, target.properties)
+
+    def test_inspection_rule_notification(self):
+        rule = obj_utils.get_test_inspection_rule(self.context)
+        notif_utils._emit_api_notification(self.context, rule, 'create',
+                                           fields.NotificationLevel.INFO,
+                                           fields.NotificationStatus.START)
+        init_kwargs = self.inspection_rule_notify_mock.call_args[1]
+        payload = init_kwargs['payload']
+        event_type = init_kwargs['event_type']
+        self.assertEqual('inspectionrule', event_type.object)
+        self.assertEqual(rule.uuid, payload.uuid)
+        self.assertIs(False, payload.sensitive)
+        self.assertEqual(rule.actions, payload.actions)
+        self.assertEqual(rule.conditions, payload.conditions)
+
+    def test_inspection_rule_notification_sensitive(self):
+        actions = [{'op': 'set-attribute',
+                    'args': ['/driver_info/redfish_password', 'secret123']}]
+        conditions = [{'op': 'eq',
+                       'args': ['{node.driver}', 'redfish'],
+                       'multiple': 'any'}]
+        rule = obj_utils.get_test_inspection_rule(self.context,
+                                                  sensitive=True,
+                                                  actions=actions,
+                                                  conditions=conditions)
+        notif_utils._emit_api_notification(self.context, rule, 'create',
+                                           fields.NotificationLevel.INFO,
+                                           fields.NotificationStatus.START)
+        init_kwargs = self.inspection_rule_notify_mock.call_args[1]
+        payload = init_kwargs['payload']
+        self.assertIs(True, payload.sensitive)
+        self.assertEqual(['redacted_contents'], list(payload.actions[0]))
+        self.assertEqual(['redacted_contents'], list(payload.conditions[0]))
+        self.assertNotIn('secret123', str(payload.actions))
+        # The object the API keeps working with is untouched.
+        self.assertEqual(actions, rule.actions)
+        self.assertEqual(conditions, rule.conditions)
 
     @mock.patch('ironic.objects.node.NodeMaintenanceNotification',
                 autospec=True)

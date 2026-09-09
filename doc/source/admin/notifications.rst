@@ -368,6 +368,13 @@ List of CRUD notifications for volume target:
 * ``baremetal.volumetarget.delete.end``
 * ``baremetal.volumetarget.delete.error``
 
+The ``properties`` field holds the volume connection details, CHAP credentials
+among them, so its contents are never published on the notification bus. The
+REST API only returns them to callers holding the
+``baremetal:volume:view_target_properties`` permission, and notification
+subscribers are authenticated by the message broker rather than by that
+policy.
+
 Example of volume target CRUD notification::
 
    {
@@ -382,17 +389,7 @@ Example of volume target CRUD notification::
             "extra": {},
             "node_uuid": "4dbb4e69-99a8-4e13-b6e8-dd2ad4a20caf",
             "properties": {
-                "access_mode": "rw",
-                "auth_method": "CHAP"
-                "auth_password": "***",
-                "auth_username": "urxhQCzAKr4sjyE8DivY",
-                "encrypted": false,
-                "qos_specs": null,
-                "target_discovered": false,
-                "target_iqn": "iqn.2010-10.org.openstack:volume-f0d9b0e6-b242-9105-91d4-a20331693ad8",
-                "target_lun": 1,
-                "target_portal": "192.168.12.34:3260",
-                "volume_id": "f0d9b0e6-b042-4105-91d4-a20331693ad8",
+                "redacted_contents": "** Value redacted: not published on the notification bus. **"
             },
             "updated_at": "2017-05-11T09:52:04+00:00",
             "uuid": "82a45833-9c58-4ec1-943c-2091ab10e47b",

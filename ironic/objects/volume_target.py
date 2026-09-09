@@ -286,3 +286,10 @@ class VolumeTargetCRUDPayload(notification.NotificationPayloadBase):
     def __init__(self, target, node_uuid):
         super(VolumeTargetCRUDPayload, self).__init__(node_uuid=node_uuid)
         self.populate_schema(target=target)
+
+    def redact_sensitive_fields(self):
+        # The API gates properties behind
+        # baremetal:volume:view_target_properties: it holds the volume
+        # connection details, CHAP credentials among them.
+        if self.obj_attr_is_set('properties') and self.properties:
+            self.properties = notification.redacted_contents()

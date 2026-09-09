@@ -107,8 +107,7 @@ def _emit_api_notification(context, obj, action, level, status, **kwargs):
                                    "%(payload_method)s, error %(error)s"))
 
         payload = payload_method(obj, **extra_args)
-        if resource == 'node':
-            notification.mask_secrets(payload)
+        notification.mask_secrets(payload)
         notification_method(
             publisher=notification.NotificationPublisher(
                 service='ironic-api', host=CONF.host),

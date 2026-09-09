@@ -31,6 +31,9 @@ NOTIFY_LEVELS = {
 }
 
 
+REDACTED = '** Value redacted: not published on the notification bus. **'
+
+
 @base.IronicObjectRegistry.register
 class EventType(base.IronicObject):
     """Defines the event_type to be sent on the wire.
@@ -173,6 +176,21 @@ class NotificationPayloadBase(base.IronicObject):
                                                            key=key)
         self.populated = True
 
+    def redact_sensitive_fields(self):
+        """Withhold fields the REST API does not hand out unconditionally.
+
+        Called by mask_secrets() on every payload just before it goes on
+        the notification bus. Subscribers are authenticated by the message
+        broker rather than by oslo.policy, so a payload holding data that
+        the API gates behind a policy check or a sensitivity flag cannot
+        assume that check has happened and has to withhold the field here.
+
+        Masking key by key does not cover these fields: the API withholds
+        them whole, and their secrets do not always sit under a key that
+        oslo's mask_dict_password() recognises. Overrides replace the whole
+        field with redacted_contents().
+        """
+
 
 @base.IronicObjectRegistry.register
 class NotificationPublisher(base.IronicObject):
@@ -183,6 +201,10 @@ class NotificationPublisher(base.IronicObject):
         'service': fields.StringField(nullable=False),
         'host': fields.StringField(nullable=False)
     }
+
+
+def redacted_contents():
+    return {'redacted_contents': REDACTED}
 
 
 def mask_secrets(payload):
@@ -198,3 +220,5 @@ def mask_secrets(payload):
     if hasattr(payload, 'instance_info'):
         if 'image_url' in payload.instance_info:
             payload.instance_info['image_url'] = mask
+
+    payload.redact_sensitive_fields()
