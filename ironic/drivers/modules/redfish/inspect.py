@@ -533,7 +533,7 @@ class RedfishInspect(base.InspectInterface):
         # Naming them same as in IPA for compatibility
         # IPA  has extra bus and numa_node_id which BMC doesn't have.
         if function.device_class is not None:
-            info['class'] = str(function.device_class)
+            info['class'] = function.device_class.value
         if function.device_id is not None:
             info['product_id'] = function.device_id
         if function.vendor_id is not None:

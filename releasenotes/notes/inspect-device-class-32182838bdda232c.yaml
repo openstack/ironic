@@ -1,0 +1,6 @@
+---
+fixes:
+  - |
+    Fixes device class detection for PCIe devices during Redfish inspection.
+    Previously, it would return Python enum representations instead of the
+    expected value from the Redfish standard.
