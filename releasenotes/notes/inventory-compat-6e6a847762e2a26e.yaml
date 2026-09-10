@@ -1,0 +1,8 @@
+---
+features:
+  - |
+    The ``redfish`` inspect interface now reports more complete information
+    in the ``disks`` key of the inventory.
+fixes:
+  - |
+    The ``accelerators`` inspection hook now works with the Redfish inspection.
