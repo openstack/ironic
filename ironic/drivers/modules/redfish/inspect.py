@@ -129,28 +129,7 @@ class RedfishInspect(base.InspectInterface):
                         {'node': task.node.uuid})
             inspected_properties['local_gb'] = 0
 
-        try:
-            storages = system.storage
-        except sushy.exceptions.MissingAttributeError:
-            storages = None
-
-        if not storages:
-            try:
-                storages = system.simple_storage
-            except sushy.exceptions.MissingAttributeError:
-                pass
-
-        if storages:
-            disks = list()
-            for storage in storages.get_members():
-                drives = storage.drives if hasattr(
-                    storage, 'drives') else storage.devices
-                for drive in drives:
-                    disk = {}
-                    disk['name'] = drive.name
-                    disk['size'] = drive.capacity_bytes
-                    disks.append(disk)
-
+        if disks := self._get_simple_disks(system):
             inventory['disks'] = disks
 
         storage_controllers = self._get_storage_controllers(task, system)
@@ -344,6 +323,42 @@ class RedfishInspect(base.InspectInterface):
             processor.instruction_set) or ''
 
         return cpu
+
+    def _get_simple_disks(self, system):
+        is_full_storage = False
+        try:
+            storages = system.storage
+            is_full_storage = True
+        except sushy.exceptions.MissingAttributeError:
+            storages = None
+
+        if not storages:
+            try:
+                storages = system.simple_storage
+            except sushy.exceptions.MissingAttributeError:
+                pass
+
+        if not storages:
+            return []
+
+        disks = list()
+        for storage in storages.get_members():
+            if is_full_storage:
+                drives = storage.drives
+            else:
+                drives = storage.devices
+            for drive in drives:
+                disk = {}
+                disk['name'] = drive.name
+                disk['size'] = drive.capacity_bytes
+                if is_full_storage:
+                    disk['vendor'] = drive.manufacturer
+                    disk['model'] = drive.model
+                    disk['serial'] = drive.serial_number
+                    if drive.media_type:
+                        disk['rotational'] = drive.media_type == 'HDD'
+                disks.append(disk)
+        return disks
 
     def _get_storage_controllers(self, task, system):
         """Extract storage controller and drive information.

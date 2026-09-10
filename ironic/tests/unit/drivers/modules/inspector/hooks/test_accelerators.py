@@ -62,11 +62,27 @@ class AcceleratorsTestCase(db_base.DbTestCase):
         self.node = obj_utils.create_test_node(self.context,
                                                inspect_interface='agent')
         self.inventory = {'inventory': 'test_inventory'}
-        self.plugin_data = _PLUGIN_DATA
+        self.plugin_data = _PLUGIN_DATA.copy()
         self.accelerators_hook = accelerators_hook.AcceleratorsHook()
         self.accelerators_hook._known_devices = _KNOWN_DEVICES
 
     def test_accelerators(self):
+        with task_manager.acquire(self.context, self.node.id) as task:
+            self.accelerators_hook.__call__(task, self.inventory,
+                                            self.plugin_data)
+            self.node.refresh()
+            result = self.node.properties.get('accelerators', [])
+            expected = [{'vendor_id': '0de',
+                         'device_id': '1eb8',
+                         'type': 'GPU',
+                         'device_info': 'NVIDIA Corporation Tesla T4',
+                         'pci_address': '0000:00:01.2'}]
+            self.assertEqual(result, expected)
+
+    def test_accelerators_from_inventory(self):
+        self.inventory = {
+            'pci_devices': self.plugin_data.pop('pci_devices'),
+        }
         with task_manager.acquire(self.context, self.node.id) as task:
             self.accelerators_hook.__call__(task, self.inventory,
                                             self.plugin_data)
