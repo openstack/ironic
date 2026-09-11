@@ -253,7 +253,9 @@ class RedfishInspectTestCase(db_base.DbTestCase):
         self.assertEqual(expected_cpu,
                          inventory['inventory']['cpu'])
 
-        expected_disks = [{'name': 'storage-drive', 'size': '128'}]
+        expected_disks = [{'model': 'TestModel', 'name': 'storage-drive',
+                           'rotational': False, 'serial': 'SN0001', 'size':
+                           '128', 'vendor': 'TestMfg'}]
         self.assertEqual(expected_disks,
                          inventory["inventory"]['disks'])
 

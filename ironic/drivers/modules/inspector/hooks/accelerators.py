@@ -53,7 +53,11 @@ class AcceleratorsHook(base.InspectionHook):
                 return dev
 
     def __call__(self, task, inventory, plugin_data):
+        # NOTE(dtantsur): inconsistency here: IPA uses plugin_data, while
+        # Redfish put it in inventory.
         pci_devices = plugin_data.get('pci_devices', [])
+        if not pci_devices:
+            pci_devices = inventory.get('pci_devices', [])
 
         if not pci_devices:
             LOG.warning('Unable to process accelerator devices because no PCI '
