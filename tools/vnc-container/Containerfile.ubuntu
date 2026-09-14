@@ -29,7 +29,7 @@ ENV APP_INFO={}
 ENV READ_ONLY=False
 ENV DEBUG=0
 ENV FIREFOX=firefox-esr
-ENV FIREFOX_CONFIG_DIR=${FIREFOX_USER_HOME}/.mozilla/firefox
+ENV FIREFOX_PROFILE_DIR=${FIREFOX_USER_HOME}/.ironic-vnc-profile
 ENV EXTENSION_PATH="/usr/lib/firefox-esr-addons/extensions/@ironic-console.openstack.org"
 
 ADD bin/* /usr/local/bin

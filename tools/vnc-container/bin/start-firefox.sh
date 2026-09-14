@@ -17,17 +17,27 @@ if pgrep -x $FIREFOX >/dev/null; then
     exit 0
 fi
 
-rm -rf $FIREFOX_CONFIG_DIR
+# Wipe the profile registry too so -CreateProfile can always claim the name.
+# It lives under the root named by application.ini's Profile=, which only
+# $FIREFOX knows, hence the profile itself is kept outside of it.
+rm -rf "$FIREFOX_USER_HOME/.mozilla" "$FIREFOX_PROFILE_DIR"
 
-$FIREFOX -CreateProfile ironic-vnc || fail "could not create the ironic-vnc profile"
+# Start headless purely to write the profile, which exits as soon as it is
+# done. Headless means this no longer depends on $DISPLAY being up, as
+# -CreateProfile otherwise refuses to run without one.
+$FIREFOX -headless -CreateProfile "ironic-vnc $FIREFOX_PROFILE_DIR" || fail "could not create the ironic-vnc profile"
 
-pushd $FIREFOX_CONFIG_DIR/*.ironic-vnc
-cert-override.py > cert_override.txt || fail "cert-override.py failed"
-popd
+# -CreateProfile exits 0 whether or not it wrote anything.
+if [ ! -d "$FIREFOX_PROFILE_DIR" ]; then
+    fail "-CreateProfile left no profile in '$FIREFOX_PROFILE_DIR'"
+fi
+
+cert-override.py > "$FIREFOX_PROFILE_DIR/cert_override.txt" || fail "cert-override.py failed"
 
 # support a DEBUG variable to aid development
 DEBUG=${DEBUG:-0}
-args=(-width ${DISPLAY_WIDTH} -height ${DISPLAY_HEIGHT} -P ironic-vnc)
+args=(-width ${DISPLAY_WIDTH} -height ${DISPLAY_HEIGHT})
+args+=(-profile "$FIREFOX_PROFILE_DIR")
 if [ "$DEBUG" = "2" ]; then
     # show tabs and a javascript console
     args+=(-jsconsole)
