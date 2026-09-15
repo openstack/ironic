@@ -8,6 +8,7 @@ ENV FIREFOX_USER_HOME=/home/${FIREFOX_USER}
 
 RUN apt-get update && \
     apt-get install -y \
+    curl \
     dumb-init \
     iproute2 \
     procps \
