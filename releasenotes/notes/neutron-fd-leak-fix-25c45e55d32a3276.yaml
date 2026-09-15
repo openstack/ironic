@@ -1,0 +1,11 @@
+---
+fixes:
+  - |
+    Fixes a file descriptor leak in neutron client connections that could
+    cause the ironic-conductor service to exhaust available file descriptors
+    over time. The ``get_client()`` function was creating new OpenStack SDK
+    Connection and Session objects on every invocation without properly
+    closing them, leading to resource exhaustion in long-running deployments
+    with frequent neutron interactions. All neutron client connection code
+    now properly closes connections after use, preventing file descriptor
+    accumulation.

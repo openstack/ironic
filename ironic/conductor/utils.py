@@ -1269,8 +1269,11 @@ def power_on_node_if_needed(task):
                       {'host': host_id})
 
             client = neutron.get_client(context=task.context)
-            neutron.wait_for_host_agent(
-                client, host_id, target_state='down')
+            try:
+                neutron.wait_for_host_agent(
+                    client, host_id, target_state='down')
+            finally:
+                client.close()
         return previous_power_state
 
 

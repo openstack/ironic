@@ -39,6 +39,41 @@ PHYSNET_PARAM_NAME = 'provider:physical_network'
 """Name of the neutron network API physical network parameter."""
 
 
+class NeutronNetworkClient:
+    """Wrapper for neutron network proxy that ensures connection cleanup.
+
+    This class wraps the openstacksdk network proxy and holds a reference
+    to the underlying Connection object to ensure it can be properly closed
+    to prevent file descriptor leaks.
+    """
+
+    def __init__(self, connection, network_proxy):
+        self._connection = connection
+        self._network_proxy = network_proxy
+
+    def __getattr__(self, name):
+        return getattr(self._network_proxy, name)
+
+    def __enter__(self):
+        return self
+
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        self.close()
+        return False
+
+    def close(self):
+        if self._connection is not None:
+            try:
+                self._connection.close()
+            except Exception as e:
+                LOG.warning('Error closing neutron connection: %s', e)
+            finally:
+                self._connection = None
+
+    def __del__(self):
+        self.close()
+
+
 def _get_neutron_session():
     global _NEUTRON_SESSION
     if not _NEUTRON_SESSION:
@@ -76,8 +111,9 @@ def get_client(token=None, context=None, auth_from_config=False):
     sess = keystone.get_session('neutron', timeout=CONF.neutron.timeout,
                                 auth=user_auth or service_auth)
     conn = openstack.connection.Connection(session=sess, oslo_conf=CONF)
+    network_proxy = conn.global_request(context.global_id).network
 
-    return conn.global_request(context.global_id).network
+    return NeutronNetworkClient(conn, network_proxy)
 
 
 def update_neutron_port(context, port_id, attrs, client=None):
@@ -92,17 +128,26 @@ def update_neutron_port(context, port_id, attrs, client=None):
     :param attrs:  The attributes to update on the port
     :param client: Optional Neutron client
     """
+    client_to_close = None
     if not client:
         # verify that user can see the port before updating it
-        get_client(context=context).get_port(port_id)
+        verify_client = get_client(context=context)
+        try:
+            verify_client.get_port(port_id)
+        finally:
+            verify_client.close()
         # Set user_auth=False to ensure auth values from ironic.conf is used
         #  prevents issues where a non-admin user is not allowed to manage
         #  Neutron ports.
-        client = get_client(context=context, auth_from_config=True)
+        client = client_to_close = get_client(context=context,
+                                              auth_from_config=True)
 
-    attrs = attrs.get('port', attrs)
-
-    return client.update_port(port_id, **attrs)
+    try:
+        attrs = attrs.get('port', attrs)
+        return client.update_port(port_id, **attrs)
+    finally:
+        if client_to_close:
+            client_to_close.close()
 
 
 def unbind_neutron_port(port_id, client=None, context=None, reset_mac=True):
@@ -158,29 +203,36 @@ def unbind_neutron_port_if_bound(port_id, client=None, context=None):
     :type context: ironic.common.context.RequestContext
     :raises: NetworkError
     """
-    is_bound = None
+    client_to_close = None
     if not client:
-        client = get_client(context=context)
+        client = client_to_close = get_client(context=context)
     try:
-        port = client.get_port(port_id)
-        if not (port.binding_host_id is None or port.binding_host_id == ''):
-            is_bound = True
-    except openstack_exc.ResourceNotFound:
-        msg = (_('The neutron port %(port_id)s was not found when we expect '
-                 'it to exist. We cannot proceed.') % {'port_id': port_id})
-        raise exception.NetworkError(msg)
-    except openstack_exc.OpenStackCloudException as e:
-        msg = (_('An unknown error was encountered while attempting '
-                 'to retrieve neutron port %(port_id)s. Error: '
-                 '%(err)s') % {'port_id': port_id, 'err': e})
-        raise exception.NetworkError(msg)
-    if is_bound:
-        # If bound, then trigger an unbind using the already created
-        # context and client.
-        LOG.debug('Attempting to unbind port %s because it is already '
-                  'bound in Neutron.', port_id)
-        # Don't use a client or overall context
-        unbind_neutron_port(port_id)
+        is_bound = None
+        try:
+            port = client.get_port(port_id)
+            if not (port.binding_host_id is None
+                    or port.binding_host_id == ''):
+                is_bound = True
+        except openstack_exc.ResourceNotFound:
+            msg = (_('The neutron port %(port_id)s was not found when we '
+                     'expect it to exist. We cannot proceed.')
+                   % {'port_id': port_id})
+            raise exception.NetworkError(msg)
+        except openstack_exc.OpenStackCloudException as e:
+            msg = (_('An unknown error was encountered while attempting '
+                     'to retrieve neutron port %(port_id)s. Error: '
+                     '%(err)s') % {'port_id': port_id, 'err': e})
+            raise exception.NetworkError(msg)
+        if is_bound:
+            # If bound, then trigger an unbind using the already created
+            # context and client.
+            LOG.debug('Attempting to unbind port %s because it is already '
+                      'bound in Neutron.', port_id)
+            # Don't use a client or overall context
+            unbind_neutron_port(port_id)
+    finally:
+        if client_to_close:
+            client_to_close.close()
 
 
 def update_port_address(port_id, address, context=None, client=None):
@@ -193,12 +245,12 @@ def update_port_address(port_id, address, context=None, client=None):
     :param client: A neutron client object.
     :raises: FailedToUpdateMacOnPort
     """
+    client_to_close = None
     if not client:
-        client = get_client(context=context)
-
-    port_attrs = {'mac_address': address}
+        client = client_to_close = get_client(context=context)
 
     try:
+        port_attrs = {'mac_address': address}
         msg = (_("Failed to get the current binding on Neutron "
                  "port %s.") % port_id)
         port = client.get_port(port_id)
@@ -227,6 +279,9 @@ def update_port_address(port_id, address, context=None, client=None):
     except (openstack_exc.OpenStackCloudException, exception.NetworkError):
         LOG.exception(msg)
         raise exception.FailedToUpdateMacOnPort(port_id=port_id)
+    finally:
+        if client_to_close:
+            client_to_close.close()
 
 
 def _verify_security_groups(security_groups, client):
@@ -342,6 +397,7 @@ def add_ports_to_network(task, network_uuid, security_groups=None):
         ports_to_create = task.ports
     if not ports_to_create:
         pxe_enabled = 'PXE-enabled ' if not add_all_ports else ''
+        client.close()
         raise exception.NetworkError(_(
             "No available %(enabled)s ports on node %(node)s.") %
             {'enabled': pxe_enabled, 'node': node.uuid})
@@ -434,6 +490,7 @@ def add_ports_to_network(task, network_uuid, security_groups=None):
     if failures:
         if len(failures) == len(ports_to_create):
             rollback_ports(task, network_uuid)
+            client.close()
             raise exception.NetworkError(_(
                 "Failed to create neutron ports for node's %(node)s ports "
                 "%(ports)s.") % {'node': node.uuid, 'ports': ports_to_create})
@@ -447,6 +504,7 @@ def add_ports_to_network(task, network_uuid, security_groups=None):
                  'created ports (ironic ID: neutron ID): %(ports)s.',
                  {'node_uuid': node.uuid, 'net': network_uuid, 'ports': ports})
 
+    client.close()
     return ports
 
 
@@ -491,10 +549,12 @@ def remove_neutron_ports(task, params):
                  'from neutron, possible network issue. %(exc)s') %
                {'node': node_uuid, 'exc': e})
         LOG.exception(msg)
+        client.close()
         raise exception.NetworkError(msg)
 
     if not ports:
         LOG.debug('No ports to remove for node %s', node_uuid)
+        client.close()
         return
 
     for port in ports:
@@ -514,10 +574,12 @@ def remove_neutron_ports(task, params):
                      'a network issue: %(exc)s') %
                    {'vif': port.id, 'node': node_uuid, 'exc': e})
             LOG.exception(msg)
+            client.close()
             raise exception.NetworkError(msg)
 
     LOG.info('Successfully removed node %(node_uuid)s neutron ports.',
              {'node_uuid': node_uuid})
+    client.close()
 
 
 def _uncidr(cidr):
@@ -560,8 +622,9 @@ def get_neutron_port_data(port_id, vif_id, client=None, context=None,
          associated with this ironic or Neutron port.
     """
 
+    client_to_close = None
     if not client:
-        client = get_client(context=context)
+        client = client_to_close = get_client(context=context)
 
     try:
         port_config = client.get_port(vif_id)
@@ -570,6 +633,8 @@ def get_neutron_port_data(port_id, vif_id, client=None, context=None,
         msg = (_('Unable to get port info for %(port_id)s. Error: '
                  '%(err)s') % {'port_id': vif_id, 'err': e})
         LOG.exception(msg)
+        if client_to_close:
+            client_to_close.close()
         raise exception.NetworkError(msg)
 
     LOG.debug('Received port %(port)s data: %(info)s',
@@ -591,6 +656,8 @@ def get_neutron_port_data(port_id, vif_id, client=None, context=None,
         msg = (_('Unable to get network info for %(network_id)s. Error: '
                  '%(err)s') % {'network_id': network_id, 'err': e})
         LOG.exception(msg)
+        if client_to_close:
+            client_to_close.close()
         raise exception.NetworkError(msg)
 
     LOG.debug('Received network %(network)s data: %(info)s',
@@ -653,6 +720,8 @@ def get_neutron_port_data(port_id, vif_id, client=None, context=None,
             msg = (_('Unable to get subnet info for %(subnet_id)s. Error: '
                      '%(err)s') % {'subnet_id': subnet_id, 'err': e})
             LOG.exception(msg)
+            if client_to_close:
+                client_to_close.close()
             raise exception.NetworkError(msg)
 
         subnet_config = subnets_config[subnet_id]
@@ -712,6 +781,8 @@ def get_neutron_port_data(port_id, vif_id, client=None, context=None,
             # https://docs.openstack.org/nova/latest/_downloads/9119ca7ac90aa2990e762c08baea3a36/network_data.json  # noqa
             network_data['services'].append(service)
 
+    if client_to_close:
+        client_to_close.close()
     return network_data
 
 
@@ -814,10 +885,12 @@ def validate_network(uuid_or_name, net_type=_('network'), context=None):
               'in node driver_info.') % net_type)
 
     client = get_client(context=context)
-    network = _get_network_by_uuid_or_name(client, uuid_or_name,
-                                           net_type=net_type)
-
-    return network.id
+    try:
+        network = _get_network_by_uuid_or_name(client, uuid_or_name,
+                                               net_type=net_type)
+        return network.id
+    finally:
+        client.close()
 
 
 def validate_port_info(node, port):

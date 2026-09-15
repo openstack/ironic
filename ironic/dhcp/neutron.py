@@ -89,7 +89,9 @@ class NeutronDHCPApi(base.BaseDHCP):
                           'however port lacks an IP address.', port_id)
             port_attrs = {'extra_dhcp_opts': update_opts}
             neutron.update_neutron_port(context, port_id, port_attrs)
+            neutron_client.close()
         except openstack_exc.OpenStackCloudException:
+            neutron_client.close()
             LOG.exception("Failed to update Neutron port %s.", port_id)
             raise exception.FailedToUpdateDHCPOptOnPort(port_id=port_id)
 
@@ -270,12 +272,15 @@ class NeutronDHCPApi(base.BaseDHCP):
                   task's ports/portgroups.
         """
         client = neutron.get_client(context=task.context)
+        try:
+            port_ip_addresses = self._get_ip_addresses(task, task.ports,
+                                                       client)
+            portgroup_ip_addresses = self._get_ip_addresses(
+                task, task.portgroups, client)
 
-        port_ip_addresses = self._get_ip_addresses(task, task.ports, client)
-        portgroup_ip_addresses = self._get_ip_addresses(
-            task, task.portgroups, client)
-
-        return port_ip_addresses + portgroup_ip_addresses
+            return port_ip_addresses + portgroup_ip_addresses
+        finally:
+            client.close()
 
     def supports_ipxe_tag(self):
         """Whether the provider will correctly apply the 'ipxe' tag.

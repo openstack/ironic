@@ -532,6 +532,7 @@ class NeutronInterfaceTestCase(db_base.DbTestCase):
                 context=task.context,
                 reset_mac=True)
             wait_agent_mock.assert_called_once_with(nclient, 'hostname')
+            client_mock.return_value.close.assert_called_once()
 
     @mock.patch.object(neutron_common, 'unbind_neutron_port', autospec=True)
     def test_unconfigure_tenant_networks_portgroup_1(self, mock_unbind_port):
@@ -699,6 +700,7 @@ class NeutronInterfaceTestCase(db_base.DbTestCase):
         with task_manager.acquire(self.context, self.node.id) as task:
             self.interface.configure_tenant_networks(task)
             client_mock.assert_called_once_with(context=task.context)
+        client_mock.return_value.close.assert_called_once()
         portid1 = self.port.internal_info[common.NetType.TENANT.vif_key]
         portid2 = second_port.internal_info[common.NetType.TENANT.vif_key]
         update_mock.assert_has_calls(

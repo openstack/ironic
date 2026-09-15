@@ -116,6 +116,38 @@ class TestNeutronClient(base.TestCase):
             [mock.call('neutron', timeout=10),
              mock.call('neutron', auth=mock.sentinel.auth, timeout=10)])
 
+    def test_get_client_returns_wrapper(self, mock_client_init,
+                                        mock_session, mock_adapter,
+                                        mock_auth, mock_sauth):
+        client = neutron.get_client(context=self.context)
+        self.assertIsInstance(client, neutron.NeutronNetworkClient)
+        mock_client_init.assert_called_once()
+
+    def test_client_wrapper_close(self, mock_client_init,
+                                  mock_session, mock_adapter,
+                                  mock_auth, mock_sauth):
+        client = neutron.get_client(context=self.context)
+        client.close()
+        mock_client_init.return_value.close.assert_called_once()
+
+    def test_client_wrapper_context_manager(self, mock_client_init,
+                                            mock_session, mock_adapter,
+                                            mock_auth, mock_sauth):
+        with neutron.get_client(context=self.context) as client:
+            self.assertIsInstance(client, neutron.NeutronNetworkClient)
+        mock_client_init.return_value.close.assert_called_once()
+
+    def test_client_wrapper_delegates_to_network(self, mock_client_init,
+                                                 mock_session, mock_adapter,
+                                                 mock_auth, mock_sauth):
+        mock_network = mock.Mock()
+        mock_client_init.return_value.global_request.return_value.network = (
+            mock_network)
+        client = neutron.get_client(context=self.context)
+        # Test that methods are delegated to the network proxy
+        client.get_port('port-id')
+        mock_network.get_port.assert_called_once_with('port-id')
+
 
 class TestUpdateNeutronPort(base.TestCase):
     def setUp(self):
@@ -502,6 +534,19 @@ class TestNeutronNetworkActions(db_base.DbTestCase):
                                                 expected_update_body)
         self.assertTrue(vpi_mock.called)
 
+    @mock.patch.object(neutron, 'update_neutron_port', autospec=True)
+    def test_add_ports_to_network_closes_client(self, update_mock):
+        # Verify that client.close() is called after add_ports_to_network
+        self.node.network_interface = 'neutron'
+        self.node.save()
+        self.client_mock.create_port.return_value = self.neutron_port
+        update_mock.return_value = self.neutron_port
+
+        with task_manager.acquire(self.context, self.node.uuid) as task:
+            neutron.add_ports_to_network(task, self.network_uuid)
+
+        self.client_mock.close.assert_called_once()
+
     @mock.patch.object(neutron, 'rollback_ports', autospec=True)
     def test_add_network_all_ports_fail(self, rollback_mock):
         # Check that if creating a port fails, the ports are cleaned up
@@ -605,6 +650,7 @@ class TestNeutronNetworkActions(db_base.DbTestCase):
             neutron.remove_neutron_ports(task, {'param': 'value'})
         self.client_mock.ports.assert_called_once_with(**{'param': 'value'})
         self.client_mock.delete_port.assert_called_once_with(self.neutron_port)
+        self.client_mock.close.assert_called_once()
 
     def test_remove_neutron_ports_list_fail(self):
         with task_manager.acquire(self.context, self.node.uuid) as task:
@@ -614,6 +660,7 @@ class TestNeutronNetworkActions(db_base.DbTestCase):
                 exception.NetworkError, 'Could not get given network VIF',
                 neutron.remove_neutron_ports, task, {'param': 'value'})
         self.client_mock.ports.assert_called_once_with(**{'param': 'value'})
+        self.client_mock.close.assert_called_once()
 
     def test_remove_neutron_ports_delete_fail(self):
         with task_manager.acquire(self.context, self.node.uuid) as task:
@@ -625,6 +672,7 @@ class TestNeutronNetworkActions(db_base.DbTestCase):
                 neutron.remove_neutron_ports, task, {'param': 'value'})
         self.client_mock.ports.assert_called_once_with(**{'param': 'value'})
         self.client_mock.delete_port.assert_called_once_with(self.neutron_port)
+        self.client_mock.close.assert_called_once()
 
     def test_remove_neutron_ports_delete_race(self):
         with task_manager.acquire(self.context, self.node.uuid) as task:
@@ -634,6 +682,7 @@ class TestNeutronNetworkActions(db_base.DbTestCase):
             neutron.remove_neutron_ports(task, {'param': 'value'})
         self.client_mock.ports.assert_called_once_with(**{'param': 'value'})
         self.client_mock.delete_port.assert_called_once_with(self.neutron_port)
+        self.client_mock.close.assert_called_once()
 
     def test__uncidr_ipv4(self):
         network, netmask = neutron._uncidr('10.0.0.0/24')

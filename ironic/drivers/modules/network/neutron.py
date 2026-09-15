@@ -180,21 +180,24 @@ class NeutronNetwork(common.NeutronVIFPortIDMixin,
         portgroups = task.portgroups
 
         client = neutron.get_client(context=task.context)
-        pobj_without_vif = 0
-        for port_like_obj in ports + portgroups:
+        try:
+            pobj_without_vif = 0
+            for port_like_obj in ports + portgroups:
 
-            try:
-                common.plug_port_to_tenant_network(task, port_like_obj,
-                                                   client=client)
-            except exception.VifNotAttached:
-                pobj_without_vif += 1
-                continue
+                try:
+                    common.plug_port_to_tenant_network(task, port_like_obj,
+                                                       client=client)
+                except exception.VifNotAttached:
+                    pobj_without_vif += 1
+                    continue
 
-        if pobj_without_vif == len(ports + portgroups):
-            msg = _("No neutron ports or portgroups are associated with "
-                    "node %s") % node.uuid
-            LOG.error(msg)
-            raise exception.NetworkError(msg)
+            if pobj_without_vif == len(ports + portgroups):
+                msg = _("No neutron ports or portgroups are associated with "
+                        "node %s") % node.uuid
+                LOG.error(msg)
+                raise exception.NetworkError(msg)
+        finally:
+            client.close()
 
     def unconfigure_tenant_networks(self, task):
         """Unconfigure tenant networks for a node.
@@ -220,8 +223,11 @@ class NeutronNetwork(common.NeutronVIFPortIDMixin,
             is_smart_nic = neutron.is_smartnic_port(port_like_obj)
             if is_smart_nic:
                 client = neutron.get_client(context=task.context)
-                link_info = port_like_obj.local_link_connection
-                neutron.wait_for_host_agent(client, link_info['hostname'])
+                try:
+                    link_info = port_like_obj.local_link_connection
+                    neutron.wait_for_host_agent(client, link_info['hostname'])
+                finally:
+                    client.close()
 
             # NOTE(kaifeng) address is optional for port group, avoid to
             # regenerate mac when the address is absent.
