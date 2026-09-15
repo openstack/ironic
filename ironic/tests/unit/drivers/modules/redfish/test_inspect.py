@@ -250,7 +250,7 @@ class RedfishInspectTestCase(db_base.DbTestCase):
                          inventory['inventory']['interfaces'])
 
         expected_cpu = {'count': 8, 'model_name': 'test',
-                        'frequency': 1234, 'architecture': 'x86_64'}
+                        'frequency': '1234', 'architecture': 'x86_64'}
         self.assertEqual(expected_cpu,
                          inventory['inventory']['cpu'])
 
