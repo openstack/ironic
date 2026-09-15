@@ -39,5 +39,7 @@ try:
 
     print(f"{addr}:{port}:\tOID.2.16.840.1.101.3.4.2.1\t{formatted_digest}\t")
 except Exception as e:
-    print("# Problem fetching certificate fingerprint.")
-    print(f"# {e}")
+    # Send msgs to stderr so we see it in our container logs
+    print("Problem fetching certificate fingerprint.", file=sys.stderr)
+    print(e, file=sys.stderr)
+    sys.exit(1)
