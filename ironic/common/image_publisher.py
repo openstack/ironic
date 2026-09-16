@@ -169,31 +169,31 @@ class SwiftPublisher(AbstractPublisher):
         return urlparse.urlunparse(parsed_url)
 
     def publish(self, source_path, file_name=None):
-        api = swift.SwiftAPI()
-        if not file_name:
-            file_name = os.path.basename(source_path)
+        with swift.SwiftAPI() as api:
+            if not file_name:
+                file_name = os.path.basename(source_path)
 
-        object_headers = {'X-Delete-After': str(self.delete_after)}
-        api.create_object(self.container, file_name, source_path,
-                          object_headers=object_headers)
+            object_headers = {'X-Delete-After': str(self.delete_after)}
+            api.create_object(self.container, file_name, source_path,
+                              object_headers=object_headers)
 
-        image_url = api.get_temp_url(self.container, file_name,
-                                     self.delete_after)
-        return self._append_filename_param(
-            image_url, os.path.basename(source_path))
+            image_url = api.get_temp_url(self.container, file_name,
+                                         self.delete_after)
+            return self._append_filename_param(
+                image_url, os.path.basename(source_path))
 
     def unpublish(self, file_name):
-        api = swift.SwiftAPI()
-        LOG.debug("Cleaning up image %(name)s from Swift container "
-                  "%(container)s", {'name': file_name,
-                                    'container': self.container})
+        with swift.SwiftAPI() as api:
+            LOG.debug("Cleaning up image %(name)s from Swift container "
+                      "%(container)s", {'name': file_name,
+                                        'container': self.container})
 
-        try:
-            api.delete_object(self.container, file_name)
+            try:
+                api.delete_object(self.container, file_name)
 
-        except exception.SwiftOperationError as exc:
-            LOG.warning("Failed to clean up image %(image)s. Error: "
-                        "%(error)s.", {'image': file_name, 'error': exc})
+            except exception.SwiftOperationError as exc:
+                LOG.warning("Failed to clean up image %(image)s. Error: "
+                            "%(error)s.", {'image': file_name, 'error': exc})
 
 
 class NFSPublisher(AbstractPublisher):

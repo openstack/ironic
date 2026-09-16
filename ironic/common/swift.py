@@ -47,6 +47,29 @@ class SwiftAPI(object):
             session=get_swift_session(),
             oslo_conf=CONF)
 
+    def __enter__(self):
+        """Support context manager protocol."""
+        return self
+
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        """Close connection when exiting context."""
+        self.close()
+        return False
+
+    def close(self):
+        """Close the underlying connection to release resources."""
+        if self.connection is not None:
+            try:
+                self.connection.close()
+            except Exception as e:
+                LOG.warning('Error closing swift connection: %s', e)
+            finally:
+                self.connection = None
+
+    def __del__(self):
+        """Ensure connection is closed when object is garbage collected."""
+        self.close()
+
     def create_object(self, container, obj, filename,
                       object_headers=None):
         """Uploads a given file to Swift.

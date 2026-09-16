@@ -192,3 +192,28 @@ class SwiftTestCase(base.TestCase):
                           swiftapi.delete_object, 'container', 'object')
         connection.delete_object.assert_called_once_with('container',
                                                          'object')
+
+    def test_context_manager(self, connection_mock, session_mock):
+        connection = connection_mock.return_value
+        with swift.SwiftAPI() as swiftapi:
+            self.assertEqual(connection, swiftapi.connection)
+        connection.close.assert_called_once()
+
+    def test_close(self, connection_mock, session_mock):
+        swiftapi = swift.SwiftAPI()
+        connection = connection_mock.return_value
+        swiftapi.close()
+        connection.close.assert_called_once()
+
+    def test_close_multiple_times(self, connection_mock, session_mock):
+        swiftapi = swift.SwiftAPI()
+        connection = connection_mock.return_value
+        swiftapi.close()
+        swiftapi.close()
+        connection.close.assert_called_once()
+
+    def test_del(self, connection_mock, session_mock):
+        swiftapi = swift.SwiftAPI()
+        connection = connection_mock.return_value
+        swiftapi.__del__()
+        connection.close.assert_called_once()

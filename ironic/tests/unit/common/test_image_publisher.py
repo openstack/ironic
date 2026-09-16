@@ -46,6 +46,7 @@ class SwiftPublisherTestCase(db_base.DbTestCase):
     @mock.patch.object(image_publisher, 'swift', autospec=True)
     def test_publish(self, mock_swift):
         mock_swift_api = mock_swift.SwiftAPI.return_value
+        mock_swift_api.__enter__.return_value = mock_swift_api
         mock_swift_api.get_temp_url.return_value = 'https://a.b/c.f?e=f'
 
         url = self.publisher.publish('file.iso', 'boot.iso')
@@ -61,17 +62,22 @@ class SwiftPublisherTestCase(db_base.DbTestCase):
         mock_swift_api.get_temp_url.assert_called_once_with(
             mock.ANY, mock.ANY, mock.ANY)
 
+        mock_swift_api.__exit__.assert_called_once()
+
     @mock.patch.object(image_publisher, 'swift', autospec=True)
     def test_unpublish(self, mock_swift):
         object_name = 'boot.iso'
+        mock_swift_api = mock_swift.SwiftAPI.return_value
+        mock_swift_api.__enter__.return_value = mock_swift_api
 
         self.publisher.unpublish(object_name)
 
         mock_swift.SwiftAPI.assert_called_once_with()
-        mock_swift_api = mock_swift.SwiftAPI.return_value
 
         mock_swift_api.delete_object.assert_called_once_with(
             self.container, object_name)
+
+        mock_swift_api.__exit__.assert_called_once()
 
 
 class LocalPublisherTestCase(db_base.DbTestCase):

@@ -106,6 +106,7 @@ class SwiftCleanUp(db_base.DbTestCase):
         container = 'inspection_data'
         CONF.set_override('swift_data_container', container, group='inventory')
         swift_obj_mock = swift_api_mock.return_value
+        swift_obj_mock.__enter__.return_value = swift_obj_mock
         with task_manager.acquire(self.context, self.node.uuid,
                                   shared=False) as task:
             utils.clean_up_swift_entries(task)
@@ -113,6 +114,7 @@ class SwiftCleanUp(db_base.DbTestCase):
             swift_obj_mock.delete_object.assert_has_calls([
                 mock.call(object_name + '-inventory', container),
                 mock.call(object_name + '-plugin', container)])
+            swift_obj_mock.__exit__.assert_called_once()
 
     @mock.patch.object(swift, 'SwiftAPI', autospec=True)
     def test_clean_up_swift_entries_with_404_exception(self, swift_api_mock):
@@ -120,6 +122,7 @@ class SwiftCleanUp(db_base.DbTestCase):
         container = 'inspection_data'
         CONF.set_override('swift_data_container', container, group='inventory')
         swift_obj_mock = swift_api_mock.return_value
+        swift_obj_mock.__enter__.return_value = swift_obj_mock
         with task_manager.acquire(self.context, self.node.uuid,
                                   shared=False) as task:
             swift_obj_mock.delete_object.side_effect = [
@@ -133,6 +136,7 @@ class SwiftCleanUp(db_base.DbTestCase):
         container = 'inspection_data'
         CONF.set_override('swift_data_container', container, group='inventory')
         swift_obj_mock = swift_api_mock.return_value
+        swift_obj_mock.__enter__.return_value = swift_obj_mock
         with task_manager.acquire(self.context, self.node.uuid,
                                   shared=False) as task:
             swift_obj_mock.delete_object.side_effect = [
@@ -147,6 +151,7 @@ class SwiftCleanUp(db_base.DbTestCase):
         container = 'inspection_data'
         CONF.set_override('swift_data_container', container, group='inventory')
         swift_obj_mock = swift_api_mock.return_value
+        swift_obj_mock.__enter__.return_value = swift_obj_mock
         with task_manager.acquire(self.context, self.node.uuid,
                                   shared=False) as task:
             swift_obj_mock.delete_object.side_effect = [
@@ -251,9 +256,10 @@ class IntrospectionDataStorageFunctionsTestCase(db_base.DbTestCase):
     def test__store_inspection_data_in_swift(self, swift_api_mock):
         container = 'inspection_data'
         CONF.set_override('swift_data_container', container, group='inventory')
+        swift_obj_mock = swift_api_mock.return_value
+        swift_obj_mock.__enter__.return_value = swift_obj_mock
         utils._store_inspection_data_in_swift(
             self.node.uuid, self.fake_inventory_data, self.fake_plugin_data)
-        swift_obj_mock = swift_api_mock.return_value
         object_name = 'inspector_data-' + str(self.node.uuid)
         swift_obj_mock.create_object_from_data.assert_has_calls([
             mock.call(object_name + '-inventory',
@@ -262,12 +268,14 @@ class IntrospectionDataStorageFunctionsTestCase(db_base.DbTestCase):
             mock.call(object_name + '-plugin',
                       json.dumps(self.fake_plugin_data),
                       container)])
+        swift_obj_mock.__exit__.assert_called_once()
 
     @mock.patch.object(swift, 'SwiftAPI', autospec=True)
     def test__get_inspection_data_from_swift(self, swift_api_mock):
         container = 'inspection_data'
         CONF.set_override('swift_data_container', container, group='inventory')
         swift_obj_mock = swift_api_mock.return_value
+        swift_obj_mock.__enter__.return_value = swift_obj_mock
         swift_obj_mock.get_object.side_effect = [
             json.dumps(self.fake_inventory_data),
             json.dumps(self.fake_plugin_data)
@@ -276,12 +284,14 @@ class IntrospectionDataStorageFunctionsTestCase(db_base.DbTestCase):
         req_ret = {"inventory": self.fake_inventory_data,
                    "plugin_data": self.fake_plugin_data}
         self.assertEqual(req_ret, ret)
+        swift_obj_mock.__exit__.assert_called_once()
 
     @mock.patch.object(swift, 'SwiftAPI', autospec=True)
     def test__get_inspection_data_from_swift_exception(self, swift_api_mock):
         container = 'inspection_data'
         CONF.set_override('swift_data_container', container, group='inventory')
         swift_obj_mock = swift_api_mock.return_value
+        swift_obj_mock.__enter__.return_value = swift_obj_mock
         swift_obj_mock.get_object.side_effect = [
             exception.SwiftOperationError,
             self.fake_plugin_data

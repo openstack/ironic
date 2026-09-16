@@ -303,12 +303,12 @@ class GlanceImageService(object):
             if image_id in self._cache:
                 return self._cache[image_id].url
 
-        swiftapi = swift.SwiftAPI()
-        path = swiftapi.generate_temp_url(
-            path=path, timeout=seconds, temp_url_key=key, method=method)
+        with swift.SwiftAPI() as swiftapi:
+            path = swiftapi.generate_temp_url(
+                path=path, timeout=seconds, temp_url_key=key, method=method)
 
-        temp_url = '{endpoint_url}{url_path}'.format(
-            endpoint_url=endpoint, url_path=path)
+            temp_url = '{endpoint_url}{url_path}'.format(
+                endpoint_url=endpoint, url_path=path)
 
         if CONF.glance.swift_temp_url_cache_enabled:
             query = urlparse.urlparse(temp_url).query
@@ -388,8 +388,8 @@ class GlanceImageService(object):
             account = '%s%s' % (swift_account_prefix, auth_ref.project_id)
 
         if not key:
-            swift_api = swift.SwiftAPI()
-            key = swift_api.get_temp_url_key()
+            with swift.SwiftAPI() as swift_api:
+                key = swift_api.get_temp_url_key()
 
         if not key:
             raise exception.MissingParameterValue(_(
