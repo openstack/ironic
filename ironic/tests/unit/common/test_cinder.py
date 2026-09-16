@@ -91,6 +91,52 @@ class TestCinderClient(base.TestCase):
         self.assertFalse(mock_session.called)
 
 
+class TestCinderBlockStorageClient(base.TestCase):
+
+    def test_context_manager(self):
+        mock_connection = mock.Mock()
+        mock_block_storage = mock.Mock()
+        client = cinder.CinderBlockStorageClient(
+            mock_connection, mock_block_storage)
+        with client as c:
+            self.assertEqual(c, client)
+        mock_connection.close.assert_called_once()
+
+    def test_close(self):
+        mock_connection = mock.Mock()
+        mock_block_storage = mock.Mock()
+        client = cinder.CinderBlockStorageClient(
+            mock_connection, mock_block_storage)
+        client.close()
+        mock_connection.close.assert_called_once()
+
+    def test_close_multiple_times(self):
+        mock_connection = mock.Mock()
+        mock_block_storage = mock.Mock()
+        client = cinder.CinderBlockStorageClient(
+            mock_connection, mock_block_storage)
+        client.close()
+        client.close()
+        mock_connection.close.assert_called_once()
+
+    def test_del(self):
+        mock_connection = mock.Mock()
+        mock_block_storage = mock.Mock()
+        client = cinder.CinderBlockStorageClient(
+            mock_connection, mock_block_storage)
+        client.__del__()
+        mock_connection.close.assert_called_once()
+
+    def test_getattr(self):
+        mock_connection = mock.Mock()
+        mock_block_storage = mock.Mock()
+        mock_block_storage.some_method.return_value = 'result'
+        client = cinder.CinderBlockStorageClient(
+            mock_connection, mock_block_storage)
+        self.assertEqual('result', client.some_method())
+        mock_block_storage.some_method.assert_called_once()
+
+
 class TestCinderUtils(db_base.DbTestCase):
 
     def setUp(self):
@@ -223,6 +269,7 @@ class TestCinderActions(db_base.DbTestCase):
                                             instance=self.node.instance_uuid)
         mock_set_meta.assert_called_once_with(volume, bar='baz')
         mock_get.assert_called_once_with(volume_id)
+        mock_bs.close.assert_called_once()
 
     @mock.patch.object(cinder, '_create_metadata_dictionary', autospec=True)
     def test_attach_volumes_one_attached(
@@ -278,6 +325,7 @@ class TestCinderActions(db_base.DbTestCase):
                                             self.mount_point,
                                             instance=self.node.instance_uuid)
         mock_set_meta.assert_called_once_with(volume, bar='baz')
+        mock_bs.close.assert_called_once()
 
     def test_attach_volumes_conn_init_failure(
             self, mock_client):
@@ -334,6 +382,7 @@ class TestCinderActions(db_base.DbTestCase):
         mock_attach.assert_called_once_with(
             volume, self.mount_point, instance=self.node.instance_uuid)
         mock_set_meta.assert_called_once_with(volume, bar='baz')
+        mock_bs.close.assert_called_once()
 
     @mock.patch.object(cinder, 'is_volume_attached', autospec=True)
     def test_attach_volumes_reserve_failure(self, mock_is_attached,
@@ -355,6 +404,7 @@ class TestCinderActions(db_base.DbTestCase):
                               volumes,
                               connector)
         mock_is_attached.assert_called_once_with(mock.ANY, volume)
+        mock_bs.close.assert_called_once()
 
     @mock.patch.object(cinder, 'is_volume_attached', autospec=True)
     @mock.patch.object(cinder, '_create_metadata_dictionary', autospec=True)
@@ -388,6 +438,7 @@ class TestCinderActions(db_base.DbTestCase):
         mock_get.assert_called_once_with(volume_id)
         mock_reserve.assert_called_once_with(volume)
         mock_init.assert_called_once_with(volume, connector)
+        mock_bs.close.assert_called_once()
 
     @mock.patch.object(cinder, 'is_volume_attached', autospec=True)
     @mock.patch.object(cinder, '_create_metadata_dictionary', autospec=True)
@@ -427,6 +478,7 @@ class TestCinderActions(db_base.DbTestCase):
                                             instance=self.node.instance_uuid)
         mock_get.assert_called_once_with(volume_id)
         mock_is_attached.assert_called_once_with(mock.ANY, volume)
+        mock_bs.close.assert_called_once()
 
     @mock.patch.object(cinder, 'is_volume_attached', autospec=True)
     @mock.patch.object(cinder, '_create_metadata_dictionary', autospec=True)
@@ -480,6 +532,7 @@ class TestCinderActions(db_base.DbTestCase):
         mock_get.assert_called_once_with(volume_id)
         mock_is_attached.assert_called_once_with(mock.ANY, volume)
         self.assertTrue(mock_log.warning.called)
+        mock_bs.close.assert_called_once()
 
     @mock.patch.object(cinder, 'is_volume_attached', autospec=True)
     @mock.patch.object(cinder, '_create_metadata_dictionary', autospec=True)
@@ -511,6 +564,7 @@ class TestCinderActions(db_base.DbTestCase):
         mock_term.assert_called_once_with(volume, {'foo': 'bar'})
         mock_detach.assert_called_once_with(volume, 'qux')
         mock_set_meta.assert_called_once_with(volume, bar='baz')
+        mock_bs.close.assert_called_once()
 
     @mock.patch.object(cinder, '_create_metadata_dictionary', autospec=True)
     def test_detach_volumes_one_detached(

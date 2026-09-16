@@ -1,0 +1,9 @@
+---
+fixes:
+  - |
+    Fixes a file descriptor leak in Cinder client connections. The
+    ``get_client`` function was creating OpenStack SDK Connection objects
+    without properly closing them, leading to file descriptor accumulation
+    over time in deployments that use Cinder for volume attachments. The
+    ``attach_volumes`` and ``detach_volumes`` functions now properly close
+    connections after use.
