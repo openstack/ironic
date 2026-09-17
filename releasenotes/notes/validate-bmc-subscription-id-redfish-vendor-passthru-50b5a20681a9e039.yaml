@@ -1,0 +1,8 @@
+---
+security:
+  - |
+    Add validation for BMC subscription IDs used to get or delete BMC
+    subscriptions via redfish vendor passthru. Note that there's no explicit
+    specification for what constitutes a valid or invalid BMC subscription ID,
+    therefore validation consists of forbidding illegal characters and
+    substrings. Addresses CVE-2026-90458.
