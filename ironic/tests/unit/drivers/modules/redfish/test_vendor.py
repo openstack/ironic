@@ -124,10 +124,19 @@ class RedfishVendorPassthruTestCase(db_base.DbTestCase):
                 **kwargs
             )
 
-    def test_validate_invalid_delete_subscription(self):
+    def test_validate_missing_delete_subscription(self):
         with task_manager.acquire(self.context, self.node.uuid,
                                   shared=True) as task:
             kwargs = {}  # Empty missing id key
+            self.assertRaises(
+                exception.InvalidParameterValue,
+                task.driver.vendor.validate, task, 'delete_subscription',
+                **kwargs)
+
+    def test_validate_invalid_delete_subscription(self):
+        with task_manager.acquire(self.context, self.node.uuid,
+                                  shared=True) as task:
+            kwargs = {'id': 'bad..id'}
             self.assertRaises(
                 exception.InvalidParameterValue,
                 task.driver.vendor.validate, task, 'delete_subscription',
@@ -233,6 +242,26 @@ class RedfishVendorPassthruTestCase(db_base.DbTestCase):
         with task_manager.acquire(self.context, self.node.uuid,
                                   shared=True) as task:
             self.assertRaises(exception.RedfishError,
+                              task.driver.vendor.get_subscription,
+                              task, **kwargs)
+
+    @mock.patch.object(redfish_utils, 'get_event_service', autospec=True)
+    def test_get_subscription_invalid_subscription_id(self,
+                                                      mock_get_event_service):
+        kwargs = {'id': '3..0'}
+        mock_subscriptions = mock.MagicMock()
+        mock_evt_serv = mock_get_event_service.return_value
+        mock_evt_serv.subscriptions = mock_subscriptions
+        mock_subscriptions.path.return_value = \
+            "/redfish/v1/EventService/Subscriptions/"
+        uri = "/redfish/v1/EventService/Subscriptions/" + kwargs.get('id')
+        mock_subscriptions.get_member.side_effect = [
+            sushy.exceptions.ResourceNotFoundError('GET', uri, mock.Mock())
+        ]
+
+        with task_manager.acquire(self.context, self.node.uuid,
+                                  shared=True) as task:
+            self.assertRaises(exception.InvalidParameterValue,
                               task.driver.vendor.get_subscription,
                               task, **kwargs)
 
