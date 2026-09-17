@@ -302,10 +302,19 @@ class Connection(object, metaclass=abc.ABCMeta):
 
     @abc.abstractmethod
     def get_ports_by_shards(self, shards, limit=None, marker=None,
-                            sort_key=None, sort_dir=None, filters=None):
+                            sort_key=None, sort_dir=None, project=None,
+                            filters=None):
         """Return a list of ports contained in the provided shards.
 
-        :param shard_ids: A list of shards to filter ports by.
+        :param shards: A list of shards to filter ports by.
+        :param limit: Maximum number of ports to return.
+        :param marker: the last item of the previous page; we return the next
+                       result set.
+        :param sort_key: Attribute by which results should be sorted.
+        :param sort_dir: direction in which results should be sorted.
+                         (asc, desc)
+        :param project: a node owner or lessee to match against
+        :param filters: Filters to apply, defaults to None
         """
 
     @abc.abstractmethod
