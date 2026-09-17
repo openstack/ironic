@@ -22,6 +22,7 @@ import sushy
 from ironic.common import exception
 from ironic.common.i18n import _
 from ironic.common import metrics_utils
+from ironic.common import validate
 from ironic.drivers import base
 from ironic.drivers.modules.redfish import boot as redfish_boot
 from ironic.drivers.modules.redfish import utils as redfish_utils
@@ -206,8 +207,14 @@ class RedfishVendorPassthru(base.VendorInterface):
         """Verify that the args input are valid."""
         # We can only check if the kwargs contain the id field.
 
-        if not kwargs.get('id'):
+        bmc_subscription_id = kwargs.get('id')
+        if not bmc_subscription_id:
             raise exception.InvalidParameterValue(_("id can't be None"))
+
+        if not validate.is_bmc_subscription_id_valid(bmc_subscription_id):
+            raise exception.InvalidParameterValue(_(
+                "Invalid BMC subscription ID value: '%s'") % \
+                    bmc_subscription_id)
 
     @METRICS.timer('RedfishVendorPassthru.delete_subscription')
     @base.passthru(['DELETE'], async_call=False,
@@ -225,22 +232,26 @@ class RedfishVendorPassthru(base.VendorInterface):
         try:
             event_service = redfish_utils.get_event_service(task.node)
             redfish_subscriptions = event_service.subscriptions
-            bmc_id = kwargs.get('id')
+
+            bmc_subscription_id = kwargs.get('id')
+
             # NOTE(iurygregory): some BMCs doesn't report the last /
             # in the path for the resource, since we will add the ID
             # we need to make sure the separator is present.
             separator = "" if redfish_subscriptions.path[-1] == "/" else "/"
 
-            resource = redfish_subscriptions.path + separator + bmc_id
+            resource = redfish_subscriptions.path + separator + \
+                bmc_subscription_id
             subscription = redfish_subscriptions.get_member(resource)
             msg = (_('Sucessfuly deleted subscription %(id)s on node '
-                     '%(node)s') % {'id': bmc_id, 'node': task.node.uuid})
+                     '%(node)s') % {'id': bmc_subscription_id,
+                                    'node': task.node.uuid})
             subscription.delete()
             LOG.debug(msg)
         except sushy.exceptions.SushyError as e:
             error_msg = (_('Redfish delete_subscription failed for '
                            'subscription %(id)s on node %(node)s. '
-                           'Error: %(error)s') % {'id': bmc_id,
+                           'Error: %(error)s') % {'id': bmc_subscription_id,
                                                   'node': task.node.uuid,
                                                   'error': e})
             LOG.error(error_msg)
@@ -285,18 +296,24 @@ class RedfishVendorPassthru(base.VendorInterface):
         try:
             event_service = redfish_utils.get_event_service(task.node)
             redfish_subscriptions = event_service.subscriptions
-            bmc_id = kwargs.get('id')
+
+            bmc_subscription_id = kwargs.get('id')
+            if not validate.is_bmc_subscription_id_valid(bmc_subscription_id):
+                raise exception.InvalidParameterValue(_(
+                    "Invalid BMC ID value: '%s'") % bmc_subscription_id)
+
             # NOTE(iurygregory): some BMCs doesn't report the last /
             # in the path for the resource, since we will add the ID
             # we need to make sure the separator is present.
             separator = "" if redfish_subscriptions.path[-1] == "/" else "/"
-            resource = redfish_subscriptions.path + separator + bmc_id
+            resource = redfish_subscriptions.path + separator + \
+                bmc_subscription_id
             subscription = event_service.subscriptions.get_member(resource)
             return self._filter_subscription_fields(subscription.json)
         except sushy.exceptions.SushyError as e:
             error_msg = (_('Redfish get_subscription failed for '
                            'subscription %(id)s on node %(node)s. '
-                           'Error: %(error)s') % {'id': bmc_id,
+                           'Error: %(error)s') % {'id': bmc_subscription_id,
                                                   'node': task.node.uuid,
                                                   'error': e})
             LOG.error(error_msg)
