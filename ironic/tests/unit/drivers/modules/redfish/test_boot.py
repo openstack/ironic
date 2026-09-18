@@ -1513,6 +1513,113 @@ class RedfishVirtualMediaBootTestCase(db_base.DbTestCase):
             mock__eject_vmedia.assert_has_calls(eject_calls)
             mock_secure_boot.assert_called_once_with(task)
 
+    @mock.patch.object(redfish_boot.time, 'sleep', autospec=True)
+    @mock.patch.object(redfish_boot.time, 'monotonic', autospec=True)
+    def test__wait_for_vmedia_inserted_immediate_success(
+            self, mock_monotonic, mock_sleep):
+        self.config(vmedia_insert_timeout=10,
+                    vmedia_insert_poll_interval=2,
+                    group='redfish')
+        mock_monotonic.side_effect = [0, 0]
+        task = mock.Mock(node=mock.Mock(uuid=self.node.uuid))
+        v_media = mock.MagicMock(inserted=False)
+
+        def mark_inserted(force):
+            v_media.inserted = True
+
+        v_media.refresh.side_effect = mark_inserted
+
+        redfish_boot._wait_for_vmedia_inserted(task, v_media)
+
+        mock_monotonic.assert_has_calls([mock.call(), mock.call()])
+        v_media.refresh.assert_called_once_with(force=True)
+        mock_sleep.assert_not_called()
+
+    @mock.patch.object(redfish_boot.time, 'sleep', autospec=True)
+    @mock.patch.object(redfish_boot.time, 'monotonic', autospec=True)
+    def test__wait_for_vmedia_inserted_after_multiple_refreshes(
+            self, mock_monotonic, mock_sleep):
+        self.config(vmedia_insert_timeout=10,
+                    vmedia_insert_poll_interval=2,
+                    group='redfish')
+        mock_monotonic.side_effect = [0, 0, 2]
+        task = mock.Mock(node=mock.Mock(uuid=self.node.uuid))
+        v_media = mock.MagicMock(inserted=False)
+
+        def mark_inserted_on_second_refresh(force):
+            if v_media.refresh.call_count == 2:
+                v_media.inserted = True
+
+        v_media.refresh.side_effect = mark_inserted_on_second_refresh
+
+        redfish_boot._wait_for_vmedia_inserted(task, v_media)
+
+        self.assertEqual(3, mock_monotonic.call_count)
+        self.assertEqual(2, v_media.refresh.call_count)
+        mock_sleep.assert_called_once_with(2)
+
+    @mock.patch.object(redfish_boot.time, 'sleep', autospec=True)
+    @mock.patch.object(redfish_boot.time, 'monotonic', autospec=True)
+    def test__wait_for_vmedia_inserted_timeout(self, mock_monotonic,
+                                               mock_sleep):
+        self.config(vmedia_insert_timeout=10,
+                    vmedia_insert_poll_interval=2,
+                    group='redfish')
+        mock_monotonic.side_effect = [0, 0, 5, 10]
+        task = mock.Mock(node=mock.Mock(uuid=self.node.uuid))
+        v_media = mock.MagicMock(inserted=False)
+
+        exc = self.assertRaises(
+            exception.IronicException,
+            redfish_boot._wait_for_vmedia_inserted, task, v_media)
+
+        self.assertIn('Timed out after 10s', str(exc))
+        self.assertIn(self.node.uuid, str(exc))
+        self.assertEqual(2, v_media.refresh.call_count)
+        self.assertEqual([mock.call(2), mock.call(2)],
+                         mock_sleep.call_args_list)
+
+    @mock.patch.object(redfish_boot, '_wait_for_vmedia_inserted',
+                       autospec=True)
+    def test__insert_vmedia_in_resource_skips_polling_by_default(
+            self, mock_wait_for_vmedia_inserted):
+        v_media = mock.MagicMock(
+            inserted=False, media_types=[sushy.VIRTUAL_MEDIA_CD])
+        resource = mock.MagicMock()
+        resource.virtual_media.get_members.return_value = [v_media]
+
+        with task_manager.acquire(self.context, self.node.uuid,
+                                  shared=True) as task:
+            result = redfish_boot._insert_vmedia_in_resource(
+                task, resource, 'img-url', sushy.VIRTUAL_MEDIA_CD, [])
+
+        self.assertTrue(result)
+        mock_wait_for_vmedia_inserted.assert_not_called()
+
+    @mock.patch.object(redfish_boot, '_wait_for_vmedia_inserted',
+                       autospec=True)
+    def test__insert_vmedia_in_resource_propagates_mount_timeout(
+            self, mock_wait_for_vmedia_inserted):
+        self.config(enable_vmedia_insert_polling=True, group='redfish')
+        v_media = mock.MagicMock(
+            inserted=False, media_types=[sushy.VIRTUAL_MEDIA_CD])
+        resource = mock.MagicMock()
+        resource.virtual_media.get_members.return_value = [v_media]
+        mock_wait_for_vmedia_inserted.side_effect = exception.IronicException(
+            'virtual media mount timed out')
+
+        with task_manager.acquire(self.context, self.node.uuid,
+                                  shared=True) as task:
+            self.assertRaises(
+                exception.IronicException,
+                redfish_boot._insert_vmedia_in_resource,
+                task, resource, 'img-url', sushy.VIRTUAL_MEDIA_CD, [])
+
+            v_media.insert_media.assert_called_once_with(
+                'img-url', inserted=True, write_protected=True)
+            mock_wait_for_vmedia_inserted.assert_called_once_with(
+                task, v_media)
+
     @mock.patch.object(redfish_boot, '_has_vmedia_via_systems', autospec=True)
     @mock.patch.object(redfish_utils, 'get_system', autospec=True)
     def test__insert_vmedia_anew(self, mock_sys, mock_vmd_sys):

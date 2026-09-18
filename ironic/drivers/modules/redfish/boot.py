@@ -16,6 +16,7 @@
 from oslo_log import log
 import sushy
 import tenacity
+import time
 
 from ironic.common import boot_devices
 from ironic.common import exception
@@ -427,6 +428,10 @@ def _insert_vmedia_in_resource(task, resource, boot_url, boot_device,
             if transfer_protocol:
                 kwargs['transfer_protocol'] = transfer_protocol
             v_media.insert_media(boot_url, **kwargs)
+            # Poll until the BMC confirms the media is actually attached,
+            # or fail fast on an Exception/Killed task state.
+            if CONF.redfish.enable_vmedia_insert_polling:
+                _wait_for_vmedia_inserted(task, v_media)
         # NOTE(janders): On Cisco C845A M8 (and potentially other OpenBMC
         # systems), some virtual media slots only support local/KVM access
         # via WebSocket/NBD and do not have the InsertMedia action.
@@ -488,6 +493,32 @@ def _insert_vmedia_in_resource(task, resource, boot_url, boot_device,
         return True
 
     return False
+
+
+def _wait_for_vmedia_inserted(task, v_media):
+    """Poll a VirtualMedia resource until the BMC confirms it is inserted.
+
+    :param task: A task from TaskManager.
+    :param v_media: The sushy VirtualMedia resource InsertMedia was just
+        called against.
+    :raises: IronicException if the mount does not complete successfully
+        within the timeout, naming the failure instead of leaving it to
+        surface later as a generic inspection/deploy timeout.
+    """
+    timeout = CONF.redfish.vmedia_insert_timeout
+    deadline = time.monotonic() + timeout
+
+    while time.monotonic() < deadline:
+        v_media.refresh(force=True)
+        if v_media.inserted:
+            return
+
+        time.sleep(CONF.redfish.vmedia_insert_poll_interval)
+
+    raise exception.IronicException(
+        _('Timed out after %(timeout)ss waiting for virtual media to '
+          'be mounted on node %(node)s.') %
+        {'timeout': timeout, 'node': task.node.uuid})
 
 
 def _eject_vmedia(task, managers, boot_device=None):
