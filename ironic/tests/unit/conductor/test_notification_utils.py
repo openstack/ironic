@@ -223,7 +223,9 @@ class ProvisionNotifyTestCase(tests_base.TestCase):
                      'some_value': 'fake-value'}
         node = obj_utils.get_test_node(self.context,
                                        instance_info=test_info)
-        notification.mask_secrets(node)
-        self.assertEqual('******', node.instance_info['configdrive'])
-        self.assertEqual('******', node.instance_info['image_url'])
-        self.assertEqual('fake-value', node.instance_info['some_value'])
+        payload = node_objects.NodeCRUDPayload(node)
+        notification.mask_secrets(payload)
+        self.assertEqual('******', payload.instance_info['configdrive'])
+        self.assertEqual('******', payload.instance_info['image_url'])
+        self.assertEqual('fake-value',
+                         payload.instance_info['some_value'])

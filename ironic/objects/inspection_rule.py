@@ -201,3 +201,8 @@ class InspectionRuleCRUDPayload(notification.NotificationPayloadBase):
     def __init__(self, inspection_rule, **kwargs):
         super(InspectionRuleCRUDPayload, self).__init__(**kwargs)
         self.populate_schema(inspection_rule=inspection_rule)
+
+    def redact_sensitive_fields(self):
+        if self.obj_attr_is_set('sensitive') and self.sensitive:
+            self.actions = [notification.redacted_contents()]
+            self.conditions = [notification.redacted_contents()]
