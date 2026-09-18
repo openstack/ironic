@@ -1,0 +1,11 @@
+---
+prelude: |
+    Welcome to the OpenStack Ironic 2026.2 release. This cycle centered on
+    cleanup and stabilization. The SNMP, iRMC, and iLO hardware types have
+    been retired, with Redfish now serving as the primary way to manage most
+    hardware, and support for Python 3.10 has been dropped.
+
+    Ironic resolved a record number of security vulnerabilities in 2026;
+    we strongly suggest paying close attention to the security section of
+    the release notes as well as reviewing OSSAs and OSSNs issued by Ironic
+    this year before upgrading.
