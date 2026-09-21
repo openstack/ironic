@@ -105,6 +105,23 @@ def _parse_ansible_driver_info(node, action='deploy'):
 
 
 def _get_python_interpreter(node):
+    if not CONF.ansible.allow_node_python_interpreter_override:
+        # NOTE(TheJulia): the interpreter is passed as a global Ansible
+        # extra-var and therefore also selects the interpreter used for the
+        # task delegated to the conductor (running under the ironic-conductor
+        # service account). A node's owner must not be able to steer that, so
+        # when overrides are disabled we reject the driver_info value outright
+        # rather than silently ignoring it, which would be puzzling to the
+        # caller. Only the conductor-configured interpreter is honored.
+        if node.driver_info.get('ansible_python_interpreter'):
+            raise exception.InvalidParameterValue(
+                _('The per-node "ansible_python_interpreter" value in the '
+                  'driver_info of node %(node)s cannot be used because '
+                  'overriding the interpreter via driver_info is disabled by '
+                  '[ansible]allow_node_python_interpreter_override. Remove '
+                  'the value from driver_info, or ask the operator to enable '
+                  'the override.') % {'node': node.uuid})
+        return CONF.ansible.default_python_interpreter
     return node.driver_info.get('ansible_python_interpreter',
                                 CONF.ansible.default_python_interpreter)
 
@@ -133,6 +150,11 @@ def _run_playbook(node, name, extra_vars, key, tags=None, notags=None):
     root = _get_playbooks_path(node)
     playbook = os.path.join(root, name)
     inventory = os.path.join(root, 'inventory')
+    # NOTE(TheJulia): all node-supplied data is namespaced under the 'ironic'
+    # key so it cannot masquerade as a top-level (reserved) Ansible variable.
+    # The interpreter below is the only top-level variable we emit; it must be
+    # sourced from a trusted location (see _get_python_interpreter) because it
+    # is applied globally, including to the task delegated to the conductor.
     ironic_vars = {'ironic': extra_vars}
     python_interpreter = _get_python_interpreter(node)
     if python_interpreter:
@@ -424,6 +446,10 @@ class AnsibleDeploy(agent_base.HeartbeatMixin,
         deploy_utils.check_for_missing_params(params, error_msg)
         # validate root device hints, proper exceptions are raised from there
         _parse_root_device_hints(node)
+        # reject a per-node interpreter override when it is not permitted,
+        # raising InvalidParameterValue from here so the caller gets a clear
+        # failure instead of a silently ignored value at deploy time
+        _get_python_interpreter(node)
         # TODO(pas-ha) validate that all playbooks and ssh key (if set)
         # are pointing to actual files
 
