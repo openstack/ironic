@@ -1,0 +1,12 @@
+---
+security:
+  - |
+    The ``ansible`` deploy interface no longer writes the configuration
+    drive to a predictable path (``[DEFAULT]tempdir/<node UUID>.cndrive``)
+    on the conductor. The configuration drive is now written into a private
+    per-node directory created with ``0700`` permissions and an
+    unpredictable name. This prevents other local users on the conductor
+    from reading the configuration drive contents, which may include
+    secrets, and prevents a local user from pre-creating or symlinking the
+    predictable path before the conductor writes to it. The directory is
+    removed when the deployment environment is cleaned up.

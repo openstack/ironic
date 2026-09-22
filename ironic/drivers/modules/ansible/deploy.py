@@ -18,6 +18,7 @@ Ansible deploy interface
 import json
 import os
 import shlex
+import tempfile
 from urllib import parse as urlparse
 
 from oslo_concurrency import processutils
@@ -180,8 +181,48 @@ def _get_python_interpreter(node):
                                 CONF.ansible.default_python_interpreter)
 
 
-def _get_configdrive_path(basename):
-    return os.path.join(CONF.tempdir, basename + '.cndrive')
+_CONFIGDRIVE_DIR_KEY = 'ansible_configdrive_dir'
+
+
+def _create_configdrive_file(node, configdrive):
+    """Write the configdrive into a private per-node temporary directory.
+
+    The directory is created with ``tempfile.mkdtemp()`` so that it has an
+    unpredictable name and ``0700`` permissions, atomically created. This
+    prevents other local users on the conductor from reading the
+    configdrive contents (which may include secrets) and prevents a local
+    user from pre-creating or symlinking a predictable path before the
+    conductor writes to it. The directory is recorded in
+    ``driver_internal_info`` so it can be removed during clean up.
+
+    :param node: an Ironic node object.
+    :param configdrive: the configdrive contents to write.
+    :returns: the full path to the written configdrive file.
+    """
+    cfgdrv_dir = tempfile.mkdtemp(prefix='configdrive-%s-' % node.uuid,
+                                  dir=CONF.tempdir)
+    node.set_driver_internal_info(_CONFIGDRIVE_DIR_KEY, cfgdrv_dir)
+    node.save()
+    cfgdrv_location = os.path.join(cfgdrv_dir, node.uuid + '.cndrive')
+    with open(cfgdrv_location, 'wb') as f:
+        f.write(configdrive)
+    return cfgdrv_location
+
+
+def _clean_up_configdrive(node):
+    """Remove the per-node configdrive temporary directory, if any.
+
+    :param node: an Ironic node object.
+    """
+    cfgdrv_dir = node.driver_internal_info.get(_CONFIGDRIVE_DIR_KEY)
+    if cfgdrv_dir:
+        utils.rmtree_without_raise(cfgdrv_dir)
+        node.del_driver_internal_info(_CONFIGDRIVE_DIR_KEY)
+        node.save()
+    # Best-effort removal of any legacy predictable-path file left behind
+    # by a deploy that started before this hardening was in place.
+    utils.unlink_without_raise(
+        os.path.join(CONF.tempdir, node.uuid + '.cndrive'))
 
 
 def _get_node_ip(task):
@@ -372,9 +413,7 @@ def _prepare_variables(task):
             cfgdrv_type = 'url'
             cfgdrv_location = configdrive
         else:
-            cfgdrv_location = _get_configdrive_path(node.uuid)
-            with open(cfgdrv_location, 'w') as f:
-                f.write(configdrive)
+            cfgdrv_location = _create_configdrive_file(node, configdrive)
             cfgdrv_type = 'file'
         variables['configdrive'] = {'type': cfgdrv_type,
                                     'location': cfgdrv_location}
@@ -613,7 +652,7 @@ class AnsibleDeploy(agent_base.HeartbeatMixin,
         task.driver.boot.clean_up_ramdisk(task)
         provider = dhcp_factory.DHCPFactory()
         provider.clean_dhcp(task)
-        utils.unlink_without_raise(_get_configdrive_path(task.node.uuid))
+        _clean_up_configdrive(task.node)
 
     def take_over(self, task):
         LOG.error("Ansible deploy does not support take over. "
