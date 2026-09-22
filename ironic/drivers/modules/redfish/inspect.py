@@ -318,7 +318,7 @@ class RedfishInspect(base.InspectInterface):
         if processor.model is not None:
             cpu['model_name'] = str(processor.model)
         if processor.max_speed_mhz is not None:
-            cpu['frequency'] = processor.max_speed_mhz
+            cpu['frequency'] = str(processor.max_speed_mhz)
         cpu['architecture'] = PROCESSOR_INSTRUCTION_SET_MAP.get(
             processor.instruction_set) or ''
 

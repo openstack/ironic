@@ -1,0 +1,7 @@
+---
+fixes:
+  - |
+    Fixes an inconsistency where the ``cpu.frequency`` field in inspection
+    data was reported as an integer by Redfish (out-of-band) inspection but
+    as a string by in-band inspection (IPA). Redfish inspection now reports
+    ``cpu.frequency`` as a string to match in-band inspection.
