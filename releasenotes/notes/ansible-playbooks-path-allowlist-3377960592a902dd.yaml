@@ -1,0 +1,28 @@
+---
+security:
+  - |
+    The ``ansible`` deploy interface now validates the per-node
+    ``ansible_playbooks_path`` value found in ``driver_info``. This value
+    selects the directory on the conductor from which the playbook and
+    inventory handed to ``ansible-playbook`` are loaded, and it was
+    previously accepted without any constraint. The path is now checked to
+    ensure it resolves to a location within ``[ansible]playbooks_path`` or
+    one of the directories listed in the new
+    ``[ansible]playbooks_path_allowlist`` option. Symlinks and relative
+    (``..``) segments in the per-node value are resolved before the check so
+    containment cannot be bypassed. Entries in
+    ``[ansible]playbooks_path_allowlist`` are validated as explicit absolute
+    paths and are rejected if they contain path traversal mechanisms, such as
+    ``..``. Whether a value outside the permitted directories is rejected
+    or merely logged is controlled by the new
+    ``[ansible]enforce_playbooks_path`` option.
+upgrade:
+  - |
+    The new ``[ansible]enforce_playbooks_path`` option defaults to ``False``.
+    While disabled, a per-node ``ansible_playbooks_path`` that resolves outside
+    ``[ansible]playbooks_path`` or ``[ansible]playbooks_path_allowlist`` is
+    permitted but logs a warning. This default is expected to change to
+    ``True`` in a future release. Operators who rely on custom per-node
+    playbook directories should review conductor logs for these warnings and
+    add the affected directories to ``[ansible]playbooks_path_allowlist``
+    before enforcement is enabled.

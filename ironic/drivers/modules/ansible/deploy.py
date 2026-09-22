@@ -90,6 +90,59 @@ def _get_playbooks_path(node):
                                 CONF.ansible.playbooks_path)
 
 
+def _validate_playbooks_path(node):
+    """Validate the per-node ``ansible_playbooks_path`` driver_info value.
+
+    The playbooks directory is used verbatim to locate the playbook and
+    inventory files handed to ``ansible-playbook`` on the conductor. A
+    per-node override therefore selects which directory on the conductor
+    is trusted to hold executable Ansible content. This function ensures
+    that any override resolves to a location within
+    ``[ansible]playbooks_path`` or one of the directories in
+    ``[ansible]playbooks_path_allowlist``.
+
+    Whether a value outside those directories is fatal is governed by
+    ``[ansible]enforce_playbooks_path``. While enforcement is disabled
+    (the current default) a violation is only logged, so operators can
+    discover and allowlist their custom directories before the default
+    flips to enforcing.
+
+    :param node: an Ironic node object.
+    :raises: InvalidParameterValue if enforcement is enabled and the
+        configured path is not within a permitted directory.
+    """
+    override = node.driver_info.get('ansible_playbooks_path')
+    if not override:
+        # No per-node override; the operator-controlled default is used.
+        return
+
+    allowed = [CONF.ansible.playbooks_path]
+    allowed.extend(CONF.ansible.playbooks_path_allowlist)
+    # The configured directories are validated when the configuration is
+    # loaded (see ironic.common.config.
+    # validate_opts_using_custom_ironic_config_types), so they are used as
+    # configured. The per-node override comes from the API and is resolved
+    # with os.path.realpath() so the containment check cannot be bypassed
+    # via '..' segments or a symlink pointing elsewhere.
+    resolved = os.path.realpath(override)
+
+    permitted = any(resolved == base or resolved.startswith(base + os.sep)
+                    for base in allowed if base)
+    if permitted:
+        return
+
+    msg = (_('The ansible_playbooks_path "%(path)s" set in driver_info for '
+             'node %(node)s resolves to "%(resolved)s", which is not within '
+             'a permitted playbooks directory. Permitted directories are: '
+             '%(allowed)s.') %
+           {'path': override, 'node': node.uuid, 'resolved': resolved,
+            'allowed': ', '.join(allowed)})
+    if CONF.ansible.enforce_playbooks_path:
+        raise exception.InvalidParameterValue(msg)
+    LOG.warning('%s This will be rejected in a future release once '
+                '[ansible]enforce_playbooks_path is enabled by default.', msg)
+
+
 def _parse_ansible_driver_info(node, action='deploy'):
     user = node.driver_info.get('ansible_username',
                                 CONF.ansible.default_username)
@@ -450,6 +503,9 @@ class AnsibleDeploy(agent_base.HeartbeatMixin,
         # raising InvalidParameterValue from here so the caller gets a clear
         # failure instead of a silently ignored value at deploy time
         _get_python_interpreter(node)
+        # ensure a per-node playbooks path override points at a permitted
+        # directory on the conductor
+        _validate_playbooks_path(node)
         # TODO(pas-ha) validate that all playbooks and ssh key (if set)
         # are pointing to actual files
 

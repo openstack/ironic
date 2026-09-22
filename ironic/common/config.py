@@ -55,6 +55,7 @@ def validate_opts_using_custom_ironic_config_types():
     ]
     # Options using ExplicitAbsolutePath
     explicit_abs_path_opts = [
+        ('ansible', 'playbooks_path_allowlist'),
         ('conductor', 'file_url_allowed_paths'),
     ]
     custom_opts = kernel_param_opts + explicit_abs_path_opts
