@@ -43,7 +43,8 @@ Network operators face several challenges that VXLAN addresses:
    Traditional VLAN-based networking is constrained by the 4,096 VLAN limit
    (12-bit VLAN ID). In large-scale deployments, this constraint can become a
    significant limitation, especially when isolating tenant networks. VXLAN
-   provides a 24-bit VNI space, supporting up to 16 million network segments.
+   provides a 24-bit VNI space, supporting up to 16.7 million network
+   segments.
 
 **Network Scalability**
    VXLAN enables routed spine-leaf network architectures where overlay traffic
@@ -73,7 +74,7 @@ VXLAN (Virtual eXtensible LAN)
 
 VXLAN Network Identifier (VNI)
    A 24-bit identifier that uniquely identifies a VXLAN segment. Similar to
-   a VLAN ID but with a much larger address space (16 million vs 4,096).
+   a VLAN ID but with a much larger address space (16.7 million vs 4,096).
 
 VXLAN Tunnel Endpoint (VTEP)
    A device (switch or host) that originates and/or terminates VXLAN tunnels,
@@ -114,8 +115,9 @@ The VXLAN support for Ironic consists of three main components:
    Establishes the connection between the OpenStack cloud (specifically OVN
    network nodes) and the physical switch fabric. This can be implemented
    through hierarchical port binding with trunk ports, or through BGP EVPN
-   Type-2 routes (under development in Neutron and should be expected as a
-   result of the Hibiscus development cycle).
+   Type-2 routes. As of the 2026.2 (Hibiscus) release, Neutron support for
+   distributing MAC address reachability via BGP EVPN Type-2 routes remains
+   under development.
 
    .. NOTE::
       The future integration of Neutron BGP EVPN Type-2 routes may not
@@ -189,11 +191,12 @@ The traffic flow works as follows:
    constraints of OVN.
 
 .. NOTE::
-   When a tenant network is configured to be a ``vxlan`` network in an OVN
-   enabled Neutron deployment, OVN does not utilize ``vxlan`` to transport
-   the packets to the hypervisor. The packets are sent directly to the
-   hypervisor over fabric which OVN orchestrates with additional header
-   information which is VXLAN incompatible.
+   A tenant network with the ``vxlan`` network type is not directly
+   integrated into the underlay VXLAN fabric of the physical switches. The
+   ``vxlan`` type describes the overlay presented to workloads within OVN;
+   reaching the physical switch fabric is still accomplished through the
+   hierarchical VLAN binding described in this document rather than by
+   placing VXLAN-encapsulated packets from OVN directly onto the fabric.
 
 OVN Integration
 ---------------
@@ -273,7 +276,7 @@ configured either:
 
 2. **Default** in ``/etc/neutron/plugins/ml2/ml2_conf.ini``::
 
-       [l2vni]
+       [baremetal_l2vni]
        default_physical_network = physnet1
 
 The physical network must have VLAN segments allocated. The mechanism driver
@@ -295,7 +298,7 @@ the tenant network type::
     project_network_types = vxlan
 
     [ml2_type_vxlan]
-    vni_ranges = 5000:10000
+    vni_ranges = 2000:10000
 
 .. note::
    The ``project_network_types`` parameter can be set to ``geneve``,
@@ -312,9 +315,10 @@ Physical Switch Configuration
 Switches must be configured with:
 
 - VXLAN support enabled
-- BGP EVPN or multicast configuration for control plane to enable a VNI
-  to be configured and the traffic to reach from one VTEP to another on
-  the same network.
+- A control plane for the VXLAN fabric so a VNI can be configured and
+  traffic can reach from one VTEP to another on the same network. Whether
+  this is BGP EVPN or multicast based is a matter of switch configuration,
+  as supported by networking-generic-switch for your switch platform.
 - Ingress replication configured (recommended)
 - Appropriate interface addresses for VTEP functionality
 
@@ -370,8 +374,8 @@ In this model:
 Option 2: BGP EVPN with Type-2 Routes
 --------------------------------------
 
-This approach is under development in the Neutron community and represents
-a future connectivity model.
+This approach is under development in the Neutron community as of the
+2026.2 (Hibiscus) release and represents a future connectivity model.
 
 In this model:
 
@@ -450,9 +454,10 @@ Unsupported Switch Platforms
 **Dell OS10**
    While Dell OS10 supports VXLAN, it uses a three-tier mapping system
    (VLAN → Virtual Network → VNI) that requires a 16-bit virtual network ID
-   in addition to the VLAN and VNI. This architecture cannot be easily
-   automated with the current hierarchical port binding model and is
-   therefore not supported. Furthermore, there are recommended limits to
+   in addition to the VLAN and VNI. This additional layer of structural
+   modeling makes the platform difficult to support under the current
+   two-step hierarchical port binding model, and it is therefore not
+   supported at this time. Furthermore, there are recommended limits to
    the number of VLAN on any given trunk interface which operators would
    need to be mindful of.
 
@@ -595,7 +600,7 @@ Ultimately, this is due to one of the common causes noted below.
 4. **Physical network not configured consistently**
 
    Ensure the physical network name and VLAN ranges match across all
-   Neutron configuration files on all nodes. A miss-matched configuration
+   Neutron configuration files on all nodes. A mismatched configuration
    across Neutron nodes can result in configuration and available segments
    behaving unpredictably.
 
@@ -617,7 +622,7 @@ Check the Neutron server logs for errors related to segment allocation::
     sudo journalctl -u neutron-api.service | grep -i segment
 
 .. NOTE:: The service name may differ based upon distribution or
-   packages, but generally neutron lots all such issues in the API
+   packages, but generally neutron logs all such issues in the API
    service log.
 
 **Possible Causes**:
@@ -704,7 +709,7 @@ If missing, check the DHCP agent logs::
     sudo journalctl -u neutron-dhcp-agent
 
 Alternatively, you may also need to check the OVN port configuration as well
-if you are not presently utilizing the neturon-dhcp-agent and are instead
+if you are not presently utilizing the neutron-dhcp-agent and are instead
 leveraging native DHCP support in OVN.
 
 Can I tune multicast/BUM traffic handling?
