@@ -12,6 +12,6 @@ features:
     deploy templates, runbooks). All three options are mutable and can
     be reloaded via SIGHUP without restarting services.
     For more information, refer to
-    ` bug 2150456 <https://bugs.launchpad.net/ironic/+bug/2150456>`.
+    `bug 2150456 <https://bugs.launchpad.net/ironic/+bug/2150456>`_.
 
 
