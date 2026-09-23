@@ -8,9 +8,9 @@ features:
     records with NIC entries in the inventory endpoint.
 
     For NICs the fields are populated from the Redfish
-    ``NetworkAdapter`` resource (Manufacturer, Model, SerialNumber).
-    For BMC the ``model`` field is populated from ``Manager.Model``.
-    BIOS identity fields are null.
+    ``NetworkAdapter`` resource (``Manufacturer``, ``Model``,
+    ``SerialNumber``).  For BMC the ``model`` field is populated from
+    ``Manager.Model``.  BIOS identity fields are null.
 
     The new fields are nullable and will remain empty on existing nodes
     until the next inspection or cleaning pass runs
