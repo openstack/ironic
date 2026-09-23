@@ -2,5 +2,5 @@
 fixes:
   - |
     Fixes Redfish inspection of machines with missing PCIe devices or
-    functions. The existing code assumes that accessor methods return None,
-    while in reality they raise MissingAttributeError.
+    functions. The existing code assumes that accessor methods return ``None``,
+    while in reality they raise ``MissingAttributeError``.
