@@ -26,7 +26,7 @@ class TraitBasedNetworkingBaseTestCase(base.TestCase):
         )
         self.assertEqual("port.address == 'test'", str(exp))
 
-    def test_filter_object_missing_attribute_raises(self):
+    def test_filter_object_missing_attribute_doesnt_match(self):
         exp = tbn.SingleExpression(
             tbn.Variables.PORT_ADDRESS, tbn.Comparator.EQUALITY, "test"
         )
@@ -34,8 +34,7 @@ class TraitBasedNetworkingBaseTestCase(base.TestCase):
         obj = tbn.Port.from_ironic_port(
             tbn_test_utils.FauxPortLikeObject(address=None))
         net = tbn_test_utils.FauxNetwork()
-        self.assertRaises(exc.TraitBasedNetworkingException, exp.eval,
-                          obj, net)
+        self.assertFalse(exp.eval(obj, net))
 
     def test_filter_comparator_eval_equality(self):
         exp = tbn.SingleExpression(
