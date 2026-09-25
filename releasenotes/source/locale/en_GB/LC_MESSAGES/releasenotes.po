@@ -10,11 +10,11 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Ironic Release Notes\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-06-01 21:27+0000\n"
+"POT-Creation-Date: 2026-09-24 13:32+0000\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
-"PO-Revision-Date: 2026-02-21 04:55+0000\n"
+"PO-Revision-Date: 2026-09-24 07:38+0000\n"
 "Last-Translator: Andi Chandler <andi@gowling.com>\n"
 "Language-Team: English (United Kingdom)\n"
 "Language: en_GB\n"
@@ -59,6 +59,31 @@ msgid ""
 msgstr ""
 "\"Port group\" support allows users to take advantage of bonded network "
 "interfaces."
+
+msgid ""
+"**Drives**: ``name``, ``size`` (capacity in bytes), ``id``, ``media_type``, "
+"``protocol``, ``serial_number``, ``manufacturer``, ``model``, ``revision``, "
+"and ``status``."
+msgstr ""
+"**Drives**: ``name``, ``size`` (capacity in bytes), ``id``, ``media_type``, "
+"``protocol``, ``serial_number``, ``manufacturer``, ``model``, ``revision``, "
+"and ``status``."
+
+msgid ""
+"**Storage resource**: ``id`` and ``name`` from the top-level Storage "
+"resource."
+msgstr ""
+"**Storage resource**: ``id`` and ``name`` from the top-level Storage "
+"resource."
+
+msgid ""
+"**Sub-controllers** (from the deprecated ``StorageControllers`` list): "
+"``member_id``, ``name``, ``raid_types``, ``speed_gbps``, "
+"``controller_protocols``, ``device_protocols``, and ``status``."
+msgstr ""
+"**Sub-controllers** (from the deprecated ``StorageControllers`` list): "
+"``member_id``, ``name``, ``raid_types``, ``speed_gbps``, "
+"``controller_protocols``, ``device_protocols``, and ``status``."
 
 msgid ""
 "**WARNING: don't set the option ``[DEFAULT]/default_network_interface`` "
@@ -319,11 +344,17 @@ msgstr "20.2.0"
 msgid "2023.1-eom"
 msgstr "2023.1-eom"
 
-msgid "2023.1-eom-5"
-msgstr "2023.1-eom-5"
+msgid "2023.1-eom-17"
+msgstr "2023.1-eom-17"
 
 msgid "2023.2-eol"
 msgstr "2023.2-eol"
+
+msgid "2024.1-eom-19"
+msgstr "2024.1-eom-19"
+
+msgid "2024.2-eol"
+msgstr "2024.2-eol"
 
 msgid "21.0.0"
 msgstr "21.0.0"
@@ -427,6 +458,18 @@ msgstr "29.0.3"
 msgid "29.0.4"
 msgstr "29.0.4"
 
+msgid "29.0.5"
+msgstr "29.0.5"
+
+msgid "29.0.6"
+msgstr "29.0.6"
+
+msgid "29.1.0"
+msgstr "29.1.0"
+
+msgid "29.1.0-2"
+msgstr "29.1.0-2"
+
 msgid "30.0.0"
 msgstr "30.0.0"
 
@@ -436,11 +479,44 @@ msgstr "31.0.0"
 msgid "32.0.0"
 msgstr "32.0.0"
 
+msgid "32.0.1"
+msgstr "32.0.1"
+
+msgid "32.1.0"
+msgstr "32.1.0"
+
+msgid "32.1.0-2"
+msgstr "32.1.0-2"
+
 msgid "33.0.0"
 msgstr "33.0.0"
 
 msgid "34.0.0"
 msgstr "34.0.0"
+
+msgid "35.0.0"
+msgstr "35.0.0"
+
+msgid "35.0.1"
+msgstr "35.0.1"
+
+msgid "35.1.0"
+msgstr "35.1.0"
+
+msgid "35.1.0-3"
+msgstr "35.1.0-3"
+
+msgid "36.0.0"
+msgstr "36.0.0"
+
+msgid "37.0.0"
+msgstr "37.0.0"
+
+msgid "38.0.0"
+msgstr "38.0.0"
+
+msgid "39.0.0"
+msgstr "39.0.0"
 
 msgid "4.0.0   First semver release"
 msgstr "4.0.0   First semver release"
