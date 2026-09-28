@@ -1326,7 +1326,7 @@
         contention as it is one of the longest running jobs.
     parent: ironic-grenade
     vars:
-      grenade_from_branch: stable/2025.1
+      grenade_from_branch: stable/2026.1
       grenade_to_branch: master
       grenade_localrc:
         # NOTE(iurygregory): This is required for skip upgrades.
