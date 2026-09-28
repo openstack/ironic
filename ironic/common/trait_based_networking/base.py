@@ -149,12 +149,7 @@ class Variables(enum.Enum):
 
 def _retrieve_attribute(attribute_name, tbn_obj):
     """Helper method to get an attribute from a TBN related object"""
-    attribute = getattr(tbn_obj, attribute_name, None)
-
-    if attribute is None:
-        raise exc.TBNAttributeRetrievalException(attr_name=attribute_name)
-
-    return attribute
+    return getattr(tbn_obj, attribute_name, '')
 
 
 # Allows special case FilterExpression evaluations where Port does not
@@ -496,9 +491,6 @@ class Network:
     def from_vif_info(cls, vif_info):
         """Helper method to create Networks from vif_info dictionaries"""
         # tags defaults to an empty frozenset (rather than None)
-        # so that filters referencing network.tags don't raise
-        # TBNAttributeRetrievalException just because the vif_attach caller
-        # didn't supply a 'tags' key.
         return cls(vif_info['id'], # vif_info is guaranteed to have 'id'.
                    vif_info.get('name'),
                    frozenset(vif_info.get('tags') or []))
