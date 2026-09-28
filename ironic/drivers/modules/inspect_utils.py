@@ -101,30 +101,32 @@ def clean_up_swift_entries(task):
     """
     if CONF.inventory.data_backend != 'swift':
         return
-    swift_api = swift.SwiftAPI()
-    container = CONF.inventory.swift_data_container
-    inventory_obj_name = f'{_OBJECT_NAME_PREFIX}-{task.node.uuid}-inventory'
-    plugin_obj_name = f'{_OBJECT_NAME_PREFIX}-{task.node.uuid}-plugin'
-    try:
-        swift_api.delete_object(inventory_obj_name, container)
-    except exception.SwiftOperationError as e:
-        if not isinstance(e, exception.SwiftObjectNotFoundError):
-            LOG.error("Object %(obj)s in container %(cont)s with inventory "
-                      "for node %(node)s failed to be deleted: %(e)s",
-                      {'obj': inventory_obj_name, 'node': task.node.uuid,
-                       'e': e, 'cont': container})
-            raise exception.SwiftObjectStillExists(obj=inventory_obj_name,
-                                                   node=task.node.uuid)
-    try:
-        swift_api.delete_object(plugin_obj_name, container)
-    except exception.SwiftOperationError as e:
-        if not isinstance(e, exception.SwiftObjectNotFoundError):
-            LOG.error("Object %(obj)s in container %(cont)s with plugin data "
-                      "for node %(node)s failed to be deleted: %(e)s",
-                      {'obj': plugin_obj_name, 'node': task.node.uuid,
-                       'e': e, 'cont': container})
-            raise exception.SwiftObjectStillExists(obj=plugin_obj_name,
-                                                   node=task.node.uuid)
+    with swift.SwiftAPI() as swift_api:
+        container = CONF.inventory.swift_data_container
+        prefix = _OBJECT_NAME_PREFIX
+        inventory_obj_name = f'{prefix}-{task.node.uuid}-inventory'
+        plugin_obj_name = f'{prefix}-{task.node.uuid}-plugin'
+        try:
+            swift_api.delete_object(inventory_obj_name, container)
+        except exception.SwiftOperationError as e:
+            if not isinstance(e, exception.SwiftObjectNotFoundError):
+                LOG.error("Object %(obj)s in container %(cont)s with "
+                          "inventory for node %(node)s failed to be "
+                          "deleted: %(e)s",
+                          {'obj': inventory_obj_name, 'node': task.node.uuid,
+                           'e': e, 'cont': container})
+                raise exception.SwiftObjectStillExists(obj=inventory_obj_name,
+                                                       node=task.node.uuid)
+        try:
+            swift_api.delete_object(plugin_obj_name, container)
+        except exception.SwiftOperationError as e:
+            if not isinstance(e, exception.SwiftObjectNotFoundError):
+                LOG.error("Object %(obj)s in container %(cont)s with plugin "
+                          "data for node %(node)s failed to be deleted: %(e)s",
+                          {'obj': plugin_obj_name, 'node': task.node.uuid,
+                           'e': e, 'cont': container})
+                raise exception.SwiftObjectStillExists(obj=plugin_obj_name,
+                                                       node=task.node.uuid)
 
 
 def store_inspection_data(node, inventory, plugin_data, context):
@@ -195,16 +197,16 @@ def _store_inspection_data_in_swift(node_uuid, inventory_data, plugin_data):
     :param node_id: ID of the Ironic node that the data came from
     :returns: name of the Swift object that the data is stored in
     """
-    swift_api = swift.SwiftAPI()
-    swift_object_name = f'{_OBJECT_NAME_PREFIX}-{node_uuid}'
-    container = CONF.inventory.swift_data_container
-    swift_api.create_object_from_data(f'{swift_object_name}-inventory',
-                                      json.dumps(inventory_data),
-                                      container)
-    swift_api.create_object_from_data(f'{swift_object_name}-plugin',
-                                      json.dumps(plugin_data),
-                                      container)
-    return swift_object_name
+    with swift.SwiftAPI() as swift_api:
+        swift_object_name = f'{_OBJECT_NAME_PREFIX}-{node_uuid}'
+        container = CONF.inventory.swift_data_container
+        swift_api.create_object_from_data(f'{swift_object_name}-inventory',
+                                          json.dumps(inventory_data),
+                                          container)
+        swift_api.create_object_from_data(f'{swift_object_name}-plugin',
+                                          json.dumps(plugin_data),
+                                          container)
+        return swift_object_name
 
 
 def _get_inspection_data_from_swift(node_uuid):
@@ -213,28 +215,28 @@ def _get_inspection_data_from_swift(node_uuid):
     :param node_uuid: UUID of the Ironic node that the data came from
     :returns: dictionary with ``inventory`` and ``plugin_data`` fields
     """
-    swift_api = swift.SwiftAPI()
-    container = CONF.inventory.swift_data_container
-    inv_obj = f'{_OBJECT_NAME_PREFIX}-{node_uuid}-inventory'
-    plug_obj = f'{_OBJECT_NAME_PREFIX}-{node_uuid}-plugin'
-    try:
-        inventory_data = swift_api.get_object(inv_obj, container)
-    except exception.SwiftOperationError:
-        LOG.error("Failed to retrieve object %(obj)s from container %(cont)s",
-                  {'obj': inv_obj, 'cont': container})
-        raise exception.SwiftObjectNotFoundError(obj=inv_obj,
-                                                 container=container,
-                                                 operation='get')
-    try:
-        plugin_data = swift_api.get_object(plug_obj, container)
-    except exception.SwiftOperationError:
-        LOG.error("Failed to retrieve object %(obj)s from container %(cont)s",
-                  {'obj': plug_obj, 'cont': container})
-        raise exception.SwiftObjectNotFoundError(obj=plug_obj,
-                                                 container=container,
-                                                 operation='get')
-    return {"inventory": json.loads(inventory_data),
-            "plugin_data": json.loads(plugin_data)}
+    with swift.SwiftAPI() as swift_api:
+        container = CONF.inventory.swift_data_container
+        inv_obj = f'{_OBJECT_NAME_PREFIX}-{node_uuid}-inventory'
+        plug_obj = f'{_OBJECT_NAME_PREFIX}-{node_uuid}-plugin'
+        try:
+            inventory_data = swift_api.get_object(inv_obj, container)
+        except exception.SwiftOperationError:
+            LOG.error("Failed to retrieve object %(obj)s from container "
+                      "%(cont)s", {'obj': inv_obj, 'cont': container})
+            raise exception.SwiftObjectNotFoundError(obj=inv_obj,
+                                                     container=container,
+                                                     operation='get')
+        try:
+            plugin_data = swift_api.get_object(plug_obj, container)
+        except exception.SwiftOperationError:
+            LOG.error("Failed to retrieve object %(obj)s from container "
+                      "%(cont)s", {'obj': plug_obj, 'cont': container})
+            raise exception.SwiftObjectNotFoundError(obj=plug_obj,
+                                                     container=container,
+                                                     operation='get')
+        return {"inventory": json.loads(inventory_data),
+                "plugin_data": json.loads(plugin_data)}
 
 
 LOOKUP_CACHE_FIELD = 'lookup_bmc_addresses'

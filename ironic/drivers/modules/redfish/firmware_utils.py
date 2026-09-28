@@ -136,9 +136,10 @@ def get_swift_temp_url(parsed_url):
         swift://container/[sub-folder/]file
     :returns: Swift temporary URL
     """
-    return swift.SwiftAPI().get_temp_url(
-        parsed_url.netloc, parsed_url.path.lstrip('/'),
-        CONF.redfish.swift_object_expiry_timeout)
+    with swift.SwiftAPI() as swift_api:
+        return swift_api.get_temp_url(
+            parsed_url.netloc, parsed_url.path.lstrip('/'),
+            CONF.redfish.swift_object_expiry_timeout)
 
 
 def download_to_temp(node, url):
@@ -258,19 +259,19 @@ def stage(node, source, temp_file):
     elif source == 'swift':
         container = CONF.redfish.swift_container
         timeout = CONF.redfish.swift_object_expiry_timeout
-        swift_api = swift.SwiftAPI()
-        object_name = "/".join([node.uuid, filename])
-        swift_api.create_object(
-            container,
-            object_name,
-            temp_file,
-            object_headers={'X-Delete-After': str(timeout)})
-        staged_url = swift_api.get_temp_url(
-            container, object_name, timeout)
-        LOG.debug('For node %(node)s temporary file at %(temp_file)s will be '
-                  'served from Swift temporary URL %(staged_url)s',
-                  {'node': node.uuid, 'temp_file': temp_file,
-                   'staged_url': staged_url})
+        with swift.SwiftAPI() as swift_api:
+            object_name = "/".join([node.uuid, filename])
+            swift_api.create_object(
+                container,
+                object_name,
+                temp_file,
+                object_headers={'X-Delete-After': str(timeout)})
+            staged_url = swift_api.get_temp_url(
+                container, object_name, timeout)
+            LOG.debug('For node %(node)s temporary file at %(temp_file)s will '
+                      'be served from Swift temporary URL %(staged_url)s',
+                      {'node': node.uuid, 'temp_file': temp_file,
+                       'staged_url': staged_url})
 
     need_cleanup = 'swift' if source == 'swift' else 'http'
     return staged_url, need_cleanup
@@ -302,18 +303,18 @@ def cleanup(node):
         shutil.rmtree(http_dir, ignore_errors=True)
 
     if 'swift' in cleanup:
-        swift_api = swift.SwiftAPI()
-        container = CONF.redfish.swift_container
-        LOG.debug('For node %(node)s cleaning up files from Swift container '
-                  '%(container)s.',
-                  {'node': node.uuid, 'container': container})
-        objects = swift_api.connection.list_objects(container)
-        for o in objects:
-            if o.name and o.name.startswith(node.uuid):
-                try:
-                    swift_api.delete_object(container, o.name)
-                except exception.SwiftOperationError as error:
-                    LOG.warning('For node %(node)s failed to clean up '
-                                '%(object)s. Error: %(error)s',
-                                {'node': node.uuid, 'object': o.name,
-                                 'error': error})
+        with swift.SwiftAPI() as swift_api:
+            container = CONF.redfish.swift_container
+            LOG.debug('For node %(node)s cleaning up files from Swift '
+                      'container %(container)s.',
+                      {'node': node.uuid, 'container': container})
+            objects = swift_api.connection.list_objects(container)
+            for o in objects:
+                if o.name and o.name.startswith(node.uuid):
+                    try:
+                        swift_api.delete_object(container, o.name)
+                    except exception.SwiftOperationError as error:
+                        LOG.warning('For node %(node)s failed to clean up '
+                                    '%(object)s. Error: %(error)s',
+                                    {'node': node.uuid, 'object': o.name,
+                                     'error': error})

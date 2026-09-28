@@ -1284,15 +1284,17 @@ class StoreConfigDriveTestCase(db_base.DbTestCase):
                           group='conductor')
         CONF.set_override('deploy_callback_timeout', timeout,
                           group='conductor')
-        mock_swift.return_value.get_temp_url.return_value = 'http://1.2.3.4'
+        swift_api_mock = mock_swift.return_value
+        swift_api_mock.__enter__.return_value = swift_api_mock
+        swift_api_mock.get_temp_url.return_value = 'http://1.2.3.4'
 
         deployments._store_configdrive(self.node, 'foo')
 
         mock_swift.assert_called_once_with()
-        mock_swift.return_value.create_object.assert_called_once_with(
+        swift_api_mock.create_object.assert_called_once_with(
             container_name, expected_obj_name, mock.ANY,
             object_headers=expected_obj_header)
-        mock_swift.return_value.get_temp_url.assert_called_once_with(
+        swift_api_mock.get_temp_url.assert_called_once_with(
             container_name, expected_obj_name, expected_timeout)
         self.node.refresh()
         self.assertEqual(expected_instance_info, self.node.instance_info)
@@ -1318,15 +1320,17 @@ class StoreConfigDriveTestCase(db_base.DbTestCase):
                           group='conductor')
         CONF.set_override('deploy_callback_timeout', timeout,
                           group='conductor')
-        mock_swift.return_value.get_temp_url.return_value = 'http://1.2.3.4'
+        swift_api_mock = mock_swift.return_value
+        swift_api_mock.__enter__.return_value = swift_api_mock
+        swift_api_mock.get_temp_url.return_value = 'http://1.2.3.4'
 
         deployments._store_configdrive(self.node, {'meta_data': {}})
 
         mock_swift.assert_called_once_with()
-        mock_swift.return_value.create_object.assert_called_once_with(
+        swift_api_mock.create_object.assert_called_once_with(
             container_name, expected_obj_name, mock.ANY,
             object_headers=expected_obj_header)
-        mock_swift.return_value.get_temp_url.assert_called_once_with(
+        swift_api_mock.get_temp_url.assert_called_once_with(
             container_name, expected_obj_name, expected_timeout)
         self.node.refresh()
         self.assertEqual(expected_instance_info, self.node.instance_info)
@@ -1347,15 +1351,17 @@ class StoreConfigDriveTestCase(db_base.DbTestCase):
                           group='conductor')
         CONF.set_override('deploy_callback_timeout', 0,
                           group='conductor')
-        mock_swift.return_value.get_temp_url.return_value = 'http://1.2.3.4'
+        swift_api_mock = mock_swift.return_value
+        swift_api_mock.__enter__.return_value = swift_api_mock
+        swift_api_mock.get_temp_url.return_value = 'http://1.2.3.4'
 
         deployments._store_configdrive(self.node, 'foo')
 
         mock_swift.assert_called_once_with()
-        mock_swift.return_value.create_object.assert_called_once_with(
+        swift_api_mock.create_object.assert_called_once_with(
             container_name, expected_obj_name, mock.ANY,
             object_headers=expected_obj_header)
-        mock_swift.return_value.get_temp_url.assert_called_once_with(
+        swift_api_mock.get_temp_url.assert_called_once_with(
             container_name, expected_obj_name, 1200)
         self.node.refresh()
         self.assertEqual(expected_instance_info, self.node.instance_info)
@@ -1374,15 +1380,17 @@ class StoreConfigDriveTestCase(db_base.DbTestCase):
                           group='conductor')
         CONF.set_override('deploy_callback_timeout', 0,
                           group='conductor')
-        mock_swift.return_value.get_temp_url.return_value = 'http://1.2.3.4'
+        swift_api_mock = mock_swift.return_value
+        swift_api_mock.__enter__.return_value = swift_api_mock
+        swift_api_mock.get_temp_url.return_value = 'http://1.2.3.4'
 
         deployments._store_configdrive(self.node, 'foo')
 
         mock_swift.assert_called_once_with()
-        mock_swift.return_value.create_object.assert_called_once_with(
+        swift_api_mock.create_object.assert_called_once_with(
             container_name, expected_obj_name, mock.ANY,
             object_headers=expected_obj_header)
-        mock_swift.return_value.get_temp_url.assert_called_once_with(
+        swift_api_mock.get_temp_url.assert_called_once_with(
             container_name, expected_obj_name, 1800)
         self.node.refresh()
         self.assertEqual(expected_instance_info, self.node.instance_info)

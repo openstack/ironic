@@ -339,10 +339,10 @@ def store_ramdisk_logs(node, logs, label=None):
             # convert days to seconds
             timeout = CONF.agent.deploy_logs_swift_days_to_expire * 86400
             object_headers = {'X-Delete-After': str(timeout)}
-            swift_api = swift.SwiftAPI()
-            swift_api.create_object(
-                CONF.agent.deploy_logs_swift_container, logs_file_name,
-                f.name, object_headers=object_headers)
+            with swift.SwiftAPI() as swift_api:
+                swift_api.create_object(
+                    CONF.agent.deploy_logs_swift_container, logs_file_name,
+                    f.name, object_headers=object_headers)
         LOG.info('Ramdisk logs were stored in swift for node %(node)s',
                  {'node': node.uuid})
 

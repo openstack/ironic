@@ -1,0 +1,9 @@
+---
+fixes:
+  - |
+    Fixes a file descriptor leak in Swift client connections. The ``SwiftAPI``
+    class was creating OpenStack SDK Connection objects without properly
+    closing them, leading to file descriptor accumulation over time in
+    deployments that use Swift for configdrive, firmware updates, or
+    inspection data storage. All Swift client code now properly closes
+    connections using context managers.

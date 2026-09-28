@@ -643,11 +643,11 @@ def _store_configdrive(node, configdrive):
             fileobj.write(configdrive)
             fileobj.flush()
 
-            swift_api = swift.SwiftAPI()
-            swift_api.create_object(container, object_name, fileobj.name,
-                                    object_headers=object_headers)
-            configdrive = swift_api.get_temp_url(container, object_name,
-                                                 timeout)
+            with swift.SwiftAPI() as swift_api:
+                swift_api.create_object(container, object_name, fileobj.name,
+                                        object_headers=object_headers)
+                configdrive = swift_api.get_temp_url(container, object_name,
+                                                     timeout)
 
     i_info = node.instance_info
     i_info['configdrive'] = configdrive

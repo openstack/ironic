@@ -451,13 +451,17 @@ class UtilsRamdiskLogsTestCase(tests_base.TestCase):
             'deploy_logs_swift_container', container_name, 'agent')
         cfg.CONF.set_override('deploy_logs_swift_days_to_expire', 1, 'agent')
 
+        mock_swift_api = mock_swift.return_value
+        mock_swift_api.__enter__.return_value = mock_swift_api
+
         mock_logs_name.return_value = file_name
         driver_utils.store_ramdisk_logs(self.node, b64str)
 
-        mock_swift.return_value.create_object.assert_called_once_with(
+        mock_swift_api.create_object.assert_called_once_with(
             container_name, file_name, mock.ANY,
             object_headers={'X-Delete-After': '86400'})
         mock_logs_name.assert_called_once_with(self.node, label=None)
+        mock_swift_api.__exit__.assert_called_once()
 
     @mock.patch.object(os, 'makedirs', autospec=True)
     @mock.patch.object(driver_utils,
