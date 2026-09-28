@@ -483,6 +483,30 @@ class TestBootcAgentDeploy(db_base.DbTestCase):
             execute_mock.assert_called_once_with(task, expected_step,
                                                  'deploy', client=mock.ANY)
 
+    @mock.patch.object(agent_base, 'execute_step', autospec=True)
+    def test_execute_bootc_install_basic_auth(self, execute_mock):
+        # A raw "username:password" basic auth credential is reconstructed
+        # and transmitted so the username is not dropped on the bootc path.
+        i_info = self.node.instance_info
+        i_info['image_pull_secret'] = 'user:pass'
+        self.node.instance_info = i_info
+        self.node.save()
+        src = self.node.instance_info.get('image_source')
+        expected_step = {
+            'interface': 'deploy',
+            'step': 'execute_bootc_install',
+                    'args': {'image_source': src,
+                             'configdrive': None,
+                             'oci_pull_secret': b'dXNlcjpwYXNz'}
+        }
+
+        with task_manager.acquire(self.context, self.node.uuid) as task:
+            execute_mock.return_value = states.DEPLOYWAIT
+            res = self.deploy.execute_bootc_install(task)
+            self.assertEqual(states.DEPLOYWAIT, res)
+            execute_mock.assert_called_once_with(task, expected_step,
+                                                 'deploy', client=mock.ANY)
+
     @mock.patch.object(agent_client.AgentClient, 'install_bootloader',
                        autospec=True)
     @mock.patch.object(deploy_utils, 'try_set_boot_device', autospec=True)

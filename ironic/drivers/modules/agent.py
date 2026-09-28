@@ -972,10 +972,19 @@ class BootcAgentDeploy(CustomAgentDeploy):
             img_auth = oci.RegistrySessionHelper.get_token_from_config(
                 fqdn)
         else:
-            # Internally, image data is a username and password, and we
-            # only currently support pull secrets which are just transmitted
-            # via the password value.
-            img_auth = img_auth.get('password')
+            # Internally, image data is a username and password. When a
+            # distinct username is present, the credential is basic auth
+            # style, so reconstruct the "username:password" pair which the
+            # agent then base64 encodes into the podman authfile "auth"
+            # field. Otherwise, the password field already holds the
+            # pre-shared token or docker config.json "auth" value and is
+            # transmitted as-is.
+            username = img_auth.get('username')
+            password = img_auth.get('password')
+            if username:
+                img_auth = '%s:%s' % (username, password)
+            else:
+                img_auth = password
         if img_auth:
             # This is not encryption, but obfustication.
             img_auth = base64.standard_b64encode(img_auth.encode())

@@ -1,0 +1,20 @@
+---
+fixes:
+  - |
+    Fixes an issue where a pre-shared OCI registry credential supplied in the
+    documented docker ``config.json`` "auth" format (the base64 encoding of
+    ``username:password``) was sent to the registry as an HTTP Basic password
+    with an empty username. When a bearer token is requested, such a credential
+    is now decoded and sent as proper HTTP Basic credentials, allowing
+    registries which expect basic authentication to authenticate successfully.
+    Opaque bearer tokens conveyed via the password, which are not base64
+    encoded ``username:password`` values, continue to be sent unchanged,
+    preserving the prior behavior. See `bug 2168735
+    <https://bugs.launchpad.net/ironic/+bug/2168735>`_.
+  - |
+    Fixes ``bootc`` container deployments dropping the username when a raw
+    ``username:password`` basic authentication credential was supplied as a
+    pull secret. The credential is now reconstructed and transmitted to the
+    agent so that both the username and password are available for
+    authentication to the remote container registry. See `bug 2168735
+    <https://bugs.launchpad.net/ironic/+bug/2168735>`_.
