@@ -1,0 +1,6 @@
+---
+upgrade:
+  - |
+    The redfish-virtual-media boot interface has been enabled for Dell iDRAC10
+    BMCs.
+
