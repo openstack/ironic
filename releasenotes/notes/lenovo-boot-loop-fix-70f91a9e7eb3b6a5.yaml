@@ -1,0 +1,28 @@
+---
+fixes:
+  - |
+    Fixes an issue where Lenovo servers in UEFI mode would get stuck in an
+    infinite boot loop after Ironic provisioned RHCOS or other operating
+    systems that require UEFI shim bootloaders when using custom deploy
+    flows (e.g., OpenShift/Metal³ deployments with Redfish boot interfaces).
+
+    After provisioning, when preparing the instance to boot from disk, the
+    Redfish boot interfaces (``redfish-virtual-media`` and ``redfish-https``)
+    set ``BootSourceOverrideTarget=Hdd`` which on Lenovo systems maps to a
+    generic "Hard Disk" boot entry that bypasses the UEFI shim bootloader.
+    The system would display a "Boot Option Restoration" screen and
+    continuously reboot, requiring manual user intervention.
+
+    The fix extends existing Lenovo UEFI handling from the agent deploy
+    interface to the Redfish boot interfaces. During the ``prepare_instance``
+    phase, Ironic now skips setting the boot device for Lenovo UEFI systems,
+    allowing the UEFI boot order (which has the shim bootloader first) to
+    handle the boot process. This avoids triggering NVRAM changes that can
+    be lost due to Lenovo's NVRAM restore behavior.
+
+    This change only affects Lenovo hardware in UEFI mode during instance
+    preparation in the Redfish boot interfaces and does not affect legacy
+    BIOS mode, other vendors, or other boot interfaces.
+
+    For more details, see
+    `bug 2150628 <https://bugs.launchpad.net/ironic/+bug/2150628>`_.

@@ -1157,9 +1157,9 @@ class RedfishVirtualMediaBoot(base.BootInterface):
 
         boot_mode_utils.sync_boot_mode(task)
 
-        self._set_boot_device(task, boot_devices.CDROM)
+        self._apply_boot_device(task, boot_devices.CDROM)
 
-        LOG.debug("Node %(node)s is set to one time boot from "
+        LOG.debug("Node %(node)s is set to boot from "
                   "%(device)s", {'node': task.node.uuid,
                                  'device': boot_devices.CDROM})
 
@@ -1212,11 +1212,12 @@ class RedfishVirtualMediaBoot(base.BootInterface):
         boot_option = deploy_utils.get_boot_option(node)
         iwdi = node.driver_internal_info.get('is_whole_disk_image')
         if boot_option == "local" or iwdi:
-            self._set_boot_device(task, boot_devices.DISK, persistent=True)
+            self._apply_boot_device(
+                task, boot_devices.DISK, persistent=True)
 
-            LOG.debug("Node %(node)s is set to permanently boot from local "
-                      "%(device)s", {'node': task.node.uuid,
-                                     'device': boot_devices.DISK})
+            LOG.debug("Node %(node)s set to boot from local %(device)s",
+                      {'node': task.node.uuid,
+                       'device': boot_devices.DISK})
             return
 
         params = {}
@@ -1228,7 +1229,8 @@ class RedfishVirtualMediaBoot(base.BootInterface):
                     "The UUID of the root partition could not be found for "
                     "node %s. Booting instance from disk anyway.", node.uuid)
 
-                self._set_boot_device(task, boot_devices.DISK, persistent=True)
+                self._apply_boot_device(
+                    task, boot_devices.DISK, persistent=True)
 
                 return
 
@@ -1329,6 +1331,40 @@ class RedfishVirtualMediaBoot(base.BootInterface):
                   "%(node)s", {'node': task.node.uuid})
         self._eject_all(task)
         boot_mode_utils.deconfigure_secure_boot_if_needed(task)
+
+    @classmethod
+    def _apply_boot_device(cls, task, device, persistent=False):
+        """Set boot device with vendor-specific handling.
+
+        Lenovo UEFI systems use an NVRAM-based boot model where
+        setting BootSourceOverrideTarget=Hdd maps to a generic
+        "Hard Disk" entry that bypasses the Red Hat shim bootloader,
+        causing a "Boot Option Restoration" loop.  Skip the DISK
+        override entirely and let the UEFI boot order (which already
+        contains the shim entry) take effect.
+
+        See https://bugs.launchpad.net/ironic/+bug/2053064
+
+        :param task: a TaskManager instance.
+        :param device: the boot device, one of
+                       :mod:`ironic.common.boot_devices`.
+        :param persistent: Whether to set next-boot, or make the change
+            permanent. Default: False.
+        :raises: InvalidParameterValue if the validation of the
+            ManagementInterface fails.
+        """
+        vendor = task.node.properties.get('vendor')
+        target_boot_mode = boot_mode_utils.get_boot_mode(task.node)
+        if (vendor and vendor.lower() == 'lenovo'
+                and target_boot_mode == 'uefi'
+                and device == boot_devices.DISK and persistent):
+            LOG.debug('Skipping persistent boot device setting for '
+                      'Lenovo UEFI node %s to allow UEFI boot order '
+                      '(with shim bootloader) to take effect',
+                      task.node.uuid)
+            return
+
+        cls._set_boot_device(task, device, persistent)
 
     @classmethod
     def _set_boot_device(cls, task, device, persistent=False):
@@ -1573,11 +1609,12 @@ class RedfishHttpsBoot(base.BootInterface):
         boot_option = deploy_utils.get_boot_option(node)
         iwdi = node.driver_internal_info.get('is_whole_disk_image')
         if boot_option == "local" or iwdi:
-            self._set_boot_device(task, boot_devices.DISK, persistent=True)
+            RedfishVirtualMediaBoot._apply_boot_device(
+                task, boot_devices.DISK, persistent=True)
 
-            LOG.debug("Node %(node)s is set to permanently boot from local "
-                      "%(device)s", {'node': task.node.uuid,
-                                     'device': boot_devices.DISK})
+            LOG.debug("Node %(node)s set to boot from local %(device)s",
+                      {'node': task.node.uuid,
+                       'device': boot_devices.DISK})
             return
 
         params = {}
@@ -1589,7 +1626,8 @@ class RedfishHttpsBoot(base.BootInterface):
                     "The UUID of the root partition could not be found for "
                     "node %s. Booting instance from disk anyway.", node.uuid)
 
-                self._set_boot_device(task, boot_devices.DISK, persistent=True)
+                RedfishVirtualMediaBoot._apply_boot_device(
+                    task, boot_devices.DISK, persistent=True)
 
                 return
 

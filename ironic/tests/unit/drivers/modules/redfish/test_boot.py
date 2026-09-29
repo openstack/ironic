@@ -1403,6 +1403,7 @@ class RedfishVirtualMediaBootTestCase(db_base.DbTestCase):
 
             mock_boot_mode_utils.sync_boot_mode.assert_called_once_with(task)
 
+    @mock.patch.object(boot_mode_utils, 'get_boot_mode', autospec=True)
     @mock.patch.object(boot_mode_utils, 'configure_secure_boot_if_needed',
                        autospec=True)
     @mock.patch.object(boot_mode_utils, 'sync_boot_mode', autospec=True)
@@ -1413,7 +1414,8 @@ class RedfishVirtualMediaBootTestCase(db_base.DbTestCase):
     def _test_prepare_instance_local_boot(
             self, mock_system, mock_manager_utils,
             mock_cleanup_iso_image, mock__eject_vmedia, mock_sync_boot_mode,
-            mock_secure_boot):
+            mock_secure_boot, mock_get_boot_mode):
+        mock_get_boot_mode.return_value = 'bios'
 
         with task_manager.acquire(self.context, self.node.uuid,
                                   shared=True) as task:
@@ -3310,6 +3312,7 @@ class RedfishHTTPBootTestCase(db_base.DbTestCase):
             mock_image_cleanup.assert_called_once_with(task)
             mock_disk_cleanup.assert_not_called()
 
+    @mock.patch.object(boot_mode_utils, 'get_boot_mode', autospec=True)
     @mock.patch.object(boot_mode_utils, 'configure_secure_boot_if_needed',
                        autospec=True)
     @mock.patch.object(boot_mode_utils, 'sync_boot_mode', autospec=True)
@@ -3319,7 +3322,8 @@ class RedfishHTTPBootTestCase(db_base.DbTestCase):
     def _test_prepare_instance_local_boot(
             self, mock_system, mock_manager_utils,
             mock_cleanup_iso_image, mock_sync_boot_mode,
-            mock_secure_boot):
+            mock_secure_boot, mock_get_boot_mode):
+        mock_get_boot_mode.return_value = 'bios'
 
         with task_manager.acquire(self.context, self.node.uuid,
                                   shared=True) as task:
