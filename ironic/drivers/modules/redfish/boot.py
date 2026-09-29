@@ -14,6 +14,7 @@
 #    under the License.
 
 from oslo_log import log
+import re
 import sushy
 import tenacity
 import time
@@ -982,13 +983,16 @@ class RedfishVirtualMediaBoot(base.BootInterface):
             bmc_manager = [m for m in managers
                            if m.manager_type == sushy.MANAGER_TYPE_BMC]
             if bmc_manager:
+                oem = bmc_manager[0].get_oem_extension('Dell')
+                idrac = oem.attribute_resources.get('iDRAC.Embedded.1')
+                model = idrac.attributes.get('Info.1.HWModel')
+                idrac_version = re.search(r'\d+', model)[0]
+                if int(idrac_version) >= 10:
+                    return
+
                 fwv = bmc_manager[0].firmware_version.split('.')
                 if int(fwv[0]) in [6, 7]:
                     return
-            # NOTE(TheJulia) Dell iDRAC10 reverted to 2.x.x.x for versioning
-            # and is also incompatible with the stock virtual media code.
-            # This may be fixed one day, but in the mean time, but the error
-            # provides specific guidance now.
             raise exception.InvalidParameterValue(
                 _("The %(iface)s boot interface is not suitable for node "
                   "%(node)s with vendor %(vendor)s and BMC version %(fwv)s, "
