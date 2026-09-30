@@ -59,7 +59,8 @@ def get_action(op_name):
 
 
 def update_nested_dict(d, key_path, value):
-    keys = key_path.split('.') if isinstance(key_path, str) else key_path
+    keys = (utils.normalize_path(key_path)
+            if isinstance(key_path, str) else key_path)
     current = d
     for key in keys[:-1]:
         current = current.setdefault(key, {})
@@ -289,7 +290,8 @@ class ExtendPluginDataAction(ActionBase):
 
     @staticmethod
     def _get_nested_value(d, key_path, default=None):
-        keys = key_path.split('.') if isinstance(key_path, str) else key_path
+        keys = (utils.normalize_path(key_path)
+                if isinstance(key_path, str) else key_path)
         current = d
         try:
             for key in keys:
@@ -314,7 +316,8 @@ class UnsetPluginDataAction(ActionBase):
 
     @staticmethod
     def _unset_nested_dict(d, key_path):
-        keys = key_path.split('.') if isinstance(key_path, str) else key_path
+        keys = (utils.normalize_path(key_path)
+                if isinstance(key_path, str) else key_path)
         current = d
         for key in keys[:-1]:
             if not isinstance(current, dict) or key not in current:
