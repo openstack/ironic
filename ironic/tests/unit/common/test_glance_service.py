@@ -184,6 +184,36 @@ class TestGlanceImageService(base.TestCase):
             self.assertRaises(exception.ImageUnacceptable,
                               self.service.show, image_id)
 
+    def test_show_raises_when_image_encrypted(self):
+        image_id = uuidutils.generate_uuid()
+        encryption_key_id = uuidutils.generate_uuid()
+        image = self._make_fixture(
+            name='encrypted-image',
+            id=image_id,
+            status="active",
+            properties={'cinder_encryption_key_id': encryption_key_id}
+        )
+        with mock.patch.object(self.service, 'call', autospec=True):
+            self.service.call.return_value = image
+            exc = self.assertRaises(exception.ImageUnacceptable,
+                                    self.service.show, image_id)
+            self.assertIn('does not support encrypted images', str(exc))
+
+    def test_show_success_without_encryption(self):
+        image_id = uuidutils.generate_uuid()
+        image = self._make_fixture(
+            name='normal-image',
+            id=image_id,
+            status="active",
+            properties={'some_other_property': 'value'}
+        )
+        with mock.patch.object(self.service, 'call', autospec=True):
+            self.service.call.return_value = image
+            result = self.service.show(image_id)
+            self.assertEqual(image_id, result['id'])
+            self.assertNotIn('cinder_encryption_key_id',
+                             result.get('properties', {}))
+
     def test_download_with_retries(self):
         tries = [0]
 

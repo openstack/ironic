@@ -1554,6 +1554,23 @@ class ValidateImagePropertiesTestCase(db_base.DbTestCase):
                           utils.validate_image_properties, self.task,
                           inst_info)
 
+    @mock.patch.object(utils, 'get_boot_option', autospec=True,
+                       return_value='kickstart')
+    @mock.patch.object(image_service, 'get_image_service', autospec=True)
+    def test_validate_image_properties_glance_image_encrypted(
+            self, image_service_mock, boot_options_mock):
+        image_id = uuidutils.generate_uuid()
+        inst_info = {'image_source': image_id}
+        show_mock = image_service_mock.return_value.show
+        show_mock.side_effect = exception.ImageUnacceptable(
+            image_id=image_id,
+            reason='Ironic does not support encrypted images')
+        exc = self.assertRaises(exception.InvalidParameterValue,
+                                utils.validate_image_properties,
+                                self.task, inst_info)
+        self.assertIn('not acceptable', str(exc))
+        self.assertIn('encrypted', str(exc))
+
     def test_validate_image_properties_invalid_image_href(self):
         inst_info = {'image_source': 'emule://uuid'}
         self.assertRaises(exception.InvalidParameterValue,

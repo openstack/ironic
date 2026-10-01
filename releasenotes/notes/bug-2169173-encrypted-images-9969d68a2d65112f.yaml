@@ -1,0 +1,12 @@
+---
+fixes:
+  - |
+    Fixes `bug 2169173 <https://bugs.launchpad.net/ironic/+bug/2169173>`_
+    to add validation that rejects Glance encrypted images during deployment
+    validation. Ironic now checks for the ``cinder_encryption_key_id``
+    property in Glance images and raises a clear error message indicating
+    that encrypted images are not supported for bare metal deployments.
+    This prevents wasting deployment resources on images that cannot work
+    with bare metal due to the fundamental architectural mismatch between
+    encryption designed for virtualized environments and physical hardware
+    access.

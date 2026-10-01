@@ -187,6 +187,16 @@ class GlanceImageService(object):
             raise exception.ImageNotFound(image_id=image_id)
 
         base_image_meta = service_utils.translate_from_glance(image)
+
+        # Check if the image is encrypted (requires Barbican key access)
+        image_properties = base_image_meta.get('properties', {})
+        if image_properties.get('cinder_encryption_key_id'):
+            raise exception.ImageUnacceptable(
+                image_id=image_id,
+                reason=_("Ironic does not support encrypted images. The "
+                         "image is encrypted with a key stored in Barbican, "
+                         "and cannot be used for bare metal deployments."))
+
         return base_image_meta
 
     @check_image_service
