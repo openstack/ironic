@@ -17,6 +17,7 @@ from oslo_utils import uuidutils
 
 from ironic.common import exception
 from ironic.common import inspection_rules
+from ironic.common.inspection_rules import actions
 from ironic.common.inspection_rules import base
 from ironic.common.inspection_rules import engine
 from ironic.common.inspection_rules import utils
@@ -343,6 +344,24 @@ class TestCheckRule(TestInspectionRules):
 class TestOperators(TestInspectionRules):
     def setUp(self):
         super(TestOperators, self).setUp()
+
+    def test_plugin_data_paths_accept_slash_notation(self):
+        """Plugin-data paths support slash notation, as attributes do."""
+        # Slash and dot notation must produce the same nesting.
+        for path in ('foo/bar', 'foo.bar', '/foo/bar'):
+            data = {}
+            actions.update_nested_dict(data, path, 'v')
+            self.assertEqual({'foo': {'bar': 'v'}}, data,
+                             'path %r did not nest' % path)
+
+        # Reading back and unsetting agree with it.
+        data = {'foo': {'bar': 'v', 'keep': 1}}
+        self.assertEqual(
+            'v',
+            actions.ExtendPluginDataAction._get_nested_value(data, 'foo/bar'))
+        self.assertTrue(
+            actions.UnsetPluginDataAction._unset_nested_dict(data, 'foo/bar'))
+        self.assertEqual({'foo': {'keep': 1}}, data)
 
     def test_operator_exceptions(self):
         """Test that operators raise proper exceptions for invalid inputs."""

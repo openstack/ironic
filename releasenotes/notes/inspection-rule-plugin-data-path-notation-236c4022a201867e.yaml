@@ -1,0 +1,7 @@
+---
+fixes:
+  - |
+    Fixes the inspection rule plugin data actions (``set-plugin-data``,
+    ``extend-plugin-data`` and ``unset-plugin-data``) ignoring slash
+    notation in ``path``, so that they now accept the same dot or slash
+    notation as the node attribute actions.
