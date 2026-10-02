@@ -63,6 +63,23 @@ class TraitBasedNetworkingBaseTestCase(base.TestCase):
         net = tbn_test_utils.FauxNetwork()
         self.assertFalse(exp.eval(pg, net))
 
+    def test_filter_comparator_eval_unset_variable_never_matches(self):
+        ironic_pg = obj_utils.get_test_portgroup(
+            context.get_admin_context(), id=5)
+        pg = tbn.Portgroup.from_ironic_portgroup(ironic_pg)
+        port = tbn.Port.from_ironic_port(
+            tbn_test_utils.FauxPortLikeObject(category=None))
+        net = tbn_test_utils.FauxNetwork()
+
+        for comparator in tbn.Comparator:
+            exp = tbn.SingleExpression(
+                tbn.Variables.PORT_VENDOR, comparator, "clover")
+            self.assertFalse(exp.eval(pg, net), str(comparator))
+
+            exp = tbn.SingleExpression(
+                tbn.Variables.PORT_CATEGORY, comparator, "cat")
+            self.assertFalse(exp.eval(port, net), str(comparator))
+
     def test_filter_comparator_eval_equality(self):
         exp = tbn.SingleExpression(
             tbn.Variables.PORT_ADDRESS, tbn.Comparator.EQUALITY, "test"

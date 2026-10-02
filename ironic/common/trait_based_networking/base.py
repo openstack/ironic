@@ -67,6 +67,11 @@ class Comparator(enum.Enum):
         if isinstance(variable, (frozenset, set, list, tuple)):
             return self._eval_collection(variable, value)
 
+        # Unset variables (e.g. a portgroup's vendor, or a port without a
+        # category) never match, regardless of comparator.
+        if variable is None:
+            return False
+
         match self.name:
             case self.EQUALITY.name:
                 return variable == value
