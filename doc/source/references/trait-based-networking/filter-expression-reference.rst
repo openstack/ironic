@@ -205,4 +205,25 @@ expressions. Available variables are listed below:
 - port.physical_network
 - port.vendor
 
+.. note::
+
+    ``port.vendor`` only applies to ports. Portgroups have no ``vendor``
+    field, so ``port.vendor == 'purple'`` never matches a portgroup. Use the
+    ``port.is_portgroup`` or ``port.is_port`` `functions`_ to handle
+    portgroups explicitly. For example, to match portgroups as well as ports
+    from a given vendor:
+
+    .. code-block:: python
+
+        port.is_portgroup || port.vendor == 'purple'
+
+    Or to only consider the vendor of ports:
+
+    .. code-block:: python
+
+        port.is_port && port.vendor =~ 'pur'
+
+    Because boolean operators short-circuit, ``port.vendor`` is not evaluated
+    for portgroups in either example.
+
 .. _FILTER_EXPRESSION_GRAMMAR: https://opendev.org/openstack/ironic/src/branch/master/ironic/common/trait_based_networking/grammar/parser.py#L17
