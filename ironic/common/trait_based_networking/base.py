@@ -467,7 +467,8 @@ class Portgroup(PrimordialPort):
             address=ironic_portgroup.address,
             category=ironic_portgroup.category,
             physical_network=ironic_portgroup.physical_network,
-            vendor=ironic_portgroup.vendor,
+            # Portgroups have no vendor field, unlike Ports.
+            vendor=None,
             dynamic_portgroup=ironic_portgroup.dynamic_portgroup
         )
 
