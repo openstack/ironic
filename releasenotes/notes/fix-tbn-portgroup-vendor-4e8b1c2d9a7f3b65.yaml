@@ -1,0 +1,8 @@
+---
+fixes:
+  - |
+    Fixed Trait Based Networking (TBN) failing with an HTTP 500 error
+    (``'Portgroup' object has no attribute 'vendor'``) when attaching a VIF
+    to a node that has portgroups. Portgroups have no ``vendor`` field, so
+    filter expressions that reference ``port.vendor`` no longer match
+    portgroups.

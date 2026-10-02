@@ -13,8 +13,10 @@
 import ironic.common.exception as exc
 import ironic.common.trait_based_networking.base as tbn
 
+from ironic.common import context
 from ironic.tests import base
 import ironic.tests.unit.common.trait_based_networking.utils as tbn_test_utils
+from ironic.tests.unit.objects import utils as obj_utils
 
 import itertools
 
@@ -36,6 +38,31 @@ class TraitBasedNetworkingBaseTestCase(base.TestCase):
         net = tbn_test_utils.FauxNetwork()
         self.assertRaises(exc.TraitBasedNetworkingException, exp.eval,
                           obj, net)
+
+    def test_portgroup_from_ironic_portgroup(self):
+        # Use a real Portgroup object, which has no vendor field.
+        ironic_pg = obj_utils.get_test_portgroup(
+            context.get_admin_context(), id=5, category="cat",
+            physical_network="physnet1")
+        pg = tbn.Portgroup.from_ironic_portgroup(ironic_pg)
+
+        self.assertEqual(5, pg.id)
+        self.assertEqual(ironic_pg.uuid, pg.uuid)
+        self.assertEqual(ironic_pg.address, pg.address)
+        self.assertEqual("cat", pg.category)
+        self.assertEqual("physnet1", pg.physical_network)
+        self.assertIsNone(pg.vendor)
+        self.assertFalse(pg.dynamic_portgroup)
+
+    def test_filter_port_vendor_on_portgroup_doesnt_match(self):
+        exp = tbn.SingleExpression(
+            tbn.Variables.PORT_VENDOR, tbn.Comparator.EQUALITY, "clover"
+        )
+        ironic_pg = obj_utils.get_test_portgroup(
+            context.get_admin_context(), id=5)
+        pg = tbn.Portgroup.from_ironic_portgroup(ironic_pg)
+        net = tbn_test_utils.FauxNetwork()
+        self.assertFalse(exp.eval(pg, net))
 
     def test_filter_comparator_eval_equality(self):
         exp = tbn.SingleExpression(
