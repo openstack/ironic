@@ -1338,7 +1338,7 @@ class RedfishVirtualMediaBoot(base.BootInterface):
 
         Lenovo UEFI systems use an NVRAM-based boot model where
         setting BootSourceOverrideTarget=Hdd maps to a generic
-        "Hard Disk" entry that bypasses the Red Hat shim bootloader,
+        "Hard Disk" entry that bypasses the shim bootloader's pointer,
         causing a "Boot Option Restoration" loop.  Skip the DISK
         override entirely and let the UEFI boot order (which already
         contains the shim entry) take effect.
