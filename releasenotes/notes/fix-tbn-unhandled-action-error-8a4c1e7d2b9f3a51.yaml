@@ -1,0 +1,7 @@
+---
+fixes:
+  - |
+    Fixed Trait Based Networking (TBN) failing with an internal ``TypeError``
+    when a trait used an action that is not yet implemented, such as
+    ``bond_ports``. VIF attachment now fails with a ``NetworkError`` that
+    names the unhandled action, instead of logging a malformed warning.
