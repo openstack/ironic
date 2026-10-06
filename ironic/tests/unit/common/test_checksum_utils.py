@@ -174,26 +174,67 @@ class IronicChecksumUtilsTestCase(base.TestCase):
                           'me0w', 'sha256:f00')
 
 
+class IronicChecksumUtilsValidateHostTestCase(base.TestCase):
+
+    def test_matching_host_passes(self):
+        checksum_utils.validate_checksum_url_host(
+            'https://image-url/SHA256SUMS', 'https://image-url/file')
+
+    def test_mismatched_host_raises(self):
+        self.assertRaises(
+            exception.ImageChecksumURLHostMismatch,
+            checksum_utils.validate_checksum_url_host,
+            'https://checksum-url/SHA256SUMS', 'https://image-url/file')
+
+    def test_mismatched_host_ignores_port(self):
+        # Only the hostname is compared, the port is not considered.
+        checksum_utils.validate_checksum_url_host(
+            'https://image-url:8080/SHA256SUMS', 'https://image-url/file')
+
+    def test_mismatched_host_allowed_when_disabled(self):
+        CONF.set_override('checksum_require_matching_host', False,
+                          group='conductor')
+        checksum_utils.validate_checksum_url_host(
+            'https://checksum-url/SHA256SUMS', 'https://image-url/file')
+
+    def test_non_http_image_source_skipped(self):
+        # file:// and other non-HTTP image sources have no comparable host.
+        checksum_utils.validate_checksum_url_host(
+            'https://checksum-url/SHA256SUMS', 'file:///tmp/file')
+
+
 @mock.patch.object(image_service.HttpImageService, 'get',
                    autospec=True)
 class IronicChecksumUtilsGetChecksumTestCase(base.TestCase):
 
     def test_get_checksum_from_url_empty_response(self, mock_get):
         mock_get.return_value = ''
-        error = ('Failed to download image https://checksum-url, '
+        error = ('Failed to download image https://image-url/SHA256SUMS, '
                  'reason: Checksum file empty.')
         self.assertRaisesRegex(exception.ImageDownloadFailed,
                                error,
                                checksum_utils.get_checksum_from_url,
-                               'https://checksum-url',
+                               'https://image-url/SHA256SUMS',
                                'https://image-url/file')
-        mock_get.assert_called_once_with('https://checksum-url')
+        mock_get.assert_called_once_with(
+            'https://image-url/SHA256SUMS',
+            max_request_size=CONF.conductor.checksum_max_size)
+
+    def test_get_checksum_from_url_host_mismatch(self, mock_get):
+        self.assertRaises(exception.ImageChecksumURLHostMismatch,
+                          checksum_utils.get_checksum_from_url,
+                          'https://checksum-url/SHA256SUMS',
+                          'https://image-url/file')
+        # The checksum file is never retrieved when the host does not match.
+        mock_get.assert_not_called()
 
     def test_get_checksum_from_url_one_line(self, mock_get):
         mock_get.return_value = 'a' * 32
         csum = checksum_utils.get_checksum_from_url(
-            'https://checksum-url', 'https://image-url/file')
-        mock_get.assert_called_once_with('https://checksum-url')
+            'https://image-url/SHA256SUMS', 'https://image-url/file')
+        mock_get.assert_called_once_with(
+            'https://image-url/SHA256SUMS',
+            max_request_size=CONF.conductor.checksum_max_size)
         self.assertEqual('a' * 32, csum)
 
     def test_get_checksum_from_url_nomatch_line(self, mock_get):
@@ -202,11 +243,13 @@ class IronicChecksumUtilsGetChecksumTestCase(base.TestCase):
         # the error. Easiest path is just to assertTrue the compare.
         exc = self.assertRaises(exception.ImageDownloadFailed,
                                 checksum_utils.get_checksum_from_url,
-                                'https://checksum-url',
+                                'https://image-url/SHA256SUMS',
                                 'https://image-url/file')
         self.assertTrue(
             'Invalid checksum file (No valid checksum found' in str(exc))
-        mock_get.assert_called_once_with('https://checksum-url')
+        mock_get.assert_called_once_with(
+            'https://image-url/SHA256SUMS',
+            max_request_size=CONF.conductor.checksum_max_size)
 
     def test_get_checksum_from_url_multiline(self, mock_get):
         test_csum = ('f2ca1bb6c7e907d06dafe4687e579fce76b37e4e9'
@@ -215,21 +258,25 @@ class IronicChecksumUtilsGetChecksumTestCase(base.TestCase):
         # For some reason assertRaisesRegex really doesn't like
         # the error. Easiest path is just to assertTrue the compare.
         checksum = checksum_utils.get_checksum_from_url(
-            'https://checksum-url',
+            'https://image-url/SHA256SUMS',
             'https://image-url/file')
         self.assertEqual(test_csum, checksum)
-        mock_get.assert_called_once_with('https://checksum-url')
+        mock_get.assert_called_once_with(
+            'https://image-url/SHA256SUMS',
+            max_request_size=CONF.conductor.checksum_max_size)
 
     def test_get_checksum_from_url_multiline_no_file(self, mock_get):
         test_csum = 'a' * 64
-        error = ("Failed to download image https://checksum-url, reason: "
-                 "Checksum file does not contain name file")
+        error = ("Failed to download image https://image-url/SHA256SUMS, "
+                 "reason: Checksum file does not contain name file")
         mock_get.return_value = ('f00\n%s\nbar\nf00' % test_csum)
         # For some reason assertRaisesRegex really doesn't like
         # the error. Easiest path is just to assertTrue the compare.
         self.assertRaisesRegex(exception.ImageDownloadFailed,
                                error,
                                checksum_utils.get_checksum_from_url,
-                               'https://checksum-url',
+                               'https://image-url/SHA256SUMS',
                                'https://image-url/file')
-        mock_get.assert_called_once_with('https://checksum-url')
+        mock_get.assert_called_once_with(
+            'https://image-url/SHA256SUMS',
+            max_request_size=CONF.conductor.checksum_max_size)

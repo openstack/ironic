@@ -209,6 +209,34 @@ def is_checksum_url(checksum):
         return False
 
 
+def validate_checksum_url_host(checksum, image_source):
+    """Validate the host of a checksum URL against the image source host.
+
+    When ``[conductor]checksum_require_matching_host`` is enabled (the
+    default), a remote checksum URL must point at the same host as the image
+    source. The comparison is only applied when the image source is itself an
+    HTTP(S) URL, as other image sources (such as ``file://`` or ``glance://``)
+    have no comparable remote host.
+
+    :param checksum: The remote checksum URL supplied by the user.
+    :param image_source: The image source URL the checksum belongs to.
+    :raises: ImageChecksumURLHostMismatch if enforcement is enabled and the
+        hosts do not match.
+    """
+    if not CONF.conductor.checksum_require_matching_host:
+        return
+
+    if urlparse.urlparse(image_source).scheme not in ('http', 'https'):
+        # No comparable remote host; nothing to enforce.
+        return
+
+    checksum_host = urlparse.urlparse(checksum).hostname
+    image_host = urlparse.urlparse(image_source).hostname
+    if checksum_host != image_host:
+        raise exception.ImageChecksumURLHostMismatch(
+            checksum_host=checksum_host, image_host=image_host)
+
+
 def get_checksum_from_url(checksum, image_source):
     """Gets a checksum value based upon a remote checksum URL file.
 
@@ -217,13 +245,19 @@ def get_checksum_from_url(checksum, image_source):
         the contents of the URL payload file.
     :raises: ImageDownloadFailed when the checksum file cannot be
         accessed or cannot be parsed.
+    :raises: ImageChecksumURLHostMismatch when the checksum URL host does not
+        match the image source host and enforcement is enabled.
     """
+
+    validate_checksum_url_host(checksum, image_source)
 
     LOG.debug('Attempting to download checksum from: %(checksum)s.',
               {'checksum': checksum})
 
-    # Directly invoke the image service and get the checksum data.
-    resp = image_service.HttpImageService.get(checksum)
+    # Directly invoke the image service and get the checksum data, capping the
+    # response size as a checksum file is expected to be small.
+    resp = image_service.HttpImageService.get(
+        checksum, max_request_size=CONF.conductor.checksum_max_size)
     checksum_url = str(checksum)
 
     # NOTE(TheJulia): The rest of this method is taken from

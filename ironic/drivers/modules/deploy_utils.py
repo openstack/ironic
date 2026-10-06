@@ -1650,6 +1650,17 @@ def build_instance_info_for_deploy(task):
         check_image_size(node, image_info)
 
     if not is_glance_image:
+        # Guard against a checksum URL pointing at a host other than the image
+        # source. This is enforced here, before either the conductor caching
+        # path or the direct-to-agent passthrough path proceeds, so that a
+        # checksum URL cannot be used to direct the conductor or the agent --
+        # along with any configured image server credentials -- at a host the
+        # image source itself does not use.
+        image_checksum = instance_info.get('image_checksum')
+        if image_checksum and checksum_utils.is_checksum_url(image_checksum):
+            checksum_utils.validate_checksum_url_host(
+                image_checksum, image_source)
+
         is_file_url = image_source.startswith('file://')
         if (is_file_url or image_download_source == 'local'):
             # In this case, we're explicitly downloading (or copying a file)

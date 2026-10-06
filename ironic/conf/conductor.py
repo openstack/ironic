@@ -625,6 +625,25 @@ opts = [
                        'functionality by setting this option to True will '
                        'create a more secure environment, however it may '
                        'break users in an unexpected fashion.')),
+    cfg.BoolOpt('checksum_require_matching_host',
+                default=True,
+                mutable=True,
+                help=_('Security option: By default Ironic requires a remote '
+                       'checksum file URL to share the same host as the image '
+                       'source URL before the checksum file is retrieved. '
+                       'Setting this to False allows the checksum file to be '
+                       'retrieved from a host other than the image source. '
+                       'Only applies when the image source is an HTTP(S) '
+                       'URL.')),
+    cfg.IntOpt('checksum_max_size',
+               default=1024 * 32,
+               min=0,
+               mutable=True,
+               help=_('The maximum size, in bytes, of a remote checksum file '
+                      'retrieved via an HTTP(S) URL. This prevents retrieval '
+                      'of an excessively large checksum file into memory. The '
+                      'default is 32 KiB (32768 bytes). A value of 0 disables '
+                      'the limit.')),
     cfg.BoolOpt('disable_zstandard_decompression',
                 default=False,
                 mutable=False,

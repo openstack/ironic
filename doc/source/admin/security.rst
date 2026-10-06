@@ -61,6 +61,18 @@ by the ``direct`` deployment interface.
    Conductor support this functionality can be disabled using the
    :oslo.config:option:`conductor.disable_support_for_checksum_files` setting.
 
+.. NOTE::
+   When a checksum is supplied as a URL, by default the conductor requires
+   the host of the checksum URL to match the host of the image source URL
+   before the checksum file is retrieved. This prevents a user-supplied
+   checksum URL from directing the conductor to an unrelated host. The
+   comparison only applies when the image source is itself an HTTP(S) URL,
+   and can be relaxed using the
+   :oslo.config:option:`conductor.checksum_require_matching_host` setting.
+   The size of a retrieved checksum file is also capped by the
+   :oslo.config:option:`conductor.checksum_max_size` setting, which defaults
+   to 32 KiB.
+
 REST API: user roles and policy settings
 ========================================
 
