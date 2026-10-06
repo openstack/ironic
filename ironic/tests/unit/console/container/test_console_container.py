@@ -572,6 +572,18 @@ spec:
             rendered,
         )
 
+    def test__render_template_custom_namespace(self):
+        CONF.set_override("kubernetes_namespace", "custom-ns", group="vnc")
+
+        rendered = self.provider._render_template(
+            uuid="1234", app_name="fake-app", app_info={}
+        )
+
+        # Verify custom namespace appears in both Secret and Pod
+        self.assertIn("namespace: custom-ns", rendered)
+        # Ensure it's not using the default
+        self.assertNotIn("namespace: openstack", rendered)
+
     @mock.patch.object(utils, "execute", autospec=True)
     def test__apply(self, mock_exec):
         manifest = "fake-manifest"

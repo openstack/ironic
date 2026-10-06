@@ -89,6 +89,7 @@ class KubernetesConsoleContainer(base.BaseConsoleContainer):
             "app_info": json.dumps(app_info).strip(),
             "read_only": CONF.vnc.read_only,
             "conductor": CONF.host,
+            "namespace": CONF.vnc.kubernetes_namespace,
         }
         return utils.render_template(
             CONF.vnc.kubernetes_container_template, params=params
