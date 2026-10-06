@@ -1,0 +1,12 @@
+---
+fixes:
+  - |
+    Fixes an issue where the ``neutron`` network interface could attach
+    only some of the tenant VIFs of a node. Every port or port group with
+    a tenant VIF attached is now plugged when configuring tenant networks,
+    and a failure to plug any one of them fails the operation. Ports that
+    are members of a port group are no longer skipped, so a port group can
+    be defined while its member ports are still plugged individually, and
+    they are likewise unbound when tenant networks are unconfigured. See
+    `bug 2169761 <https://bugs.launchpad.net/ironic/+bug/2169761>`_ for
+    details.
