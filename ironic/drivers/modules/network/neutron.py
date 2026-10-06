@@ -168,34 +168,33 @@ class NeutronNetwork(common.NeutronVIFPortIDMixin,
         ports = task.ports
         LOG.info('Mapping instance ports to %s', node.uuid)
 
-        # TODO(russell_h): this is based on the broken assumption that the
-        # number of Neutron ports will match the number of physical ports.
-        # Instead, we should probably list ports for this instance in
-        # Neutron and update all of those with the appropriate portmap.
         if not ports:
             msg = _("No ports are associated with node %s") % node.uuid
             LOG.error(msg)
             raise exception.NetworkError(msg)
-        ports = [p for p in ports if not p.portgroup_id]
         portgroups = task.portgroups
+
+        # Only objects with a tenant VIF recorded in internal_info (set by
+        # vif_attach) are plugged. Every one of them must succeed. Ports
+        # that are members of a portgroup are included so they can be
+        # plugged individually.
+        to_plug = [
+            p for p in ports + portgroups
+            if self._get_vif_id_by_port_like_obj(p)]
+
+        if not to_plug:
+            msg = _("No neutron ports or portgroups are associated with "
+                    "node %s") % node.uuid
+            LOG.error(msg)
+            raise exception.NetworkError(msg)
 
         client = neutron.get_client(context=task.context)
         try:
-            pobj_without_vif = 0
-            for port_like_obj in ports + portgroups:
-
-                try:
-                    common.plug_port_to_tenant_network(task, port_like_obj,
-                                                       client=client)
-                except exception.VifNotAttached:
-                    pobj_without_vif += 1
-                    continue
-
-            if pobj_without_vif == len(ports + portgroups):
-                msg = _("No neutron ports or portgroups are associated with "
-                        "node %s") % node.uuid
-                LOG.error(msg)
-                raise exception.NetworkError(msg)
+            for port_like_obj in to_plug:
+                # NOTE: any failure here (NetworkError) propagates so we
+                # never leave the node with only some tenant VIFs plugged.
+                common.plug_port_to_tenant_network(task, port_like_obj,
+                                                   client=client)
         finally:
             client.close()
 
@@ -212,9 +211,7 @@ class NeutronNetwork(common.NeutronVIFPortIDMixin,
         node = task.node
         LOG.info('Unbinding instance ports from node %s', node.uuid)
 
-        ports = [p for p in task.ports if not p.portgroup_id]
-        portgroups = task.portgroups
-        for port_like_obj in ports + portgroups:
+        for port_like_obj in task.ports + task.portgroups:
             vif_port_id = NeutronNetwork._get_vif_id_by_port_like_obj(
                 port_like_obj)
             if not vif_port_id:
