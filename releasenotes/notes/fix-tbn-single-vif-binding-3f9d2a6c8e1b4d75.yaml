@@ -1,0 +1,10 @@
+---
+fixes:
+  - |
+    Fixed Trait Based Networking (TBN) failing VIF attachment when more than
+    one action matched, for example when a port is a member of a portgroup
+    and matches both an ``attach_portgroup`` and an ``attach_port`` action.
+    All matching actions were executed in the same ``vif_attach()`` call,
+    so the second attempt to bind the VIF failed the whole operation. Only
+    the first matching action is now executed. See `bug 2169647
+    <https://bugs.launchpad.net/ironic/+bug/2169647>`_ for details.

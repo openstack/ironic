@@ -723,52 +723,58 @@ class NeutronVIFPortIDMixin(VIFPortIDMixin):
         actions = [action for action in actions if
                    not isinstance(action, tbn_base.NoMatch)]
 
+        # NOTE(cardoe): Only execute the first matching action. A single VIF
+        # can only be bound once, so executing additional actions (e.g. a
+        # portgroup match followed by a match on one of its member ports)
+        # would attempt a second binding of the same VIF and fail the whole
+        # vif_attach() call.
+        action = actions[0]
+
         client = neutron.get_client(context=task.context)
         try:
-            for action in actions:
-                match type(action):
-                    case tbn_base.AttachPort | tbn_base.AttachPortgroup:
-                        port_like_obj = action.get_portlike_object(task)
-                        self._attach_port_to_vif(task, client, port_like_obj,
-                                                 vif_info['id'])
+            match type(action):
+                case tbn_base.AttachPort | tbn_base.AttachPortgroup:
+                    port_like_obj = action.get_portlike_object(task)
+                    self._attach_port_to_vif(task, client, port_like_obj,
+                                             vif_info['id'])
 
-                    case tbn_base.GroupAndAttachPorts:
-                        # Get each constituent port information
+                case tbn_base.GroupAndAttachPorts:
+                    # Get each constituent port information
+                    try:
+                        dyn_pg_ports = [
+                            objects.Port.get_by_uuid(task.context, uuid)
+                            for uuid in action.port_uuids
+                        ]
+                    except exception.PortNotFound as e:
+                        msg = (_("A selected port for the dynamic "
+                                 "portgroup was not found. %(exc)s")
+                               % {'exc': e})
+                        raise exception.NetworkError(msg)
+
+                    dyn_portgroup = self._create_dynamic_portgroup(
+                        task, dyn_pg_ports[0])
+
+                    # Update every port so it is part of the new portgroup
+                    for port in dyn_pg_ports:
+                        port.portgroup_id = dyn_portgroup.id
                         try:
-                            dyn_pg_ports = [
-                                objects.Port.get_by_uuid(task.context, uuid)
-                                for uuid in action.port_uuids
-                            ]
-                        except exception.PortNotFound as e:
-                            msg = (_("A selected port for the dynamic "
-                                     "portgroup was not found. %(exc)s")
-                                   % {'exc': e})
+                            port.save()
+                        except (exception.PortNotFound,
+                                exception.MACAlreadyExists) as e:
+                            msg = (_('Could not update port to belong to '
+                                     'dynamic portgroup. '
+                                     '%(exc)s') % {'exc': e})
+                            LOG.error(msg)
                             raise exception.NetworkError(msg)
 
-                        dyn_portgroup = self._create_dynamic_portgroup(
-                            task, dyn_pg_ports[0])
+                    # Attach the dynamic portgroup to the network.
+                    self._attach_port_to_vif(task, client, dyn_portgroup,
+                                             vif_info['id'])
 
-                        # Update every port so it is part of the new portgroup
-                        for port in dyn_pg_ports:
-                            port.portgroup_id = dyn_portgroup.id
-                            try:
-                                port.save()
-                            except (exception.PortNotFound,
-                                    exception.MACAlreadyExists) as e:
-                                msg = (_('Could not update port to belong to '
-                                         'dynamic portgroup. '
-                                         '%(exc)s') % {'exc': e})
-                                LOG.error(msg)
-                                raise exception.NetworkError(msg)
-
-                        # Attach the dynamic portgroup to the network.
-                        self._attach_port_to_vif(task, client, dyn_portgroup,
-                                                 vif_info['id'])
-
-                    case _:
-                        LOG.warning(('_vif_attach_tbn: Unhandled action '
-                                     'encountered: \'s(action)%\'.',
-                                     {'action': type(action)}))
+                case _:
+                    LOG.warning(('_vif_attach_tbn: Unhandled action '
+                                 'encountered: \'s(action)%\'.',
+                                 {'action': type(action)}))
         finally:
             client.close()
 
