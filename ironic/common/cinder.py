@@ -33,6 +33,40 @@ IN_USE = 'in-use'
 _CINDER_SESSION = None
 
 
+class CinderBlockStorageClient:
+    """Wrapper for Cinder block_storage client with connection management.
+
+    This class wraps the OpenStack SDK block_storage proxy and holds a
+    reference to the underlying Connection object to ensure proper cleanup.
+    """
+
+    def __init__(self, connection, block_storage_proxy):
+        self._connection = connection
+        self._block_storage = block_storage_proxy
+
+    def __getattr__(self, name):
+        return getattr(self._block_storage, name)
+
+    def __enter__(self):
+        return self
+
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        self.close()
+        return False
+
+    def close(self):
+        if self._connection is not None:
+            try:
+                self._connection.close()
+            except Exception as e:
+                LOG.warning('Error closing cinder connection: %s', e)
+            finally:
+                self._connection = None
+
+    def __del__(self):
+        self.close()
+
+
 def _get_cinder_session():
     global _CINDER_SESSION
     if not _CINDER_SESSION:
@@ -99,7 +133,8 @@ def get_client(context=None, auth_from_config=False):
         block_storage_endpoint_override=endpoint,
         block_storage_api_version='3')
 
-    return conn.global_request(context.global_id).block_storage
+    block_storage = conn.global_request(context.global_id).block_storage
+    return CinderBlockStorageClient(conn, block_storage)
 
 
 def is_volume_available(volume):
@@ -258,94 +293,99 @@ def attach_volumes(task, volume_list, connector):
     LOG.debug('Initializing volume attach for node %(node)s.',
               {'node': node.uuid})
     try:
-        block_storage = get_client(context=task.context)
+        client = get_client(context=task.context)
     except openstack_exc.SDKException as e:
         msg = _('Failed to connect to block storage service '
                 ': %(err)s') % {'err': e}
         raise exception.StorageError(msg)
-    connected = []
-    for volume_id in volume_list:
-        try:
-            volume = block_storage.get_volume(volume_id)
-        except openstack_exc.SDKException as e:
-            msg = (_('Failed to get volume %(vol_id)s from cinder for node '
-                     '%(uuid)s: %(err)s') %
-                   {'vol_id': volume_id, 'uuid': node.uuid, 'err': e})
-            LOG.error(msg)
-            raise exception.StorageError(msg)
-        if is_volume_attached(node, volume):
-            LOG.debug('Volume %(vol_id)s is already attached to node '
-                      '%(uuid)s. Skipping attachment.',
-                      {'vol_id': volume_id, 'uuid': node.uuid})
 
-            # NOTE(jtaryma): Actual connection info of already connected
-            # volume will be provided by nova. Adding this dictionary to
-            # 'connected' list so it contains also already connected volumes.
-            connection = {'data': {'ironic_volume_uuid': volume.id,
-                                   'volume_id': volume_id},
-                          'already_attached': True}
+    try:
+        connected = []
+        for volume_id in volume_list:
+            try:
+                volume = client.get_volume(volume_id)
+            except openstack_exc.SDKException as e:
+                msg = (_('Failed to get volume %(vol_id)s from cinder for '
+                         'node %(uuid)s: %(err)s') %
+                       {'vol_id': volume_id, 'uuid': node.uuid, 'err': e})
+                LOG.error(msg)
+                raise exception.StorageError(msg)
+            if is_volume_attached(node, volume):
+                LOG.debug('Volume %(vol_id)s is already attached to node '
+                          '%(uuid)s. Skipping attachment.',
+                          {'vol_id': volume_id, 'uuid': node.uuid})
+
+                # NOTE(jtaryma): Actual connection info of already connected
+                # volume will be provided by nova. Adding this dictionary to
+                # 'connected' list so it contains also already connected
+                # volumes.
+                connection = {'data': {'ironic_volume_uuid': volume.id,
+                                       'volume_id': volume_id},
+                              'already_attached': True}
+                connected.append(connection)
+                continue
+
+            try:
+                client.reserve_volume(volume)
+            except openstack_exc.SDKException as e:
+                msg = (_('Failed to reserve volume %(vol_id)s for node '
+                         '%(node)s: %(err)s)') %
+                       {'vol_id': volume_id, 'node': node.uuid, 'err': e})
+                LOG.error(msg)
+                raise exception.StorageError(msg)
+
+            try:
+                # Provide connector information to cinder
+                connection = client.init_volume_attachment(
+                    volume, connector)
+            except openstack_exc.SDKException as e:
+                msg = (_('Failed to initialize connection for volume '
+                         '%(vol_id)s to node %(node)s: %(err)s') %
+                       {'vol_id': volume_id, 'node': node.uuid, 'err': e})
+                LOG.error(msg)
+                raise exception.StorageError(msg)
+
+            if 'volume_id' not in connection['data']:
+                connection['data']['volume_id'] = volume_id
+            connection['data']['ironic_volume_uuid'] = volume.id
             connected.append(connection)
-            continue
 
-        try:
-            block_storage.reserve_volume(volume)
-        except openstack_exc.SDKException as e:
-            msg = (_('Failed to reserve volume %(vol_id)s for node %(node)s: '
-                     '%(err)s)') %
-                   {'vol_id': volume_id, 'node': node.uuid, 'err': e})
-            LOG.error(msg)
-            raise exception.StorageError(msg)
+            LOG.info('Successfully initialized volume %(vol_id)s for node '
+                     '%(node)s.', {'vol_id': volume_id, 'node': node.uuid})
 
-        try:
-            # Provide connector information to cinder
-            connection = block_storage.init_volume_attachment(
-                volume, connector)
-        except openstack_exc.SDKException as e:
-            msg = (_('Failed to initialize connection for volume '
-                     '%(vol_id)s to node %(node)s: %(err)s') %
-                   {'vol_id': volume_id, 'node': node.uuid, 'err': e})
-            LOG.error(msg)
-            raise exception.StorageError(msg)
+            instance_uuid = node.instance_uuid or node.uuid
 
-        if 'volume_id' not in connection['data']:
-            connection['data']['volume_id'] = volume_id
-        connection['data']['ironic_volume_uuid'] = volume.id
-        connected.append(connection)
+            try:
+                # NOTE(TheJulia): The final step of the cinder volume
+                # attachment process involves updating the volume
+                # database record to indicate that the attachment has
+                # been completed, which moves the volume to the
+                # 'attached' state. This action also sets a mountpoint
+                # for the volume, as cinder requires a mointpoint to
+                # attach the volume, thus we send 'ironic_mountpoint'.
+                client.attach_volume(
+                    volume, 'ironic_mountpoint', instance=instance_uuid)
 
-        LOG.info('Successfully initialized volume %(vol_id)s for '
-                 'node %(node)s.', {'vol_id': volume_id, 'node': node.uuid})
+            except openstack_exc.SDKException as e:
+                msg = (_('Failed to inform cinder that the attachment for '
+                         'volume %(vol_id)s for node %(node)s has been '
+                         'completed: %(err)s') %
+                       {'vol_id': volume_id, 'node': node.uuid, 'err': e})
+                LOG.error(msg)
+                raise exception.StorageError(msg)
 
-        instance_uuid = node.instance_uuid or node.uuid
+            try:
+                # Set metadata to assist a user in volume identification
+                client.set_volume_metadata(
+                    volume, **_create_metadata_dictionary(node, 'attached'))
 
-        try:
-            # NOTE(TheJulia): The final step of the cinder volume
-            # attachment process involves updating the volume
-            # database record to indicate that the attachment has
-            # been completed, which moves the volume to the
-            # 'attached' state. This action also sets a mountpoint
-            # for the volume, as cinder requires a mointpoint to
-            # attach the volume, thus we send 'ironic_mountpoint'.
-            block_storage.attach_volume(
-                volume, 'ironic_mountpoint', instance=instance_uuid)
-
-        except openstack_exc.SDKException as e:
-            msg = (_('Failed to inform cinder that the attachment for volume '
-                     '%(vol_id)s for node %(node)s has been completed: '
-                     '%(err)s') %
-                   {'vol_id': volume_id, 'node': node.uuid, 'err': e})
-            LOG.error(msg)
-            raise exception.StorageError(msg)
-
-        try:
-            # Set metadata to assist a user in volume identification
-            block_storage.set_volume_metadata(
-                volume, **_create_metadata_dictionary(node, 'attached'))
-
-        except openstack_exc.SDKException as e:
-            LOG.warning('Failed to update volume metadata for volume '
-                        '%(vol_id)s for node %(node)s: %(err)s',
-                        {'vol_id': volume_id, 'node': node.uuid, 'err': e})
-    return connected
+            except openstack_exc.SDKException as e:
+                LOG.warning('Failed to update volume metadata for volume '
+                            '%(vol_id)s for node %(node)s: %(err)s',
+                            {'vol_id': volume_id, 'node': node.uuid, 'err': e})
+        return connected
+    finally:
+        client.close()
 
 
 def detach_volumes(task, volume_list, connector, allow_errors=False):
@@ -390,7 +430,7 @@ def detach_volumes(task, volume_list, connector, allow_errors=False):
             raise exception.StorageError(msg)
 
     try:
-        block_storage = get_client(context=task.context)
+        client = get_client(context=task.context)
     except openstack_exc.SDKException as e:
         msg = _('Failed to connect to block storage service '
                 ': %(err)s') % {'err': e}
@@ -399,68 +439,75 @@ def detach_volumes(task, volume_list, connector, allow_errors=False):
     LOG.debug('Initializing volume detach for node %(node)s.',
               {'node': node.uuid})
 
-    for volume_id in volume_list:
-        try:
-            volume = block_storage.get_volume(volume_id)
-        except openstack_exc.SDKException as e:
-            _handle_errors(_('Failed to get volume %(vol_id)s from cinder for '
-                             'node %(node)s: %(err)s') %
-                           {'vol_id': volume_id, 'node': node.uuid, 'err': e})
-            # If we do not raise an exception, we should move on to
-            # the next volume since the volume could have been deleted
-            # before we're attempting to power off the node.
-            continue
+    try:
+        for volume_id in volume_list:
+            try:
+                volume = client.get_volume(volume_id)
+            except openstack_exc.SDKException as e:
+                _handle_errors(_('Failed to get volume %(vol_id)s from cinder '
+                                 'for node %(node)s: %(err)s') %
+                               {'vol_id': volume_id, 'node': node.uuid,
+                                'err': e})
+                # If we do not raise an exception, we should move on to
+                # the next volume since the volume could have been deleted
+                # before we're attempting to power off the node.
+                continue
 
-        if not is_volume_attached(node, volume):
-            LOG.debug('Volume %(vol_id)s is not attached to node '
-                      '%(uuid)s: Skipping detachment.',
-                      {'vol_id': volume_id, 'uuid': node.uuid})
-            continue
+            if not is_volume_attached(node, volume):
+                LOG.debug('Volume %(vol_id)s is not attached to node '
+                          '%(uuid)s: Skipping detachment.',
+                          {'vol_id': volume_id, 'uuid': node.uuid})
+                continue
 
-        try:
-            block_storage.begin_volume_detaching(volume)
-        except openstack_exc.SDKException as e:
-            _handle_errors(_('Failed to request detach for volume %(vol_id)s '
-                             'from cinder for node %(node)s: %(err)s') %
-                           {'vol_id': volume_id, 'node': node.uuid, 'err': e}
-                           )
-            # NOTE(jtaryma): This operation only updates the volume status, so
-            # we can proceed the process of actual detachment if allow_errors
-            # is set to True.
-        try:
-            # Remove the attachment
-            block_storage.terminate_volume_attachment(volume, connector)
-        except openstack_exc.SDKException as e:
-            _handle_errors(_('Failed to detach volume %(vol_id)s from node '
-                             '%(node)s: %(err)s') %
-                           {'vol_id': volume_id, 'node': node.uuid, 'err': e})
-            # Skip proceeding with this method if we're not raising
-            # errors. This will leave the volume in the detaching
-            # state, but in that case something very unexpected
-            # has occurred.
-            continue
+            try:
+                client.begin_volume_detaching(volume)
+            except openstack_exc.SDKException as e:
+                _handle_errors(_('Failed to request detach for volume '
+                                 '%(vol_id)s from cinder for node %(node)s: '
+                                 '%(err)s') %
+                               {'vol_id': volume_id, 'node': node.uuid,
+                                'err': e})
+                # NOTE(jtaryma): This operation only updates the volume
+                # status, so we can proceed the process of actual detachment
+                # if allow_errors is set to True.
+            try:
+                # Remove the attachment
+                client.terminate_volume_attachment(volume, connector)
+            except openstack_exc.SDKException as e:
+                _handle_errors(_('Failed to detach volume %(vol_id)s from '
+                                 'node %(node)s: %(err)s') %
+                               {'vol_id': volume_id, 'node': node.uuid,
+                                'err': e})
+                # Skip proceeding with this method if we're not raising
+                # errors. This will leave the volume in the detaching
+                # state, but in that case something very unexpected
+                # has occurred.
+                continue
 
-        # Attempt to identify the attachment id value to provide
-        # accessible relationship data to leave in the cinder API
-        # to enable reconciliation.
-        attachment_id = _get_attachment_id(node, volume)
-        try:
-            # Update the API attachment record
-            block_storage.detach_volume(volume, attachment_id)
-        except openstack_exc.SDKException as e:
-            _handle_errors(_('Failed to inform cinder that the detachment for '
-                             'volume %(vol_id)s from node %(node)s has been '
-                             'completed: %(err)s') %
-                           {'vol_id': volume_id, 'node': node.uuid, 'err': e})
-            # NOTE(jtaryma): This operation mainly updates the volume status,
-            # so we can proceed the process of volume updating if allow_errors
-            # is set to True.
-        try:
-            # Set metadata to assist in volume identification.
-            block_storage.set_volume_metadata(
-                volume,
-                **_create_metadata_dictionary(node, 'detached'))
-        except openstack_exc.SDKException as e:
-            LOG.warning('Failed to update volume %(vol_id)s metadata for node '
-                        '%(node)s: %(err)s',
-                        {'vol_id': volume_id, 'node': node.uuid, 'err': e})
+            # Attempt to identify the attachment id value to provide
+            # accessible relationship data to leave in the cinder API
+            # to enable reconciliation.
+            attachment_id = _get_attachment_id(node, volume)
+            try:
+                # Update the API attachment record
+                client.detach_volume(volume, attachment_id)
+            except openstack_exc.SDKException as e:
+                _handle_errors(_('Failed to inform cinder that the '
+                                 'detachment for volume %(vol_id)s from node '
+                                 '%(node)s has been completed: %(err)s') %
+                               {'vol_id': volume_id, 'node': node.uuid,
+                                'err': e})
+                # NOTE(jtaryma): This operation mainly updates the volume
+                # status, so we can proceed the process of volume updating if
+                # allow_errors is set to True.
+            try:
+                # Set metadata to assist in volume identification.
+                client.set_volume_metadata(
+                    volume,
+                    **_create_metadata_dictionary(node, 'detached'))
+            except openstack_exc.SDKException as e:
+                LOG.warning('Failed to update volume %(vol_id)s metadata for '
+                            'node %(node)s: %(err)s',
+                            {'vol_id': volume_id, 'node': node.uuid, 'err': e})
+    finally:
+        client.close()
