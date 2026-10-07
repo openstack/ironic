@@ -198,6 +198,8 @@ class TestAnsibleMethods(AnsibleDeployTestCaseBase):
         self.config(group='ansible', verbosity=3)
         self.config(group='ansible',
                     default_python_interpreter='/usr/bin/python3')
+        self.config(group='ansible',
+                    allow_node_python_interpreter_override=True)
         self.config(group='ansible', ansible_extra_args='--timeout=100')
         self.node.driver_info['ansible_python_interpreter'] = (
             '/usr/bin/python4')
@@ -216,6 +218,52 @@ class TestAnsibleMethods(AnsibleDeployTestCaseBase):
 
         all_vars = execute_mock.call_args[0][7]
         self.assertEqual({"ansible_python_interpreter": "/usr/bin/python4",
+                          "ironic": {"foo": "bar"}},
+                         json.loads(all_vars))
+
+    @mock.patch.object(com_utils, 'execute', return_value=('out', 'err'),
+                       autospec=True)
+    def test__run_playbook_interpreter_override_disabled(self, execute_mock):
+        self.config(group='ansible', playbooks_path='/path/to/playbooks')
+        self.config(group='ansible', config_file_path='/path/to/config')
+        self.config(group='ansible', verbosity=3)
+        self.config(group='ansible',
+                    default_python_interpreter='/usr/bin/python3')
+        self.config(group='ansible',
+                    allow_node_python_interpreter_override=False)
+        self.node.driver_info['ansible_python_interpreter'] = (
+            '/usr/bin/python4')
+        extra_vars = {'foo': 'bar'}
+
+        # a per-node override is rejected outright rather than silently
+        # dropped; the playbook must never be executed
+        self.assertRaises(exception.InvalidParameterValue,
+                          ansible_deploy._run_playbook, self.node, 'deploy',
+                          extra_vars, '/path/to/key',
+                          tags=['spam'], notags=['ham'])
+        self.assertFalse(execute_mock.called)
+
+    @mock.patch.object(com_utils, 'execute', return_value=('out', 'err'),
+                       autospec=True)
+    def test__run_playbook_interpreter_override_disabled_no_node_value(
+            self, execute_mock):
+        self.config(group='ansible', playbooks_path='/path/to/playbooks')
+        self.config(group='ansible', config_file_path='/path/to/config')
+        self.config(group='ansible', verbosity=3)
+        self.config(group='ansible',
+                    default_python_interpreter='/usr/bin/python3')
+        self.config(group='ansible',
+                    allow_node_python_interpreter_override=False)
+        extra_vars = {'foo': 'bar'}
+
+        ansible_deploy._run_playbook(self.node, 'deploy',
+                                     extra_vars, '/path/to/key',
+                                     tags=['spam'], notags=['ham'])
+
+        # with no per-node value only the conductor-configured interpreter is
+        # emitted as a top-level extra-var
+        all_vars = execute_mock.call_args[0][7]
+        self.assertEqual({"ansible_python_interpreter": "/usr/bin/python3",
                           "ironic": {"foo": "bar"}},
                          json.loads(all_vars))
 
@@ -318,12 +366,44 @@ class TestAnsibleMethods(AnsibleDeployTestCaseBase):
     def test__get_python_interpreter(self):
         self.config(group='ansible',
                     default_python_interpreter='/usr/bin/python3')
+        self.config(group='ansible',
+                    allow_node_python_interpreter_override=True)
         self.node.driver_info['ansible_python_interpreter'] = (
             '/usr/bin/python4')
 
         python_interpreter = ansible_deploy._get_python_interpreter(self.node)
 
         self.assertEqual('/usr/bin/python4', python_interpreter)
+
+    def test__get_python_interpreter_override_disabled(self):
+        self.config(group='ansible',
+                    default_python_interpreter='/usr/bin/python3')
+        self.config(group='ansible',
+                    allow_node_python_interpreter_override=False)
+        self.node.driver_info['ansible_python_interpreter'] = (
+            '/usr/bin/python4')
+
+        # a per-node value with overrides disabled is a validation failure
+        self.assertRaises(exception.InvalidParameterValue,
+                          ansible_deploy._get_python_interpreter, self.node)
+
+    def test__get_python_interpreter_override_disabled_no_node_value(self):
+        self.config(group='ansible',
+                    default_python_interpreter='/usr/bin/python3')
+        self.config(group='ansible',
+                    allow_node_python_interpreter_override=False)
+
+        python_interpreter = ansible_deploy._get_python_interpreter(self.node)
+
+        self.assertEqual('/usr/bin/python3', python_interpreter)
+
+    def test__get_python_interpreter_override_disabled_no_default(self):
+        self.config(group='ansible',
+                    allow_node_python_interpreter_override=False)
+
+        python_interpreter = ansible_deploy._get_python_interpreter(self.node)
+
+        self.assertIsNone(python_interpreter)
 
     def test__get_configdrive_path(self):
         self.config(tempdir='/path/to/tmpdir')
@@ -698,6 +778,20 @@ class TestAnsibleDeploy(AnsibleDeployTestCaseBase):
             check_params_mock.assert_called_once_with(
                 {'instance_info.image_source': INSTANCE_INFO['image_source']},
                 mock.ANY)
+
+    @mock.patch.object(deploy_utils, 'check_for_missing_params',
+                       autospec=True)
+    @mock.patch.object(pxe.PXEBoot, 'validate', autospec=True)
+    def test_validate_interpreter_override_disabled(
+            self, pxe_boot_validate_mock, check_params_mock):
+        self.config(group='ansible',
+                    allow_node_python_interpreter_override=False)
+        with task_manager.acquire(
+                self.context, self.node['uuid'], shared=False) as task:
+            task.node.driver_info['ansible_python_interpreter'] = (
+                '/usr/bin/python4')
+            self.assertRaises(exception.InvalidParameterValue,
+                              self.driver.validate, task)
 
     @mock.patch.object(ansible_deploy, '_calculate_memory_req', autospec=True,
                        return_value=2000)

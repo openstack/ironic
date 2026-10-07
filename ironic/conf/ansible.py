@@ -138,8 +138,26 @@ opts = [
                help=_("Absolute path to the python interpreter on the "
                       "managed machines. It may be overridden by per-node "
                       "'ansible_python_interpreter' option in node's "
-                      "'driver_info' field. "
+                      "'driver_info' field when "
+                      "'allow_node_python_interpreter_override' is enabled. "
                       "By default, ansible uses /usr/bin/python")),
+    cfg.BoolOpt('allow_node_python_interpreter_override',
+                default=True,
+                help=_("Whether to honor the per-node "
+                       "'ansible_python_interpreter' option set in a node's "
+                       "'driver_info' field. This value is passed as a global "
+                       "Ansible extra-var, so it also selects the interpreter "
+                       "used for the task that is delegated to the conductor "
+                       "and executed under the ironic-conductor service "
+                       "account. When set to 'False', a per-node value is "
+                       "rejected with a validation error and only the "
+                       "conductor-configured 'default_python_interpreter' is "
+                       "used. Operators who "
+                       "do not require per-node interpreter selection should "
+                       "set this to 'False' so that a node's owner cannot "
+                       "influence which binary the conductor executes. The "
+                       "default is expected to change to 'False' in a future "
+                       "release.")),
 ]
 
 

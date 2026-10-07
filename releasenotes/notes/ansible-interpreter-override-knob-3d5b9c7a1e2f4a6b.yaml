@@ -1,0 +1,27 @@
+---
+security:
+  - |
+    Adds the ``[ansible]allow_node_python_interpreter_override`` configuration
+    option to the ``ansible`` deploy interface. The per-node
+    ``ansible_python_interpreter`` value set in a node's ``driver_info`` is
+    passed to Ansible as a global extra-var, which means it also selects the
+    interpreter used for the configdrive cleanup task that is delegated to the
+    conductor and executed under the ``ironic-conductor`` service account. A
+    caller able to update ``driver_info`` (for example a project owner under
+    the default policy) could therefore influence which binary the conductor
+    executes on its own host. Setting this option to ``False`` causes a
+    per-node value to be rejected with a validation error, so that only the
+    conductor-configured ``[ansible]default_python_interpreter`` is used,
+    removing the caller's ability to steer the conductor-side interpreter. The
+    option defaults to
+    ``True`` to preserve existing behavior; the default is expected to change
+    to ``False`` in a future release. Operators that do not require per-node
+    interpreter selection are encouraged to set it to ``False``.
+deprecations:
+  - |
+    Overriding the Ansible python interpreter per node via the
+    ``ansible_python_interpreter`` field in ``driver_info`` is deprecated. Use
+    the ``[ansible]default_python_interpreter`` configuration option instead.
+    The per-node override can be disabled with the new
+    ``[ansible]allow_node_python_interpreter_override`` option, whose default
+    is expected to change to ``False`` in a future release.
