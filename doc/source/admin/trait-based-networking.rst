@@ -31,7 +31,8 @@ First some terms:
 - Portgroup: A set of ports, grouped together.
 - Dynamic Portgroup: An ephemeral portgroup that is created by a trait's action
   and is subsequently destroyed once detached.
-- Network (aka VIF): A neutron network.
+- Network: A subset of a Neutron network. Only the network's ``name`` and
+  ``tags`` are available to Filter Expressions.
 
 
 Trait Actions
@@ -43,17 +44,14 @@ the node.
 
 The following actions are available:
 
-- Attach port: Attach one or more ports belonging to a node to a network
-  (aka vif).
+- Attach port: Attach one or more ports belonging to a node to a network.
 - Attach portgroup: Attach one or more portgroups belonging to a node to a
-  network (aka vif).
+  network.
 - Group and attach ports: Create a dynamic portgroup and attach it to a
   network.
 
-In the future more actions may be added.
-
-See :ref:`tbn-config-file` for more information on configuring and applying
-trait actions.
+In the future more actions may be added. See `Available Actions`_ for details
+on each action.
 
 .. _tbn-config-file:
 
@@ -77,8 +75,8 @@ Below is a valid YAML example trait:
         - action: group_and_attach_ports
           filter: port.vendor == 'vendor_string'
           min_count: 2
-        - action: attach_port
-          filter: port.vendor == 'vendor_string' && port.is_portgroup
+        - action: attach_portgroup
+          filter: port.is_portgroup && port.category == 'category_string'
           max_count: 1
 
 ``CUSTOM_TRAIT_NAME`` is the trait's name.  Each trait is identified by a name
@@ -94,8 +92,8 @@ Each action has the following necessary keys:
 * ``filter`` - The Filter Expression to apply with this action.
 
 .. note::
-    Refer to :ref:`tbn-filter-expression-reference` for detailed explanations
-    on how to write valid filter expressions.
+    Refer to `Filter Expression Reference`_ for detailed explanations on how
+    to write valid filter expressions.
 
 and the following optional keys:
 
@@ -110,9 +108,11 @@ Available Actions
 The following actions are currently available:
 
 * ``attach_port`` - Attach (port, network) pairs that pass this action's
-  filter expression.
+  filter expression. Only ports are considered; portgroups are never matched
+  by this action.
 * ``attach_portgroup`` - Attach (portgroup, network) pairs that pass this
-  action's filter expression.
+  action's filter expression. Only portgroups are considered; use this action,
+  not ``attach_port``, with filters such as ``port.is_portgroup``.
 * ``group_and_attach_ports`` - Select a set of ports. Create a dynamic
   portgroup comprised of the set of ports. Then attach the newly created
   dynamic portgroup to a suitable network. This action must set a
@@ -153,7 +153,8 @@ Filter expressions consider two basic network objects:
 
 1. ``portlike``: (aka ``port`` in this document) which can be either an Ironic
    port or portgroup.
-2. ``network``: Essentially a Neutron vif (virtual interface).
+2. ``network``: A subset of a Neutron network. Only the network's ``name`` and
+   ``tags`` are available to filter expressions.
 
 A filter expression that evaluates to ``True`` for a given tuple of
 ``(portlike, network)`` would cause a match to occur for the trait the filter
@@ -180,7 +181,8 @@ A full example of a single expression:
     port.category == 'public'
 
 Which would evaluate to ``True`` whenever a portlike is considered that has a
-``category`` that exactly equals ``public``.
+``category`` that exactly equals ``public``. In plain English: 'filter for
+ports and portgroups whose category is exactly the string "public"'.
 
 Function Expression
 ~~~~~~~~~~~~~~~~~~~
@@ -197,11 +199,15 @@ Compound Expression
 ~~~~~~~~~~~~~~~~~~~
 
 A compound expression consists of two expressions joined by a
-`comparator`_.
+`boolean operator <Boolean Operators_>`_.
 
 .. code-block:: python
 
    port.category == 'public' && port.vendor == 'green'
+
+In plain English: 'filter for ports whose category is "public" and whose vendor
+is "green"'. Because ``vendor`` only exists on ports, this expression can
+never match a portgroup.
 
 Parenthesis
 ~~~~~~~~~~~
@@ -309,12 +315,18 @@ Examples
 
 Will match portlikes which are a ``port``.
 
+Function expressions can also be linked with other expressions:
+
+.. code-block:: python
+
+    port.is_port && port.vendor == 'green'
+
 String literal
 ~~~~~~~~~~~~~~
 
-String literals are enclosed by single quotes: ``'``.
-String literals only allow alphanumeric characters, underscores, dashes, and
-periods.
+String literals are enclosed by single quotes: ``'``. Double quotes are not
+valid. String literals only allow alphanumeric characters, underscores, dashes,
+and periods.
 
 The following regular expression encompasses valid string literals:
 ``/\'[A-Za-z0-9_\-\.]*\'/``
