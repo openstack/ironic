@@ -12,6 +12,7 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
+import base64
 import hashlib
 import io
 import json
@@ -703,6 +704,7 @@ class OciClientRequestTestCase(base.TestCase):
                                                          get_mock):
         self.assertIsNone(self.client._cached_auth)
         self.assertIsNone(self.client.session.headers.get('Authorization'))
+        token_mock.return_value = 'localtoken'
         response = mock.Mock()
         response.status_code = 401
         response.headers = {
@@ -1328,6 +1330,81 @@ class TestRegistrySessionHelper(base.TestCase):
             res = oci_registry.RegistrySessionHelper.get_token_from_config(
                 'foo.fqdn')
         self.assertIsNone(res)
+
+    def test_preshared_cred_to_auth_base64_user_pass(self):
+        # base64("user:pass") should be split into basic auth credentials.
+        cred = base64.b64encode(b'user:pass').decode('ascii')
+        auth = oci_registry.RegistrySessionHelper._preshared_cred_to_auth(
+            cred)
+        self.assertEqual(
+            requests.auth.HTTPBasicAuth('user', 'pass'), auth)
+
+    def test_preshared_cred_to_auth_base64_pass_with_colon(self):
+        # The password portion is permitted to contain colons; only the
+        # first colon delimits the username.
+        cred = base64.b64encode(b'user:pa:ss').decode('ascii')
+        auth = oci_registry.RegistrySessionHelper._preshared_cred_to_auth(
+            cred)
+        self.assertEqual(
+            requests.auth.HTTPBasicAuth('user', 'pa:ss'), auth)
+
+    def test_preshared_cred_to_auth_opaque_token_not_base64(self):
+        # A JWT style bearer token contains characters outside the base64
+        # alphabet and must be passed through as a bare password.
+        cred = 'header.payload.signature'
+        auth = oci_registry.RegistrySessionHelper._preshared_cred_to_auth(
+            cred)
+        self.assertEqual(requests.auth.HTTPBasicAuth('', cred), auth)
+
+    def test_preshared_cred_to_auth_base64_no_colon(self):
+        # A value which is valid base64 but does not decode to a
+        # username:password pair is treated as an opaque token.
+        cred = base64.b64encode(b'plaintoken').decode('ascii')
+        auth = oci_registry.RegistrySessionHelper._preshared_cred_to_auth(
+            cred)
+        self.assertEqual(requests.auth.HTTPBasicAuth('', cred), auth)
+
+    def test_preshared_cred_to_auth_base64_non_utf8(self):
+        # Valid base64 which decodes to non-UTF-8 bytes is not a
+        # username:password pair.
+        cred = base64.b64encode(b'\xff\xfe').decode('ascii')
+        auth = oci_registry.RegistrySessionHelper._preshared_cred_to_auth(
+            cred)
+        self.assertEqual(requests.auth.HTTPBasicAuth('', cred), auth)
+
+    def test_preshared_cred_to_auth_non_canonical_base64(self):
+        # A non-canonical base64 value was not an intentionally encoded
+        # credential and is preserved as a bare password.
+        cred = 'AB=='
+        auth = oci_registry.RegistrySessionHelper._preshared_cred_to_auth(
+            cred)
+        self.assertEqual(requests.auth.HTTPBasicAuth('', cred), auth)
+
+    def test_get_bearer_token_preshared_base64_basic(self):
+        session = mock.Mock()
+        resp = mock.Mock()
+        resp.json.return_value = {'token': 'tok'}
+        session.get.return_value = resp
+        cred = base64.b64encode(b'user:pass').decode('ascii')
+        token = oci_registry.RegistrySessionHelper.get_bearer_token(
+            session, password=cred, realm='https://foo')
+        self.assertEqual('tok', token)
+        self.assertEqual(
+            requests.auth.HTTPBasicAuth('user', 'pass'),
+            session.get.call_args.kwargs['auth'])
+
+    def test_get_bearer_token_preshared_opaque_token(self):
+        session = mock.Mock()
+        resp = mock.Mock()
+        resp.json.return_value = {'token': 'tok'}
+        session.get.return_value = resp
+        cred = 'header.payload.signature'
+        token = oci_registry.RegistrySessionHelper.get_bearer_token(
+            session, password=cred, realm='https://foo')
+        self.assertEqual('tok', token)
+        self.assertEqual(
+            requests.auth.HTTPBasicAuth('', cred),
+            session.get.call_args.kwargs['auth'])
 
 
 class MakeSessionTLSTestCase(base.TestCase):

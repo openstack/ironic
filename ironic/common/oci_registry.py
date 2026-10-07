@@ -18,6 +18,7 @@
 # https://github.com/openstack-archive/tripleo-common/blame/stable/wallaby/tripleo_common/image/image_uploader.py
 
 import base64
+import binascii
 import json
 import re
 from urllib import parse
@@ -252,6 +253,64 @@ class RegistrySessionHelper(object):
         return auth
 
     @staticmethod
+    def _preshared_cred_to_auth(credential):
+        """Build a requests auth object from a pre-shared credential.
+
+        Historically, Ironic transmitted a pre-shared registry credential
+        as the HTTP Basic password with an empty username. This works for
+        registries operating purely in bearer token mode, where the token
+        is an opaque value which the remote server knows how to decode.
+
+        However, the credential is documented as the docker ``config.json``
+        "auth" value, which is the base64 encoding of ``username:password``.
+        When the supplied credential decodes to that form, we send it as
+        proper HTTP Basic credentials, so registries which expect basic
+        authentication (or which use those credentials to mint a bearer
+        token) behave as documented.
+
+        We are intentionally conservative here: a value is only treated as
+        an encoded ``username:password`` pair when it is canonical base64
+        which decodes to a UTF-8 string containing a colon. Anything else,
+        notably an opaque bearer token which is not base64 signalling basic
+        auth, is passed through unchanged as the password with an empty
+        username, preserving the long standing behavior.
+
+        :param credential: The pre-shared credential string.
+        :returns: A requests.auth.HTTPBasicAuth object.
+        """
+        try:
+            # validate=True rejects values which contain characters that
+            # are not part of the base64 alphabet, such as the dots in a
+            # JWT style bearer token.
+            decoded = base64.b64decode(credential, validate=True)
+        except (binascii.Error, ValueError):
+            # Not base64 at all, so this is an opaque token. Preserve the
+            # historical bare-password behavior.
+            return requests.auth.HTTPBasicAuth('', credential)
+
+        # A value which is valid base64 but not a canonical encoding was
+        # not an intentionally base64 encoded username:password pair, so
+        # avoid mis-interpreting an opaque token which happens to decode.
+        if base64.b64encode(decoded).decode('ascii') != credential:
+            return requests.auth.HTTPBasicAuth('', credential)
+
+        try:
+            decoded = decoded.decode('utf-8')
+        except UnicodeDecodeError:
+            # Decoded to binary, so it was not username:password text.
+            return requests.auth.HTTPBasicAuth('', credential)
+
+        if ':' not in decoded:
+            # No delimiter, so this is not a username:password pair and
+            # is instead an opaque token conveyed via the password field.
+            return requests.auth.HTTPBasicAuth('', credential)
+
+        username, password = decoded.split(':', 1)
+        LOG.debug('Pre-shared registry credential decoded to a '
+                  'username:password pair; using HTTP basic authentication.')
+        return requests.auth.HTTPBasicAuth(username, password)
+
+    @staticmethod
     def get_bearer_token(session, username=None, password=None,
                          realm=None, service=None, scope=None):
         auth = None
@@ -267,10 +326,13 @@ class RegistrySessionHelper(object):
             # know how to decode it.
             auth = requests.auth.HTTPBasicAuth(username, password)
         elif password:
-            # This is a case where we have a pre-shared token.
+            # This is a case where we have a pre-shared credential. It may
+            # be an opaque bearer token conveyed via the password, or the
+            # documented docker config.json "auth" value which is the
+            # base64 encoding of username:password.
             LOG.debug('Using user provided pre-shared authentication '
-                      'token to authenticate to the remote registry.')
-            auth = requests.auth.HTTPBasicAuth('', password)
+                      'credential to authenticate to the remote registry.')
+            auth = RegistrySessionHelper._preshared_cred_to_auth(password)
         else:
             realm_url = parse.urlparse(realm)
             local_token = RegistrySessionHelper.get_token_from_config(
@@ -278,7 +340,8 @@ class RegistrySessionHelper(object):
             if local_token:
                 LOG.debug('Using a locally configured pre-shared key '
                           'for authentication to the remote registry.')
-                auth = requests.auth.HTTPBasicAuth('', local_token)
+                auth = RegistrySessionHelper._preshared_cred_to_auth(
+                    local_token)
 
         auth_req = session.get(realm, params=token_param, auth=auth,
                                timeout=CONF.webserver_connection_timeout)
