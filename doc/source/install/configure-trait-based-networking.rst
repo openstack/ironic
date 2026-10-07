@@ -26,7 +26,7 @@ In order to use this feature, a few steps must be completed.
    location is: ``/etc/ironic/trait_based_networking.yaml``.
 
    For discussion of the syntax and format of the configuration file refer to
-   :doc:`/references/trait-based-networking/tbn-config-file`.
+   :ref:`tbn-config-file`.
 
    The default configuration which ships with Ironic is reproduced below:
 
