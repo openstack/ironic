@@ -15,6 +15,7 @@
 
 import collections
 from datetime import timezone
+import re
 import time
 from urllib.parse import urlparse
 
@@ -142,6 +143,20 @@ def _is_during_post_error(exc):
                   'will trigger retry logic. Error: %s', exc)
     return is_post_error
 
+def _bmc_wants_retry(exc):
+    """Check if the BMC asked for the request to be retried in the exception.
+
+    Dell iDRAC BMCs reject some requests with the message 'The service is
+    temporarily unavailable.  Retry in 30 seconds.'
+
+    :param exc: An exception instance
+    :returns: True if the BMC asked for the request to be retried, False
+              otherwise
+    """
+    wants_retry = re.search(r'Retry in \d+ seconds', str(exc)) is not None
+    if wants_retry:
+        LOG.debug('BMC asked for the request to be retried. Error: %s', exc)
+    return wants_retry
 
 def _set_boot_device(task, system, device, persistent=False,
                      http_boot_url=None):
@@ -189,6 +204,14 @@ def _set_boot_device(task, system, device, persistent=False,
         enabled = (desired_enabled
                    if desired_enabled != current_enabled else None)
 
+    def _retry_set_boot_options(exc):
+        """Check whether setting the boot options should be retried.
+
+        :param exc: An exception instance
+        :returns: True if a retry should be attempted, False otherwise
+        """
+        return _is_during_post_error(exc) or _bmc_wants_retry(exc)
+
     # Logging callback for retry attempts (closure captures task)
     def _log_post_boot_retry(retry_state):
         LOG.warning('BMC is in POST, unable to modify boot device for '
@@ -200,7 +223,7 @@ def _set_boot_device(task, system, device, persistent=False,
                      'total': CONF.redfish.post_boot_retry_attempts})
 
     @tenacity.retry(
-        retry=tenacity.retry_if_exception(_is_during_post_error),
+        retry=tenacity.retry_if_exception(_retry_set_boot_options),
         stop=tenacity.stop_after_attempt(CONF.redfish.post_boot_retry_attempts),
         wait=tenacity.wait_exponential(
             multiplier=1,
