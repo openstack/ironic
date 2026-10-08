@@ -390,14 +390,76 @@ class RedfishManagementTestCase(db_base.DbTestCase):
                              fake_system.set_system_boot_options.call_count)
 
     @mock.patch.object(redfish_utils, 'get_system', autospec=True)
-    def test_set_boot_device_non_post_error_no_retry(self, mock_get_system):
-        """Test that non-POST errors are not retried."""
+    def test_set_boot_device_bmc_retry_success(self, mock_get_system):
+        """Test successful retry when BMC asks that a retry is attempted."""
+        # Configure minimal retries for faster test
+        self.config(post_boot_retry_attempts=3, group='redfish')
+        self.config(post_boot_retry_delay=1, group='redfish')
+
+        fake_system = mock.Mock()
+        mock_response = mock.Mock()
+        mock_response.status_code = 503
+        mock_response.json.return_value = {
+            'error': {
+                'message': 'The service is temporarily unavailable.  Retry '
+                           'in 30 seconds.'
+            }
+        }
+        retry_error = sushy.exceptions.ServerSideError(
+            'PATCH', 'http://bmc/redfish', mock_response)
+        fake_system.set_system_boot_options.side_effect = [
+            retry_error,
+            None  # Success on retry
+        ]
+        mock_get_system.return_value = fake_system
+
+        with task_manager.acquire(self.context, self.node.uuid,
+                                  shared=False) as task:
+            task.driver.management.set_boot_device(task, boot_devices.PXE)
+
+            # Should have been called twice (initial + 1 retry)
+            self.assertEqual(2,
+                             fake_system.set_system_boot_options.call_count)
+
+    @mock.patch.object(redfish_utils, 'get_system', autospec=True)
+    def test_set_boot_device_bmc_retry_exhausted(self, mock_get_system):
+        """Test if the BMC always asks it eventually gives up and raises."""
+        # Configure minimal retries for faster test
+        self.config(post_boot_retry_attempts=2, group='redfish')
+        self.config(post_boot_retry_delay=1, group='redfish')
+
+        fake_system = mock.Mock()
+        mock_response = mock.Mock()
+        mock_response.status_code = 503
+        mock_response.json.return_value = {
+            'error': {
+                'message': 'The service is temporarily unavailable.  Retry '
+                           'in 30 seconds.'
+            }
+        }
+        retry_error = sushy.exceptions.ServerSideError(
+            'PATCH', 'http://bmc/redfish', mock_response)
+        fake_system.set_system_boot_options.side_effect = retry_error
+        mock_get_system.return_value = fake_system
+
+        with task_manager.acquire(self.context, self.node.uuid,
+                                  shared=False) as task:
+            self.assertRaisesRegex(
+                exception.RedfishError, 'Redfish set boot device',
+                task.driver.management.set_boot_device, task, boot_devices.PXE)
+
+            # Should have been called for all retry attempts
+            self.assertEqual(2,
+                             fake_system.set_system_boot_options.call_count)
+
+    @mock.patch.object(redfish_utils, 'get_system', autospec=True)
+    def test_set_boot_device_other_error_no_retry(self, mock_get_system):
+        """Test that other errors are not retried."""
         # Configure retries (should not be used)
         self.config(post_boot_retry_attempts=3, group='redfish')
         self.config(post_boot_retry_delay=1, group='redfish')
 
         fake_system = mock.Mock()
-        # Fail with a generic SushyError (not POST-related)
         fake_system.set_system_boot_options.side_effect = (
             sushy.exceptions.SushyError('Some other error')
         )
@@ -409,7 +471,8 @@ class RedfishManagementTestCase(db_base.DbTestCase):
                 exception.RedfishError, 'Redfish set boot device',
                 task.driver.management.set_boot_device, task, boot_devices.PXE)
 
-            # Should have been called only once (no retry for non-POST errors)
+            # Should have been called only once
+            # (no retries if there is no POST error and no retry asked for)
             fake_system.set_system_boot_options.assert_called_once()
 
     def test_restore_boot_device(self):

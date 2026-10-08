@@ -1,0 +1,6 @@
+---
+fixes:
+  - |
+    Fixed an issue where setting the boot device would sometimes fail on Dell
+    iDRAC BMCs with the message 'The service is temporarily unavailable.  Retry
+    in 30 seconds.' Retries are now attempted when that happens.
