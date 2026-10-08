@@ -960,10 +960,11 @@ class IronicNetworking(base.NetworkInterface):
     def _add_network(self, task, network_type):
         """Add a network to a node.
 
-        This method attempts to configure the specified network for each port
-        on the node. It uses the network configuration if set, otherwise falls
-        back to the port's switchport configuration. If neither is available,
-        the port is skipped with a log message.
+        This method attempts to configure the specified network for ports
+        with both local_link_connection and switchport configuration. It uses
+        the network configuration if set, otherwise falls back to the port's
+        switchport configuration. Ports missing either required value are
+        skipped with a log message.
 
         :param task: A TaskManager instance.
         :param network_type: The type of network to add (e.g.,
@@ -981,6 +982,16 @@ class IronicNetworking(base.NetworkInterface):
         global_config = self._get_switch_port_config(task, network_type)
 
         for port in task.ports:
+            switchport = (port.extra.get('switchport')
+                          if port.extra else None)
+            if not switchport:
+                LOG.debug(
+                    "Skipping port %(port)s: missing switchport config for "
+                    "%(network_type)s network setup.",
+                    {'port': port.uuid, 'network_type': network_type}
+                )
+                continue
+
             # If the local_link_connection info is missing, skip the port
             link_info = port.local_link_connection
             if not link_info:
@@ -995,10 +1006,7 @@ class IronicNetworking(base.NetworkInterface):
             # switchport info from port.extra
             config = global_config
             if config is None or not config.is_valid:
-                switchport = (port.extra.get('switchport')
-                              if port.extra else None)
-                if switchport:
-                    config = SwitchPortConfig.from_switchport(switchport)
+                config = SwitchPortConfig.from_switchport(switchport)
 
             if not config or not config.is_valid:
                 LOG.debug(
@@ -1053,10 +1061,10 @@ class IronicNetworking(base.NetworkInterface):
         """Remove a network from a node.
 
         This method attempts to reset the specified network configuration for
-        each port
-        on the node. It uses the network configuration if set, otherwise falls
-        back to the port's switchport configuration. If neither is available,
-        the port is skipped with a log message.
+        ports with both local_link_connection and switchport configuration. It
+        uses the network configuration if set, otherwise falls back to the
+        port's switchport configuration. Ports missing either required value
+        are skipped with a log message.
 
         :param task: A TaskManager instance.
         :param network_type: The type of network to remove (e.g.,
@@ -1075,6 +1083,16 @@ class IronicNetworking(base.NetworkInterface):
 
         errors = []
         for port in task.ports:
+            switchport = (port.extra.get('switchport')
+                          if port.extra else None)
+            if not switchport:
+                LOG.debug(
+                    "Skipping port %(port)s: missing switchport config for "
+                    "%(network_type)s network removal.",
+                    {'port': port.uuid, 'network_type': network_type}
+                )
+                continue
+
             # Get the switch and port info from the port's
             # local_link_connection
             link_info = port.local_link_connection
@@ -1090,10 +1108,7 @@ class IronicNetworking(base.NetworkInterface):
             # switchport info from port.extra
             config = global_config
             if config is None or not config.is_valid:
-                switchport = (port.extra.get('switchport')
-                              if port.extra else None)
-                if switchport:
-                    config = SwitchPortConfig.from_switchport(switchport)
+                config = SwitchPortConfig.from_switchport(switchport)
 
             if not config or not config.is_valid:
                 LOG.debug(
