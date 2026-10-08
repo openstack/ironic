@@ -593,6 +593,10 @@ def get_image_properties(ctx, image_href):
     except exception.ImageNotFound:
         raise exception.InvalidParameterValue(_(
             "Image %s can not be found.") % image_href)
+    except exception.ImageUnacceptable as e:
+        raise exception.InvalidParameterValue(_(
+            "Image %(image)s is not acceptable: %(reason)s")
+            % {'image': image_href, 'reason': str(e)})
     except exception.ImageRefValidationFailed as e:
         raise exception.InvalidParameterValue(err=e)
 
