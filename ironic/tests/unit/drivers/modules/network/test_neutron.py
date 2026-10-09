@@ -566,6 +566,19 @@ class NeutronInterfaceTestCase(db_base.DbTestCase):
                 mock.call(pg.internal_info[common.NetType.TENANT.vif_key],
                           context=task.context, reset_mac=False)])
 
+    @mock.patch.object(neutron_common, 'unbind_neutron_port', autospec=True)
+    def test_unconfigure_tenant_networks_portgroup_member_port(
+            self, mock_unbind_port):
+        pg = utils.create_test_portgroup(
+            self.context, node_id=self.node.id, address='ff:54:00:cf:2d:32')
+        self.port.portgroup_id = pg.id
+        self.port.save()
+        with task_manager.acquire(self.context, self.node.id) as task:
+            self.interface.unconfigure_tenant_networks(task)
+            mock_unbind_port.assert_called_once_with(
+                self.port.internal_info[common.NetType.TENANT.vif_key],
+                context=task.context, reset_mac=True)
+
     def test_configure_tenant_networks_no_ports_for_node(self):
         n = utils.create_test_node(self.context, network_interface='neutron',
                                    uuid=uuidutils.generate_uuid())
@@ -587,7 +600,7 @@ class NeutronInterfaceTestCase(db_base.DbTestCase):
                                    'associated with node',
                                    self.interface.configure_tenant_networks,
                                    task)
-            client_mock.assert_called_once_with(context=task.context)
+            client_mock.assert_not_called()
         upd_mock.assert_not_called()
         self.assertIn('No neutron ports or portgroups are associated with',
                       log_mock.error.call_args[0][0])
@@ -645,6 +658,63 @@ class NeutronInterfaceTestCase(db_base.DbTestCase):
             self.assertRaisesRegex(
                 exception.NetworkError, 'Binding failed',
                 self.interface.configure_tenant_networks, task)
+
+    @mock.patch.object(neutron_common, 'wait_for_host_agent', autospec=True)
+    @mock.patch.object(neutron_common, 'update_neutron_port', autospec=True)
+    @mock.patch.object(neutron_common, 'wait_for_port_status', autospec=True)
+    @mock.patch.object(neutron_common, 'get_client', autospec=True)
+    def test_configure_tenant_networks_skips_port_without_vif(
+            self, client_mock, wait_mock_status, update_mock,
+            wait_agent_mock):
+        utils.create_test_port(
+            self.context, node_id=self.node.id, address='52:54:00:cf:2d:33',
+            uuid=uuidutils.generate_uuid(), internal_info={})
+        with task_manager.acquire(self.context, self.node.id) as task:
+            self.interface.configure_tenant_networks(task)
+        update_mock.assert_called_once_with(
+            self.context,
+            self.port.internal_info[common.NetType.TENANT.vif_key],
+            mock.ANY)
+        client_mock.return_value.close.assert_called_once()
+
+    @mock.patch.object(neutron_common, 'wait_for_host_agent', autospec=True)
+    @mock.patch.object(neutron_common, 'update_neutron_port', autospec=True)
+    @mock.patch.object(neutron_common, 'wait_for_port_status', autospec=True)
+    @mock.patch.object(neutron_common, 'get_client', autospec=True)
+    def test_configure_tenant_networks_portgroup_member_port(
+            self, client_mock, wait_mock_status, update_mock,
+            wait_agent_mock):
+        pg = utils.create_test_portgroup(
+            self.context, node_id=self.node.id, address='ff:54:00:cf:2d:32')
+        self.port.portgroup_id = pg.id
+        self.port.save()
+        with task_manager.acquire(self.context, self.node.id) as task:
+            self.interface.configure_tenant_networks(task)
+        update_mock.assert_called_once_with(
+            self.context,
+            self.port.internal_info[common.NetType.TENANT.vif_key],
+            mock.ANY)
+
+    @mock.patch.object(neutron_common, 'wait_for_host_agent', autospec=True)
+    @mock.patch.object(neutron_common, 'update_neutron_port', autospec=True)
+    @mock.patch.object(neutron_common, 'wait_for_port_status', autospec=True)
+    @mock.patch.object(neutron_common, 'get_client', autospec=True)
+    def test_configure_tenant_networks_second_port_update_fail(
+            self, client_mock, wait_mock_status, update_mock,
+            wait_agent_mock):
+        utils.create_test_port(
+            self.context, node_id=self.node.id, address='52:54:00:cf:2d:33',
+            uuid=uuidutils.generate_uuid(),
+            internal_info={
+                common.NetType.TENANT.vif_key: uuidutils.generate_uuid()})
+        update_mock.side_effect = [
+            None, openstack_exc.OpenStackCloudException(message='meow')]
+        with task_manager.acquire(self.context, self.node.id) as task:
+            self.assertRaisesRegex(
+                exception.NetworkError, 'Could not add',
+                self.interface.configure_tenant_networks, task)
+        self.assertEqual(2, update_mock.call_count)
+        client_mock.return_value.close.assert_called_once()
 
     @mock.patch.object(neutron_common, 'wait_for_host_agent', autospec=True)
     @mock.patch.object(neutron_common, 'update_neutron_port', autospec=True)
