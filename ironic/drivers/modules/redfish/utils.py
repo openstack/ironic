@@ -15,6 +15,7 @@
 #    under the License.
 
 import collections
+import enum
 import hashlib
 import os
 from urllib import parse as urlparse
@@ -22,6 +23,7 @@ from urllib import parse as urlparse
 from oslo_log import log
 from oslo_utils import netutils
 from oslo_utils import strutils
+from oslo_utils import timeutils
 import rfc3986
 import sushy
 import tenacity
@@ -110,6 +112,52 @@ NIC = "nic"
 
 FIRMWARE_COMPONENTS = [BIOS, BMC]
 """Firmware Components available to update"""
+
+
+class BootProgressStatus(enum.Enum):
+    """Outcome of checking a node's BootProgress against target states."""
+
+    PASSED = 'passed'
+    """The node has booted far enough for the current step."""
+
+    WAITING = 'waiting'
+    """The node has not been seen to boot far enough yet."""
+
+    UNAVAILABLE = 'unavailable'
+    """The node does not report BootProgress."""
+
+
+# Servicing requires the OS to be fully running: the firmware inventory
+# is only read once the node reaches this state, so anything earlier can
+# still report the versions in place before the update was applied.
+# Whether and when a BMC reports OS_RUNNING is platform-specific and
+# not guaranteed by the Redfish schema, so callers bound the wait for
+# it once BOOT_PROGRESS_POST_COMPLETE is seen.
+BOOT_PROGRESS_SERVICE_TARGETS = frozenset({
+    sushy.BootProgressStates.OS_RUNNING,
+})
+
+# States proving POST finished, and with it any firmware the platform
+# flashes during POST. The node has handed control to the boot loader or
+# beyond, so the flash window this gate protects is over.
+#
+# Reporting past this point is platform-specific and not guaranteed by
+# the Redfish schema: some BMCs report the full ladder up to OS_RUNNING,
+# while others stop at HARDWARE_COMPLETE for the life of the boot. Where
+# OS_RUNNING is the only target, callers use this set to start a bounded
+# wait for it ([redfish]firmware_update_os_running_timeout) rather than
+# holding the node for a whole gate's timeout on a reporting difference.
+BOOT_PROGRESS_POST_COMPLETE = frozenset({
+    sushy.BootProgressStates.HARDWARE_COMPLETE,
+    sushy.BootProgressStates.OS_BOOT_STARTED,
+    sushy.BootProgressStates.OS_RUNNING,
+})
+
+_POST_COMPLETE_VALUES = frozenset(
+    state.value for state in BOOT_PROGRESS_POST_COMPLETE)
+
+# Cleaning and deployment need no OS to boot, so the end of POST is enough.
+BOOT_PROGRESS_CLEAN_TARGETS = BOOT_PROGRESS_POST_COMPLETE
 
 
 def get_component_type(component):
@@ -696,3 +744,136 @@ def get_chassis(node, system):
                   'Error %(error)s',
                   {'system': system.identity, 'error': e})
         raise exception.RedfishError(error=e)
+
+
+def get_boot_progress_targets(node):
+    """Get the BootProgress target states for the node's current step.
+
+    :param node: an ironic node object.
+    :returns: a frozenset of ``sushy.BootProgressStates`` members that
+        satisfy the BootProgress gate for the step currently running on
+        the node.
+    :raises: IronicException if no clean, deploy or service step is
+        running on the node.
+    """
+    if node.service_step:
+        return BOOT_PROGRESS_SERVICE_TARGETS
+    if node.clean_step or node.deploy_step:
+        return BOOT_PROGRESS_CLEAN_TARGETS
+    raise exception.IronicException(
+        _('No clean, deploy or service step is running on node %s, so '
+          'there is no BootProgress target to check.') % node.uuid)
+
+
+def _get_last_boot_state(system):
+    """Get the BootProgress LastState of a system.
+
+    :param system: an already-fetched sushy System object.
+    :returns: a ``sushy.BootProgressStates`` member, or None if the system
+        does not report it.
+    """
+    boot_progress = system.boot_progress
+    return boot_progress.last_state if boot_progress is not None else None
+
+
+def get_boot_observation(system):
+    """Read the markers of a system that change when its host resets.
+
+    :param system: an already-fetched sushy System object. Callers are
+        responsible for fetching it; this function performs no I/O.
+    :returns: a dict that can be stored in ``driver_internal_info``, with
+        the keys ``state`` (BootProgress ``LastState``) and
+        ``reset_time`` (``LastResetTime``), each a string, or None where
+        the BMC does not report it.
+    """
+    state = _get_last_boot_state(system)
+    # TODO(janders): read LastResetTime through sushy once it is modelled
+    # there; until then read it from the raw resource.
+    reset_time = (system.json or {}).get('LastResetTime')
+    return {
+        'state': state.value if state is not None else None,
+        'reset_time': reset_time,
+    }
+
+
+def boot_changed_since(before, current):
+    """Check whether the host has reset since an earlier observation.
+
+    A reboot request does not reset BootProgress: until the host actually
+    resets, the BMC keeps reporting the state the previous boot reached.
+    The host has reset if ``LastResetTime`` differs from the reading taken
+    before the reboot, or if ``LastState`` has changed to a state reported
+    only before POST completes. A late update moving ``LastState`` forward
+    within the previous boot proves nothing, nor does a marker missing
+    from either observation.
+
+    :param before: an observation from :func:`get_boot_observation` taken
+        before the reboot was requested, or None if it could not be read.
+    :param current: an observation taken since.
+    :returns: True if the host has reset since ``before``, False if
+        nothing shows that it has.
+    """
+    if not before:
+        return False
+    before_reset = before.get('reset_time')
+    current_reset = current.get('reset_time')
+    if (before_reset is not None and current_reset is not None
+            and before_reset != current_reset):
+        return True
+    before_state = before.get('state')
+    current_state = current.get('state')
+    return (before_state is not None and current_state is not None
+            and before_state != current_state
+            and current_state not in _POST_COMPLETE_VALUES)
+
+
+def check_boot_progress(node, system, target_states, reboot_time=None,
+                        check_delay=0, new_boot_observed=False):
+    """Check a node's Redfish BootProgress against the target states.
+
+    A target state read shortly after a reboot request may still describe
+    the previous boot, so it is only accepted once the caller has seen
+    the host reset (``new_boot_observed``, see :func:`boot_changed_since`)
+    or ``check_delay`` seconds have passed since ``reboot_time``.
+
+    :param node: an ironic node object, used for logging only.
+    :param system: an already-fetched sushy System object. Callers are
+        responsible for fetching it; this function performs no I/O.
+    :param target_states: an iterable of ``sushy.BootProgressStates``
+        members that satisfy the gate.
+    :param reboot_time: ISO-formatted timestamp string of when the
+        reboot was requested, or None to accept a target state without
+        further checks.
+    :param check_delay: number of seconds that must have elapsed since
+        ``reboot_time`` before a target state is accepted without proof
+        that the host reset.
+    :param new_boot_observed: whether the caller has seen the host reset
+        since the reboot.
+    :returns: a tuple of (status, last_state) where status is a
+        BootProgressStatus, and last_state is the
+        ``sushy.BootProgressStates`` value observed, or None.
+    :raises: sushy.exceptions.SushyError when the BootProgress resource
+        cannot be read; callers should retry on the next poll.
+    """
+    last_state = _get_last_boot_state(system)
+    if last_state is None:
+        return BootProgressStatus.UNAVAILABLE, None
+
+    if last_state not in target_states:
+        LOG.debug('Node %(node)s boot progress: %(state)s, not a target '
+                  'state.', {'node': node.uuid, 'state': last_state})
+        return BootProgressStatus.WAITING, last_state
+
+    if reboot_time is not None and not new_boot_observed:
+        elapsed = (timeutils.utcnow(True)
+                   - timeutils.parse_isotime(reboot_time)).total_seconds()
+        if elapsed < check_delay:
+            LOG.debug('Node %(node)s reports %(state)s only %(secs)ds '
+                      'after the reboot, which may still describe the '
+                      'previous boot; ignoring it until %(delay)ds have '
+                      'passed.',
+                      {'node': node.uuid, 'state': last_state,
+                       'secs': int(elapsed), 'delay': check_delay})
+            return BootProgressStatus.WAITING, last_state
+
+    return BootProgressStatus.PASSED, last_state
