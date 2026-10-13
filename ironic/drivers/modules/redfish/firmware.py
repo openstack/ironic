@@ -523,7 +523,8 @@ class RedfishFirmware(base.FirmwareInterface):
                          'More components pending - triggering reboot before '
                          'continuing to next component.',
                          {'node': node.uuid})
-                self._reboot_to_apply(task, settings)
+                if self._validate_bmc_stability(task):
+                    self._reboot_to_apply(task, settings)
                 return
             else:
                 # Last component - no reboot needed
@@ -767,6 +768,10 @@ class RedfishFirmware(base.FirmwareInterface):
     def _validate_resources_stability(self, node):
         """Validate that BMC resources are consistently available.
 
+        This covers a BMC firmware update, after which the BMC's own web
+        service can answer and then drop out again while the new image
+        comes up.
+
         Requires consecutive successful responses from System, Manager,
         and NetworkAdapters resources before considering them stable.
         The number of required successes is configured via
@@ -789,8 +794,9 @@ class RedfishFirmware(base.FirmwareInterface):
             if timeout == 0:
                 reasons.append('validation_timeout=0')
 
-            LOG.info('BMC resource validation disabled (%s) for node %(node)s',
-                     ', '.join(reasons), {'node': node.uuid})
+            LOG.info('BMC resource validation disabled (%(reasons)s) for '
+                     'node %(node)s',
+                     {'reasons': ', '.join(reasons), 'node': node.uuid})
             return
 
         LOG.debug('Starting resource stability validation for node %(node)s '
@@ -908,9 +914,13 @@ class RedfishFirmware(base.FirmwareInterface):
     def _continue_updates(self, task, update_service, settings):
         """Continues processing the firmware updates
 
-        Continues to process the firmware updates on the node.
-        First monitors the current task completion, then validates resource
-        stability before proceeding to next update or completion.
+        Called once the current firmware update has finished. Waits for
+        its configured ``wait`` and reboots the node if the update still
+        needs a reboot to take effect. A BMC firmware update can leave the
+        BMC's web service flapping, so after one the resources are
+        validated as stable before the node is rebooted, the next update is
+        submitted or the step resumes; updates to other components leave
+        the BMC running and need no such wait.
 
         Note that the caller must have an exclusive lock on the node.
 
@@ -939,6 +949,14 @@ class RedfishFirmware(base.FirmwareInterface):
             node.save()
             return
 
+        # A BMC firmware update can leave the BMC's web service flapping,
+        # so the BMC is validated before going on. A BMC update that needed
+        # a host reboot was validated before that reboot.
+        if (redfish_utils.get_component_type(fw_upd['component'])
+                == redfish_utils.BMC and VERIFY not in fw_upd
+                and not self._validate_bmc_stability(task)):
+            return
+
         # The node has already been rebooted to apply this update, and the
         # update has been verified since.
         rebooted = VERIFY in fw_upd
@@ -961,11 +979,6 @@ class RedfishFirmware(base.FirmwareInterface):
 
             LOG.info('Firmware updates completed for node %(node)s',
                      {'node': node.uuid})
-
-            LOG.debug('Validating BMC responsiveness before resuming '
-                      'conductor operations for node %(node)s',
-                      {'node': node.uuid})
-            self._validate_resources_stability(node)
 
             try:
                 self.cache_firmware_components(task)
@@ -999,17 +1012,29 @@ class RedfishFirmware(base.FirmwareInterface):
                 self._reboot_to_apply(task, settings)
                 return
 
-            # Validate BMC resources are stable before continuing next update
-            LOG.info('Validating BMC responsiveness before continuing '
-                     'to next firmware update for node %(node)s',
-                     {'node': node.uuid})
-            self._validate_resources_stability(node)
-
             settings.pop(0)
             self._execute_firmware_update(node,
                                           update_service,
                                           settings)
             node.save()
+
+    def _validate_bmc_stability(self, task):
+        """Validate BMC resources after a BMC firmware update.
+
+        Failing validation fails the step.
+
+        :param task: a TaskManager instance
+        :returns: True if the BMC is stable, False if it is not and the
+            step has been failed.
+        """
+        LOG.info('Validating BMC responsiveness after the BMC firmware '
+                 'update of node %(node)s', {'node': task.node.uuid})
+        try:
+            self._validate_resources_stability(task.node)
+        except exception.RedfishError as e:
+            self._fail(task, str(e))
+            return False
+        return True
 
     def _clear_updates(self, node):
         """Clears firmware updates artifacts

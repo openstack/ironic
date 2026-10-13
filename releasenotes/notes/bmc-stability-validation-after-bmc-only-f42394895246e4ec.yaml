@@ -1,0 +1,11 @@
+---
+fixes:
+  - |
+    The Redfish resource stability validation that follows a firmware
+    update now runs only after a BMC firmware update. It was written for
+    that case, where the BMC's web service can come up and drop out again
+    while the new image loads. After a reboot that applies any other
+    firmware the BMC has not reset, and the post-reboot checks have just
+    read from it, so the validation only added its full duration, about a
+    minute by default, to every such update. Its behaviour after a BMC
+    update is unchanged.
