@@ -206,7 +206,8 @@ class RunbookTraitsController(rest.RestController):
     def get_all(self):
         """List runbook traits."""
         rpc_runbook = api_utils.check_runbook_policy_and_retrieve(
-            'baremetal:runbook:get', self.runbook_ident)
+            'baremetal:runbook:get', self.runbook_ident,
+            public_runbook_ok=True)
         return {'traits': rpc_runbook.traits}
 
     @METRICS.timer('RunbookTraitsController.put')
@@ -381,14 +382,8 @@ class RunbooksController(rest.RestController):
         if not api_utils.allow_runbooks():
             raise exception.NotFound()
 
-        try:
-            rpc_runbook = api_utils.check_runbook_policy_and_retrieve(
-                'baremetal:runbook:get', runbook_ident)
-        except exception.NotAuthorized:
-            # If the user is not authorized to access the runbook,
-            # check also, if the runbook is public
-            rpc_runbook = api_utils.check_and_retrieve_public_runbook(
-                runbook_ident)
+        rpc_runbook = api_utils.check_runbook_policy_and_retrieve(
+            'baremetal:runbook:get', runbook_ident, public_runbook_ok=True)
 
         api_utils.check_allowed_fields(fields)
         return convert_with_links(rpc_runbook, fields=fields)
