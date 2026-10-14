@@ -625,9 +625,47 @@ class IronicNetworking(base.NetworkInterface):
                          'switch_id': switch_id,
                          'result': result})
 
+    def _restore_reset_port(self, task, original_port, original_config,
+                            switch_id, port_name, description, idle_vlan):
+        """Best-effort restore of a reset port to its previous config.
+
+        Called when a port was reset off its previous switchport
+        configuration but applying the new configuration failed, so the
+        port is not left on the idle network. Failures are logged and
+        not raised, so the caller can re-raise the original error.
+        """
+        original_switchport = (original_port.extra.get('switchport')
+                               if original_port.extra else None)
+        lag_name = (original_switchport.get('lag_name')
+                    if original_switchport else None)
+        try:
+            networking_api.update_port(
+                task.context, switch_id, port_name,
+                description, original_config.mode,
+                original_config.native_vlan,
+                allowed_vlans=original_config.allowed_vlans,
+                lag_name=lag_name,
+                default_vlan=idle_vlan,
+                mtu=original_config.mtu)
+        except Exception:
+            LOG.exception(
+                "Failed to restore port %(port_name)s on switch "
+                "%(switch_id)s to its previous %(mode)s configuration "
+                "after the updated switchport configuration could not be "
+                "applied. The port may be left on the idle network.",
+                {'port_name': port_name, 'switch_id': switch_id,
+                 'mode': original_config.mode})
+        else:
+            LOG.warning(
+                "Restored port %(port_name)s on switch %(switch_id)s to "
+                "its previous %(mode)s configuration after the updated "
+                "switchport configuration could not be applied",
+                {'port_name': port_name, 'switch_id': switch_id,
+                 'mode': original_config.mode})
+
     def _handle_switchport_update(self, task, port_obj, current_local_link,
                                   current_switchport, active_network_type,
-                                  switchport_added):
+                                  switchport_added, original_port=None):
         """Handle switchport addition or modification.
 
         Called when switchport configuration is added or changed on a port.
@@ -640,6 +678,19 @@ class IronicNetworking(base.NetworkInterface):
         :param active_network_type: The network type that should be active.
         :param switchport_added: True if switchport was added, False if
             updated.
+        :param original_port: The original Port object from task.ports,
+            supplied only when the switchport configuration was *changed*
+            (not newly added) and local_link_connection did NOT also
+            change. When supplied, its VLAN (resolved for the active
+            network type) is passed as ``default_vlan`` so the switch
+            driver removes that membership before plugging the new one;
+            if a trunk/hybrid port is involved the port is reset first,
+            and restored to its previous configuration if the update then
+            fails. It must be left as None for the
+            "added" case (nothing to remove) and for the
+            local_link_connection-changed case, since
+            _handle_local_link_change() already resets the old switch
+            port in that case.
         :raises: InvalidParameterValue if unable to parse network configuration
         :raises: NetworkError if the networking service call fails
         """
@@ -658,28 +709,92 @@ class IronicNetworking(base.NetworkInterface):
 
         # Resolve the idle network configuration (if any)
         idle_config = self._get_switch_port_config(task, network.IDLE_NETWORK)
-
-        # Resolve configuration based on active network type
+        idle_vlan = idle_config.native_vlan if idle_config else None
+        idle_mtu = idle_config.mtu if idle_config else None
         config = self._resolve_network_configuration(
             task, port_obj, active_network_type)
+
+        # When the switchport configuration changed (it was not newly
+        # added) and local_link_connection stayed the same, the switch port
+        # is still configured for the OLD switchport, not the idle network.
+        # An access port can only be an untagged member of one VLAN at a
+        # time (SONiC and most hardware NOSes enforce this), so the old
+        # configuration must be removed before the new one is plugged -
+        # otherwise the switch rejects the plug and the port stays on the
+        # old VLAN while Ironic believes it moved. See bug #2170842.
+        #
+        # access -> access: update_port's default_vlan is the VLAN the
+        # switch driver removes before plugging, so passing the old
+        # native_vlan does it in a single call. Any change involving a
+        # trunk/hybrid port must reset the port first, since default_vlan
+        # does not cover the old allowed_vlans.
+        current_vlan = idle_vlan
+        # Set when the port is reset below, so a failed update can try to
+        # put the port back on its previous configuration instead of
+        # leaving it on the idle network.
+        reset_config = None
+        if original_port is not None:
+            original_config = self._resolve_network_configuration(
+                task, original_port, active_network_type)
+            # Only touch the switch when the new configuration can actually
+            # be applied; otherwise a reset would leave the port on the idle
+            # network with nothing plugged back in.
+            if (original_config and original_config.is_valid
+                    and config and config.is_valid):
+                # The networking manager rejects these before calling a
+                # driver. Avoid resetting a working port for an update that
+                # cannot pass that validation.
+                if config.mode not in ('access', 'trunk'):
+                    raise exception.InvalidParameterValue(
+                        _("mode must be one of: access, trunk"))
+                if (not isinstance(config.native_vlan, int)
+                        or not 1 <= config.native_vlan <= 4094):
+                    raise exception.InvalidParameterValue(
+                        _("native_vlan must be an integer between 1 and 4094"))
+                access_only = (original_config.mode == 'access'
+                               and config.mode == 'access')
+                switch_id = current_local_link.get('switch_id')
+                port_name = current_local_link.get('port_id')
+                if access_only:
+                    current_vlan = original_config.native_vlan
+                elif switch_id and port_name:
+                    networking_api.reset_port(
+                        task.context, switch_id, port_name,
+                        original_config.native_vlan,
+                        allowed_vlans=original_config.allowed_vlans,
+                        default_vlan=idle_vlan,
+                        mtu=idle_mtu)
+                    reset_config = original_config
+                    LOG.debug(
+                        "Reset port %(port_name)s on switch %(switch_id)s "
+                        "off its previous %(mode)s configuration before "
+                        "applying the updated switchport configuration",
+                        {'port_name': port_name, 'switch_id': switch_id,
+                         'mode': original_config.mode})
 
         if config and config.is_valid:
             # Get switch and port info from current state
             switch_id = current_local_link.get('switch_id')
             port_name = current_local_link.get('port_id')
             description = self._get_port_description(port_obj)
-            lag_name = current_switchport.get('lag_name')
+            lag_name = (current_switchport.get('lag_name')
+                        if current_switchport else None)
 
             if switch_id and port_name:
-                idle_vlan = (idle_config.native_vlan
-                             if idle_config else None)
-                result = networking_api.update_port(
-                    task.context, switch_id, port_name,
-                    description, config.mode, config.native_vlan,
-                    allowed_vlans=config.allowed_vlans,
-                    lag_name=lag_name,
-                    default_vlan=idle_vlan,
-                    mtu=config.mtu)
+                try:
+                    result = networking_api.update_port(
+                        task.context, switch_id, port_name,
+                        description, config.mode, config.native_vlan,
+                        allowed_vlans=config.allowed_vlans,
+                        lag_name=lag_name,
+                        default_vlan=current_vlan,
+                        mtu=config.mtu)
+                except Exception:
+                    if reset_config is not None:
+                        self._restore_reset_port(
+                            task, original_port, reset_config, switch_id,
+                            port_name, description, idle_vlan)
+                    raise
                 LOG.debug(
                     "Successfully updated port %(port_name)s "
                     "on switch %(switch_id)s for %(network_type)s "
@@ -758,15 +873,29 @@ class IronicNetworking(base.NetworkInterface):
                                            original_local_link,
                                            original_switchport,
                                            active_network_type)
-            # Then configure the new port (fall through to update logic)
+            # Then configure the new port (fall through to update logic).
+            # _handle_local_link_change() has already reset the OLD
+            # switch port above, so _handle_switchport_update() must not
+            # reset it again (and the current switch/port may differ
+            # from the original one anyway).
             switchport_changed = True  # Force update with new configuration
+            reset_original_port = None
+        else:
+            # A plain switchport configuration change (no local_link
+            # change): the port is still plugged into its old VLAN on
+            # the same switch port, so pass the original port along so
+            # _handle_switchport_update() can remove it first. Not
+            # applicable when the switchport was newly added (nothing to
+            # remove).
+            reset_original_port = original_port if switchport_changed else None
 
         # Handle switchport addition or modification
         if switchport_added or switchport_changed:
             self._handle_switchport_update(task, port_obj, current_local_link,
                                            current_switchport,
                                            active_network_type,
-                                           switchport_added)
+                                           switchport_added,
+                                           original_port=reset_original_port)
 
     def portgroup_changed(self, task, portgroup_obj):
         """Handle any actions required when a portgroup changes.
