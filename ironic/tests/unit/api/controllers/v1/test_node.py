@@ -6810,7 +6810,8 @@ ORHMKeXMO8fcK0By7CiMKwHSXCoEQgfQhWwpMdSsO8LgHCjh87DQc= """
         self.assertEqual(http_client.ACCEPTED, ret.status_code)
         self.assertEqual(b'', ret.body)
         mock_policy.assert_has_calls([mock.call('baremetal:runbook:use',
-                                                runbook.name)])
+                                                runbook.name,
+                                                public_runbook_ok=True)])
         mock_check.assert_called_once_with(runbook.steps)
         mock_rpcapi.assert_called_once_with(mock.ANY, mock.ANY,
                                             self.node.uuid, runbook.steps,
@@ -7544,7 +7545,8 @@ ORHMKeXMO8fcK0By7CiMKwHSXCoEQgfQhWwpMdSsO8LgHCjh87DQc= """
         self.assertEqual(http_client.ACCEPTED, ret.status_code)
         self.assertEqual(b'', ret.body)
         mock_policy.assert_has_calls([mock.call('baremetal:runbook:use',
-                                                runbook.name)]),
+                                                runbook.name,
+                                                public_runbook_ok=True)]),
         mock_dns.assert_called_once_with(mock.ANY, mock.ANY,
                                          self.node.uuid, runbook.steps,
                                          mock.ANY, topic='test-topic')
@@ -7576,7 +7578,8 @@ ORHMKeXMO8fcK0By7CiMKwHSXCoEQgfQhWwpMdSsO8LgHCjh87DQc= """
         self.assertEqual(http_client.ACCEPTED, ret.status_code)
         self.assertEqual(b'', ret.body)
         mock_policy.assert_has_calls([mock.call('baremetal:runbook:use',
-                                                runbook.name)]),
+                                                runbook.name,
+                                                public_runbook_ok=True)]),
         mock_check.assert_called_once_with(runbook.steps)
         mock_rpcapi.assert_called_once_with(mock.ANY, mock.ANY, self.node.uuid,
                                             runbook.steps, mock.ANY,

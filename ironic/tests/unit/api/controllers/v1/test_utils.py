@@ -1316,6 +1316,64 @@ class TestCheckNodePolicyAndRetrieve(base.TestCase):
         )
 
 
+class TestCheckRunbookPolicyAndRetrieve(base.TestCase):
+    def setUp(self):
+        super(TestCheckRunbookPolicyAndRetrieve, self).setUp()
+        self.runbook = mock.MagicMock(public=False)
+        self.runbook.__getitem__.side_effect = {'owner': '12345'}.__getitem__
+
+    @mock.patch.object(utils, 'check_owner_policy', autospec=True)
+    @mock.patch.object(utils, 'get_rpc_runbook', autospec=True)
+    def test_private_runbook_checks_policy(self, mock_grr, mock_cop):
+        mock_grr.return_value = self.runbook
+
+        result = utils.check_runbook_policy_and_retrieve(
+            'fake_policy', 'ident', public_runbook_ok=True)
+
+        self.assertEqual(self.runbook, result)
+        mock_cop.assert_called_once_with(
+            object_type='runbook', policy_name='fake_policy', owner='12345')
+
+    @mock.patch.object(utils, 'check_owner_policy', autospec=True)
+    @mock.patch.object(utils, 'get_rpc_runbook', autospec=True)
+    def test_private_runbook_forbidden(self, mock_grr, mock_cop):
+        mock_grr.return_value = self.runbook
+        mock_cop.side_effect = exception.HTTPForbidden(resource='fake')
+
+        self.assertRaises(
+            exception.HTTPForbidden,
+            utils.check_runbook_policy_and_retrieve,
+            'fake_policy', 'ident', public_runbook_ok=True)
+
+    @mock.patch.object(utils, 'check_owner_policy', autospec=True)
+    @mock.patch.object(utils, 'get_rpc_runbook', autospec=True)
+    def test_public_runbook_allowed_when_public_permitted(
+            self, mock_grr, mock_cop):
+        self.runbook.public = True
+        mock_grr.return_value = self.runbook
+
+        result = utils.check_runbook_policy_and_retrieve(
+            'fake_policy', 'ident', public_runbook_ok=True)
+
+        self.assertEqual(self.runbook, result)
+        mock_cop.assert_not_called()
+
+    @mock.patch.object(utils, 'check_owner_policy', autospec=True)
+    @mock.patch.object(utils, 'get_rpc_runbook', autospec=True)
+    def test_public_runbook_still_checks_policy_by_default(
+            self, mock_grr, mock_cop):
+        self.runbook.public = True
+        mock_grr.return_value = self.runbook
+        mock_cop.side_effect = exception.HTTPForbidden(resource='fake')
+
+        self.assertRaises(
+            exception.HTTPForbidden,
+            utils.check_runbook_policy_and_retrieve,
+            'fake_policy', 'ident')
+        mock_cop.assert_called_once_with(
+            object_type='runbook', policy_name='fake_policy', owner='12345')
+
+
 class TestCheckAllocationPolicyAndRetrieve(base.TestCase):
     def setUp(self):
         super(TestCheckAllocationPolicyAndRetrieve, self).setUp()

@@ -1,0 +1,13 @@
+---
+fixes:
+  - |
+    Fixes an issue where the traits of a public runbook could not be
+    retrieved, and a public runbook could not be used when requesting a node
+    ``clean`` or ``service`` provision state change, by users outside of the
+    runbook's owning project. Public runbooks can now be used for these
+    operations by any user, regardless of the ``baremetal:runbook:get`` and
+    ``baremetal:runbook:use`` policies. Operations that modify a runbook,
+    such as update and delete, are unchanged and are still governed by their
+    own policies.
+    See `bug 2170770 <https://bugs.launchpad.net/ironic/+bug/2170770>`_
+    for details.

@@ -74,6 +74,11 @@ values:
     X-Auth-Token: 'third-party-admin-token'
     X-Project-Id: ae64129e-b188-4662-b014-4127f4366ee6
     X-Roles: admin,manager,member,reader
+  # Project which only owns the node used for runbook provisioning tests.
+  runbook_node_owner_manager_headers: &runbook_node_owner_manager_headers
+    X-Auth-Token: 'runbook-node-owner-manager-token'
+    X-Project-Id: 9f6c1d7e-2b4a-4c35-8d9e-7a1b0c3d5e21
+    X-Roles: manager,member,reader
   service_headers: &service_headers
     X-Auth-Token: 'service-token'
     X-Project-Id: ae64129e-b188-4662-b014-4127f4366ee6
@@ -4548,3 +4553,71 @@ third_party_admin_cannot_patch_runbook_public:
   body: *runbook_public_patch
   headers: *third_party_admin_headers
   assert_status: 403
+
+# Public runbooks are owned by a different project (the lessee project)
+# than the callers below. Read and use are permitted, modification is not.
+third_party_admin_can_get_public_runbook:
+  path: '/v1/runbooks/{public_runbook_ident}'
+  method: get
+  headers: *third_party_admin_headers
+  assert_status: 200
+
+owner_reader_can_get_public_runbook:
+  path: '/v1/runbooks/{public_runbook_ident}'
+  method: get
+  headers: *owner_reader_headers
+  assert_status: 200
+
+third_party_admin_cannot_get_private_runbook:
+  path: '/v1/runbooks/{runbook_ident}'
+  method: get
+  headers: *third_party_admin_headers
+  assert_status: 403
+
+third_party_admin_can_get_public_runbook_traits:
+  path: '/v1/runbooks/{public_runbook_ident}/traits'
+  method: get
+  headers: *third_party_admin_headers
+  assert_status: 200
+
+owner_reader_can_get_public_runbook_traits:
+  path: '/v1/runbooks/{public_runbook_ident}/traits'
+  method: get
+  headers: *owner_reader_headers
+  assert_status: 200
+
+third_party_admin_cannot_get_private_runbook_traits:
+  path: '/v1/runbooks/{runbook_ident}/traits'
+  method: get
+  headers: *third_party_admin_headers
+  assert_status: 403
+
+third_party_admin_cannot_patch_public_runbook:
+  path: '/v1/runbooks/{public_runbook_ident}'
+  method: patch
+  body: *runbook_patch
+  headers: *third_party_admin_headers
+  assert_status: 403
+
+third_party_admin_cannot_delete_public_runbook:
+  path: '/v1/runbooks/{public_runbook_ident}'
+  method: delete
+  headers: *third_party_admin_headers
+  assert_status: 403
+
+third_party_admin_cannot_put_public_runbook_trait:
+  path: '/v1/runbooks/{public_runbook_ident}/traits/CUSTOM_TRAIT2'
+  method: put
+  headers: *third_party_admin_headers
+  assert_status: 403
+
+# The mocked RPC API returns 503, which demonstrates we're past API RBAC
+# policy checking for the runbook.
+runbook_node_owner_manager_can_set_provision_state_clean_with_public_runbook:
+  path: '/v1/nodes/{runbook_node_ident}/states/provision'
+  method: put
+  headers: *runbook_node_owner_manager_headers
+  body:
+    target: clean
+    runbook: CUSTOM_PUBLIC
+  assert_status: 503

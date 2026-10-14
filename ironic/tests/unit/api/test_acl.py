@@ -255,6 +255,15 @@ class TestRBACProjectScoped(TestACLBase):
 
         fake_db_runbook = db_utils.create_test_runbook(
             owner='70e5e25a-2ca2-4cb1-8ae8-7d8739cee205')
+        # A public runbook owned by the lessee project, so that the owner
+        # and third party projects are not the runbook owner.
+        fake_db_public_runbook = db_utils.create_test_runbook(
+            id=235,
+            uuid='c2a0e0a4-4f8e-4a4e-9f0c-0d3d0a6c1b57',
+            name='CUSTOM_PUBLIC',
+            public=True,
+            traits=['CUSTOM_TRAIT1'],
+            owner='f11853c7-fa9c-4db3-a477-c9d8e0dbbf13')
 
         # owned node - since the tests use the same node for
         # owner/lesse checks
@@ -274,6 +283,15 @@ class TestRBACProjectScoped(TestACLBase):
             uuid='3c3b8adb-edd7-3ed0-8e82-aab714d8411a',
             parent_node=owned_node.uuid,
             owner=owner_project_id)
+        # Node without a reservation, in a state where cleaning can be
+        # requested, so a runbook is evaluated for provisioning. It belongs
+        # to its own project so it is not visible in other node queries.
+        runbook_node = db_utils.create_test_node(
+            uuid='5d2c6b0e-7a3f-4a4b-8e1d-9c1f3b2a7e64',
+            owner='9f6c1d7e-2b4a-4c35-8d9e-7a1b0c3d5e21',
+            provision_state='manageable')
+        db_utils.create_test_node_traits(
+            node_id=runbook_node['id'], traits=['CUSTOM_TRAIT1'])
         owned_node_port = db_utils.create_test_port(
             uuid='ebe30f19-358d-41e1-8d28-fd7357a0164c',
             node_id=owned_node['id'],
@@ -351,6 +369,7 @@ class TestRBACProjectScoped(TestACLBase):
         self.format_data.update({
             'node_ident': unowned_node['uuid'],
             'owner_node_ident': owner_node_ident,
+            'runbook_node_ident': runbook_node['uuid'],
             'lessee_node_ident': lessee_node_ident,
             'allocated_node_ident': lessee_node_ident,
             'volume_target_ident': fake_db_volume_target['uuid'],
@@ -362,6 +381,7 @@ class TestRBACProjectScoped(TestACLBase):
             'ind_component': 'component',
             'ind_ident': 'magic_light',
             'runbook_ident': fake_db_runbook['uuid'],
+            'public_runbook_ident': fake_db_public_runbook['uuid'],
             'owner_port_ident': owned_node_port['uuid'],
             'other_port_ident': other_port['uuid'],
             'owner_portgroup_ident': owner_pgroup['uuid'],
