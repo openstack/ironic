@@ -4,153 +4,264 @@ pci_devices:
     device_id: "1eb8"
     type: GPU
     device_info: NVIDIA Corporation Tesla T4
+    trait: CUSTOM_GPU_NVIDIA_TESLA_T4
   - vendor_id: "10de"
     device_id: "1df6"
     type: GPU
     device_info: NVIDIA Corporation Tesla V100S PCIe 32GB
+    trait: CUSTOM_GPU_NVIDIA_TESLA_V100S
   - vendor_id: "10de"
     device_id: "2236"
     type: GPU
     device_info: NVIDIA Corporation A10
+    trait: CUSTOM_GPU_NVIDIA_A10
   - vendor_id: "10de"
     device_id: "2235"
     type: GPU
     device_info: NVIDIA Corporation A40
+    trait: CUSTOM_GPU_NVIDIA_A40
   - vendor_id: "10de"
     device_id: "20b7"
     type: GPU
     device_info: NVIDIA Corporation A30
+    trait: CUSTOM_GPU_NVIDIA_A30
   - vendor_id: "10de"
     device_id: "26b9"
     type: GPU
     device_info: NVIDIA Corporation L40S
+    trait: CUSTOM_GPU_NVIDIA_L40S
   - vendor_id: "10de"
     device_id: "26b5"
     type: GPU
     device_info: NVIDIA Corporation L40
+    trait: CUSTOM_GPU_NVIDIA_L40
   - vendor_id: "10de"
     device_id: "26ba"
     type: GPU
     device_info: NVIDIA Corporation L20
+    trait: CUSTOM_GPU_NVIDIA_L20
   - vendor_id: "10de"
-    device_id: "27b8"
+    device_id: "27b8"  # AD104GL
     type: GPU
     device_info: NVIDIA Corporation L4
+    trait: CUSTOM_GPU_NVIDIA_L4
   - vendor_id: "10de"
     device_id: "1db1"
     type: GPU
     device_info: NVIDIA Corporation Tesla V100 SXM2 16GB
+    trait: CUSTOM_GPU_NVIDIA_TESLA_V100_SXM2_16GB
   - vendor_id: "10de"
     device_id: "1db5"
     type: GPU
     device_info: NVIDIA Corporation Tesla V100 SXM2 32GB
+    trait: CUSTOM_GPU_NVIDIA_TESLA_V100_SXM2_32GB
   - vendor_id: "10de"
     device_id: "1db4"
     type: GPU
     device_info: NVIDIA Corporation Tesla V100 PCIe 16GB
+    trait: CUSTOM_GPU_NVIDIA_TESLA_V100_PCIE_16GB
   - vendor_id: "10de"
     device_id: "20b0"
     type: GPU
     device_info: NVIDIA Corporation A100 SXM4 40GB
+    trait: CUSTOM_GPU_NVIDIA_A100_SXM4_40GB
   - vendor_id: "10de"
     device_id: "20b2"
     type: GPU
     device_info: NVIDIA Corporation A100 SXM4 80GB
+    trait: CUSTOM_GPU_NVIDIA_A100_SXM4_80GB
   - vendor_id: "10de"
     device_id: "20f1"
     type: GPU
     device_info: NVIDIA Corporation A100 PCIe 40GB
+    trait: CUSTOM_GPU_NVIDIA_A100_PCIE_40GB
   - vendor_id: "10de"
     device_id: "20b5"
     type: GPU
     device_info: NVIDIA Corporation A100 PCIe 80GB
+    trait: CUSTOM_GPU_NVIDIA_A100_PCIE_80GB
   - vendor_id: "10de"
     device_id: "2330"
     type: GPU
     device_info: NVIDIA Corporation H100 SXM5
+    trait: CUSTOM_GPU_NVIDIA_H100_SXM5
   - vendor_id: "10de"
     device_id: "2331"
     type: GPU
     device_info: NVIDIA Corporation H100 PCIe
+    trait: CUSTOM_GPU_NVIDIA_H100_PCIE
   - vendor_id: "10de"
     device_id: "2321"
     type: GPU
     device_info: NVIDIA Corporation H100 NVL
+    trait: CUSTOM_GPU_NVIDIA_H100_NVL
   - vendor_id: "10de"
     device_id: "2335"
     type: GPU
     device_info: NVIDIA Corporation H200 SXM
+    trait: CUSTOM_GPU_NVIDIA_H200_SXM
   - vendor_id: "10de"
     device_id: "233b"
     type: GPU
     device_info: NVIDIA Corporation H200 NVL
+    trait: CUSTOM_GPU_NVIDIA_H200_NVL
+  - vendor_id: "10de"
+    device_id: "2324"
+    type: GPU
+    device_info: NVIDIA Corporation H800 PCIe
+    trait: CUSTOM_GPU_NVIDIA_H800_PCIE
   - vendor_id: "10de"
     device_id: "2901"
     type: GPU
     device_info: NVIDIA Corporation B200
+    trait: CUSTOM_GPU_NVIDIA_B200
   - vendor_id: "10de"
     device_id: "3182"
     type: GPU
     device_info: NVIDIA Corporation B300
+    trait: CUSTOM_GPU_NVIDIA_B300
   - vendor_id: "10de"
     device_id: ["31c2", "31c3"]
     type: GPU
     device_info: NVIDIA Corporation GB300 NVL
+    trait: CUSTOM_GPU_NVIDIA_GB300_NVL
   - vendor_id: "10de"
     device_id: "2342"
     type: GPU
     device_info: NVIDIA Corporation GH200
+    trait: CUSTOM_GPU_NVIDIA_GH200
   - vendor_id: "10de"
     device_id: "2348"
     type: GPU
     device_info: NVIDIA Corporation GH200 144GB
+    trait: CUSTOM_GPU_NVIDIA_GH200_144GB
   # NVIDIA professional and workstation GPUs sometimes used in servers
   - vendor_id: "10de"
     device_id: "27b2"
     type: GPU
     device_info: NVIDIA Corporation RTX 4000 Ada Generation
+    trait: CUSTOM_GPU_NVIDIA_RTX_4000_ADA
   - vendor_id: "10de"
     device_id: "27b1"
     type: GPU
     device_info: NVIDIA Corporation RTX 4500 Ada Generation
+    trait: CUSTOM_GPU_NVIDIA_RTX_4500_ADA
   - vendor_id: "10de"
     device_id: "26b2"
     type: GPU
     device_info: NVIDIA Corporation RTX 5000 Ada Generation
+    trait: CUSTOM_GPU_NVIDIA_RTX_5000_ADA
   - vendor_id: "10de"
     device_id: "26b1"
     type: GPU
     device_info: NVIDIA Corporation RTX 6000 Ada Generation
+    trait: CUSTOM_GPU_NVIDIA_RTX_6000_ADA
   - vendor_id: "10de"
     device_id: "2c3a"  # server edition only
     type: GPU
     device_info: NVIDIA Corporation RTX PRO 4500
+    trait: CUSTOM_GPU_NVIDIA_RTX_PRO_4500
   - vendor_id: "10de"
     device_id: ["2bbc", "2bb4", "2bb5"] # workstation Max-Q vs server editions
     type: GPU
     device_info: NVIDIA Corporation RTX PRO 6000
+    trait: CUSTOM_GPU_NVIDIA_RTX_PRO_6000
+  - vendor_id: "10de"
+    device_id: "2684"  # AD102
+    type: GPU
+    device_info: NVIDIA Corporation GeForce RTX 4090
+    trait: CUSTOM_GPU_NVIDIA_RTX_4090
   # AMD enterprise GPUs
+  - vendor_id: "1002"
+    device_id: "738c"
+    type: GPU
+    device_info: AMD Instinct MI210
+    trait: CUSTOM_GPU_AMD_MI210
+  - vendor_id: "1002"
+    device_id: "738e"
+    type: GPU
+    device_info: AMD Instinct MI250X
+    trait: CUSTOM_GPU_AMD_MI250X
+  - vendor_id: "1002"
+    device_id: "740c"
+    type: GPU
+    device_info: AMD Instinct MI300A
+    trait: CUSTOM_GPU_AMD_MI300A
   - vendor_id: "1002"
     device_id: "740f"
     type: GPU
     device_info: AMD Instinct MI210
+    trait: CUSTOM_GPU_AMD_MI210
   - vendor_id: "1002"
     device_id: "7408"
     type: GPU
     device_info: AMD Instinct MI250X
+    trait: CUSTOM_GPU_AMD_MI250X
   - vendor_id: "1002"
     device_id: "74a1"
     type: GPU
     device_info: AMD Instinct MI300X
+    trait: CUSTOM_GPU_AMD_MI300X
   - vendor_id: "1002"
     device_id: "74a5"
     type: GPU
     device_info: AMD Instinct MI325X
+    trait: CUSTOM_GPU_AMD_MI325X
   - vendor_id: "1002"
     device_id: "75a0"
     type: GPU
     device_info: AMD Instinct MI350X
+    trait: CUSTOM_GPU_AMD_MI350X
   - vendor_id: "1002"
     device_id: "75a8"
     type: GPU
     device_info: AMD Instinct MI350P
+    trait: CUSTOM_GPU_AMD_MI350P
+  # Intel GPUs
+  - vendor_id: "8086"
+    device_id: "56c0"
+    type: GPU
+    device_info: Intel Data Center GPU Max 1550
+    trait: CUSTOM_GPU_INTEL_MAX_1550
+  - vendor_id: "8086"
+    device_id: "56c1"
+    type: GPU
+    device_info: Intel Data Center GPU Max 1100
+    trait: CUSTOM_GPU_INTEL_MAX_1100
+  - vendor_id: "8086"
+    device_id: "0bd5"
+    type: GPU
+    device_info: Intel Data Center GPU Flex 170
+    trait: CUSTOM_GPU_INTEL_FLEX_170
+  - vendor_id: "8086"
+    device_id: "0bd6"
+    type: GPU
+    device_info: Intel Data Center GPU Flex 140
+    trait: CUSTOM_GPU_INTEL_FLEX_140
+  # Intel FPGAs
+  - vendor_id: "8086"
+    device_id: "0b2b"
+    type: FPGA
+    device_info: Intel Stratix 10 FPGA
+    trait: CUSTOM_FPGA_INTEL_STRATIX10
+  # Xilinx FPGAs
+  - vendor_id: "10ee"
+    device_id: "5000"
+    type: FPGA
+    device_info: Xilinx Alveo U200
+    trait: CUSTOM_FPGA_XILINX_ALVEO_U200
+  - vendor_id: "10ee"
+    device_id: "5004"
+    type: FPGA
+    device_info: Xilinx Alveo U250
+    trait: CUSTOM_FPGA_XILINX_ALVEO_U250
+  - vendor_id: "10ee"
+    device_id: "500c"
+    type: FPGA
+    device_info: Xilinx Alveo U50
+    trait: CUSTOM_FPGA_XILINX_ALVEO_U50
+  - vendor_id: "10ee"
+    device_id: "5020"
+    type: FPGA
+    device_info: Xilinx Alveo U55C
+    trait: CUSTOM_FPGA_XILINX_ALVEO_U55C

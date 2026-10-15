@@ -10,10 +10,14 @@
 # License for the specific language governing permissions and limitations
 # under the License.
 
+
+from unittest import mock
+
 from ironic.conductor import task_manager
 from ironic.conf import CONF
 from ironic.drivers.modules.inspector.hooks import accelerators as \
     accelerators_hook
+from ironic import objects
 from ironic.tests.unit.db import base as db_base
 from ironic.tests.unit.objects import utils as obj_utils
 
@@ -49,6 +53,25 @@ _KNOWN_DEVICES = {
             'device_id': '1df6',
             'type': 'GPU',
             'device_info': 'NVIDIA Corporation GV100GL'
+        }
+    ]
+}
+
+_KNOWN_DEVICES_WITH_TRAITS = {
+    'pci_devices': [
+        {
+            'vendor_id': '0de',
+            'device_id': '1eb8',
+            'type': 'GPU',
+            'device_info': 'NVIDIA Corporation Tesla T4',
+            'trait': 'CUSTOM_GPU_NVIDIA_TESLA_T4'
+        },
+        {
+            'vendor_id': '10de',
+            'device_id': '1df6',
+            'type': 'GPU',
+            'device_info': 'NVIDIA Corporation GV100GL',
+            'trait': 'CUSTOM_GPU_NVIDIA_GV100GL'
         }
     ]
 }
@@ -118,3 +141,128 @@ class AcceleratorsTestCase(db_base.DbTestCase):
                                             self.plugin_data)
             self.node.refresh()
             self.assertEqual(self.node.properties.get('accelerators'), [])
+
+    def test_validate_invalid_trait_format(self):
+        invalid_devices = {
+            'pci_devices': [
+                {
+                    'vendor_id': '0de',
+                    'device_id': '1eb8',
+                    'type': 'GPU',
+                    'device_info': 'NVIDIA Corporation Tesla T4',
+                    'trait': 'invalid_trait_format'
+                }
+            ]
+        }
+        hook = accelerators_hook.AcceleratorsHook()
+        hook._known_devices = invalid_devices
+        self.assertRaises(RuntimeError, hook._validate_known_devices)
+
+    def test_validate_valid_trait_format(self):
+        hook = accelerators_hook.AcceleratorsHook()
+        hook._known_devices = _KNOWN_DEVICES_WITH_TRAITS
+        hook._validate_known_devices()
+
+    def test_auto_set_traits_disabled(self):
+        CONF.set_override('auto_set_accelerator_traits', False,
+                          group='inspector')
+        self.accelerators_hook._known_devices = _KNOWN_DEVICES_WITH_TRAITS
+        with task_manager.acquire(self.context, self.node.id) as task:
+            self.accelerators_hook.__call__(task, self.inventory,
+                                            self.plugin_data)
+            self.node.refresh()
+            traits = objects.TraitList.get_by_node_id(self.context,
+                                                      self.node.id)
+            self.assertEqual([], traits.get_trait_names())
+
+    def test_auto_set_traits_enabled_add_trait(self):
+        CONF.set_override('auto_set_accelerator_traits', True,
+                          group='inspector')
+        self.accelerators_hook._known_devices = _KNOWN_DEVICES_WITH_TRAITS
+        with task_manager.acquire(self.context, self.node.id) as task:
+            self.accelerators_hook.__call__(task, self.inventory,
+                                            self.plugin_data)
+            self.node.refresh()
+            traits = objects.TraitList.get_by_node_id(self.context,
+                                                      self.node.id)
+            trait_names = traits.get_trait_names()
+            self.assertIn('CUSTOM_GPU_NVIDIA_TESLA_T4', trait_names)
+
+    def test_auto_set_traits_enabled_remove_trait(self):
+        CONF.set_override('auto_set_accelerator_traits', True,
+                          group='inspector')
+        self.accelerators_hook._known_devices = _KNOWN_DEVICES_WITH_TRAITS
+
+        trait_obj = objects.Trait(self.context, node_id=self.node.id,
+                                  trait='CUSTOM_GPU_NVIDIA_TESLA_T4')
+        trait_obj.create()
+
+        self.plugin_data = {'pci_devices': [{
+            "vendor_id": "8086",
+            "product_id": "324c",
+            "class": "088000",
+            "revision": "00",
+            "bus": "0000:ff:00.7"
+        }]}
+
+        with task_manager.acquire(self.context, self.node.id) as task:
+            self.accelerators_hook.__call__(task, self.inventory,
+                                            self.plugin_data)
+            self.node.refresh()
+            traits = objects.TraitList.get_by_node_id(self.context,
+                                                      self.node.id)
+            trait_names = traits.get_trait_names()
+            self.assertNotIn('CUSTOM_GPU_NVIDIA_TESLA_T4', trait_names)
+
+    def test_auto_set_traits_preserve_other_traits(self):
+        CONF.set_override('auto_set_accelerator_traits', True,
+                          group='inspector')
+        self.accelerators_hook._known_devices = _KNOWN_DEVICES_WITH_TRAITS
+
+        trait_obj = objects.Trait(self.context, node_id=self.node.id,
+                                  trait='CUSTOM_SOMETHING_ELSE')
+        trait_obj.create()
+
+        with task_manager.acquire(self.context, self.node.id) as task:
+            self.accelerators_hook.__call__(task, self.inventory,
+                                            self.plugin_data)
+            self.node.refresh()
+            traits = objects.TraitList.get_by_node_id(self.context,
+                                                      self.node.id)
+            trait_names = traits.get_trait_names()
+            self.assertIn('CUSTOM_GPU_NVIDIA_TESLA_T4', trait_names)
+            self.assertIn('CUSTOM_SOMETHING_ELSE', trait_names)
+
+    def test_auto_set_traits_enabled_by_default(self):
+        # No override: trait management is enabled by default.
+        self.accelerators_hook._known_devices = _KNOWN_DEVICES_WITH_TRAITS
+        with task_manager.acquire(self.context, self.node.id) as task:
+            self.accelerators_hook.__call__(task, self.inventory,
+                                            self.plugin_data)
+            self.node.refresh()
+            traits = objects.TraitList.get_by_node_id(self.context,
+                                                      self.node.id)
+            trait_names = traits.get_trait_names()
+            self.assertIn('CUSTOM_GPU_NVIDIA_TESLA_T4', trait_names)
+
+    def test_auto_set_traits_missing_trait_warning(self):
+        # A known accelerator without a trait is recorded as a property,
+        # a warning is logged, and no traits are set.
+        with task_manager.acquire(self.context, self.node.id) as task:
+            with mock.patch.object(accelerators_hook, 'LOG',
+                                   autospec=True) as log_mock:
+                self.accelerators_hook.__call__(task, self.inventory,
+                                                self.plugin_data)
+            self.node.refresh()
+            self.assertIn('has no trait',
+                          str(log_mock.warning.call_args))
+            traits = objects.TraitList.get_by_node_id(self.context,
+                                                      self.node.id)
+            self.assertEqual([], traits.get_trait_names())
+            result = self.node.properties.get('accelerators', [])
+            expected = [{'vendor_id': '0de',
+                         'device_id': '1eb8',
+                         'type': 'GPU',
+                         'device_info': 'NVIDIA Corporation Tesla T4',
+                         'pci_address': '0000:00:01.2'}]
+            self.assertEqual(result, expected)
