@@ -2203,6 +2203,24 @@ def node_update_cache(task):
     node_cache_firmware_components(task)
 
 
+def sanitize_steps(steps):
+    """Return a copy of a step or a list of steps that is safe to log.
+
+    The values of sensitive step arguments, such as tokens, are masked. The
+    steps passed in are left as they are, as they are what will be run.
+
+    :param steps: a step dict, or a list of step dicts.
+    :returns: a masked copy of steps.
+    """
+    if isinstance(steps, dict):
+        if isinstance(steps.get('args'), dict):
+            return dict(steps, args=strutils.mask_dict_password(steps['args']))
+        return dict(steps)
+    if isinstance(steps, (list, tuple)):
+        return [sanitize_steps(step) for step in steps]
+    return steps
+
+
 def log_step_flow_history(node, flow, steps, status, aborted_step=None):
     """Persist start/end milestones for cleaning / servicing / deploy flows.
 
@@ -2216,14 +2234,7 @@ def log_step_flow_history(node, flow, steps, status, aborted_step=None):
             or CONF.conductor.log_step_flows_to_syslog):
         return
 
-    sanitized = [
-        (
-            dict(st, args=strutils.mask_dict_password(st["args"]))
-            if isinstance(st, dict) and isinstance(st.get("args"), dict)
-            else st
-        )
-        for st in (steps or [])
-    ]
+    sanitized = sanitize_steps(steps or [])
 
     error = False
     if status == "start":
