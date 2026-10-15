@@ -1,0 +1,6 @@
+---
+security:
+  - |
+    Sensitive step arguments, such as passwords and tokens, are now masked
+    when the conductor logs a step or a list of steps, and in step error
+    messages. Previously the steps were logged with all of their arguments.
