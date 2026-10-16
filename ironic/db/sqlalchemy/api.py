@@ -367,7 +367,7 @@ def add_node_filter_by_chassis(query, value):
 
 def add_allocation_filter_by_node(query, value):
     if strutils.is_int_like(value):
-        return query.filter_by(node_id=value)
+        return query.filter(models.Allocation.node_id == value)
     else:
         query = query.join(models.Node,
                            models.Allocation.node_id == models.Node.id)
@@ -376,7 +376,7 @@ def add_allocation_filter_by_node(query, value):
 
 def add_allocation_filter_by_conductor(query, value):
     if strutils.is_int_like(value):
-        return query.filter_by(conductor_affinity=value)
+        return query.filter(models.Allocation.conductor_affinity == value)
     else:
         # Assume hostname and join with the conductor table
         query = query.join(
@@ -623,8 +623,8 @@ class Connection(api.Connection):
         else:
             query = add_allocation_filter_by_conductor(query, conductor)
 
-        if filters:
-            query = query.filter_by(**filters)
+        for field, value in filters.items():
+            query = query.filter(getattr(models.Allocation, field) == value)
         return query
 
     def get_nodeinfo_list(self, columns=None, filters=None, limit=None,
