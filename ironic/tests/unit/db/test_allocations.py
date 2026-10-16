@@ -108,6 +108,23 @@ class AllocationsTestCase(base.DbTestCase):
             filters={'node_uuid': self.node.uuid})
         self.assertEqual([self.allocation.uuid], [r.uuid for r in res])
 
+    def test_get_allocation_list_filter_by_node_and_owner(self):
+        # Both nodes and allocations have an owner column, so combining a
+        # node UUID filter (which joins nodes) with an owner filter must not
+        # be ambiguous.
+        self._create_test_allocation_range(6, owner='project-a')
+        self.dbapi.update_allocation(self.allocation.id,
+                                     {'node_id': self.node.id,
+                                      'owner': 'project-a'})
+
+        res = self.dbapi.get_allocation_list(
+            filters={'node_uuid': self.node.uuid, 'owner': 'project-a'})
+        self.assertEqual([self.allocation.uuid], [r.uuid for r in res])
+
+        res = self.dbapi.get_allocation_list(
+            filters={'node_uuid': self.node.uuid, 'owner': 'project-b'})
+        self.assertEqual([], res)
+
     def test_get_allocation_list_filter_by_rsc(self):
         self._create_test_allocation_range(6)
         self.dbapi.update_allocation(self.allocation.id,
