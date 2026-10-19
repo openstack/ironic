@@ -772,9 +772,13 @@ class NeutronVIFPortIDMixin(VIFPortIDMixin):
                                              vif_info['id'])
 
                 case _:
-                    LOG.warning(('_vif_attach_tbn: Unhandled action '
-                                 'encountered: \'s(action)%\'.',
-                                 {'action': type(action)}))
+                    msg = (_('Unable to attach VIF %(vif)s to node %(node)s. '
+                             'Trait Based Networking selected an action '
+                             'which cannot be handled: %(action)s') %
+                           {'vif': vif_info['id'], 'node': task.node.uuid,
+                            'action': action})
+                    LOG.error(msg)
+                    raise exception.NetworkError(msg)
         finally:
             client.close()
 

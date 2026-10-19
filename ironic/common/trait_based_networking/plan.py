@@ -111,7 +111,9 @@ def plan_network(
 
             # TODO(clif): Support bond_ports?
             case _:
-                new_actions = [base.NotImplementedAction(trait_action.action)]
+                new_actions = [base.NotImplementedAction(trait_action,
+                                                         node_uuid,
+                                                         trait_action.action)]
 
         # NOTE(clif): Ordering of actions is up to the operator.
         rendered_actions.extend(new_actions)
