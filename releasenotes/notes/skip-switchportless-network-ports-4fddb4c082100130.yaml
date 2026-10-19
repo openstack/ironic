@@ -1,0 +1,9 @@
+---
+fixes:
+  - |
+    The ``ironic-networking`` interface now skips ports without
+    ``extra.switchport`` data when adding or removing provisioning, cleaning,
+    rescue, inspection, and servicing networks. Previously, a network-level
+    configuration could be applied to any port with a
+    ``local_link_connection``. See `bug 2170129
+    <https://bugs.launchpad.net/ironic/+bug/2170129>`_.

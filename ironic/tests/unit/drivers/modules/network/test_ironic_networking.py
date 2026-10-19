@@ -1071,6 +1071,17 @@ class IronicNetworkingNetworkActionsTestCase(
             f'Ironic Port {self.port.uuid}', 'access', 200)
         mock_call.assert_called_with(*expected_args, **expected_kwargs)
 
+    def test_add_provisioning_network_without_switchport_config(self):
+        self._configure_driver_info(
+            'provisioning', 'access/native_vlan=200')
+        port = self._create_test_port(extra={})
+        with mock.patch.object(networking_api, 'update_port',
+                               autospec=True) as update_mock:
+            with self._prepare_task(states.DEPLOYING) as task:
+                task.ports = [port]
+                self.interface.add_provisioning_network(task)
+        update_mock.assert_not_called()
+
     def test_remove_provisioning_network_with_config(self):
         mock_call = self._test_remove_network(
             'remove_provisioning_network', states.DEPLOYING,
@@ -1078,6 +1089,17 @@ class IronicNetworkingNetworkActionsTestCase(
         mock_call.assert_called_with(
             mock.ANY, '00:11:22:33:44:55', 'GigE1/0/1', 200,
             allowed_vlans=None, default_vlan=None)
+
+    def test_remove_provisioning_network_without_switchport_config(self):
+        self._configure_driver_info(
+            'provisioning', 'access/native_vlan=200')
+        port = self._create_test_port(extra={})
+        with mock.patch.object(networking_api, 'reset_port',
+                               autospec=True) as reset_mock:
+            with self._prepare_task(states.DEPLOYING) as task:
+                task.ports = [port]
+                self.interface.remove_provisioning_network(task)
+        reset_mock.assert_not_called()
 
     def test_add_provisioning_network_with_idle(self):
         CONF.set_override('idle_network', 'access/native_vlan=1',
@@ -1173,6 +1195,15 @@ class IronicNetworkingNetworkActionsTestCase(
             f'Ironic Port {self.port.uuid}', 'access', 100,
             allowed_vlans=None, lag_name=None, default_vlan=None)
 
+    def test_configure_tenant_networks_without_switchport_config(self):
+        port = self._create_test_port(extra={})
+        with mock.patch.object(networking_api, 'update_port',
+                               autospec=True) as update_mock:
+            with task_manager.acquire(self.context, self.node.uuid) as task:
+                task.ports = [port]
+                self.interface.configure_tenant_networks(task)
+        update_mock.assert_not_called()
+
     def test_unconfigure_tenant_networks(self):
         with mock.patch.object(networking_api, 'reset_port',
                                autospec=True) as reset_mock:
@@ -1183,6 +1214,15 @@ class IronicNetworkingNetworkActionsTestCase(
         reset_mock.assert_called_with(
             self.context, '00:11:22:33:44:55', 'GigE1/0/1', 100,
             allowed_vlans=None, default_vlan=None)
+
+    def test_unconfigure_tenant_networks_without_switchport_config(self):
+        port = self._create_test_port(extra={})
+        with mock.patch.object(networking_api, 'reset_port',
+                               autospec=True) as reset_mock:
+            with task_manager.acquire(self.context, self.node.uuid) as task:
+                task.ports = [port]
+                self.interface.unconfigure_tenant_networks(task)
+        reset_mock.assert_not_called()
 
     def test_validate_rescue_success(self):
         with self._prepare_task(states.RESCUING) as task:
