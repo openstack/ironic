@@ -1100,7 +1100,7 @@ RELEASE_MAPPING = {
     'master': {
         'api': '1.115',
         'rpc': '1.62',
-        'networking_rpc': '1.0',
+        'networking_rpc': '1.1',
         'objects': {
             'Allocation': ['1.3', '1.2', '1.1'],
             'BIOSSetting': ['1.2', '1.1'],

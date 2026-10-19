@@ -69,6 +69,27 @@ class NetworkingApiTestCase(unittest.TestCase):
             )
             self.assertIs(result, api_mock.update_port.return_value)
 
+    def test_update_port_with_mtu_delegates_to_rpc(self):
+        api_mock = mock.Mock()
+        with mock.patch.object(
+            api, "get_networking_api", return_value=api_mock,
+            autospec=True
+        ):
+            context = object()
+            result = api.update_port(
+                context, "switch0", "eth0", "description", "access", 24,
+                mtu=9000,
+            )
+
+            api_mock.update_port.assert_called_once_with(
+                context, "switch0", "eth0", "description", "access", 24,
+                allowed_vlans=None,
+                lag_name=None,
+                default_vlan=None,
+                mtu=9000,
+            )
+            self.assertIs(result, api_mock.update_port.return_value)
+
     def test_reset_port_delegates_to_rpc(self):
         api_mock = mock.Mock()
         with mock.patch.object(
@@ -83,6 +104,25 @@ class NetworkingApiTestCase(unittest.TestCase):
             api_mock.reset_port.assert_called_once_with(
                 context, "switch1", "eth1", None, allowed_vlans=None,
                 default_vlan=11
+            )
+            self.assertIs(result, api_mock.reset_port.return_value)
+
+    def test_reset_port_with_mtu_delegates_to_rpc(self):
+        api_mock = mock.Mock()
+        with mock.patch.object(
+            api, "get_networking_api", return_value=api_mock,
+            autospec=True
+        ):
+            context = object()
+            result = api.reset_port(
+                context, "switch1", "eth1", mtu=9000,
+            )
+
+            api_mock.reset_port.assert_called_once_with(
+                context, "switch1", "eth1", None,
+                allowed_vlans=None,
+                default_vlan=None,
+                mtu=9000,
             )
             self.assertIs(result, api_mock.reset_port.return_value)
 
@@ -102,6 +142,7 @@ class NetworkingApiTestCase(unittest.TestCase):
                 100,
                 "lacp",
                 allowed_vlans=[200],
+                mtu=9000,
             )
 
             api_mock.update_lag.assert_called_once_with(
@@ -114,6 +155,7 @@ class NetworkingApiTestCase(unittest.TestCase):
                 "lacp",
                 allowed_vlans=[200],
                 default_vlan=None,
+                mtu=9000,
             )
             self.assertIs(
                 result, api_mock.update_lag.return_value

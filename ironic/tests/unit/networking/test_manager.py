@@ -143,6 +143,42 @@ class TestNetworkingManager(test_base.TestCase):
     @mock.patch.object(
         switch_config, "validate_vlan_configuration", autospec=True
     )
+    def test_update_port_with_mtu(self, mock_validate_vlan, mock_get_driver):
+        """Test that MTU is passed through to the switch driver."""
+        mock_driver = mock.Mock()
+        mock_get_driver.return_value = mock_driver
+        mock_validate_vlan.return_value = None
+
+        result = self.manager.update_port(
+            self.context,
+            "switch-01",
+            "port-01",
+            "Test port",
+            "access",
+            100,
+            mtu=9000,
+        )
+
+        self.assertEqual(9000, result["mtu"])
+
+        mock_driver.update_port.assert_called_once_with(
+            "switch-01",
+            "port-01",
+            "Test port",
+            "access",
+            100,
+            allowed_vlans=None,
+            default_vlan=None,
+            lag_name=None,
+            mtu=9000,
+        )
+
+    @mock.patch.object(
+        manager.NetworkingManager, "_get_switch_driver", autospec=True
+    )
+    @mock.patch.object(
+        switch_config, "validate_vlan_configuration", autospec=True
+    )
     def test_update_port_vlan_validation_failure(
         self, mock_validate_vlan, mock_get_driver
     ):
@@ -775,6 +811,71 @@ class TestNetworkingManagerEdgeCases(test_base.TestCase):
         switch_config, "validate_vlan_configuration", autospec=True
     )
     @mock.patch.object(manager.METRICS, "timer", autospec=True)
+    def test_update_port_invalid_mtu(self, mock_timer, mock_validate):
+        """Test update_port rejects an MTU outside the supported range."""
+        mock_timer.return_value = mock.Mock()
+
+        exc = self.assertRaises(
+            messaging.rpc.ExpectedException,
+            self.manager.update_port,
+            self.context,
+            "switch-01",
+            "port-01",
+            "Test port",
+            "access",
+            100,
+            mtu=9217,
+        )
+        self.assertEqual(exception.InvalidParameterValue, exc.exc_info[0])
+
+    @mock.patch.object(
+        switch_config, "validate_vlan_configuration", autospec=True
+    )
+    @mock.patch.object(manager.METRICS, "timer", autospec=True)
+    def test_update_port_mtu_below_minimum(
+        self, mock_timer, mock_validate
+    ):
+        """Test update_port rejects an MTU below the supported range."""
+        mock_timer.return_value = mock.Mock()
+
+        exc = self.assertRaises(
+            messaging.rpc.ExpectedException,
+            self.manager.update_port,
+            self.context,
+            "switch-01",
+            "port-01",
+            "Test port",
+            "access",
+            100,
+            mtu=67,
+        )
+        self.assertEqual(exception.InvalidParameterValue, exc.exc_info[0])
+
+    @mock.patch.object(
+        switch_config, "validate_vlan_configuration", autospec=True
+    )
+    @mock.patch.object(manager.METRICS, "timer", autospec=True)
+    def test_update_port_mtu_not_integer(self, mock_timer, mock_validate):
+        """Test update_port rejects an MTU with an invalid type."""
+        mock_timer.return_value = mock.Mock()
+
+        exc = self.assertRaises(
+            messaging.rpc.ExpectedException,
+            self.manager.update_port,
+            self.context,
+            "switch-01",
+            "port-01",
+            "Test port",
+            "access",
+            100,
+            mtu="9000",
+        )
+        self.assertEqual(exception.InvalidParameterValue, exc.exc_info[0])
+
+    @mock.patch.object(
+        switch_config, "validate_vlan_configuration", autospec=True
+    )
+    @mock.patch.object(manager.METRICS, "timer", autospec=True)
     def test_update_lag_invalid_aggregation_mode(
         self, mock_timer, mock_validate_vlan
     ):
@@ -873,6 +974,23 @@ class TestNetworkingManagerResetPort(test_base.TestCase):
             "status": "reset",
         }
         self.assertEqual(expected, result)
+
+    @mock.patch.object(
+        manager.NetworkingManager, "_get_switch_driver", autospec=True
+    )
+    def test_reset_port_with_mtu(self, mock_get_driver):
+        """Test that MTU is passed through when resetting a port."""
+        mock_driver = mock.Mock()
+        mock_get_driver.return_value = mock_driver
+
+        result = self.manager.reset_port(
+            self.context, "switch-01", "port-01", 100, mtu=9000)
+
+        self.assertEqual(9000, result["mtu"])
+
+        mock_driver.reset_port.assert_called_once_with(
+            "switch-01", "port-01", 100,
+            allowed_vlans=None, default_vlan=None, mtu=9000)
 
     @mock.patch.object(
         manager.NetworkingManager, "_get_switch_driver", autospec=True

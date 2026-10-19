@@ -23,6 +23,8 @@ from ironic.common.i18n import _
 
 LOG = log.getLogger(__name__)
 CONF = cfg.CONF
+MIN_MTU = 68
+MAX_MTU = 9216
 
 
 def rpc_transport():
@@ -31,6 +33,20 @@ def rpc_transport():
         return CONF.rpc_transport
     else:
         return CONF.ironic_networking.rpc_transport
+
+
+def validate_mtu(mtu):
+    """Validate an optional Ethernet MTU value."""
+    if mtu is None:
+        return
+
+    if (
+        isinstance(mtu, bool)
+        or not isinstance(mtu, int)
+        or not MIN_MTU <= mtu <= MAX_MTU
+    ):
+        raise ValueError(
+            f"mtu must be an integer between {MIN_MTU} and {MAX_MTU}")
 
 
 def parse_vlan_ranges(vlan_spec):

@@ -36,10 +36,11 @@ class NetworkingAPI(object):
     API version history:
 
     |    1.0 - Initial version.
+    |    1.1 - Add optional MTU support to operations.
     """
 
     # NOTE(alegacy): This must be in sync with manager.NetworkingManager's.
-    RPC_API_VERSION = "1.0"
+    RPC_API_VERSION = "1.1"
 
     def __init__(self, topic=None):
         super(NetworkingAPI, self).__init__()
@@ -70,7 +71,8 @@ class NetworkingAPI(object):
             )
             # Keep the original topic for JSON-RPC (needed for host extraction)
         elif networking_utils.rpc_transport() != "none":
-            target = messaging.Target(topic=self.topic, version="1.0")
+            target = messaging.Target(
+                topic=self.topic, version=self.RPC_API_VERSION)
             self.client = rpc.get_client(
                 target, version_cap=version_cap, serializer=serializer
             )
@@ -110,6 +112,7 @@ class NetworkingAPI(object):
         default_vlan=None,
         lag_name=None,
         topic=None,
+        mtu=None,
     ):
         """Update a port configuration on a switch.
 
@@ -122,12 +125,17 @@ class NetworkingAPI(object):
         :param allowed_vlans: List of allowed VLAN IDs to be added(optional).
         :param default_vlan: VLAN ID to removed from the port(optional).
         :param lag_name: LAG name if port is part of a link aggregation group.
+        :param mtu: Ethernet Maximum Transmission Unit for the port (optional).
         :param topic: RPC topic. Defaults to self.topic.
         :raises: InvalidParameterValue if validation fails.
         :raises: NetworkError if the network operation fails.
         :returns: Dictionary containing the updated port configuration.
         """
-        cctxt = self._prepare_call(topic=topic, version="1.0")
+        version = "1.1" if mtu is not None else "1.0"
+        cctxt = self._prepare_call(topic=topic, version=version)
+        optional_kwargs = {}
+        if mtu is not None:
+            optional_kwargs['mtu'] = mtu
         return cctxt.call(
             context,
             "update_port",
@@ -139,6 +147,7 @@ class NetworkingAPI(object):
             allowed_vlans=allowed_vlans,
             lag_name=lag_name,
             default_vlan=default_vlan,
+            **optional_kwargs
         )
 
     def reset_port(
@@ -150,6 +159,7 @@ class NetworkingAPI(object):
         allowed_vlans=None,
         default_vlan=None,
         topic=None,
+        mtu=None,
     ):
         """Reset a network switch port to default configuration.
 
@@ -159,12 +169,17 @@ class NetworkingAPI(object):
         :param native_vlan: VLAN ID to be removed from the port.
         :param allowed_vlans: List of allowed VLAN IDs to be removed(optional).
         :param default_vlan: VLAN ID to restore onto the port(optional).
+        :param mtu: Ethernet Maximum Transmission Unit for the port (optional).
         :param topic: RPC topic. Defaults to self.topic.
         :raises: InvalidParameterValue if validation fails.
         :raises: NetworkError if the network operation fails.
         :returns: Dictionary containing the reset port configuration.
         """
-        cctxt = self._prepare_call(topic=topic, version="1.0")
+        version = "1.1" if mtu is not None else "1.0"
+        cctxt = self._prepare_call(topic=topic, version=version)
+        optional_kwargs = {}
+        if mtu is not None:
+            optional_kwargs['mtu'] = mtu
         return cctxt.call(
             context,
             "reset_port",
@@ -173,6 +188,7 @@ class NetworkingAPI(object):
             native_vlan=native_vlan,
             allowed_vlans=allowed_vlans,
             default_vlan=default_vlan,
+            **optional_kwargs
         )
 
     def get_switches(self, context, topic=None):
@@ -198,6 +214,7 @@ class NetworkingAPI(object):
         allowed_vlans=None,
         default_vlan=None,
         topic=None,
+        mtu=None,
     ):
         """Update a link aggregation group (LAG) configuration.
 
@@ -210,12 +227,17 @@ class NetworkingAPI(object):
         :param aggregation_mode: Aggregation mode (e.g., 'lacp', 'static').
         :param allowed_vlans: List of allowed VLAN IDs to be added (optional).
         :param default_vlan: VLAN ID to removed from the port(optional).
+        :param mtu: Ethernet Maximum Transmission Unit for the LAG (optional).
         :param topic: RPC topic. Defaults to self.topic.
         :raises: InvalidParameterValue if validation fails.
         :raises: NetworkError if the network operation fails.
         :returns: Dictionary containing the updated LAG configuration.
         """
-        cctxt = self._prepare_call(topic=topic, version="1.0")
+        version = "1.1" if mtu is not None else "1.0"
+        cctxt = self._prepare_call(topic=topic, version=version)
+        optional_kwargs = {}
+        if mtu is not None:
+            optional_kwargs['mtu'] = mtu
         return cctxt.call(
             context,
             "update_lag",
@@ -227,6 +249,7 @@ class NetworkingAPI(object):
             aggregation_mode=aggregation_mode,
             allowed_vlans=allowed_vlans,
             default_vlan=default_vlan,
+            **optional_kwargs
         )
 
     def delete_lag(

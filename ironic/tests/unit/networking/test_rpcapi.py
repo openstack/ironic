@@ -184,6 +184,41 @@ class TestNetworkingAPI(test_base.TestCase):
         self.assertEqual({"status": "configured"}, result)
 
     @mock.patch.object(rpcapi.NetworkingAPI, "_prepare_call", autospec=True)
+    def test_update_port_with_mtu(self, mock_prepare):
+        """Test update_port call with an MTU."""
+        mock_cctxt = mock.Mock()
+        mock_prepare.return_value = mock_cctxt
+        mock_cctxt.call.return_value = {"status": "configured"}
+
+        result = self.api.update_port(
+            self.context,
+            "switch-01",
+            "port-01",
+            "Test port",
+            "access",
+            100,
+            mtu=9000,
+        )
+
+        mock_prepare.assert_called_once_with(
+            self.api, topic=None, version="1.1"
+        )
+        mock_cctxt.call.assert_called_once_with(
+            self.context,
+            "update_port",
+            switch_id="switch-01",
+            port_name="port-01",
+            description="Test port",
+            mode="access",
+            native_vlan=100,
+            allowed_vlans=None,
+            lag_name=None,
+            default_vlan=None,
+            mtu=9000,
+        )
+        self.assertEqual({"status": "configured"}, result)
+
+    @mock.patch.object(rpcapi.NetworkingAPI, "_prepare_call", autospec=True)
     def test_update_port_with_custom_topic(self, mock_prepare):
         """Test update_port call with custom topic."""
         mock_cctxt = mock.Mock()
@@ -277,6 +312,36 @@ class TestNetworkingAPI(test_base.TestCase):
         self.assertEqual({"status": "reset"}, result)
 
     @mock.patch.object(rpcapi.NetworkingAPI, "_prepare_call", autospec=True)
+    def test_reset_port_with_mtu(self, mock_prepare):
+        """Test reset_port call with an MTU."""
+        mock_cctxt = mock.Mock()
+        mock_prepare.return_value = mock_cctxt
+        mock_cctxt.call.return_value = {"status": "reset"}
+
+        result = self.api.reset_port(
+            self.context,
+            "switch-01",
+            "port-01",
+            100,
+            mtu=9000,
+        )
+
+        mock_prepare.assert_called_once_with(
+            self.api, topic=None, version="1.1"
+        )
+        mock_cctxt.call.assert_called_once_with(
+            self.context,
+            "reset_port",
+            switch_id="switch-01",
+            port_name="port-01",
+            native_vlan=100,
+            allowed_vlans=None,
+            default_vlan=None,
+            mtu=9000,
+        )
+        self.assertEqual({"status": "reset"}, result)
+
+    @mock.patch.object(rpcapi.NetworkingAPI, "_prepare_call", autospec=True)
     def test_reset_port_with_custom_topic(self, mock_prepare):
         """Test reset_port call with custom topic."""
         mock_cctxt = mock.Mock()
@@ -358,10 +423,11 @@ class TestNetworkingAPI(test_base.TestCase):
             "lacp",
             allowed_vlans=[101, 102],
             default_vlan=1,
+            mtu=9000,
         )
 
         mock_prepare.assert_called_once_with(
-            self.api, topic=None, version="1.0"
+            self.api, topic=None, version="1.1"
         )
         mock_cctxt.call.assert_called_once_with(
             self.context,
@@ -374,6 +440,7 @@ class TestNetworkingAPI(test_base.TestCase):
             aggregation_mode="lacp",
             allowed_vlans=[101, 102],
             default_vlan=1,
+            mtu=9000,
         )
         self.assertEqual({"status": "configured"}, result)
 

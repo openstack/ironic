@@ -116,7 +116,7 @@ class NetworkingManager(object):
     """Ironic Networking service manager."""
 
     # NOTE(alegacy): This must be in sync with rpcapi.NetworkingAPI's.
-    RPC_API_VERSION = "1.0"
+    RPC_API_VERSION = "1.1"
 
     target = messaging.Target(version=RPC_API_VERSION)
 
@@ -271,6 +271,7 @@ class NetworkingManager(object):
         allowed_vlans=None,
         default_vlan=None,
         lag_name=None,
+        mtu=None,
     ):
         """Implementation of port update operation.
 
@@ -282,12 +283,16 @@ class NetworkingManager(object):
         :param allowed_vlans: Allowed VLAN IDs to be removed (optional).
         :param default_vlan: VLAN ID to restore onto the port (optional).
         :param lag_name: Name of the LAG (optional).
+        :param mtu: Ethernet Maximum Transmission Unit for the port (optional).
         :returns: Dictionary containing the updated port configuration.
         """
         # Get the appropriate switch driver
         driver = self._get_switch_driver(switch_id)
 
         # Call the driver's update_port method
+        optional_kwargs = {}
+        if mtu is not None:
+            optional_kwargs['mtu'] = mtu
         driver.update_port(
             switch_id,
             port_name,
@@ -297,6 +302,7 @@ class NetworkingManager(object):
             allowed_vlans=allowed_vlans,
             default_vlan=default_vlan,
             lag_name=lag_name,
+            **optional_kwargs,
         )
 
         # Return configuration summary
@@ -311,6 +317,8 @@ class NetworkingManager(object):
             "lag_name": lag_name,
             "status": "configured",
         }
+        if mtu is not None:
+            port_config["mtu"] = mtu
 
         LOG.info(
             "Successfully configured port %(port)s on switch %(switch)s",
@@ -337,6 +345,7 @@ class NetworkingManager(object):
         allowed_vlans=None,
         default_vlan=None,
         lag_name=None,
+        mtu=None,
     ):
         """Update a network switch port configuration.
 
@@ -350,6 +359,7 @@ class NetworkingManager(object):
         :param default_vlan: VLAN ID to restore onto the port (optional).
         :param lag_name: Name of the LAG if port is part of a link aggregation
                          group (optional).
+        :param mtu: Ethernet Maximum Transmission Unit for the port (optional).
         :raises: InvalidParameterValue if validation fails.
         :raises: NetworkError if the network operation fails.
         :returns: Dictionary containing the updated port configuration.
@@ -376,6 +386,11 @@ class NetworkingManager(object):
                 _("native_vlan must be an integer between 1 and 4094")
             )
 
+        try:
+            networking_utils.validate_mtu(mtu)
+        except ValueError as e:
+            raise exception.InvalidParameterValue(str(e))
+
         # Validate allowed_vlans if provided
         if allowed_vlans is not None:
             if not isinstance(allowed_vlans, (list, tuple)):
@@ -401,6 +416,7 @@ class NetworkingManager(object):
                 allowed_vlans=allowed_vlans,
                 default_vlan=default_vlan,
                 lag_name=lag_name,
+                mtu=mtu,
             )
         except exception.InvalidParameterValue:
             # Re-raise validation errors as-is
@@ -420,7 +436,7 @@ class NetworkingManager(object):
 
     def _reset_port_impl(
         self, switch_id, port_name, native_vlan, allowed_vlans=None,
-        default_vlan=None
+        default_vlan=None, mtu=None
     ):
         """Implementation of port reset operation.
 
@@ -429,15 +445,21 @@ class NetworkingManager(object):
         :param native_vlan: VLAN ID to be removed from the port.
         :param allowed_vlans: Allowed VLAN IDs to be removed (optional).
         :param default_vlan: VLAN ID to restore onto the port (optional).
+        :param mtu: Ethernet Maximum Transmission Unit for the port (optional).
         :returns: Dictionary containing the reset port configuration.
         """
         # Get the appropriate switch driver
         driver = self._get_switch_driver(switch_id)
 
         # Call the driver's reset_port method
+        optional_kwargs = {}
+        if mtu is not None:
+            optional_kwargs['mtu'] = mtu
         driver.reset_port(
             switch_id, port_name, native_vlan,
-            allowed_vlans=allowed_vlans, default_vlan=default_vlan
+            allowed_vlans=allowed_vlans,
+            default_vlan=default_vlan,
+            **optional_kwargs
         )
 
         # Return reset configuration summary
@@ -451,6 +473,8 @@ class NetworkingManager(object):
             "default_vlan": default_vlan,
             "status": "reset",
         }
+        if mtu is not None:
+            port_config["mtu"] = mtu
 
         LOG.info(
             "Successfully reset port %(port)s on switch %(switch)s",
@@ -473,6 +497,7 @@ class NetworkingManager(object):
         native_vlan,
         allowed_vlans=None,
         default_vlan=None,
+        mtu=None,
     ):
         """Reset a network switch port to default configuration.
 
@@ -482,6 +507,7 @@ class NetworkingManager(object):
         :param native_vlan: VLAN ID to be removed from the port.
         :param allowed_vlans: Allowed VLAN IDs to be removed (optional).
         :param default_vlan: VLAN ID to restore onto the port (optional).
+        :param mtu: Ethernet Maximum Transmission Unit for the port (optional).
         :raises: InvalidParameterValue if validation fails.
         :raises: NetworkError if the network operation fails.
         :returns: Dictionary containing the reset port configuration.
@@ -492,9 +518,15 @@ class NetworkingManager(object):
         )
 
         try:
+            networking_utils.validate_mtu(mtu)
+        except ValueError as e:
+            raise exception.InvalidParameterValue(str(e))
+
+        try:
             return self._reset_port_impl(
                 switch_id, port_name, native_vlan,
-                allowed_vlans=allowed_vlans, default_vlan=default_vlan
+                allowed_vlans=allowed_vlans, default_vlan=default_vlan,
+                mtu=mtu,
             )
         except exception.InvalidParameterValue:
             # Re-raise validation errors as-is
@@ -536,6 +568,7 @@ class NetworkingManager(object):
         aggregation_mode,
         allowed_vlans=None,
         default_vlan=None,
+        mtu=None,
     ):
         """Update a link aggregation group (LAG) configuration.
 
@@ -548,6 +581,7 @@ class NetworkingManager(object):
         :param aggregation_mode: Aggregation mode (e.g., 'lacp', 'static').
         :param allowed_vlans: Allowed VLAN IDs to be removed (optional).
         :param default_vlan: VLAN ID to restore onto the port (optional).
+        :param mtu: Ethernet Maximum Transmission Unit for the LAG (optional).
         :raises: InvalidParameterValue if validation fails.
         :raises: NetworkError if the network operation fails.
         :raises: SwitchMethodNotImplemented - LAG is not yet supported.

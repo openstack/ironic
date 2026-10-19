@@ -41,7 +41,8 @@ def update_port(
     native_vlan,
     allowed_vlans=None,
     lag_name=None,
-    default_vlan=None
+    default_vlan=None,
+    mtu=None,
 ):
     """Update a network switch port configuration.
 
@@ -57,11 +58,15 @@ def update_port(
     :param allowed_vlans: List of allowed VLAN IDs to be added(optional).
     :param default_vlan: VLAN ID to removed from the port(optional).
     :param lag_name: LAG name if port is part of a link aggregation group.
+    :param mtu: Ethernet Maximum Transmission Unit for the port (optional).
     :raises: InvalidParameterValue if validation fails.
     :raises: NetworkError if the network operation fails.
     :returns: Dictionary containing the updated port configuration.
     """
     api = get_networking_api()
+    optional_kwargs = {}
+    if mtu is not None:
+        optional_kwargs['mtu'] = mtu
     return api.update_port(
         context,
         switch_id,
@@ -71,7 +76,8 @@ def update_port(
         native_vlan,
         allowed_vlans=allowed_vlans,
         lag_name=lag_name,
-        default_vlan=default_vlan
+        default_vlan=default_vlan,
+        **optional_kwargs
     )
 
 
@@ -82,6 +88,7 @@ def reset_port(
     native_vlan=None,
     allowed_vlans=None,
     default_vlan=None,
+    mtu=None,
 ):
     """Reset a network switch port to default configuration.
 
@@ -94,18 +101,23 @@ def reset_port(
     :param native_vlan: VLAN ID to be removed from the port.
     :param allowed_vlans: List of allowed VLAN IDs to be removed(optional).
     :param default_vlan: VLAN ID to restore onto the port(optional).
+    :param mtu: Ethernet Maximum Transmission Unit for the port (optional).
     :raises: InvalidParameterValue if validation fails.
     :raises: NetworkError if the network operation fails.
     :returns: Dictionary containing the reset port configuration.
     """
     api = get_networking_api()
+    optional_kwargs = {}
+    if mtu is not None:
+        optional_kwargs['mtu'] = mtu
     return api.reset_port(
         context,
         switch_id,
         port_name,
         native_vlan,
         allowed_vlans=allowed_vlans,
-        default_vlan=default_vlan
+        default_vlan=default_vlan,
+        **optional_kwargs
     )
 
 
@@ -118,7 +130,8 @@ def update_lag(
     native_vlan,
     aggregation_mode,
     allowed_vlans=None,
-    default_vlan=None
+    default_vlan=None,
+    mtu=None,
 ):
     """Update a link aggregation group (LAG) configuration.
 
@@ -134,11 +147,15 @@ def update_lag(
     :param aggregation_mode: Aggregation mode (e.g., 'lacp', 'static').
     :param allowed_vlans: List of allowed VLAN IDs to be added (optional).
     :param default_vlan: VLAN ID to removed from the port(optional).
+    :param mtu: Ethernet Maximum Transmission Unit for the LAG (optional).
     :raises: InvalidParameterValue if validation fails.
     :raises: NetworkError if the network operation fails.
     :returns: Dictionary containing the updated LAG configuration.
     """
     api = get_networking_api()
+    optional_kwargs = {}
+    if mtu is not None:
+        optional_kwargs['mtu'] = mtu
     return api.update_lag(
         context,
         switch_ids,
@@ -148,7 +165,8 @@ def update_lag(
         native_vlan,
         aggregation_mode,
         allowed_vlans=allowed_vlans,
-        default_vlan=default_vlan
+        default_vlan=default_vlan,
+        **optional_kwargs
     )
 
 
