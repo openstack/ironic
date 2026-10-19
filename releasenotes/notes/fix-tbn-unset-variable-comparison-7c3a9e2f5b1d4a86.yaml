@@ -1,0 +1,8 @@
+---
+fixes:
+  - |
+    Trait Based Networking (TBN) filter expressions that reference an unset
+    value, such as ``port.vendor`` on a portgroup or ``port.category`` on a
+    port without a category, now never match, regardless of comparator.
+    Previously ordering comparators (``<``, ``<=``, ``>``, ``>=``) and prefix
+    match (``=~``) raised an error, and ``!=`` matched.
