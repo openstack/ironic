@@ -11,6 +11,8 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
+import inspect
+
 from ironic.drivers.modules.switch.base import BaseTranslator
 from ironic.drivers.modules.switch.base import SwitchDriverBase
 from ironic.drivers.modules.switch.base import SwitchDriverException
@@ -28,6 +30,30 @@ VALID_PORT_MODES = ['access', 'trunk', 'hybrid']
 VALID_TRUNK_MODES = ['trunk', 'hybrid']
 
 LOG = logging.getLogger(__name__)
+
+
+def _accepts_mtu(method):
+    """Check whether a method accepts an MTU keyword argument."""
+    try:
+        parameters = inspect.signature(method).parameters
+    except (TypeError, ValueError):
+        return False
+
+    mtu_parameter = parameters.get('mtu')
+    return (mtu_parameter is not None and mtu_parameter.kind in (
+        inspect.Parameter.POSITIONAL_OR_KEYWORD,
+        inspect.Parameter.KEYWORD_ONLY))
+
+
+def _warn_unsupported_mtu(switch_id, port_name, mtu, method):
+    """Warn when a requested MTU cannot be passed to a device method."""
+    LOG.warning(
+        "Requested MTU %(mtu)s for port %(port)s on switch %(switch)s "
+        "will not be applied: networking-generic-switch method %(method)s "
+        "does not accept an MTU argument. Continuing with the port "
+        "operation.",
+        {'mtu': mtu, 'port': port_name, 'switch': switch_id,
+         'method': method})
 
 
 class GenericSwitchDriver(SwitchDriverBase):
@@ -157,7 +183,7 @@ class GenericSwitchDriver(SwitchDriverBase):
 
     def update_port(self, switch_id, port_name, description, mode, native_vlan,
                     allowed_vlans=None, default_vlan=None,
-                    lag_name=None, **kwargs):
+                    lag_name=None, mtu=None, **kwargs):
         """Update a port configuration on a switch.
 
         :param switch_id: Identifier for the switch.
@@ -168,6 +194,7 @@ class GenericSwitchDriver(SwitchDriverBase):
         :param allowed_vlans: List of allowed VLAN IDs to be added(optional).
         :param default_vlan: VLAN ID to removed from the port(optional).
         :param lag_name: LAG name if port is part of a LAG.
+        :param mtu: Ethernet Maximum Transmission Unit for the port (optional).
         :raises: ValueError on parameter validation errors.
         :raises: SwitchNotFound if the specified switch does not exist.
         :raises: SwitchDriverException on configuration failures.
@@ -187,11 +214,12 @@ class GenericSwitchDriver(SwitchDriverBase):
                  "native_vlan %(native_vlan)s, "
                  "description '%(description)s', "
                  "allowed_vlans %(allowed_vlans)s, "
-                 "default_vlan %(default_vlan)s, ",
+                 "default_vlan %(default_vlan)s, mtu %(mtu)s, ",
                  {'port_id': port_name, 'switch_id': switch_id, 'mode': mode,
                   'native_vlan': native_vlan, 'description': description,
                   'allowed_vlans': allowed_vlans,
-                  'default_vlan': default_vlan})
+                  'default_vlan': default_vlan,
+                  'mtu': mtu})
 
         try:
             # Prepare trunk details for non-access modes
@@ -201,10 +229,18 @@ class GenericSwitchDriver(SwitchDriverBase):
                     self._get_trunk_details(native_vlan, allowed_vlans))
 
             # Configure the port
+            optional_kwargs = {}
+            if mtu is not None:
+                if _accepts_mtu(switch.plug_port_to_network):
+                    optional_kwargs['mtu'] = mtu
+                else:
+                    _warn_unsupported_mtu(
+                        switch_id, port_name, mtu, 'plug_port_to_network')
             switch.plug_port_to_network(
                 port_name, native_vlan,
                 trunk_details=trunk_details,
-                default_vlan=default_vlan)
+                default_vlan=default_vlan,
+                **optional_kwargs)
 
         except Exception as e:
             LOG.error("Failed to update port "
@@ -213,7 +249,8 @@ class GenericSwitchDriver(SwitchDriverBase):
             raise SwitchDriverException(message=str(e))
 
     def reset_port(self, switch_id, port_name,
-                   native_vlan=None, allowed_vlans=None, default_vlan=None):
+                   native_vlan=None, allowed_vlans=None, default_vlan=None,
+                   mtu=None):
         """Reset a port configuration on a switch.
 
         :param switch_id: Identifier for the switch.
@@ -221,6 +258,7 @@ class GenericSwitchDriver(SwitchDriverBase):
         :param native_vlan: VLAN ID to be removed from the port.
         :param allowed_vlans: List of allowed VLAN IDs to be removed(optional).
         :param default_vlan: VLAN ID to restore onto the port(optional).
+        :param mtu: Ethernet Maximum Transmission Unit for the port (optional).
         :raises: ValueError on parameter validation errors.
         :raises: SwitchNotFound if the specified switch does not exist.
         :raises: SwitchDriverException on configuration failures.
@@ -238,9 +276,18 @@ class GenericSwitchDriver(SwitchDriverBase):
         try:
             trunk_details = (
                 self._get_trunk_details(native_vlan, allowed_vlans))
-            switch.delete_port(port_name, native_vlan,
-                               trunk_details=trunk_details,
-                               default_vlan=default_vlan)
+            optional_kwargs = {}
+            if mtu is not None:
+                if _accepts_mtu(switch.delete_port):
+                    optional_kwargs['mtu'] = mtu
+                else:
+                    _warn_unsupported_mtu(
+                        switch_id, port_name, mtu, 'delete_port')
+            switch.delete_port(
+                port_name, native_vlan,
+                trunk_details=trunk_details,
+                default_vlan=default_vlan,
+                **optional_kwargs)
         except Exception as e:
             LOG.error("Failed to reset port "
                       "%(port_id)s on switch %(switch_id)s: %(exc)s",
@@ -315,6 +362,7 @@ class GenericSwitchDriver(SwitchDriverBase):
         aggregation_mode,
         allowed_vlans=None,
         default_vlan=None,
+        mtu=None,
     ):
         """Update LAG configuration across switches.
 
@@ -326,6 +374,7 @@ class GenericSwitchDriver(SwitchDriverBase):
         :param aggregation_mode: Aggregation mode (e.g., 'lacp', 'static').
         :param allowed_vlans: List of allowed VLAN IDs to be added (optional).
         :param default_vlan: VLAN ID to removed from the port(optional).
+        :param mtu: Ethernet Maximum Transmission Unit for the LAG (optional).
         :raises: ValueError on parameter validation errors.
         :raises: SwitchNotFound if the specified switch does not exist.
         :raises: SwitchDriverException on configuration failures.
@@ -417,5 +466,8 @@ class GenericSwitchTranslator(BaseTranslator):
             # If the user does not specify a value for persist, set it to False
             # by default since the driver itself will default to True
             driver_config["ngs_save_configuration"] = False
+
+        # Older NGS versions ignore unknown ngs_* options.
+        driver_config["ngs_manage_mtu"] = True
 
         return driver_config

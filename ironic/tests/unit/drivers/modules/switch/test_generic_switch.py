@@ -40,6 +40,9 @@ class GenericSwitchDriverTestCase(base.TestCase):
             gs.device_utils, 'get_switch_device',
             side_effect=lambda devices, switch_info=None, **kwargs:
                 devices.get(switch_info)).start()
+        self.mock_accepts_mtu = mock.patch.object(
+            gs, '_accepts_mtu', autospec=True,
+            return_value=True).start()
 
         self.addCleanup(mock.patch.stopall)
 
@@ -219,6 +222,54 @@ class GenericSwitchDriverTestCase(base.TestCase):
 
         switch.plug_port_to_network.assert_called_once_with(
             'Ethernet1/1', 100, trunk_details=None, default_vlan=1)
+
+    def test_update_port_with_mtu(self):
+        """Test that an explicit MTU is passed to the switch device."""
+        switch = self._create_switch_mock()
+        self.mock_devices['switch01'] = switch
+        driver = gs.GenericSwitchDriver()
+
+        driver.update_port(
+            switch_id='switch01',
+            port_name='Ethernet1/1',
+            description='Test Port',
+            mode='access',
+            native_vlan=100,
+            mtu=9000,
+        )
+
+        switch.plug_port_to_network.assert_called_once_with(
+            'Ethernet1/1', 100, trunk_details=None, default_vlan=None,
+            mtu=9000)
+
+    def test_update_port_with_unsupported_mtu(self):
+        """Do not pass MTU to a switch device method that lacks it."""
+        switch = self._create_switch_mock()
+        self.mock_devices['switch01'] = switch
+        driver = gs.GenericSwitchDriver()
+
+        self.mock_accepts_mtu.return_value = False
+        with mock.patch.object(
+                gs.LOG, 'warning', autospec=True) as mock_warning:
+            driver.update_port(
+                switch_id='switch01',
+                port_name='Ethernet1/1',
+                description='Test Port',
+                mode='access',
+                native_vlan=100,
+                mtu=9000,
+            )
+
+        mock_warning.assert_called_once_with(
+            "Requested MTU %(mtu)s for port %(port)s on switch %(switch)s "
+            "will not be applied: networking-generic-switch method %(method)s "
+            "does not accept an MTU argument. Continuing with the port "
+            "operation.",
+            {'mtu': 9000, 'port': 'Ethernet1/1', 'switch': 'switch01',
+             'method': 'plug_port_to_network'})
+
+        switch.plug_port_to_network.assert_called_once_with(
+            'Ethernet1/1', 100, trunk_details=None, default_vlan=None)
 
     def test_update_port_invalid_mode(self):
         """Test that invalid mode raises ValueError."""
@@ -411,6 +462,50 @@ class GenericSwitchDriverTestCase(base.TestCase):
             port_name='Ethernet1/1',
             native_vlan=1
         )
+
+        switch.delete_port.assert_called_once_with(
+            'Ethernet1/1', 1, trunk_details=None, default_vlan=None)
+
+    def test_reset_port_with_mtu(self):
+        """Test that an explicit MTU is passed to the switch device."""
+        switch = self._create_switch_mock()
+        self.mock_devices['switch01'] = switch
+        driver = gs.GenericSwitchDriver()
+
+        driver.reset_port(
+            switch_id='switch01',
+            port_name='Ethernet1/1',
+            native_vlan=1,
+            mtu=9000,
+        )
+
+        switch.delete_port.assert_called_once_with(
+            'Ethernet1/1', 1, trunk_details=None, default_vlan=None,
+            mtu=9000)
+
+    def test_reset_port_with_unsupported_mtu(self):
+        """Do not pass MTU to a switch device method that lacks it."""
+        switch = self._create_switch_mock()
+        self.mock_devices['switch01'] = switch
+        driver = gs.GenericSwitchDriver()
+
+        self.mock_accepts_mtu.return_value = False
+        with mock.patch.object(
+                gs.LOG, 'warning', autospec=True) as mock_warning:
+            driver.reset_port(
+                switch_id='switch01',
+                port_name='Ethernet1/1',
+                native_vlan=1,
+                mtu=9000,
+            )
+
+        mock_warning.assert_called_once_with(
+            "Requested MTU %(mtu)s for port %(port)s on switch %(switch)s "
+            "will not be applied: networking-generic-switch method %(method)s "
+            "does not accept an MTU argument. Continuing with the port "
+            "operation.",
+            {'mtu': 9000, 'port': 'Ethernet1/1', 'switch': 'switch01',
+             'method': 'delete_port'})
 
         switch.delete_port.assert_called_once_with(
             'Ethernet1/1', 1, trunk_details=None, default_vlan=None)
@@ -705,7 +800,8 @@ class GenericSwitchTranslatorTestCase(base.TestCase):
             'secret': 'enable_pass',
             'port': '22',
             'ngs_mac_address': '00:11:22:33:44:55',
-            'ngs_save_configuration': False
+            'ngs_save_configuration': False,
+            'ngs_manage_mtu': True,
         }
         self.assertEqual(expected, result)
 
@@ -721,9 +817,28 @@ class GenericSwitchTranslatorTestCase(base.TestCase):
         expected = {
             'device_type': 'netmiko_ovs_linux',
             'ip': '192.168.1.1',
-            'ngs_save_configuration': False
+            'ngs_save_configuration': False,
+            'ngs_manage_mtu': True,
         }
         self.assertEqual(expected, result)
+
+    def test__translate_switch_config_enables_mtu_management(self):
+        """Test that networking-generic-switch MTU management is enabled."""
+        config = {
+            'device_type': 'netmiko_cisco_ios',
+            'address': '192.168.1.1',
+            'manage_mtu': False,
+            'port_default_mtu': 1500,
+            'trunk_port_mtu': 9216,
+            'trunk_ports': 'Ethernet1/1,Ethernet1/2',
+        }
+
+        result = self.translator._translate_switch_config(config)
+
+        self.assertEqual(True, result['ngs_manage_mtu'])
+        self.assertNotIn('ngs_port_default_mtu', result)
+        self.assertNotIn('ngs_trunk_port_mtu', result)
+        self.assertNotIn('ngs_trunk_ports', result)
 
     def test__translate_switch_config_with_device_type(self):
         """Test _translate_switch_config with specific device type."""
@@ -739,7 +854,8 @@ class GenericSwitchTranslatorTestCase(base.TestCase):
             'device_type': 'netmiko_cisco_nxos',
             'ip': '192.168.1.1',
             'username': 'admin',
-            'ngs_save_configuration': False
+            'ngs_save_configuration': False,
+            'ngs_manage_mtu': True,
         }
         self.assertEqual(expected, result)
 
@@ -776,6 +892,7 @@ class GenericSwitchTranslatorTestCase(base.TestCase):
                 'username': 'test_user',
                 'password': 'test_pass',
                 'ngs_save_configuration': False,
+                'ngs_manage_mtu': True,
             }
         }
         self.assertEqual(expected, result)
@@ -802,11 +919,13 @@ class GenericSwitchTranslatorTestCase(base.TestCase):
                 'ip': '192.168.1.1',
                 'username': 'admin',
                 'ngs_save_configuration': False,
+                'ngs_manage_mtu': True,
             },
             'genericswitch:switch2': {
                 'device_type': 'netmiko_ovs_linux',
                 'ip': '192.168.1.2',
                 'ngs_save_configuration': False,
+                'ngs_manage_mtu': True,
             }
         }
         self.assertEqual(expected, result)
@@ -902,7 +1021,8 @@ class GenericSwitchTranslatorTestCase(base.TestCase):
             'device_type': 'netmiko_ovs_linux',
             'ip': '192.168.1.1',
             'ngs_allowed_vlans': '100,102,103,104,106',
-            'ngs_save_configuration': False
+            'ngs_save_configuration': False,
+            'ngs_manage_mtu': True,
         }
         self.assertEqual(expected, result)
 
@@ -920,6 +1040,7 @@ class GenericSwitchTranslatorTestCase(base.TestCase):
             'device_type': 'netmiko_ovs_linux',
             'ip': '192.168.1.1',
             'ngs_allowed_vlans': '100,102,103,104,106',
-            'ngs_save_configuration': False
+            'ngs_save_configuration': False,
+            'ngs_manage_mtu': True,
         }
         self.assertEqual(expected, result)

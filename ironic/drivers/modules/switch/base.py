@@ -137,6 +137,7 @@ class SwitchDriverBase(object, metaclass=abc.ABCMeta):
         allowed_vlans=None,
         default_vlan=None,
         lag_name=None,
+        mtu=None,
     ):
         """Update a port configuration on a switch.
 
@@ -149,6 +150,7 @@ class SwitchDriverBase(object, metaclass=abc.ABCMeta):
         :param default_vlan: VLAN ID to removed from the port(optional).
         :param lag_name: LAG name if port is part of a
                                   channel.
+        :param mtu: Ethernet Maximum Transmission Unit for the port (optional).
         :raises: ValueError on parameter validation errors.
         :raises: SwitchNotFound if the specified switch does not exist.
         :raises: SwitchDriverException on configuration failures.
@@ -157,7 +159,7 @@ class SwitchDriverBase(object, metaclass=abc.ABCMeta):
     @abc.abstractmethod
     def reset_port(
         self, switch_id, port_name, native_vlan=None,
-        allowed_vlans=None, default_vlan=None
+        allowed_vlans=None, default_vlan=None, mtu=None
     ):
         """Reset a port configuration on a switch.
 
@@ -166,6 +168,7 @@ class SwitchDriverBase(object, metaclass=abc.ABCMeta):
         :param native_vlan: VLAN ID to be removed from the port.
         :param allowed_vlans: List of allowed VLAN IDs to be removed(optional).
         :param default_vlan: VLAN ID to restore onto the port(optional).
+        :param mtu: Ethernet Maximum Transmission Unit for the port (optional).
         :raises: ValueError on parameter validation errors.
         :raises: SwitchNotFound if the specified switch does not exist.
         :raises: SwitchDriverException on configuration failures.
@@ -182,6 +185,7 @@ class SwitchDriverBase(object, metaclass=abc.ABCMeta):
         aggregation_mode,
         allowed_vlans=None,
         default_vlan=None,
+        mtu=None,
     ):
         """Update LAG configuration across switches.
 
@@ -193,6 +197,7 @@ class SwitchDriverBase(object, metaclass=abc.ABCMeta):
         :param aggregation_mode: Aggregation mode (e.g., 'lacp', 'static').
         :param allowed_vlans: List of allowed VLAN IDs to be added (optional).
         :param default_vlan: VLAN ID to removed from the port(optional).
+        :param mtu: Ethernet Maximum Transmission Unit for the LAG (optional).
         :raises: ValueError on parameter validation errors.
         :raises: SwitchNotFound if the specified switch does not exist.
         :raises: SwitchDriverException on configuration failures.
@@ -276,6 +281,7 @@ class NoOpSwitchDriver(SwitchDriverBase):
         allowed_vlans=None,
         default_vlan=None,
         lag_name=None,
+        mtu=None,
     ):
         """Log port update operation without performing actual change."""
         LOG.info(
@@ -292,7 +298,8 @@ class NoOpSwitchDriver(SwitchDriverBase):
         )
 
     def reset_port(self, switch_id, port_name,
-                   native_vlan=None, allowed_vlans=None, default_vlan=None):
+                   native_vlan=None, allowed_vlans=None, default_vlan=None,
+                   mtu=None):
         """Log port reset operation without performing actual reset."""
         LOG.info("NoOp: Reset port %s on switch %s", port_name, switch_id)
 
@@ -306,12 +313,13 @@ class NoOpSwitchDriver(SwitchDriverBase):
         aggregation_mode,
         allowed_vlans=None,
         default_vlan=None,
+        mtu=None,
     ):
         """Log LAG update without performing actual configuration."""
         LOG.info(
             "NoOp: Update LAG %s on switches %s - mode: %s, "
             "native_vlan: %s, aggregation_mode: %s, "
-            "allowed_vlans: %s, default_vlan: %s",
+            "allowed_vlans: %s, default_vlan: %s, mtu: %s",
             lag_name,
             switch_ids,
             mode,
@@ -319,6 +327,7 @@ class NoOpSwitchDriver(SwitchDriverBase):
             aggregation_mode,
             allowed_vlans,
             default_vlan,
+            mtu,
         )
 
     def delete_lag(self, switch_ids, lag_name):
