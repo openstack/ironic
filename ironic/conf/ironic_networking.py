@@ -60,41 +60,43 @@ opts = [
                        'per-switch basis in the switch configuration file.')),
     cfg.StrOpt('cleaning_network',
                default='',
-               help=_('The network to use for cleaning nodes.  This should be '
-                      'expressed as {access|trunk}/native_vlan=VLAN_ID. Can '
-                      'be overridden on a per-node basis using the '
+               help=_('The network to use for cleaning nodes. '
+                      'This should be expressed as '
+                      '{access|trunk}/native_vlan=VLAN_ID[/mtu=MTU]. '
+                      'Can be overridden on a per-node basis using the '
                       'driver_info attribute and specifying this as '
                       '`cleaning_network`')),
     cfg.StrOpt('rescuing_network',
                default='',
-               help=_('The network to use for rescuing nodes.  This should be '
-                      'expressed as {access|trunk}/native_vlan=VLAN_ID. Can '
-                      'be overridden on a per-node basis using the '
+               help=_('The network to use for rescuing nodes. '
+                      'This should be expressed as '
+                      '{access|trunk}/native_vlan=VLAN_ID[/mtu=MTU]. '
+                      'Can be overridden on a per-node basis using the '
                       'driver_info attribute and specifying this as '
                       '`rescuing_network`')),
     cfg.StrOpt('provisioning_network',
                default='',
-               help=_('The network to use for provisioning nodes.  This '
-                      'should be expressed as '
-                      '{access|trunk}/native_vlan=VLAN_ID. Can be overridden '
-                      'on a per-node basis using the driver_info attribute '
-                      'and specifying this as '
+               help=_('The network to use for provisioning nodes. '
+                      'This should be expressed as '
+                      '{access|trunk}/native_vlan=VLAN_ID[/mtu=MTU]. '
+                      'Can be overridden on a per-node basis using the '
+                      'driver_info attribute and specifying this as '
                       '`provisioning_network`')),
     cfg.StrOpt('servicing_network',
                default='',
-               help=_('The network to use for servicing nodes.  This '
-                      'should be expressed as '
-                      '{access|trunk}/native_vlan=VLAN_ID. Can be overridden '
-                      'on a per-node basis using the driver_info attribute '
-                      'and specifying this as '
+               help=_('The network to use for servicing nodes. '
+                      'This should be expressed as '
+                      '{access|trunk}/native_vlan=VLAN_ID[/mtu=MTU]. '
+                      'Can be overridden on a per-node basis using the '
+                      'driver_info attribute and specifying this as '
                       '`servicing_network`')),
     cfg.StrOpt('inspection_network',
                default='',
-               help=_('The network to use for inspecting nodes.  This '
-                      'should be expressed as '
-                      '{access|trunk}/native_vlan=VLAN_ID. Can be overridden '
-                      'on a per-node basis using the driver_info attribute '
-                      'and specifying this as '
+               help=_('The network to use for inspecting nodes. '
+                      'This should be expressed as '
+                      '{access|trunk}/native_vlan=VLAN_ID[/mtu=MTU]. '
+                      'Can be overridden on a per-node basis using the '
+                      'driver_info attribute and specifying this as '
                       '`inspection_network`')),
     cfg.StrOpt('idle_network',
                default='',
@@ -103,9 +105,9 @@ opts = [
                       'this network whenever any of the other networks are '
                       'removed/unconfigured. '
                       'This should be expressed as '
-                      '{access|trunk}/native_vlan=VLAN_ID. Can be overridden '
-                      'on a per-node basis using the driver_info attribute '
-                      'and specifying this as '
+                      '{access|trunk}/native_vlan=VLAN_ID[/mtu=MTU]. '
+                      'Can be overridden on a per-node basis using the '
+                      'driver_info attribute and specifying this as '
                       '`idle_network`'))
 ]
 

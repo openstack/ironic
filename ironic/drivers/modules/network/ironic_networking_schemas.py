@@ -17,6 +17,11 @@ This module contains the JSON schemas used to validate switchport and LAG
 configuration in port and portgroup 'extra' fields.
 """
 
+from ironic.networking import utils as net_utils
+
+MIN_MTU = net_utils.MIN_MTU
+MAX_MTU = net_utils.MAX_MTU
+
 SWITCHPORT_SCHEMA = {
     "$schema": "http://json-schema.org/draft-04/schema#",
     "title": "Ironic Networking Network Interface Switchport Configuration "
@@ -58,7 +63,8 @@ SWITCHPORT_SCHEMA = {
         "mtu": {
             "type": "integer",
             "description": "Ethernet Maximum Transmission Unit of the port",
-            "maximum": 9216
+            "minimum": MIN_MTU,
+            "maximum": MAX_MTU
         }
     },
     "required": ["mode", "native_vlan"],
@@ -134,7 +140,8 @@ LAG_SCHEMA = {
         "mtu": {
             "type": "integer",
             "description": "Ethernet Maximum Transmission Unit of the port",
-            "maximum": 9216
+            "minimum": MIN_MTU,
+            "maximum": MAX_MTU
         }
     },
     "required": ["mode", "aggregation_mode"],

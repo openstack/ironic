@@ -1,0 +1,9 @@
+---
+features:
+  - |
+    The standalone ironic-networking service can now configure switch-port
+    MTUs through networking-generic-switch.  MTUs may be supplied in
+    ``port.extra.switchport`` or in the network configuration string.
+    MTU management is enabled automatically when the installed
+    networking-generic-switch version and selected switch driver expose MTU
+    support.  Older builds leave switch MTUs unchanged.

@@ -392,7 +392,13 @@ schema:
 
 * ``allowed_vlans`` (array of integers): Allowed VLAN IDs for trunk/hybrid
   modes (required if mode is trunk or hybrid)
-* ``mtu`` (integer): Maximum transmission unit (max: 9216)
+* ``mtu`` (integer): Maximum transmission unit (68-9216)
+
+Network configuration strings also accept an optional ``/mtu=MTU`` component,
+for example ``access/native_vlan=100/mtu=9000``.  If no MTU is supplied,
+no per-port MTU is sent to networking-generic-switch. MTUs are sent only when
+the installed networking-generic-switch version and selected switch driver
+expose MTU support; older builds leave switch MTUs unchanged.
 
 **Validation rules:**
 

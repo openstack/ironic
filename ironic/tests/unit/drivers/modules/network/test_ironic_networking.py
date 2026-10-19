@@ -101,7 +101,8 @@ class IronicNetworkingValidationTestCase(IronicNetworkingTestCase):
             extra={
                 'switchport': {
                     'mode': 'access',
-                    'native_vlan': 100
+                    'native_vlan': 100,
+                    'mtu': 9000,
                 }
             }
         )
@@ -385,7 +386,7 @@ class IronicNetworkingPortChangedTestCase(
 
         mock_reset_port.assert_called_once_with(
             task.context, '00:11:22:33:44:55', 'GigE1/0/1', 100,
-            allowed_vlans=None, default_vlan=None)
+            allowed_vlans=None, default_vlan=None, mtu=None)
 
     @mock.patch.object(networking_api, 'reset_port', autospec=True)
     def test_port_changed_deleted_skips_without_active_network(
@@ -428,7 +429,7 @@ class IronicNetworkingPortChangedTestCase(
 
         mock_reset_port.assert_called_once_with(
             task.context, '00:11:22:33:44:55', 'GigE1/0/1', 100,
-            allowed_vlans=[100, 200, 300], default_vlan=None)
+            allowed_vlans=[100, 200, 300], default_vlan=None, mtu=None)
 
     @mock.patch.object(networking_api, 'reset_port', autospec=True)
     def test_port_changed_deleted_case_hybrid_mode(self, mock_reset_port):
@@ -455,7 +456,7 @@ class IronicNetworkingPortChangedTestCase(
 
         mock_reset_port.assert_called_once_with(
             task.context, '00:11:22:33:44:55', 'GigE1/0/1', 100,
-            allowed_vlans=[100, 200, 300], default_vlan=None)
+            allowed_vlans=[100, 200, 300], default_vlan=None, mtu=None)
 
     @mock.patch.object(networking_api, 'update_port', autospec=True)
     def test_port_changed_created_case_access(self, mock_update_port):
@@ -474,7 +475,8 @@ class IronicNetworkingPortChangedTestCase(
             extra={
                 'switchport': {
                     'mode': 'access',
-                    'native_vlan': 100
+                    'native_vlan': 100,
+                    'mtu': 9000,
                 }
             }
         )
@@ -486,7 +488,7 @@ class IronicNetworkingPortChangedTestCase(
         mock_update_port.assert_called_once_with(
             task.context, '00:11:22:33:44:55', 'GigE1/0/1',
             'Ironic Port ' + str(current_port.uuid), 'access', 100,
-            allowed_vlans=None, lag_name=None, default_vlan=None)
+            allowed_vlans=None, lag_name=None, default_vlan=None, mtu=9000)
 
     @mock.patch.object(networking_api, 'update_port', autospec=True)
     def test_port_changed_switchport_added_no_local_link(
@@ -535,7 +537,7 @@ class IronicNetworkingPortChangedTestCase(
             'Ironic Port ' + str(current_port.uuid), 'trunk', 100,
             allowed_vlans=[100, 200, 300],
             lag_name='port-channel1',
-            default_vlan=None)
+            default_vlan=None, mtu=None)
 
     @mock.patch.object(networking_api, 'update_port', autospec=True)
     def test_port_changed_switchport_added_uses_network_override(
@@ -560,7 +562,7 @@ class IronicNetworkingPortChangedTestCase(
         mock_update_port.assert_called_once_with(
             task.context, '00:11:22:33:44:55', 'GigE1/0/1',
             'Ironic Port ' + str(current_port.uuid), 'access', 222,
-            allowed_vlans=None, lag_name=None, default_vlan=None)
+            allowed_vlans=None, lag_name=None, default_vlan=None, mtu=None)
 
     @mock.patch.object(networking_api, 'update_port', autospec=True)
     def test_port_changed_created_case_hybrid(self, mock_update_port):
@@ -595,7 +597,7 @@ class IronicNetworkingPortChangedTestCase(
             'Ironic Port ' + str(current_port.uuid), 'hybrid', 100,
             allowed_vlans=[100, 200, 300],
             lag_name='port-channel1',
-            default_vlan=None)
+            default_vlan=None, mtu=None)
 
     @mock.patch.object(networking_api, 'update_port', autospec=True)
     def test_port_changed_updated_case(self, mock_update_port):
@@ -630,7 +632,7 @@ class IronicNetworkingPortChangedTestCase(
         mock_update_port.assert_called_once_with(
             task.context, '00:11:22:33:44:55', 'GigE1/0/1',
             'Ironic Port ' + str(current_port.uuid), 'access', 200,
-            allowed_vlans=None, lag_name=None, default_vlan=None)
+            allowed_vlans=None, lag_name=None, default_vlan=None, mtu=None)
 
     def test_port_changed_no_change(self):
         """Test port_changed when no switchport config changes."""
@@ -677,11 +679,11 @@ class IronicNetworkingPortChangedTestCase(
             self.interface.port_changed(task, current_port)
         mock_reset_port.assert_called_once_with(
             task.context, '00:11:22:33:44:55', 'GigE1/0/1', 100,
-            allowed_vlans=None, default_vlan=None)
+            allowed_vlans=None, default_vlan=None, mtu=None)
         mock_update_port.assert_called_once_with(
             task.context, '00:11:22:33:44:66', 'GigE1/0/2',
             'Ironic Port ' + str(current_port.uuid), 'access', 100,
-            allowed_vlans=None, lag_name=None, default_vlan=None)
+            allowed_vlans=None, lag_name=None, default_vlan=None, mtu=None)
 
     @mock.patch.object(networking_api, 'reset_port', autospec=True)
     def test_port_changed_deleted_missing_required_fields(self,
@@ -1015,13 +1017,14 @@ class IronicNetworkingNetworkActionsTestCase(
         )
 
     def _expected_update_call(self, description, mode, native_vlan,
-                              allowed_vlans=None, default_vlan=None):
+                              allowed_vlans=None, default_vlan=None, mtu=None):
         signature = inspect.signature(networking_api.update_port)
         expected_kwargs = {'allowed_vlans': allowed_vlans}
         if 'lag_name' in signature.parameters:
             expected_kwargs['lag_name'] = None
         if 'default_vlan' in signature.parameters:
             expected_kwargs['default_vlan'] = default_vlan
+        expected_kwargs['mtu'] = mtu
         return (mock.ANY, '00:11:22:33:44:55', 'GigE1/0/1', description,
                 mode, native_vlan), expected_kwargs
 
@@ -1082,13 +1085,51 @@ class IronicNetworkingNetworkActionsTestCase(
                 self.interface.add_provisioning_network(task)
         update_mock.assert_not_called()
 
+    def test_add_provisioning_network_with_mtu(self):
+        mock_call = self._test_add_network(
+            'add_provisioning_network', states.DEPLOYING, 'provisioning',
+            'access/native_vlan=200/mtu=9000')
+        expected_args, expected_kwargs = self._expected_update_call(
+            f'Ironic Port {self.port.uuid}', 'access', 200, mtu=9000)
+        mock_call.assert_called_with(*expected_args, **expected_kwargs)
+
+    def test_add_network_uses_port_mtu(self):
+        self.config(provisioning_network='', group='ironic_networking')
+        driver_info = dict(self.node.driver_info or {})
+        driver_info.pop('provisioning_network', None)
+        self.node.driver_info = driver_info
+        self.node.save()
+        self.port.extra = {
+            'switchport': {
+                'mode': 'access',
+                'native_vlan': 100,
+                'mtu': 9000,
+            }
+        }
+        self.port.save()
+        mock_call = self._test_add_network(
+            'add_provisioning_network', states.DEPLOYING, 'provisioning')
+        expected_args, expected_kwargs = self._expected_update_call(
+            f'Ironic Port {self.port.uuid}', 'access', 100, mtu=9000)
+        mock_call.assert_called_with(*expected_args, **expected_kwargs)
+
+    def test_add_network_does_not_merge_port_mtu(self):
+        self.port.extra['switchport']['mtu'] = 1500
+        self.port.save()
+        mock_call = self._test_add_network(
+            'add_provisioning_network', states.DEPLOYING, 'provisioning',
+            'access/native_vlan=200/mtu=9000')
+        expected_args, expected_kwargs = self._expected_update_call(
+            f'Ironic Port {self.port.uuid}', 'access', 200, mtu=9000)
+        mock_call.assert_called_with(*expected_args, **expected_kwargs)
+
     def test_remove_provisioning_network_with_config(self):
         mock_call = self._test_remove_network(
             'remove_provisioning_network', states.DEPLOYING,
             'provisioning', 'access/native_vlan=200')
         mock_call.assert_called_with(
             mock.ANY, '00:11:22:33:44:55', 'GigE1/0/1', 200,
-            allowed_vlans=None, default_vlan=None)
+            allowed_vlans=None, default_vlan=None, mtu=None)
 
     def test_remove_provisioning_network_without_switchport_config(self):
         self._configure_driver_info(
@@ -1120,7 +1161,7 @@ class IronicNetworkingNetworkActionsTestCase(
             'provisioning', 'access/native_vlan=200')
         mock_call.assert_called_with(
             mock.ANY, '00:11:22:33:44:55', 'GigE1/0/1', 200,
-            allowed_vlans=None, default_vlan=1)
+            allowed_vlans=None, default_vlan=1, mtu=None)
 
     def test_add_cleaning_network_without_config(self):
         mock_call = self._test_add_network('add_cleaning_network',
@@ -1134,7 +1175,7 @@ class IronicNetworkingNetworkActionsTestCase(
                                               states.CLEANING, 'cleaning')
         mock_call.assert_called_with(
             mock.ANY, '00:11:22:33:44:55', 'GigE1/0/1', 100,
-            allowed_vlans=None, default_vlan=None)
+            allowed_vlans=None, default_vlan=None, mtu=None)
 
     def test_add_rescuing_network_with_config(self):
         mock_call = self._test_add_network(
@@ -1150,7 +1191,7 @@ class IronicNetworkingNetworkActionsTestCase(
             'rescuing', 'access/native_vlan=333')
         mock_call.assert_called_with(
             mock.ANY, '00:11:22:33:44:55', 'GigE1/0/1', 333,
-            allowed_vlans=None, default_vlan=None)
+            allowed_vlans=None, default_vlan=None, mtu=None)
 
     def test_add_inspection_network_without_config(self):
         mock_call = self._test_add_network('add_inspection_network',
@@ -1165,7 +1206,7 @@ class IronicNetworkingNetworkActionsTestCase(
                                               'inspection')
         mock_call.assert_called_with(
             mock.ANY, '00:11:22:33:44:55', 'GigE1/0/1', 100,
-            allowed_vlans=None, default_vlan=None)
+            allowed_vlans=None, default_vlan=None, mtu=None)
 
     def test_add_servicing_network_with_config(self):
         mock_call = self._test_add_network(
@@ -1181,7 +1222,7 @@ class IronicNetworkingNetworkActionsTestCase(
             'servicing', 'access/native_vlan=444')
         mock_call.assert_called_with(
             mock.ANY, '00:11:22:33:44:55', 'GigE1/0/1', 444,
-            allowed_vlans=None, default_vlan=None)
+            allowed_vlans=None, default_vlan=None, mtu=None)
 
     def test_configure_tenant_networks(self):
         with mock.patch.object(networking_api, 'update_port',
@@ -1193,7 +1234,7 @@ class IronicNetworkingNetworkActionsTestCase(
         update_mock.assert_called_with(
             self.context, '00:11:22:33:44:55', 'GigE1/0/1',
             f'Ironic Port {self.port.uuid}', 'access', 100,
-            allowed_vlans=None, lag_name=None, default_vlan=None)
+            allowed_vlans=None, lag_name=None, default_vlan=None, mtu=None)
 
     def test_configure_tenant_networks_without_switchport_config(self):
         port = self._create_test_port(extra={})
@@ -1213,7 +1254,7 @@ class IronicNetworkingNetworkActionsTestCase(
                 self.interface.unconfigure_tenant_networks(task)
         reset_mock.assert_called_with(
             self.context, '00:11:22:33:44:55', 'GigE1/0/1', 100,
-            allowed_vlans=None, default_vlan=None)
+            allowed_vlans=None, default_vlan=None, mtu=None)
 
     def test_unconfigure_tenant_networks_without_switchport_config(self):
         port = self._create_test_port(extra={})
@@ -1265,7 +1306,24 @@ class IronicNetworkingNetworkActionsTestCase(
             self.assertEqual(self.port.uuid, link['id'])
             self.assertEqual('phy', link['type'])
             self.assertEqual(self.port.address, link['ethernet_mac_address'])
-            self.assertEqual(1500, link['mtu'])
+            self.assertNotIn('mtu', link)
+
+    def test_get_node_network_data_uses_port_mtu(self):
+        """Uses the switchport MTU in generated network metadata."""
+        self.port.extra = {
+            'switchport': {
+                'mode': 'trunk',
+                'native_vlan': 100,
+                'allowed_vlans': [200],
+                'mtu': 9000,
+            }
+        }
+        self.port.save()
+        with task_manager.acquire(self.context, self.node.uuid) as task:
+            result = self.interface.get_node_network_data(task)
+        self.assertEqual(2, len(result['links']))
+        self.assertEqual([9000, 9000],
+                         [link['mtu'] for link in result['links']])
 
     def test_validate_portgroup_members_missing_local_link(self):
         """Portgroup validation raises when member lacks local link."""
@@ -1340,7 +1398,7 @@ class GetNodeNetworkDataTestCase(IronicNetworkingTestCase):
         self.assertEqual(port.uuid, link['id'])
         self.assertEqual('phy', link['type'])
         self.assertEqual(mac, link['ethernet_mac_address'])
-        self.assertEqual(1500, link['mtu'])
+        self.assertNotIn('mtu', link)
         self.assertNotIn('vif_id', link)
 
     def test_get_node_network_data_single_port_trunk_mode(self):
@@ -1369,7 +1427,7 @@ class GetNodeNetworkDataTestCase(IronicNetworkingTestCase):
         self.assertEqual(port.uuid, phy_link['id'])
         self.assertEqual('phy', phy_link['type'])
         self.assertEqual(mac, phy_link['ethernet_mac_address'])
-        self.assertEqual(1500, phy_link['mtu'])
+        self.assertNotIn('mtu', phy_link)
 
         # Check VLAN links
         vlan_links = result['links'][1:]
@@ -1382,7 +1440,7 @@ class GetNodeNetworkDataTestCase(IronicNetworkingTestCase):
             self.assertEqual(mac, vlan_link['vlan_mac_address'])
             self.assertEqual(expected_vlan_id, vlan_link['vlan_id'])
             self.assertEqual(port.uuid, vlan_link['vlan_link'])
-            self.assertEqual(1500, vlan_link['mtu'])
+            self.assertNotIn('mtu', vlan_link)
 
     def test_get_node_network_data_single_port_hybrid_mode(self):
         """Generates physical link and VLAN interfaces for hybrid mode."""

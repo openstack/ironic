@@ -60,6 +60,7 @@ class IronicNetworking(base.NetworkInterface):
     - native_vlan: VLAN ID (required)
     - allowed_vlans: List of VLAN IDs (required for trunk/hybrid modes only)
     - lag_name: Optional LAG name
+    - mtu: Optional Ethernet Maximum Transmission Unit
 
     Portgroup Configuration:
     This interface validates and processes portgroups that have an 'extra'
@@ -549,11 +550,13 @@ class IronicNetworking(base.NetworkInterface):
                 if switch_id and port_name:
                     idle_vlan = (idle_config.native_vlan
                                  if idle_config else None)
+                    idle_mtu = (idle_config.mtu if idle_config else None)
                     result = networking_api.reset_port(
                         task.context, switch_id, port_name,
                         original_config.native_vlan,
                         allowed_vlans=original_config.allowed_vlans,
-                        default_vlan=idle_vlan)
+                        default_vlan=idle_vlan,
+                        mtu=idle_mtu)
                     LOG.debug(
                         "Successfully reset port %(port_name)s on "
                         "switch %(switch_id)s via networking service: "
@@ -607,11 +610,13 @@ class IronicNetworking(base.NetworkInterface):
                 if switch_id and port_name:
                     idle_vlan = (idle_config.native_vlan
                                  if idle_config else None)
+                    idle_mtu = (idle_config.mtu if idle_config else None)
                     result = networking_api.reset_port(
                         task.context, switch_id, port_name,
                         original_config.native_vlan,
                         allowed_vlans=original_config.allowed_vlans,
-                        default_vlan=idle_vlan)
+                        default_vlan=idle_vlan,
+                        mtu=idle_mtu)
                     LOG.debug(
                         "Successfully reset old port %(port_name)s "
                         "on switch %(switch_id)s via networking "
@@ -673,7 +678,8 @@ class IronicNetworking(base.NetworkInterface):
                     description, config.mode, config.native_vlan,
                     allowed_vlans=config.allowed_vlans,
                     lag_name=lag_name,
-                    default_vlan=idle_vlan)
+                    default_vlan=idle_vlan,
+                    mtu=config.mtu)
                 LOG.debug(
                     "Successfully updated port %(port_name)s "
                     "on switch %(switch_id)s for %(network_type)s "
@@ -877,6 +883,7 @@ class IronicNetworking(base.NetworkInterface):
                     allowed_vlans=config.allowed_vlans,
                     lag_name=None,
                     default_vlan=idle_vlan,
+                    mtu=config.mtu
                 )
             except (exception.InvalidParameterValue,
                     exception.NetworkError) as exc:
@@ -934,13 +941,15 @@ class IronicNetworking(base.NetworkInterface):
             try:
                 idle_vlan = (idle_config.native_vlan
                              if idle_config else None)
+                idle_mtu = (idle_config.mtu if idle_config else None)
                 networking_api.reset_port(
                     task.context,
                     link_info.get('switch_id'),
                     link_info.get('port_id'),
                     config.native_vlan,
                     allowed_vlans=config.allowed_vlans,
-                    default_vlan=idle_vlan
+                    default_vlan=idle_vlan,
+                    mtu=idle_mtu,
                 )
             except (exception.InvalidParameterValue,
                     exception.NetworkError) as exc:
@@ -1002,8 +1011,8 @@ class IronicNetworking(base.NetworkInterface):
                 )
                 continue
 
-            # If the global config is not complete, try to get
-            # switchport info from port.extra
+            # If the global config is not complete, use the port's
+            # switchport info.
             config = global_config
             if config is None or not config.is_valid:
                 config = SwitchPortConfig.from_switchport(switchport)
@@ -1028,7 +1037,8 @@ class IronicNetworking(base.NetworkInterface):
                     config.native_vlan,
                     allowed_vlans=config.allowed_vlans,
                     lag_name=None,
-                    default_vlan=idle_vlan
+                    default_vlan=idle_vlan,
+                    mtu=config.mtu
                 )
                 LOG.debug(
                     "Configured %(network_type)s network for port %(port)s: "
@@ -1104,8 +1114,8 @@ class IronicNetworking(base.NetworkInterface):
                 )
                 continue
 
-            # If the global config is not complete, try to get
-            # switchport info from port.extra
+            # If the global config is not complete, use the port's
+            # switchport info.
             config = global_config
             if config is None or not config.is_valid:
                 config = SwitchPortConfig.from_switchport(switchport)
@@ -1121,13 +1131,15 @@ class IronicNetworking(base.NetworkInterface):
             try:
                 idle_vlan = (idle_config.native_vlan
                              if idle_config else None)
+                idle_mtu = (idle_config.mtu if idle_config else None)
                 networking_api.reset_port(
                     task.context,
                     link_info.get('switch_id'),
                     link_info.get('port_id'),
                     config.native_vlan,
                     allowed_vlans=config.allowed_vlans,
-                    default_vlan=idle_vlan
+                    default_vlan=idle_vlan,
+                    mtu=idle_mtu
                 )
                 LOG.debug(
                     "Reset %(network_type)s network for port %(port)s: "
@@ -1335,17 +1347,18 @@ class IronicNetworking(base.NetworkInterface):
                           {'port': port.uuid})
                 continue
 
+            # Check for VLAN configuration in switchport settings
+            switchport = port.extra.get('switchport', {}) if port.extra else {}
+            mtu = switchport.get('mtu')
             # Create physical link for this port
             phy_link = {
                 'id': port.uuid,
                 'type': 'phy',
                 'ethernet_mac_address': port.address,
-                'mtu': 1500
             }
+            if mtu is not None:
+                phy_link['mtu'] = mtu
             links.append(phy_link)
-
-            # Check for VLAN configuration in switchport settings
-            switchport = port.extra.get('switchport', {}) if port.extra else {}
             allowed_vlans = switchport.get('allowed_vlans', [])
 
             # Generate VLAN interfaces for each allowed VLAN
@@ -1356,8 +1369,9 @@ class IronicNetworking(base.NetworkInterface):
                     'vlan_mac_address': port.address,
                     'vlan_id': vlan_id,
                     'vlan_link': port.uuid,
-                    'mtu': 1500
                 }
+                if mtu is not None:
+                    vlan_link['mtu'] = mtu
                 links.append(vlan_link)
 
         LOG.debug('Generated network data for node %(node)s: %(links)d links',

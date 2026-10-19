@@ -16,6 +16,7 @@ This module provides a dataclass for representing and parsing the switchport
 configuration format used by the Ironic Networking interface:
 
     {access|trunk|hybrid}/native_vlan=VLAN_ID[/allowed_vlans=V1,V2,Vn-Vm,...]
+    [/mtu=MTU]
 """
 
 import dataclasses
@@ -40,13 +41,15 @@ class SwitchPortConfig:
     mode: str
     native_vlan: Optional[int] = None
     allowed_vlans: Optional[list] = None
+    mtu: Optional[int] = None
 
     @classmethod
     def from_string(cls, value, network_type='unknown'):
         """Parse a network config string into a SwitchPortConfig.
 
         :param value: String in format
-            ``{access|trunk|hybrid}/native_vlan=N[/allowed_vlans=V1,V2,Vn-Vm]``
+            ``{access|trunk|hybrid}/native_vlan=N``
+            ``[/allowed_vlans=V1,V2,Vn-Vm][/mtu=MTU]``
         :param network_type: Network type label used in error messages.
         :returns: A SwitchPortConfig instance.
         :raises: InvalidParameterValue if the format is invalid.
@@ -65,6 +68,7 @@ class SwitchPortConfig:
                     "expected at least mode/native_vlan=N")
             native_vlan = None
             allowed_vlans = None
+            mtu = None
             for part in parts[1:]:
                 key, sep, val = part.partition('=')
                 if not sep:
@@ -77,16 +81,19 @@ class SwitchPortConfig:
                 elif key == 'allowed_vlans':
                     allowed_vlans = cls._parse_allowed_vlans(
                         val)
+                elif key == 'mtu':
+                    mtu = int(val)
+            net_utils.validate_mtu(mtu)
         except (ValueError, IndexError) as e:
             raise exception.InvalidParameterValue(
                 _("Invalid %(network_type)s network value '%(value)s'. "
                   "Expected: {access|trunk|hybrid}/native_vlan=VLAN_ID"
-                  "[/allowed_vlans=V1,V2,Vn-Vm,...]. "
+                  "[/allowed_vlans=V1,V2,Vn-Vm,...][/mtu=MTU]. "
                   "Error: %(error)s")
                 % {'network_type': network_type, 'value': value,
                    'error': e})
         return cls(mode=mode, native_vlan=native_vlan,
-                   allowed_vlans=allowed_vlans)
+                   allowed_vlans=allowed_vlans, mtu=mtu)
 
     @staticmethod
     def _parse_allowed_vlans(val):
@@ -109,7 +116,7 @@ class SwitchPortConfig:
         """Create a SwitchPortConfig from a switchport configuration dict.
 
         :param switchport: A dict with optional keys ``mode``,
-            ``native_vlan``, and ``allowed_vlans``.
+            ``native_vlan``, ``allowed_vlans``, and ``mtu``.
         :returns: A SwitchPortConfig instance, or None if the dict does
             not contain a ``mode`` key.
         :raises: InvalidParameterValue if ``mode`` is not a valid mode
@@ -130,10 +137,16 @@ class SwitchPortConfig:
                 _("native_vlan must be an integer, "
                   "got %(type)s.")
                 % {'type': type(native_vlan).__name__})
+        mtu = switchport.get('mtu')
+        try:
+            net_utils.validate_mtu(mtu)
+        except ValueError as e:
+            raise exception.InvalidParameterValue(str(e))
         return cls(
             mode=mode,
             native_vlan=native_vlan,
             allowed_vlans=switchport.get('allowed_vlans'),
+            mtu=mtu,
         )
 
     @property

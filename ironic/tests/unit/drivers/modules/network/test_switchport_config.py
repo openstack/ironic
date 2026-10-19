@@ -64,6 +64,45 @@ class TestSwitchPortConfigFromString(test_base.TestCase):
         self.assertEqual([100, 101, 102, 103],
                          config.allowed_vlans)
 
+    def test_with_mtu(self):
+        config = SwitchPortConfig.from_string(
+            'access/native_vlan=100/mtu=9000')
+        self.assertEqual(9000, config.mtu)
+
+    def test_mtu_at_minimum(self):
+        config = SwitchPortConfig.from_string(
+            'access/native_vlan=100/mtu=68')
+        self.assertEqual(68, config.mtu)
+
+    def test_mtu_at_maximum(self):
+        config = SwitchPortConfig.from_string(
+            'access/native_vlan=100/mtu=9216')
+        self.assertEqual(9216, config.mtu)
+
+    def test_with_allowed_vlans_and_mtu(self):
+        config = SwitchPortConfig.from_string(
+            'trunk/native_vlan=100/allowed_vlans=200,300/mtu=9000')
+        self.assertEqual([200, 300], config.allowed_vlans)
+        self.assertEqual(9000, config.mtu)
+
+    def test_invalid_mtu(self):
+        self.assertRaises(
+            exception.InvalidParameterValue,
+            SwitchPortConfig.from_string,
+            'access/native_vlan=100/mtu=0')
+
+    def test_mtu_below_minimum(self):
+        self.assertRaises(
+            exception.InvalidParameterValue,
+            SwitchPortConfig.from_string,
+            'access/native_vlan=100/mtu=67')
+
+    def test_mtu_not_integer(self):
+        self.assertRaises(
+            exception.InvalidParameterValue,
+            SwitchPortConfig.from_string,
+            'access/native_vlan=100/mtu=jumbo')
+
     def test_mode_only_raises(self):
         self.assertRaises(
             exception.InvalidParameterValue,
@@ -149,6 +188,34 @@ class TestSwitchPortConfigFromSwitchport(test_base.TestCase):
         self.assertEqual('access', config.mode)
         self.assertEqual(50, config.native_vlan)
         self.assertIsNone(config.allowed_vlans)
+
+    def test_mtu(self):
+        switchport = {'mode': 'access', 'native_vlan': 50, 'mtu': 9000}
+        config = SwitchPortConfig.from_switchport(switchport)
+        self.assertEqual(9000, config.mtu)
+
+    def test_mtu_at_minimum(self):
+        switchport = {'mode': 'access', 'native_vlan': 50, 'mtu': 68}
+        config = SwitchPortConfig.from_switchport(switchport)
+        self.assertEqual(68, config.mtu)
+
+    def test_invalid_mtu(self):
+        self.assertRaises(
+            exception.InvalidParameterValue,
+            SwitchPortConfig.from_switchport,
+            {'mode': 'access', 'native_vlan': 50, 'mtu': 9217})
+
+    def test_mtu_not_integer(self):
+        self.assertRaises(
+            exception.InvalidParameterValue,
+            SwitchPortConfig.from_switchport,
+            {'mode': 'access', 'native_vlan': 50, 'mtu': '9000'})
+
+    def test_mtu_below_minimum(self):
+        self.assertRaises(
+            exception.InvalidParameterValue,
+            SwitchPortConfig.from_switchport,
+            {'mode': 'access', 'native_vlan': 50, 'mtu': 67})
 
     def test_mode_only(self):
         switchport = {'mode': 'access'}
