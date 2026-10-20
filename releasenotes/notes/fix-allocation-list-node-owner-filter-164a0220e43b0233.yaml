@@ -1,0 +1,8 @@
+---
+fixes:
+  - |
+    Fixes an issue where listing allocations filtered by node, for example
+    ``baremetal allocation list --node <node>``, failed with an HTTP 500
+    error ("Attribute name "owner" is ambiguous") when the request was
+    made with a project scoped token.
+    `bug 2171179 <https://bugs.launchpad.net/ironic/+bug/2171179>`_.
