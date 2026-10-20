@@ -255,7 +255,8 @@ def do_next_clean_step(task, step_index, disable_ramdisk=None):
             'cleaning_disable_ramdisk', False)
 
     LOG.info('Executing %(kind)s cleaning on node %(node)s, remaining steps: '
-             '%(steps)s', {'node': node.uuid, 'steps': steps,
+             '%(steps)s', {'node': node.uuid,
+                           'steps': utils.sanitize_steps(steps),
                            'kind': 'manual' if manual_clean else 'automated'})
     # Execute each step until we hit an async step or run out of steps
     for ind, step in enumerate(steps):
@@ -274,7 +275,8 @@ def do_next_clean_step(task, step_index, disable_ramdisk=None):
                 node.del_driver_internal_info(async_steps.CLEANING_POLLING)
             if not eocn:
                 LOG.info('Executing %(step)s on node %(node)s',
-                         {'step': step, 'node': node.uuid})
+                         {'step': utils.sanitize_steps(step),
+                          'node': node.uuid})
                 use_step_handler = conductor_steps.use_reserved_step_handler(
                     task, step)
                 if use_step_handler:
@@ -291,7 +293,8 @@ def do_next_clean_step(task, step_index, disable_ramdisk=None):
             else:
                 LOG.info('Executing %(step)s on child nodes for node '
                          '%(node)s.',
-                         {'step': step, 'node': node.uuid})
+                         {'step': utils.sanitize_steps(step),
+                          'node': node.uuid})
                 result = execute_step_on_child_nodes(task, step)
 
         except Exception as e:
@@ -301,7 +304,8 @@ def do_next_clean_step(task, step_index, disable_ramdisk=None):
                     LOG.info('Agent is not yet running on node %(node)s '
                              'after cleaning reboot, waiting for agent to '
                              'come up to run next clean step %(step)s.',
-                             {'node': node.uuid, 'step': step})
+                             {'node': node.uuid,
+                              'step': utils.sanitize_steps(step)})
                     node.set_driver_internal_info(
                         async_steps.SKIP_CURRENT_CLEAN_STEP, False)
                     target_state = (states.MANAGEABLE if manual_clean
@@ -343,7 +347,7 @@ def do_next_clean_step(task, step_index, disable_ramdisk=None):
             # continue_node_clean to continue cleaning
             LOG.info('Clean step %(step)s on node %(node)s being '
                      'executed asynchronously, waiting for driver.',
-                     {'node': node.uuid, 'step': step})
+                     {'node': node.uuid, 'step': utils.sanitize_steps(step)})
             target_state = states.MANAGEABLE if manual_clean else None
             task.process_event('wait', target_state=target_state)
             return
@@ -354,10 +358,11 @@ def do_next_clean_step(task, step_index, disable_ramdisk=None):
             # None, or raise an exception.
             msg = (_('While executing step %(step)s on node '
                      '%(node)s, step returned invalid value: %(val)s')
-                   % {'step': step, 'node': node.uuid, 'val': result})
+                   % {'step': utils.sanitize_steps(step), 'node': node.uuid,
+                      'val': result})
             return utils.cleaning_error_handler(task, msg)
         LOG.info('Node %(node)s finished clean step %(step)s',
-                 {'node': node.uuid, 'step': step})
+                 {'node': node.uuid, 'step': utils.sanitize_steps(step)})
     if CONF.agent.deploy_logs_collect == 'always' and not disable_ramdisk:
         driver_utils.collect_ramdisk_logs(task.node, label='cleaning')
 
@@ -418,7 +423,7 @@ def execute_step_on_child_nodes(task, step):
         result = None
         LOG.info('Executing step %(step)s on child node %(node)s for parent '
                  'node %(parent_node)s',
-                 {'step': step,
+                 {'step': utils.sanitize_steps(step),
                   'node': child_node.uuid,
                   'parent_node': task.node.uuid})
         with task_manager.acquire(task.context,
@@ -426,7 +431,8 @@ def execute_step_on_child_nodes(task, step):
                                   purpose='execute step') as child_task:
             interface = getattr(child_task.driver, step.get('interface'))
             LOG.info('Executing %(step)s on node %(node)s',
-                     {'step': step, 'node': child_task.node.uuid})
+                     {'step': utils.sanitize_steps(step),
+                      'node': child_task.node.uuid})
             if not conductor_steps.use_reserved_step_handler(child_task, step):
                 result = interface.execute_clean_step(child_task, step)
             if result is not None:
@@ -440,7 +446,8 @@ def execute_step_on_child_nodes(task, step):
                     continue
                 msg = (_('While executing step %(step)s on child node '
                          '%(node)s, step returned invalid value: %(val)s')
-                       % {'step': step, 'node': child_task.node.uuid,
+                       % {'step': utils.sanitize_steps(step),
+                          'node': child_task.node.uuid,
                           'val': result})
                 LOG.error(msg)
                 # Only None or states.CLEANWAIT are possible paths forward

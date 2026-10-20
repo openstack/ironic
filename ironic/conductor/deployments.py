@@ -346,7 +346,8 @@ def do_next_deploy_step(task, step_index):
         LOG.info('Deploying on node %(node)s, remaining steps: '
                  '%(steps)s', {
                      'node': node.uuid,
-                     'steps': node.driver_internal_info['deploy_steps'][idx:],
+                     'steps': utils.sanitize_steps(
+                         node.driver_internal_info['deploy_steps'][idx:]),
                  })
         # Save which step we're about to start so we can restart
         # if necessary
@@ -364,7 +365,8 @@ def do_next_deploy_step(task, step_index):
             if not child_node_execution:
                 interface = getattr(task.driver, step.get('interface'))
                 LOG.info('Executing %(step)s on node %(node)s',
-                         {'step': step, 'node': node.uuid})
+                         {'step': utils.sanitize_steps(step),
+                          'node': node.uuid})
                 use_step_handler = conductor_steps.use_reserved_step_handler(
                     task, step)
                 if use_step_handler:
@@ -381,7 +383,8 @@ def do_next_deploy_step(task, step_index):
             else:
                 LOG.info('Executing %(step)s on child nodes for node '
                          '%(node)s',
-                         {'step': step, 'node': node.uuid})
+                         {'step': utils.sanitize_steps(step),
+                          'node': node.uuid})
                 result = execute_step_on_child_nodes(task, step)
         except exception.AgentInProgress as e:
             LOG.info('Conductor attempted to process deploy step for '
@@ -406,7 +409,8 @@ def do_next_deploy_step(task, step_index):
                     LOG.info('Agent is not yet running on node %(node)s after '
                              'deployment reboot, waiting for agent to come up '
                              'to run next deploy step %(step)s.',
-                             {'node': node.uuid, 'step': step})
+                             {'node': node.uuid,
+                              'step': utils.sanitize_steps(step)})
                     node.set_driver_internal_info(
                         async_steps.SKIP_CURRENT_DEPLOY_STEP, False)
                     task.process_event('wait')
@@ -468,7 +472,7 @@ def do_next_deploy_step(task, step_index):
             # continue_node_deploy() to continue deploying
             LOG.info('Deploy step %(step)s on node %(node)s being '
                      'executed asynchronously, waiting for driver.',
-                     {'node': node.uuid, 'step': step})
+                     {'node': node.uuid, 'step': utils.sanitize_steps(step)})
             if task.node.provision_state != states.DEPLOYWAIT:
                 task.process_event('wait')
             return
@@ -476,14 +480,16 @@ def do_next_deploy_step(task, step_index):
             # NOTE(rloo): This is an internal/dev error; shouldn't happen.
             log_msg = (_('While executing deploy step %(step)s on node '
                        '%(node)s, step returned unexpected state: %(val)s')
-                       % {'step': step, 'node': node.uuid, 'val': result})
+                       % {'step': utils.sanitize_steps(step),
+                          'node': node.uuid,
+                          'val': result})
             utils.deploying_error_handler(
                 task, log_msg,
                 _("Failed to deploy: %s") % node.deploy_step)
             return
 
         LOG.info('Node %(node)s finished deploy step %(step)s',
-                 {'node': node.uuid, 'step': step})
+                 {'node': node.uuid, 'step': utils.sanitize_steps(step)})
 
     utils.log_step_flow_history(
         node=node, flow=utils.StepFlow.DEPLOYMENT,
@@ -713,7 +719,7 @@ def execute_step_on_child_nodes(task, step):
         result = None
         LOG.info('Executing step %(step)s on child node %(node)s for parent '
                  'node %(parent_node)s',
-                 {'step': step,
+                 {'step': utils.sanitize_steps(step),
                   'node': child_node.uuid,
                   'parent_node': task.node.uuid})
         with task_manager.acquire(task.context,
@@ -721,7 +727,8 @@ def execute_step_on_child_nodes(task, step):
                                   purpose='execute step') as child_task:
             interface = getattr(child_task.driver, step.get('interface'))
             LOG.info('Executing %(step)s on node %(node)s',
-                     {'step': step, 'node': child_task.node.uuid})
+                     {'step': utils.sanitize_steps(step),
+                      'node': child_task.node.uuid})
             if not conductor_steps.use_reserved_step_handler(child_task, step):
                 result = interface.execute_clean_step(child_task, step)
             if result is not None:
@@ -739,7 +746,8 @@ def execute_step_on_child_nodes(task, step):
                 # None, or raise an exception.
                 msg = (_('While executing step %(step)s on child node '
                          '%(node)s, step returned invalid value: %(val)s')
-                       % {'step': step, 'node': child_task.node.uuid,
+                       % {'step': utils.sanitize_steps(step),
+                          'node': child_task.node.uuid,
                           'val': result})
                 LOG.error(msg)
                 # Only None or states.DEPLOYWAIT are possible paths forward

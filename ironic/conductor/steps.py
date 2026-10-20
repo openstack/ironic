@@ -221,7 +221,8 @@ def _get_cleaning_steps(task, enabled=False, sort=True):
 
         LOG.debug('cleaning_steps after applying '
                   'clean_step_priority_override for node %(node)s: %(steps)s',
-                  {'node': task.node.uuid, 'steps': cleaning_steps})
+                  {'node': task.node.uuid,
+                   'steps': utils.sanitize_steps(cleaning_steps)})
     else:
         cleaning_steps = _get_steps(task, CLEANING_INTERFACE_PRIORITY,
                                     'get_clean_steps', enabled=enabled,
@@ -370,7 +371,8 @@ def set_node_cleaning_steps(task, disable_ramdisk=False,
         LOG.debug(
             'List of the steps for %(type)s cleaning of node %(node)s: '
             '%(steps)s', {'type': 'manual' if manual_clean else 'automated',
-                          'node': node.uuid, 'steps': steps})
+                          'node': node.uuid,
+                          'steps': utils.sanitize_steps(steps)})
 
     node.clean_step = {}
     node.set_driver_internal_info('clean_steps', steps)
@@ -519,7 +521,8 @@ def set_node_deployment_steps(task, reset_current=True, skip_missing=False):
     if not CONF.conductor.log_step_flows_to_syslog:
         LOG.debug('List of the deploy steps for node %(node)s: %(steps)s', {
             'node': node.uuid,
-            'steps': node.driver_internal_info['deploy_steps']
+            'steps': utils.sanitize_steps(
+                node.driver_internal_info['deploy_steps'])
         })
     if reset_current:
         node.deploy_step = {}
@@ -556,7 +559,8 @@ def set_node_service_steps(task, disable_ramdisk=False):
 
     if not CONF.conductor.log_step_flows_to_syslog:
         LOG.debug('List of the steps for service of node %(node)s: '
-                  '%(steps)s', {'node': node.uuid, 'steps': steps})
+                  '%(steps)s', {'node': node.uuid,
+                                'steps': utils.sanitize_steps(steps)})
 
     node.service_step = {}
     node.set_driver_internal_info('service_steps', steps)
@@ -890,11 +894,13 @@ def _validate_user_steps(task, user_steps, driver_steps, step_type,
                           'node %(node)s, delaying its validation until '
                           'in-band steps are loaded',
                           {'type': step_type.capitalize(),
-                           'step': user_step, 'node': task.node.uuid})
+                           'step': utils.sanitize_steps(user_step),
+                           'node': task.node.uuid})
             else:
                 error = (_('node does not support this %(type)s step: '
                            '%(step)s')
-                         % {'type': step_type, 'step': user_step})
+                         % {'type': step_type,
+                            'step': utils.sanitize_steps(user_step)})
                 errors.append(error)
             continue
 
