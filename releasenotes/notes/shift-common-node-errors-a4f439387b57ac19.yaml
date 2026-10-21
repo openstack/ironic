@@ -1,0 +1,14 @@
+---
+upgrade:
+  - |
+    Common failure errors around timeouts related to cleaning, inspection,
+    rescuing, servicing, and deployment have had their wording updated.
+    Previously Ironic raised an error indicating that the process timed out
+    meaning the overall process, but users have though that meant "Ironic
+    timed out". More often, the hardware actually failed to boot or hit a
+    problem that Ironic simply could not see, detect, and possibly would
+    have been impossible to prevent.
+
+    The perception thus was previously "Ironic failed", when really the issue
+    is the "Node failed". If you have processes evaluating error messages from
+    Ironic, you may need to update your error handling code.

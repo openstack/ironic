@@ -480,7 +480,7 @@ def cleanup_after_timeout(task):
 
     :param task: a TaskManager instance.
     """
-    msg = (_('Timeout reached while waiting for callback for node %s')
+    msg = (_('Node %s failed to callback in the timeout window')
            % task.node.uuid)
     deploying_error_handler(task, msg, msg)
 
@@ -528,9 +528,13 @@ def cleanup_cleanwait_timeout(task):
 
     :param task: a TaskManager instance.
     """
-    last_error = (_("Timeout reached while cleaning the node. Please "
-                    "check if the ramdisk responsible for the cleaning is "
-                    "running on the node. Failed on step %(step)s.") %
+    # NOTE(TheJulia): In this case, we should have really already started
+    # cleaning, because in theory we have a clean step. We might want
+    # to slightly shift if there is no step?
+    last_error = (_("Node failed to complete cleaning, timeout reached. "
+                    "Please check if the ramdisk responsible for the "
+                    "cleaning is running on the node. Failed on step "
+                    "%(step)s.") %
                   {'step': task.node.clean_step})
     logmsg = ("Cleaning for node %(node)s failed. %(error)s" %
               {'node': task.node.uuid, 'error': last_error})
@@ -621,9 +625,10 @@ def cleanup_servicewait_timeout(task):
 
     :param task: a TaskManager instance.
     """
-    last_error = (_("Timeout reached while servicing the node. Please "
-                    "check if the ramdisk responsible for the servicing is "
-                    "running on the node. Failed on step %(step)s.") %
+    last_error = (_("Node failed to complete servicing, timeout reached. "
+                    "Please check if the ramdisk responsible for the "
+                    "servicing is running on the node. Failed on step "
+                    "%(step)s.") %
                   {'step': task.node.service_step})
     logmsg = ("Servicing for node %(node)s failed. %(error)s" %
               {'node': task.node.uuid, 'error': last_error})
@@ -893,8 +898,8 @@ def cleanup_rescuewait_timeout(task):
 
     :param task: a TaskManager instance.
     """
-    msg = _('Timeout reached while waiting for rescue ramdisk callback '
-            'for node')
+    msg = _('Node failed to callback for the rescue ramdisk in the '
+            'timeout window for node')
     errmsg = msg + ' %(node)s'
     LOG.error(errmsg, {'node': task.node.uuid})
     rescuing_error_handler(task, msg, set_fail_state=False)
@@ -976,9 +981,9 @@ def cleanup_inspectwait_timeout(task):
 
     :param task: a TaskManager instance.
     """
-    last_error = (_("Timeout reached while inspecting the node. Please "
-                    "check if the ramdisk responsible for the inspection "
-                    "is running on the node."))
+    last_error = (_("Node failed to complete inspection, timeout reached. "
+                    "Please check if the ramdisk responsible for the "
+                    "inspection is running on the node."))
     logmsg = ("Inspection for node %(node)s failed. %(error)s"
               % {'node': task.node.uuid, 'error': last_error})
     # NOTE(TheJulia): this is called from the periodic task for

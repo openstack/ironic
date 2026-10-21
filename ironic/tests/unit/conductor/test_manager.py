@@ -2525,7 +2525,7 @@ class CheckTimeoutsTestCase(mgr_utils.ServiceSetUpMixin, db_base.DbTestCase):
         self.assertEqual(states.RESCUEFAIL, node.provision_state)
         self.assertEqual(tgt_prov_state, node.target_provision_state)
         self.assertIsNotNone(node.last_error)
-        self.assertIn('Timeout reached while waiting for rescue ramdisk',
+        self.assertIn('Node failed to callback for the rescue ramdisk',
                       node.last_error)
         mock_clean_up.assert_called_once_with(mock.ANY, mock.ANY)
         node_power_mock.assert_called_once_with(mock.ANY, states.POWER_OFF)
@@ -2549,7 +2549,7 @@ class CheckTimeoutsTestCase(mgr_utils.ServiceSetUpMixin, db_base.DbTestCase):
         self.assertEqual(states.SERVICEFAIL, node.provision_state)
         self.assertEqual(tgt_prov_state, node.target_provision_state)
         self.assertIsNotNone(node.last_error)
-        self.assertIn('Timeout reached while servicing the node',
+        self.assertIn('Node failed to complete servicing',
                       node.last_error)
         mock_clean_up.assert_called_once_with(mock.ANY, mock.ANY)
         node_power_mock.assert_not_called()
