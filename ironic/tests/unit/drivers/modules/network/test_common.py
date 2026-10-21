@@ -1397,6 +1397,52 @@ class TestNeutronVifPortIDMixin(db_base.DbTestCase):
     @mock.patch.object(neutron_common, 'update_port_address', autospec=True)
     @mock.patch.object(neutron_common, 'get_physnets_by_port_uuid',
                        autospec=True)
+    def test_vif_attach_trait_based_networking_unhandled_action_raises(
+            self, mock_gpbpi, mock_upa, mock_client, mock_gfp, mock_save):
+        # Trait will match TBN trait defined below.
+        self.node.set_instance_info('traits', ['CUSTOM_TRAIT_NAME'])
+        self.node.save()
+
+        self.port.internal_info = {}
+        self.port.save()
+
+        vif_info = {'id': 'fake_vif_id'}
+
+        # bond_ports is not yet implemented by the planner.
+        contents = ("CUSTOM_TRAIT_NAME:\n"
+                    "  actions:\n"
+                    "    - action: bond_ports\n"
+                    "      filter: port.vendor == 'fake_vendor'\n")
+        self.tmpdir = tempfile.TemporaryDirectory()
+
+        with tempfile.NamedTemporaryFile(mode='w', dir=self.tmpdir.name,
+                                         delete=False) as tmpfile:
+            tmpfile.write(contents)
+            tmpfile.close()
+
+            # Enable TBN through conductor configuration
+            self.config(enable_trait_based_networking=True, group='conductor')
+            self.config(trait_based_networking_config_file=tmpfile.name,
+                        group='conductor')
+
+            with task_manager.acquire(self.context, self.node.id) as task:
+                self.assertRaisesRegex(exception.NetworkError,
+                                       "'bond_ports' not yet implemented",
+                                       self.interface.vif_attach,
+                                       task, vif_info)
+
+            self.assertFalse(mock_gpbpi.called)
+            self.assertFalse(mock_gfp.called)
+            self.assertFalse(mock_save.called)
+            mock_client.return_value.close.assert_called_once_with()
+
+    @mock.patch.object(common.VIFPortIDMixin, '_save_vif_to_port_like_obj',
+                       autospec=True)
+    @mock.patch.object(common, 'get_free_port_like_object', autospec=True)
+    @mock.patch.object(neutron_common, 'get_client', autospec=True)
+    @mock.patch.object(neutron_common, 'update_port_address', autospec=True)
+    @mock.patch.object(neutron_common, 'get_physnets_by_port_uuid',
+                       autospec=True)
     def test_vif_attach_trait_based_networking_enabled_dynamic_portgroup(
             self, mock_gpbpi, mock_upa, mock_client, mock_gfp, mock_save):
         # Trait will match TBN trait defined below.
