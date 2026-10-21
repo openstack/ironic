@@ -71,3 +71,12 @@ class TestIronicException(base.TestCase):
             re.search('spam: .*JSON.* NotImplementedError: nostr', message),
             message
         )
+
+
+class TestTBNNoPortMatchesFound(base.TestCase):
+
+    def test_message_is_formatted(self):
+        e = exception.TBNNoPortMatchesFound(node='fake-node',
+                                            vif_id='fake-vif')
+        self.assertIn('fake-node', str(e))
+        self.assertIn('fake-vif', str(e))

@@ -1158,7 +1158,7 @@ class TBNNoTraitsApplicableToNode(TraitBasedNetworkingException):
 
 class TBNNoPortMatchesFound(TraitBasedNetworkingException):
     """No matching ports were found when planning the network for this node"""
-    _msg_fnt = _("No matching ports where found when planning the networking "
+    _msg_fmt = _("No matching ports where found when planning the networking "
                  "for node %(node)s and network %(vif_id)s")
 
 class InvalidContent(Invalid):
