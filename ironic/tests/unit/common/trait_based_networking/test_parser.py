@@ -146,6 +146,7 @@ class TraitBasedNetworkingFilterParserTestCase(base.TestCase):
                             ),
                             tbn.Network("test_net_id", "test_network",
                                         frozenset()),
+                            tbn_test_utils.FauxVif(),
                         ),
                         subtest.expected_eval_result[i],
                     )

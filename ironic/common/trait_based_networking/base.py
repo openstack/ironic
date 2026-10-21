@@ -61,7 +61,7 @@ class Comparator(enum.Enum):
     def eval(self, variable, value):
         # TODO(clif): Should we some sort of checking of variable type vs
         # requested operator?
-        # Collection-valued variables (e.g. network.tags) are
+        # Collection-valued variables (e.g. network.tags, vif.tags) are
         # matched by membership rather than by comparing the collection
         # itself to the string literal.
         if isinstance(variable, (frozenset, set, list, tuple)):
@@ -96,9 +96,9 @@ class Comparator(enum.Enum):
     def _eval_collection(self, variable, value):
         """Evaluate this comparator against a collection variable.
 
-        Used for variables like network.tags: checks whether value is (or
-        is not) a member of the collection, or whether any member of the
-        collection starts with value.
+        Used for variables like network.tags or vif.tags: checks whether
+        value is (or is not) a member of the collection, or whether any
+        member of the collection starts with value.
         """
         match self.name:
             case self.EQUALITY.name:
@@ -126,14 +126,25 @@ class Actions(enum.Enum):
     GROUP_AND_ATTACH_PORTS = "group_and_attach_ports"
 
 
+class VariableObject(enum.Enum):
+    """The kind of object that a Variable is drawn from"""
+    PORT = "port"
+    NETWORK = "network"
+    VIF = "vif"
+
+
 class Variables(enum.Enum):
     """Represents a variable (or function) used by FilterExpressions
 
     Values of variables are drawn from network-related objects like ports,
-    portgroups, or networks (aka vifs).
+    portgroups, networks, or vifs (the neutron port supplied by the user).
     """
     NETWORK_NAME = "network.name"
     NETWORK_TAGS = "network.tags"
+
+    VIF_ID = "vif.id"
+    VIF_NAME = "vif.name"
+    VIF_TAGS = "vif.tags"
 
     PORT_ADDRESS = "port.address"
     PORT_CATEGORY = "port.category"
@@ -142,8 +153,8 @@ class Variables(enum.Enum):
     PORT_PHYSICAL_NETWORK = "port.physical_network"
     PORT_VENDOR = "port.vendor"
 
-    def object_name(self):
-        return str(self).split(".")[0]
+    def object_type(self):
+        return VariableObject(str(self).split(".")[0])
 
     def attribute_name(self):
         return str(self).split(".")[1]
@@ -181,9 +192,31 @@ def _is_universal_network(network):
         and network.name == UNIVERSAL_NETWORK_NAME
 
 
+# Allows special case FilterExpression evaluations where Vif does not
+# matter. In these cases a vif with this name will always evaluate to True.
+UNIVERSAL_VIF_NAME = "__UNIVERSAL_VIF"
+
+
+def _is_universal_vif(vif):
+    """Check if the vif is a special Vif that always passes filter"""
+    return isinstance(vif, Vif) and vif.name == UNIVERSAL_VIF_NAME
+
+
 def _is_universal_tbn_obj(tbn_obj):
     """Check if the TBN object is a special one that always passes filter"""
-    return _is_universal_port(tbn_obj) or _is_universal_network(tbn_obj)
+    return (_is_universal_port(tbn_obj) or _is_universal_network(tbn_obj)
+            or _is_universal_vif(tbn_obj))
+
+
+def _select_tbn_obj(variable, port, network, vif):
+    """Pick the object a variable is drawn from."""
+    match variable.object_type():
+        case VariableObject.PORT:
+            return port
+        case VariableObject.NETWORK:
+            return network
+        case VariableObject.VIF:
+            return vif
 
 
 class FunctionExpression(object):
@@ -194,8 +227,8 @@ class FunctionExpression(object):
     def __init__(self, variable):
         self._variable = variable
 
-    def eval(self, port, network):
-        tbn_obj = port if self._variable.object_name() == "port" else network
+    def eval(self, port, network, vif):
+        tbn_obj = _select_tbn_obj(self._variable, port, network, vif)
 
         if _is_universal_tbn_obj(tbn_obj):
             return True
@@ -225,8 +258,8 @@ class SingleExpression(object):
         self._comparator = comparator
         self._literal = literal
 
-    def eval(self, port, network):
-        tbn_obj = port if self._variable.object_name() == "port" else network
+    def eval(self, port, network, vif):
+        tbn_obj = _select_tbn_obj(self._variable, port, network, vif)
 
         if _is_universal_tbn_obj(tbn_obj):
             return True
@@ -250,21 +283,21 @@ class CompoundExpression(object):
         self._operator = operator
         self._right_expression = right_expression
 
-    def eval(self, port, network):
+    def eval(self, port, network, vif):
         # Short-circuits like normal boolean and/or, so the right
         # expression is only evaluated when necessary. This matters for
         # filters like `network.name =~ 'x' || network.tags =~ 'x'`: if the
         # left side already satisfies the expression, the right side isn't
         # evaluated even if it wouldn't otherwise be applicable to network.
-        left_result = self._left_expression.eval(port, network)
+        left_result = self._left_expression.eval(port, network, vif)
 
         match self._operator:
             case Operator.OR:
                 return (left_result
-                        or self._right_expression.eval(port, network))
+                        or self._right_expression.eval(port, network, vif))
             case Operator.AND:
                 return (left_result
-                        and self._right_expression.eval(port, network))
+                        and self._right_expression.eval(port, network, vif))
 
     def __str__(self):
         return (f"{self._left_expression} {self._operator} "
@@ -279,8 +312,8 @@ class ParenExpression(object):
     def __init__(self, expression):
         self._expression = expression
 
-    def eval(self, port, network):
-        return self._expression.eval(port, network)
+    def eval(self, port, network, vif):
+        return self._expression.eval(port, network, vif)
 
     def __str__(self):
         return f"({self._expression})"
@@ -303,8 +336,8 @@ class FilterExpression(object):
     def __init__(self, expression):
         self._expression = expression
 
-    def eval(self, port, network):
-        return self._expression.eval(port, network)
+    def eval(self, port, network, vif):
+        return self._expression.eval(port, network, vif)
 
     def __str__(self):
         return f"{self._expression}"
@@ -337,9 +370,9 @@ class TraitAction:
     min_count: int | None = None
     max_count: int | None = None
 
-    def matches(self, portlike, network):
-        """Check if filter expression matches the port, network pairing."""
-        return self.filter.eval(portlike, network)
+    def matches(self, portlike, network, vif):
+        """Check if filter expression matches the port, network, vif."""
+        return self.filter.eval(portlike, network, vif)
 
     def validate(self):
         """Check that the action is valid."""
@@ -487,10 +520,35 @@ class Portgroup(PrimordialPort):
         return True
 
 @dataclass(frozen=True)
-class Network:
-    """A Network (aka vif)
+class Vif:
+    """A Vif (virtual interface)
 
-    Used to match against TraitAction FilterExpressions
+    The neutron port supplied by the user. Used to match against
+    TraitAction FilterExpressions
+    """
+    id: str
+    name: str | None = None
+    tags: frozenset[str] = frozenset()
+
+    @classmethod
+    def from_vif_info(cls, vif_info):
+        """Helper method to create Vifs from vif_info dictionaries"""
+        # tags default to an empty frozenset (rather than None)
+        return cls(vif_info['id'],  # vif_info is guaranteed to have 'id'.
+                   vif_info.get('name'),
+                   frozenset(vif_info.get('tags') or []))
+
+    @classmethod
+    def universal_vif(cls):
+        return cls(id=0, name=UNIVERSAL_VIF_NAME)
+
+
+@dataclass(frozen=True)
+class Network:
+    """A Network
+
+    The neutron network which the vif is attached to. Used to match against
+    TraitAction FilterExpressions
     """
     id: str
     name: str
@@ -498,11 +556,15 @@ class Network:
 
     @classmethod
     def from_vif_info(cls, vif_info):
-        """Helper method to create Networks from vif_info dictionaries"""
-        # tags defaults to an empty frozenset (rather than None)
-        return cls(vif_info['id'], # vif_info is guaranteed to have 'id'.
-                   vif_info.get('name'),
-                   frozenset(vif_info.get('tags') or []))
+        """Helper method to create Networks from vif_info dictionaries
+
+        ``network_id``, ``network_name`` and ``network_tags`` describe the
+        network that the vif is attached to.
+        """
+        # tags default to an empty frozenset (rather than None)
+        return cls(vif_info.get('network_id'),
+                   vif_info.get('network_name'),
+                   frozenset(vif_info.get('network_tags') or []))
 
     @classmethod
     def universal_network(cls):
@@ -536,7 +598,7 @@ class AttachAction(RenderedAction):
 class AttachPort(AttachAction):
     """Attach a port to a network
 
-    Contains all the necessary information to attach a port to a network (vif)
+    Contains all the necessary information to attach a port to a network
     """
     port_uuid: str
     network_id: str
@@ -586,7 +648,7 @@ class GroupAndAttachPorts(RenderedAction):
     """Assemble a group of ports as a dynamic portgroup and attach it
 
     Contains all necessary information to assemble the new portgroup and
-    attach it to a network (vif).
+    attach it to a network.
     """
     port_uuids: list[str]
     network_id: str

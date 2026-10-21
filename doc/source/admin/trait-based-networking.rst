@@ -26,13 +26,16 @@ First some terms:
   the action's Filter Expression matches network objects associated
   with a node.
 - Filter Expression: A boolean expression which filters for specific network
-  objects like a port, portgroup or network.
+  objects like a port, portgroup, network or VIF.
 - Port: A network interface.
 - Portgroup: A set of ports, grouped together.
 - Dynamic Portgroup: An ephemeral portgroup that is created by a trait's action
   and is subsequently destroyed once detached.
-- Network: A subset of a Neutron network. Only the network's ``name`` and
-  ``tags`` are available to Filter Expressions.
+- VIF: A virtual interface, which is the Neutron port supplied by the user.
+  Only the VIF's ``id``, ``name`` and ``tags`` are available to Filter
+  Expressions.
+- Network: The Neutron network that a VIF is attached to. Only a subset of the
+  network is available to Filter Expressions: its ``name`` and ``tags``.
 
 
 Trait Actions
@@ -149,17 +152,20 @@ objects under consideration match the filter, and ``False`` otherwise.
 Filter expressions allow Ironic operators to create custom filtering logic for
 traits which will apply specific network actions or operations to nodes.
 
-Filter expressions consider two basic network objects:
+Filter expressions consider three basic network objects:
 
 1. ``portlike``: (aka ``port`` in this document) which can be either an Ironic
    port or portgroup.
 2. ``network``: A subset of a Neutron network. Only the network's ``name`` and
    ``tags`` are available to filter expressions.
+3. ``vif``: The vif (virtual interface) being attached, which is the Neutron
+   port supplied by the user. Only the vif's ``id``, ``name`` and ``tags`` are
+   available to filter expressions.
 
 A filter expression that evaluates to ``True`` for a given tuple of
-``(portlike, network)`` would cause a match to occur for the trait the filter
-belongs to. The trait's defined actions would then apply if enough matches
-occur to satisfy the action's requirements.
+``(portlike, network, vif)`` would cause a match to occur for the trait the
+filter belongs to. The trait's defined actions would then apply if enough
+matches occur to satisfy the action's requirements.
 
 Single Expression
 ~~~~~~~~~~~~~~~~~
@@ -262,7 +268,14 @@ will evaluate to ``True`` and ``False`` otherwise.
 
    network.name != 'private'
 
-Match only networks if their name name is NOT ``private``.
+Match only networks if their name is NOT ``private``.
+
+.. code-block:: python
+
+   vif.tags == 'storage'
+
+Match only if the vif (the Neutron port supplied by the user) has the tag
+``storage``.
 
 .. _boolean-operator:
 
@@ -339,10 +352,41 @@ expressions. Available variables are listed below:
 
 - network.name
 - network.tags
+- vif.id
+- vif.name
+- vif.tags
 - port.address
 - port.category
 - port.physical_network
 - port.vendor
+
+``network.*`` variables describe the Neutron network that the vif is attached
+to, while ``vif.*`` variables describe the vif itself, which is the Neutron
+port supplied by the user. ``network.tags`` and ``vif.tags`` are collections:
+``==`` matches if the string is one of the tags, ``!=`` matches if it is not,
+and ``=~`` matches if any tag starts with the string. Ordering comparators
+(``<``, ``<=``, ``>``, ``>=``) are not supported on tags.
+
+Why both ``network`` and ``vif``?
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+A network is shared: many ports are attached to it and its name and tags
+describe the network as a whole, for example every port on a network named
+``storage``. A VIF is the single Neutron port the user supplied when attaching,
+so its name and tags describe that one port. A user creating a port can give it
+tags such as ``bonded`` or ``storage-replication`` that say how that specific
+interface should be wired, even though the port lives on a network used for
+other purposes. Filtering only on ``network.*`` cannot tell two ports on the
+same network apart, so ``vif.*`` variables allow an operator to select ports
+by what the user asked for, while ``network.*`` variables select by where the
+port is attached.
+
+For example, to attach only ports tagged ``storage`` by the user, and only
+when they are attached to a network named ``backend``:
+
+.. code-block:: python
+
+   vif.tags == 'storage' && network.name == 'backend'
 
 A variable whose value is unset, such as ``port.category`` on a port without
 a category, never matches, regardless of comparator. This includes ``!=``, so

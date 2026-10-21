@@ -259,6 +259,7 @@ class TraitBasedNetworkingPlanningTestCase(base.TestCase):
             node_uuid,
             node_portlikes,
             node_networks,
+            utils.FauxVif(),
             type_name,
             action_funcs[type_name])
         self.assertEqual(expected_actions, result_actions)
@@ -365,7 +366,8 @@ class TraitBasedNetworkingPlanningTestCase(base.TestCase):
             node_uuid,
             node_ports,
             node_portgroups,
-            node_networks)
+            node_networks,
+            utils.FauxVif())
         self.assertEqual(expected_actions, result_actions)
 
     @data(
@@ -482,6 +484,7 @@ class TraitBasedNetworkingPlanningTestCase(base.TestCase):
                  ),
                  {
                      'id': 'fake_net_id',
+                     'network_id': 'fake_net_id',
                  },
                  [
                      tbn_base.NoMatch(tbn_base.TraitAction(
@@ -690,4 +693,4 @@ class TraitBasedNetworkingPlanningTestCase(base.TestCase):
         self.assertEqual(expected_actions,
                          tbn_plan._plan_group_and_attach_ports(
                              trait, node_uuid, node_portlikes,
-                             node_networks))
+                             node_networks, utils.FauxVif()))

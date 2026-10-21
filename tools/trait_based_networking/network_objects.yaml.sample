@@ -31,7 +31,12 @@ portgroups:
     physical_network: fabric_a
     vendor: purple
 networks:
-  - network_id: fake_net_id_01
+  - id: fake_net_id_01
     name: test_network
     tags:
         - test
+vif:
+  id: fake_vif_id_01
+  name: test_vif
+  tags:
+    - test

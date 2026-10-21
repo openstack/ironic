@@ -36,6 +36,13 @@ class FauxPortLikeObject(object):
 
 
 @dataclass
+class FauxVif(object):
+    id: str = "fake_net_id"
+    name: str = "test_vif"
+    tags: frozenset[str] = field(default_factory=frozenset)
+
+
+@dataclass
 class FauxNetwork(object):
     id: str = "fake_net_id"
     name: str = "test_network"

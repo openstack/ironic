@@ -811,6 +811,12 @@ class TestNeutronVifPortIDMixin(db_base.DbTestCase):
         self.interface = common.NeutronVIFPortIDMixin()
         self.node = obj_utils.create_test_node(self.context,
                                                network_interface='neutron')
+        # TBN looks up the neutron port and network of the VIF.
+        patcher = mock.patch.object(
+            neutron_common, 'get_vif_info', autospec=True,
+            side_effect=lambda client, vif_id: {'id': vif_id})
+        self.mock_get_vif_info = patcher.start()
+        self.addCleanup(patcher.stop)
         self.port = obj_utils.create_test_port(
             self.context, node_id=self.node.id,
             address='52:54:00:cf:2d:32',
@@ -1117,6 +1123,40 @@ class TestNeutronVifPortIDMixin(db_base.DbTestCase):
             self.assertEqual(mock_save.call_args_list[0][0][0].id,
                              self.port.id)
             self.assertEqual(mock_save.call_args_list[0][0][1], vif_info['id'])
+
+    @mock.patch.object(common.VIFPortIDMixin, '_save_vif_to_port_like_obj',
+                       autospec=True)
+    @mock.patch.object(neutron_common, 'get_client', autospec=True)
+    def test_vif_attach_trait_based_networking_vif_tags_filter(
+            self, mock_client, mock_save):
+        self.node.set_instance_info('traits', ['CUSTOM_TRAIT_NAME'])
+        self.node.save()
+        self.port.internal_info = {}
+        self.port.save()
+        self.mock_get_vif_info.side_effect = None
+        self.mock_get_vif_info.return_value = {
+            'id': 'fake_vif_id', 'name': 'my_port', 'tags': ['storage'],
+            'network_id': 'fake_net_id', 'network_name': 'net',
+            'network_tags': []}
+
+        contents = ("CUSTOM_TRAIT_NAME:\n"
+                    "  actions:\n"
+                    "    - action: attach_port\n"
+                    "      filter: vif.tags == 'storage'\n")
+        with tempfile.TemporaryDirectory() as tmpdir:
+            with tempfile.NamedTemporaryFile(mode='w', dir=tmpdir,
+                                             delete=False) as tmpfile:
+                tmpfile.write(contents)
+            self.config(enable_trait_based_networking=True, group='conductor')
+            self.config(trait_based_networking_config_file=tmpfile.name,
+                        group='conductor')
+
+            with task_manager.acquire(self.context, self.node.id) as task:
+                self.interface.vif_attach(task, {'id': 'fake_vif_id'})
+
+        self.mock_get_vif_info.assert_called_once_with(
+            mock_client.return_value, 'fake_vif_id')
+        self.assertEqual(self.port.id, mock_save.call_args[0][0].id)
 
     @mock.patch.object(common.VIFPortIDMixin, '_save_vif_to_port_like_obj',
                        autospec=True)
