@@ -62,7 +62,6 @@ IRONIC_PYTHON_AGENT_BUILDER_DIR=$DEST/ironic-python-agent-builder
 IRONIC_DIB_BINDEP_FILE=https://opendev.org/openstack/diskimage-builder/raw/branch/master/bindep.txt
 IRONIC_DATA_DIR=$DATA_DIR/ironic
 IRONIC_STATE_PATH=/var/lib/ironic
-IRONIC_AUTH_CACHE_DIR=${IRONIC_AUTH_CACHE_DIR:-/var/cache/ironic}
 IRONIC_CONF_DIR=${IRONIC_CONF_DIR:-/etc/ironic}
 IRONIC_CONF_FILE=$IRONIC_CONF_DIR/ironic.conf
 IRONIC_MACHINE_TYPE=${IRONIC_MACHINE_TYPE:-q35}
@@ -1299,10 +1298,10 @@ function _config_ironic_apache_additions {
     enable_apache_site ipxe-ironic
 }
 
-# cleanup_ironic_config_files() - Remove residual cache/config/log files,
+# cleanup_ironic_config_files() - Remove residual config/log files,
 # left over from previous runs that would need to clean up.
 function cleanup_ironic_config_files {
-    sudo rm -rf $IRONIC_AUTH_CACHE_DIR $IRONIC_CONF_DIR
+    sudo rm -rf $IRONIC_CONF_DIR
     sudo rm -rf $IRONIC_VM_LOG_DIR/*
 }
 
@@ -2038,17 +2037,6 @@ function configure_ironic_novnc {
     fi
 }
 
-# create_ironic_cache_dir() - Part of the init_ironic() process
-function create_ironic_cache_dir {
-    # Create cache dir
-    sudo mkdir -p $IRONIC_AUTH_CACHE_DIR/api
-    sudo chown $STACK_USER $IRONIC_AUTH_CACHE_DIR/api
-    rm -f $IRONIC_AUTH_CACHE_DIR/api/*
-    sudo mkdir -p $IRONIC_AUTH_CACHE_DIR/registry
-    sudo chown $STACK_USER $IRONIC_AUTH_CACHE_DIR/registry
-    rm -f $IRONIC_AUTH_CACHE_DIR/registry/*
-}
-
 # create_systemd_container_dir() - Part of the init_ironic() process
 function create_systemd_container_dir {
 
@@ -2102,7 +2090,6 @@ function init_ironic {
         # Migrate ironic database
         $IRONIC_BIN_DIR/ironic-dbsync --config-file=$IRONIC_CONF_FILE
     fi
-    create_ironic_cache_dir
 
     # NOTE(rloo): We're not upgrading but want to make sure this command works,
     # even though we're not parsing the output of this command.
