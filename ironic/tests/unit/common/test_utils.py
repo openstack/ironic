@@ -15,6 +15,8 @@
 
 import datetime
 import errno
+import gzip
+import io
 import os
 import os.path
 import shutil
@@ -672,3 +674,24 @@ class ValidateConductorGroupTestCase(base.TestCase):
                           utils.validate_conductor_group, object())
         self.assertRaises(exception.InvalidConductorGroup,
                           utils.validate_conductor_group, None)
+
+
+class DecompressGzipTestCase(base.TestCase):
+
+    def test_decompress_gzip(self):
+        data = b'some configuration drive contents'
+        decompressed = utils.decompress_gzip(io.BytesIO(gzip.compress(data)))
+        self.assertEqual(data, decompressed)
+
+    def test_decompress_gzip_max_size_default(self):
+        # The cap must stay in sync with the 64 MiB configuration drive
+        # partition created by ironic-python-agent.
+        self.assertEqual(64 * 1024 * 1024, utils.MAX_CONFIGDRIVE_SIZE)
+
+    def test_decompress_gzip_bomb(self):
+        # A tiny compressed payload that would expand far beyond the limit
+        # must be rejected instead of being decompressed in full.
+        bomb = io.BytesIO(gzip.compress(b'\x00' * (8 * 1024 * 1024)))
+        self.assertRaises(exception.InvalidContent,
+                          utils.decompress_gzip, bomb,
+                          max_size=1024 * 1024)
