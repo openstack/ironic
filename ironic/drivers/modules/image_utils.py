@@ -15,10 +15,8 @@
 
 import base64
 import functools
-import gzip
 import json
 import os
-import shutil
 import tempfile
 from urllib import parse as urlparse
 
@@ -276,10 +274,9 @@ def prepare_configdrive_image(task, content):
             comp_tmpfile_obj.write(base64.b64decode(content))
         comp_tmpfile_obj.seek(0)
 
-        gz = gzip.GzipFile(fileobj=comp_tmpfile_obj, mode='rb')
         with tempfile.NamedTemporaryFile(
                 dir=CONF.tempdir, suffix='.img') as image_tmpfile_obj:
-            shutil.copyfileobj(gz, image_tmpfile_obj)
+            image_tmpfile_obj.write(utils.decompress_gzip(comp_tmpfile_obj))
             image_tmpfile_obj.flush()
             return prepare_disk_image(task, image_tmpfile_obj.name,
                                       prefix='configdrive')
