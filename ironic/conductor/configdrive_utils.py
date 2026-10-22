@@ -12,6 +12,7 @@
 
 import base64
 import gzip
+import io
 import json
 import os
 import tempfile
@@ -85,7 +86,8 @@ def check_and_patch_configdrive(task, configdrive):
         with tempfile.NamedTemporaryFile(dir=CONF.tempdir,
                                          mode="wb+") as fileobj:
             # We have a file, we need to extract it and get it to an temp file
-            fileobj.write(gzip.decompress(base64.b64decode(configdrive)))
+            fileobj.write(common_utils.decompress_gzip(
+                io.BytesIO(base64.b64decode(configdrive))))
             fileobj.flush()
             # Reset the position back to the start.
             fileobj.seek(0)

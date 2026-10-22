@@ -13,12 +13,14 @@
 #    under the License.
 
 import base64
+import gzip
 import os
 from unittest import mock
 
 from oslo_config import cfg
 import pycdlib
 
+from ironic.common import exception
 from ironic.common import kickstart_utils as ks_utils
 from ironic.conductor import task_manager
 from ironic.drivers.modules import ipxe
@@ -190,3 +192,11 @@ echo $CONTENT | /usr/bin/base64 --decode > {file_path}\n\
             mock_record, rockridge=True
         )
         mock_iso.get_file_from_iso_fp.assert_not_called()
+
+    @mock.patch.object(ks_utils.utils, 'MAX_CONFIGDRIVE_SIZE', 1024)
+    def test_decode_and_extract_config_drive_iso_bomb(self):
+        bomb = base64.b64encode(
+            gzip.compress(b'\x00' * (64 * 1024))).decode()
+        self.assertRaises(exception.InstanceDeployFailure,
+                          ks_utils.decode_and_extract_config_drive_iso,
+                          bomb)
