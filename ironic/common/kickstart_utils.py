@@ -12,7 +12,6 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 import base64
-import gzip
 import io
 import os
 import tempfile
@@ -105,8 +104,7 @@ def decode_and_extract_config_drive_iso(config_drive_iso_gz):
             raise exception.InstanceDeployFailure(error_msg)
 
     try:
-        with gzip.GzipFile(fileobj=iso_gz_obj, mode='rb') as f:
-            config_drive_iso = f.read()
+        config_drive_iso = utils.decompress_gzip(iso_gz_obj)
     except Exception as exc:
         error_msg = "Decoding/Extraction of config drive failed: %s" % exc
         raise exception.InstanceDeployFailure(error_msg)
