@@ -429,7 +429,7 @@ class MetadataUtilsTestCase(db_base.DbTestCase):
     @mock.patch.object(cd_utils, 'regenerate_iso',
                        autospec=True)
     @mock.patch.object(base64, 'b64decode', autospec=True)
-    @mock.patch.object(gzip, 'decompress', autospec=True)
+    @mock.patch.object(cd_utils.common_utils, 'decompress_gzip', autospec=True)
     @mock.patch.object(cd_utils, 'is_invalid_network_metadata',
                        autospec=True)
     @mock.patch.object(cd_utils, 'generate_config_metadata',
@@ -453,6 +453,7 @@ class MetadataUtilsTestCase(db_base.DbTestCase):
         mock_is_invalid.return_value = True
         mock_gen.return_value = {'foo': 'bar'}
         mock_regen.return_value = '{"foo": "bar"}'
+        mock_b64_decode.return_value = b'data'
         with task_manager.acquire(self.context, self.node.id,
                                   shared=True) as task:
             cd_utils.check_and_patch_configdrive(task, 'foo')
@@ -472,7 +473,7 @@ class MetadataUtilsTestCase(db_base.DbTestCase):
     @mock.patch.object(cd_utils, 'regenerate_iso',
                        autospec=True)
     @mock.patch.object(base64, 'b64decode', autospec=True)
-    @mock.patch.object(gzip, 'decompress', autospec=True)
+    @mock.patch.object(cd_utils.common_utils, 'decompress_gzip', autospec=True)
     @mock.patch.object(cd_utils, 'is_invalid_network_metadata',
                        autospec=True)
     @mock.patch.object(cd_utils, 'generate_config_metadata',
@@ -495,6 +496,7 @@ class MetadataUtilsTestCase(db_base.DbTestCase):
             return_value.read.return_value = invalid_nd
         mock_gen.return_value = {'foo': 'bar'}
         mock_regen.return_value = '{"foo": "bar"}'
+        mock_b64_decode.return_value = b'data'
         with task_manager.acquire(self.context, self.node.id,
                                   shared=True) as task:
             cd_utils.check_and_patch_configdrive(task, 'foo')
@@ -514,7 +516,7 @@ class MetadataUtilsTestCase(db_base.DbTestCase):
     @mock.patch.object(cd_utils, 'regenerate_iso',
                        autospec=True)
     @mock.patch.object(base64, 'b64decode', autospec=True)
-    @mock.patch.object(gzip, 'decompress', autospec=True)
+    @mock.patch.object(cd_utils.common_utils, 'decompress_gzip', autospec=True)
     @mock.patch.object(cd_utils, 'is_invalid_network_metadata',
                        autospec=True)
     @mock.patch.object(cd_utils, 'generate_config_metadata',
@@ -536,6 +538,7 @@ class MetadataUtilsTestCase(db_base.DbTestCase):
             pycdlib.pycdlibexception.PyCdlibInvalidInput(msg='failure')
         mock_gen.return_value = {'foo': 'bar'}
         mock_regen.return_value = '{"foo": "bar"}'
+        mock_b64_decode.return_value = b'data'
         with task_manager.acquire(self.context, self.node.id,
                                   shared=True) as task:
             cd_utils.check_and_patch_configdrive(task, 'foo')
@@ -552,7 +555,7 @@ class MetadataUtilsTestCase(db_base.DbTestCase):
     @mock.patch.object(cd_utils, 'regenerate_iso',
                        autospec=True)
     @mock.patch.object(base64, 'b64decode', autospec=True)
-    @mock.patch.object(gzip, 'decompress', autospec=True)
+    @mock.patch.object(cd_utils.common_utils, 'decompress_gzip', autospec=True)
     @mock.patch.object(cd_utils, 'is_invalid_network_metadata',
                        autospec=True)
     @mock.patch.object(cd_utils, 'generate_config_metadata',
@@ -576,6 +579,7 @@ class MetadataUtilsTestCase(db_base.DbTestCase):
         mock_is_valid.return_value = False
         mock_gen.side_effect = exception.ConfigDriveRegenerationFailure
         mock_regen.return_value = '{"foo": "bar"}'
+        mock_b64_decode.return_value = b'data'
         with task_manager.acquire(self.context, self.node.id,
                                   shared=True) as task:
             cd_utils.check_and_patch_configdrive(task, 'foo')
@@ -587,6 +591,16 @@ class MetadataUtilsTestCase(db_base.DbTestCase):
         self.assertTrue(mock_decomp.called)
         self.assertTrue(mock_is_valid.called)
         mock_read_iso.assert_not_called()
+
+    @mock.patch.object(cd_utils.common_utils, 'MAX_CONFIGDRIVE_SIZE', 1024)
+    def test_check_and_patch_configdrive_gzip_bomb(self):
+        bomb = base64.b64encode(
+            gzip.compress(b'\x00' * (64 * 1024))).decode()
+        with task_manager.acquire(self.context, self.node.id,
+                                  shared=True) as task:
+            self.assertRaises(exception.InvalidContent,
+                              cd_utils.check_and_patch_configdrive,
+                              task, bomb)
 
     @mock.patch('builtins.open', autospec=True)
     @mock.patch.object(os, 'makedirs', autospec=True)
