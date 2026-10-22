@@ -1,0 +1,14 @@
+---
+security:
+  - |
+    Hardens the OCI container registry client against credential
+    disclosure to hosts other than the registry being queried, in
+    response to `bug 2170228 <https://bugs.launchpad.net/ironic/+bug/2170228>`_.
+    Tag list pagination now refuses to follow a ``next`` link which
+    points anywhere other than the registry being queried, unless the
+    destination is a host matched by the ``[oci]secure_cdn_registries``
+    trust check. Host matching for redirects and pagination links is
+    now performed by exact hostname or a proper subdomain of a
+    configured entry, so look-alike domain names such as
+    ``docker.io.bad.example.com`` are no longer treated as trusted
+    ``docker.io`` endpoints.
