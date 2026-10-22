@@ -1,0 +1,17 @@
+---
+fixes:
+  - |
+    Improves Lifecycle Controller job checking on Dell iDRAC during
+    Redfish firmware updates. When the Redfish task of a BIOS update
+    disappears before Ironic can poll it, a job that ended in error is
+    reported as a failed update, and a temporary failure to read the job
+    queue is retried instead of triggering the reboot. If the job has
+    disappeared before its outcome could be observed, Ironic treats the
+    update as failed because it cannot establish whether firmware remains
+    to be applied; inspect the BMC before retrying.
+upgrade:
+  - |
+    The minimum required version of sushy is now 5.14.0. It reports the
+    outcome of each Dell Lifecycle Controller job, so a Redfish firmware
+    update on Dell iDRAC now always fails when the job applying the
+    firmware fails, instead of assuming that a finished job succeeded.
