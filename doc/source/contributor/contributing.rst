@@ -51,7 +51,7 @@ Ironic tracks new features using RFEs (Requests for Feature Enhancements)
 instead of blueprints. These are stories with 'rfe' tag, and they should
 be submitted before a spec or code is proposed.
 
-When a member of the `ironic-core team <https://review.opendev.org/#/admin/groups/165,members>`_
+When a member of the `ironic-reviewers team <https://review.opendev.org/admin/groups/cfda7dc8666aec43e442acd9c7a586c8d2c93895,members>`_
 decides that the proposal is worth implementing, a spec (if needed) and code
 should be submitted, referencing the RFE task or bug number. Contributors
 are welcome to submit a spec and/or code before the RFE is approved, however
@@ -92,7 +92,7 @@ Feature Submission Process
    creation of a specification.
 
 #. If a spec is not required, once the discussion has happened and there is
-   positive consensus among the ironic-core team on the RFE, the RFE is
+   positive consensus among the ironic-reviewers team on the RFE, the RFE is
    'approved', and its tag will move from 'rfe' to 'rfe-approved'. This means
    that the feature is approved and the related code may be merged.
 
@@ -100,7 +100,7 @@ Feature Submission Process
    of the story referenced as 'Task' in the commit message), reviewed, and merged
    before the RFE will be 'approved' (and the tag changed to 'rfe-approved').
 
-#. If the RFE is rejected, the ironic-core team will move the story to
+#. If the RFE is rejected, the ironic-reviewers team will move the story to
    "Invalid" status.
 
 Change Tracking
@@ -111,7 +111,7 @@ generally is a "Closes-bug", "Partial-bug" or "Related-bug" tag as described
 in the
 `Git Commit messages guide <https://wiki.openstack.org/wiki/GitCommitMessages#Including_external_references>`_.
 
-.. note:: **RFEs may only be approved by members of the ironic-core team**.
+.. note:: **RFEs may only be approved by members of the ironic-reviewers team**.
 
 .. note:: While not strictly required for minor changes and fixes,
           it is highly preferred by the Ironic community that any change
