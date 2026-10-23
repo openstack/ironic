@@ -13,7 +13,9 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
+import base64
 import collections
+import gzip
 import os
 import tempfile
 from unittest import mock
@@ -472,6 +474,16 @@ class RedfishImageUtilsTestCase(db_base.DbTestCase):
                                   shared=True) as task:
             result = image_utils.prepare_configdrive_image(task, content)
             self.assertEqual(expected_url, result)
+
+    @mock.patch.object(image_utils.utils, 'MAX_CONFIGDRIVE_SIZE', 1024)
+    def test_prepare_configdrive_image_gzip_bomb(self):
+        bomb = base64.b64encode(
+            gzip.compress(b'\x00' * (64 * 1024))).decode()
+        with task_manager.acquire(self.context, self.node.uuid,
+                                  shared=True) as task:
+            self.assertRaises(exception.InvalidContent,
+                              image_utils.prepare_configdrive_image,
+                              task, bomb)
 
     @mock.patch.object(image_utils.ImageHandler, 'unpublish_image',
                        autospec=True)

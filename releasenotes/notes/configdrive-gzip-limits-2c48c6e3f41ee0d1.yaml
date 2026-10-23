@@ -1,0 +1,12 @@
+security:
+  - |
+    Fixes an issue where an Ironic conductor could experience a memory or disk
+    exhaustion issue when a tenant provides a gzip bomb instead of a valid
+    configdrive. This security concern is only present in configurations where
+    Ironic modifies network metadata (network_data.json) during deployment.
+
+    Now, the conductor will raise an error if, while extracting the configdrive
+    to update metadata, it extracts more than 64MiB of data -- our hardcoded
+    limitation on configdrive size in Ironic Python Agent.
+
+    This security issue is tracked as CVE-2026-115638.

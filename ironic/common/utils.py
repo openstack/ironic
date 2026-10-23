@@ -23,6 +23,7 @@ import contextlib
 import copy
 import datetime
 import errno
+import gzip
 import hashlib
 import ipaddress
 import os
@@ -74,6 +75,20 @@ DATETIME_RE = re.compile(
     '%sT%s(%s)?' % (DATE_RE, TIME_RE, TZ_RE))
 
 USING_SQLITE = None
+
+# Maximum decompressed size, in bytes, of a configuration drive that Ironic
+# is willing to process. This matches the maximum size of the configuration
+# drive partition created by ironic-python-agent (64 MiB), so a legitimate
+# configuration drive can never usefully exceed this value. The limit guards
+# against gzip "decompression bombs", where a small compressed payload expands
+# to a huge amount of data and exhausts the conductor's disk or memory.
+MAX_CONFIGDRIVE_SIZE = 64 * units.Mi
+
+# Size of the chunks read while streaming gzip decompression. Reading in
+# chunks keeps the list of buffers bounded and lets us stop decompressing as
+# soon as the size limit is exceeded, instead of materializing the whole
+# stream in memory first.
+_GZIP_DECOMPRESS_CHUNK_SIZE = units.Mi
 
 
 def execute(*cmd, use_standard_locale=False, log_stdout=True, **kwargs):
@@ -1190,3 +1205,41 @@ def check_iso_path(base_folder, folder, file=None):
             LOG.error('ISO path evaluation identified a file name based '
                       'transversal attempt.')
             raise exception.InvalidContent()
+
+
+def decompress_gzip(configdrive_fileobj, max_size=None):
+    """Decompress gzip data, limiting the decompressed size.
+
+    Decompress gzip-compressed data from a binary file-like object and
+    return the decompressed bytes, refusing to produce more than
+    ``max_size`` bytes of output. This guards against gzip "decompression
+    bombs" where a tiny compressed payload expands to a huge amount of data,
+    exhausting the conductor's disk or memory.
+
+    :param configdrive_fileobj: A binary file-like object positioned at the
+        start of the gzip-compressed data.
+    :param max_size: The maximum number of decompressed bytes to accept.
+        Defaults to :data:`MAX_CONFIGDRIVE_SIZE`.
+    :returns: The decompressed contents as ``bytes``.
+    :raises: exception.InvalidContent if the decompressed data would exceed
+        ``max_size``.
+    """
+    if max_size is None:
+        max_size = MAX_CONFIGDRIVE_SIZE
+
+    chunks = []
+    total = 0
+    with gzip.GzipFile(mode='rb', fileobj=configdrive_fileobj) as gz:
+        while True:
+            chunk = gz.read(_GZIP_DECOMPRESS_CHUNK_SIZE)
+            if not chunk:
+                break
+            total += len(chunk)
+            if total > max_size:
+                LOG.error('Configuration drive decompressed size exceeded '
+                          'the maximum allowed size of %(max)s bytes; '
+                          'refusing to continue decompressing to prevent '
+                          'resource exhaustion.', {'max': max_size})
+                raise exception.InvalidContent()
+            chunks.append(chunk)
+    return b''.join(chunks)
