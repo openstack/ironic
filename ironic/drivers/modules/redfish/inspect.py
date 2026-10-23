@@ -138,9 +138,16 @@ class RedfishInspect(base.InspectInterface):
 
         inventory['interfaces'] = self._get_interface_info(task, system)
 
-        pcie_devices = self._get_pcie_devices(system)
+        pcie_devices, nic_pci_map = self._get_pcie_devices(system)
         if pcie_devices:
             inventory['pci_devices'] = pcie_devices
+
+        for intf in inventory['interfaces']:
+            # NOTE(dtantsur): if we ever change "name" to use something other
+            # than Identity, this logic needs to be updated.
+            pci_info = nic_pci_map.get(intf.get('name'))
+            if pci_info:
+                intf.update(pci_info)
 
         system_vendor = self._get_system_vendor_info(task, system)
         if system_vendor:
@@ -514,8 +521,12 @@ class RedfishInspect(base.InspectInterface):
     def _get_pcie_devices(self, system):
         """Extract PCIe device information from Redfish collection.
 
+        Also builds a mapping from ethernet interface identities to PCI
+        info by following PCIeFunction Links.EthernetInterfaces.
+
         :param system: a Redfish system object.
-        :returns: List of PCIe device dictionaries
+        :returns: Tuple of (list of PCIe device dicts, dict mapping
+            ethernet interface identity to PCI info)
         """
         try:
             pcie_devices_collection = system.pcie_devices
@@ -523,9 +534,10 @@ class RedfishInspect(base.InspectInterface):
             pcie_devices_collection = None
 
         if pcie_devices_collection is None:
-            return []
+            return [], {}
 
         device_list = []
+        nic_pci_map = {}
 
         # Process each PCIe device
         for pcie_device in pcie_devices_collection.get_members():
@@ -540,8 +552,53 @@ class RedfishInspect(base.InspectInterface):
                 function_info = self._extract_function_info(pcie_function)
                 if function_info:
                     device_list.append(function_info)
+                self._collect_nic_pci_info(pcie_function, nic_pci_map)
 
-        return device_list
+        return device_list, nic_pci_map
+
+    def _collect_nic_pci_info(self, pcie_function, nic_pci_map):
+        """Collect PCI info for NICs from PCIeFunction links.
+
+        :param pcie_function: PCIe function object
+        :param nic_pci_map: dict to populate, mapping ethernet interface
+            identity to PCI info dict
+        """
+        links = pcie_function.links
+        if not links:
+            return
+
+        eth_interfaces = links.get('EthernetInterfaces')
+        if not eth_interfaces:
+            return
+
+        pci_info = {}
+        if pcie_function.vendor_id:
+            pci_info['vendor'] = pcie_function.vendor_id
+        if pcie_function.device_id:
+            pci_info['product'] = pcie_function.device_id
+
+        if (pcie_function.bus_number is not None
+                and pcie_function.device_number is not None
+                and pcie_function.function_number is not None):
+            try:
+                segment = int(pcie_function.segment_number or 0)
+                pci_info['pci_address'] = (
+                    f"{segment:04x}:"
+                    f"{int(pcie_function.bus_number):02x}:"
+                    f"{int(pcie_function.device_number):02x}."
+                    f"{int(pcie_function.function_number):x}")
+            except (ValueError, TypeError) as exc:
+                LOG.debug("Malformed PCI address information in PCIeFunction "
+                          "%s: %s", pcie_function.identity, exc)
+
+        if not pci_info:
+            return
+
+        for eth_ref in eth_interfaces:
+            if isinstance(eth_ref, dict) and '@odata.id' in eth_ref:
+                identity = eth_ref['@odata.id'].rstrip('/').rsplit(
+                    '/', 1)[-1]
+                nic_pci_map[identity] = pci_info
 
     def _extract_function_info(self, function):
         """Extract information from a PCIe function.
