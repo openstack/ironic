@@ -45,13 +45,79 @@ opts = [
                mutable=True,
                help=_("Can be used by any authentication strategy that "
                       "requires username credential. Currently utilized by "
-                      "the http_basic authentication strategy.")),
+                      "the http_basic authentication strategy. This "
+                      "option has no effect when "
+                      "``image_server_auth_strategy`` is set to "
+                      "``noauth`` (the default). WARNING: When "
+                      "``image_server_auth_strategy`` is set to "
+                      "``http_basic`` and ``image_server_auth_hosts`` "
+                      "is not configured, this credential will be sent "
+                      "to every host from which images are requested, "
+                      "including user-supplied URLs. Operators are "
+                      "strongly encouraged to configure "
+                      "``image_server_auth_hosts`` to restrict which "
+                      "hosts receive credentials.")),
     cfg.StrOpt('image_server_password',
                mutable=True,
                secret=True,
                help=_("Can be used by any authentication strategy that "
                       "requires password credential. Currently utilized by "
-                      "the http_basic authentication strategy.")),
+                      "the http_basic authentication strategy. This "
+                      "option has no effect when "
+                      "``image_server_auth_strategy`` is set to "
+                      "``noauth`` (the default). WARNING: When "
+                      "``image_server_auth_strategy`` is set to "
+                      "``http_basic`` and ``image_server_auth_hosts`` "
+                      "is not configured, this credential will be sent "
+                      "to every host from which images are requested, "
+                      "including user-supplied URLs. Operators are "
+                      "strongly encouraged to configure "
+                      "``image_server_auth_hosts`` to restrict which "
+                      "hosts receive credentials.")),
+    cfg.ListOpt('image_server_auth_hosts',
+                default=[],
+                mutable=True,
+                help=_("Operators may optionally configure a list of "
+                       "host names which credentials may be supplied "
+                       "to as a part of image retrieval. This option "
+                       "only takes effect when "
+                       "``image_server_auth_strategy`` is set to a "
+                       "value other than ``noauth`` (the default). "
+                       "When ``image_server_auth_strategy`` is "
+                       "``noauth``, no credentials are sent regardless "
+                       "of this setting. If this option is not "
+                       "configured, image server credentials will be "
+                       "sent to every host which images are requested "
+                       "from. If configured, only matching hosts will "
+                       "be sent credentials. Entries may be exact "
+                       "hostnames (e.g. ``images.example.com``) or "
+                       "domain suffixes prefixed with a dot "
+                       "(e.g. ``.example.com`` to match all hosts "
+                       "under that domain). This is a security feature "
+                       "to prevent leakage of image server credentials "
+                       "to untrusted hosts.")),
+    cfg.BoolOpt('image_server_auth_permit_unknown_hosts',
+                default=True,
+                mutable=True,
+                help=_("This option only takes effect when "
+                       "``image_server_auth_strategy`` is set to a "
+                       "value other than ``noauth`` (the default) and "
+                       "``image_server_auth_hosts`` is not configured. "
+                       "When set to True, image server credentials "
+                       "will be sent to all hosts from which images "
+                       "are requested. This preserves backwards "
+                       "compatible behavior but risks leaking "
+                       "credentials to untrusted hosts. When set to "
+                       "False, credentials will only be sent to hosts "
+                       "explicitly listed in "
+                       "``image_server_auth_hosts``. "
+                       "DEPRECATED: The default value of this option "
+                       "will change to False in the 2026.2 release. "
+                       "Operators who have configured "
+                       "``image_server_auth_strategy`` to ``http_basic``"
+                       " should configure ``image_server_auth_hosts`` "
+                       "and set this option to False before that "
+                       "release.")),
     cfg.URIOpt('external_http_url',
                schemes=['http', 'https'],
                help=_("URL of the ironic-conductor node's HTTP server for "
