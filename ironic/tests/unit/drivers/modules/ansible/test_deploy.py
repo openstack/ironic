@@ -11,8 +11,10 @@
 # limitations under the License.
 
 import json
+import os
 from unittest import mock
 
+import fixtures
 from oslo_concurrency import processutils
 
 from ironic.common import exception
@@ -485,6 +487,103 @@ class TestAnsibleMethods(AnsibleDeployTestCaseBase):
                 self.assertIn(str(key), str(exc))
                 self.assertIn(str(value), str(exc))
 
+    def test__validate_playbooks_path_no_override(self):
+        # No per-node override -> nothing to validate.
+        self.node.driver_info.pop('ansible_playbooks_path', None)
+        ansible_deploy._validate_playbooks_path(self.node)
+
+    def test__validate_playbooks_path_within_default(self):
+        self.config(group='ansible', playbooks_path='/opt/playbooks')
+        self.node.driver_info['ansible_playbooks_path'] = (
+            '/opt/playbooks/custom')
+        ansible_deploy._validate_playbooks_path(self.node)
+
+    def test__validate_playbooks_path_equals_default(self):
+        self.config(group='ansible', playbooks_path='/opt/playbooks')
+        self.node.driver_info['ansible_playbooks_path'] = '/opt/playbooks'
+        ansible_deploy._validate_playbooks_path(self.node)
+
+    def test__validate_playbooks_path_within_allowlist(self):
+        self.config(group='ansible', playbooks_path='/opt/playbooks')
+        self.config(group='ansible',
+                    playbooks_path_allowlist=['/srv/ansible'])
+        self.node.driver_info['ansible_playbooks_path'] = '/srv/ansible/node1'
+        ansible_deploy._validate_playbooks_path(self.node)
+
+    def test__validate_playbooks_path_prefix_not_matched(self):
+        # A directory sharing a string prefix is not "within" the base.
+        self.config(group='ansible', playbooks_path='/opt/playbooks')
+        self.config(group='ansible', enforce_playbooks_path=True)
+        self.node.driver_info['ansible_playbooks_path'] = (
+            '/opt/playbooks-evil')
+        self.assertRaises(exception.InvalidParameterValue,
+                          ansible_deploy._validate_playbooks_path, self.node)
+
+    @mock.patch.object(ansible_deploy, 'LOG', autospec=True)
+    def test__validate_playbooks_path_outside_not_enforced(self, log_mock):
+        self.config(group='ansible', playbooks_path='/opt/playbooks')
+        self.config(group='ansible', enforce_playbooks_path=False)
+        self.node.driver_info['ansible_playbooks_path'] = '/tmp'
+        # Not enforced: allowed to proceed, but warns.
+        ansible_deploy._validate_playbooks_path(self.node)
+        self.assertTrue(log_mock.warning.called)
+
+    def test__validate_playbooks_path_outside_enforced(self):
+        self.config(group='ansible', playbooks_path='/opt/playbooks')
+        self.config(group='ansible', enforce_playbooks_path=True)
+        self.node.driver_info['ansible_playbooks_path'] = '/tmp'
+        exc = self.assertRaises(exception.InvalidParameterValue,
+                                ansible_deploy._validate_playbooks_path,
+                                self.node)
+        self.assertIn('/tmp', str(exc))
+
+    def test__validate_playbooks_path_traversal_enforced(self):
+        # A path escaping the base via '..' resolves outside and is rejected.
+        self.config(group='ansible', playbooks_path='/opt/playbooks')
+        self.config(group='ansible', enforce_playbooks_path=True)
+        self.node.driver_info['ansible_playbooks_path'] = (
+            '/opt/playbooks/../../tmp')
+        self.assertRaises(exception.InvalidParameterValue,
+                          ansible_deploy._validate_playbooks_path, self.node)
+
+    def test__validate_playbooks_path_deep_traversal_enforced(self):
+        # An override that starts with a permitted prefix but climbs back
+        # out with '..' segments must not be treated as contained.
+        self.config(group='ansible', playbooks_path='/opt/playbooks')
+        self.config(group='ansible', enforce_playbooks_path=True)
+        self.node.driver_info['ansible_playbooks_path'] = (
+            '/opt/playbooks/../../../../other/path')
+        exc = self.assertRaises(exception.InvalidParameterValue,
+                                ansible_deploy._validate_playbooks_path,
+                                self.node)
+        # The resolved (normalized) path is what gets reported/checked.
+        self.assertIn('/other/path', str(exc))
+
+    def test__validate_playbooks_path_symlink_escape_enforced(self):
+        # A symlink living inside a permitted directory but pointing outside
+        # must be resolved and rejected. This is why realpath (not normpath)
+        # is used: a lexical '..' collapse would be fooled by the symlink.
+        base = self.useFixture(fixtures.TempDir()).path
+        outside = self.useFixture(fixtures.TempDir()).path
+        sneaky = os.path.join(base, 'sneaky')
+        os.symlink(outside, sneaky)
+        self.config(group='ansible', playbooks_path=base)
+        self.config(group='ansible', enforce_playbooks_path=True)
+        self.node.driver_info['ansible_playbooks_path'] = sneaky
+        self.assertRaises(exception.InvalidParameterValue,
+                          ansible_deploy._validate_playbooks_path, self.node)
+
+    def test__validate_playbooks_path_allowlist_traversal_rejected(self):
+        # Allowlist entries are validated as explicit absolute paths, so a
+        # value containing path traversal mechanisms cannot be configured.
+        self.assertRaises(ValueError, self.config, group='ansible',
+                          playbooks_path_allowlist=['/opt/../etc'])
+
+    def test__validate_playbooks_path_allowlist_relative_rejected(self):
+        # Likewise, a relative path is not a valid allowlist entry.
+        self.assertRaises(ValueError, self.config, group='ansible',
+                          playbooks_path_allowlist=['playbooks'])
+
     def test__prepare_variables(self):
         i_info = self.node.instance_info
         i_info['image_mem_req'] = 3000
@@ -766,10 +865,13 @@ class TestAnsibleDeploy(AnsibleDeployTestCaseBase):
                 self.context, self.node['uuid'], shared=False) as task:
             self.assertFalse(self.driver.supports_deploy(task))
 
+    @mock.patch.object(ansible_deploy, '_validate_playbooks_path',
+                       autospec=True)
     @mock.patch.object(deploy_utils, 'check_for_missing_params',
                        autospec=True)
     @mock.patch.object(pxe.PXEBoot, 'validate', autospec=True)
-    def test_validate(self, pxe_boot_validate_mock, check_params_mock):
+    def test_validate(self, pxe_boot_validate_mock, check_params_mock,
+                      validate_path_mock):
         with task_manager.acquire(
                 self.context, self.node['uuid'], shared=False) as task:
             self.driver.validate(task)
@@ -778,6 +880,7 @@ class TestAnsibleDeploy(AnsibleDeployTestCaseBase):
             check_params_mock.assert_called_once_with(
                 {'instance_info.image_source': INSTANCE_INFO['image_source']},
                 mock.ANY)
+            validate_path_mock.assert_called_once_with(task.node)
 
     @mock.patch.object(deploy_utils, 'check_for_missing_params',
                        autospec=True)

@@ -16,6 +16,7 @@ import os
 from oslo_config import cfg
 
 from ironic.common.i18n import _
+from ironic.conf import types as ir_types
 
 
 opts = [
@@ -42,6 +43,34 @@ opts = [
                                     'drivers/modules/ansible/playbooks'),
                help=_('Path to directory with playbooks, roles and '
                       'local inventory.')),
+    cfg.ListOpt('playbooks_path_allowlist',
+                default=[],
+                item_type=ir_types.ExplicitAbsolutePath(),
+                help=_('List of absolute directory paths which are permitted '
+                       'as the per-node "ansible_playbooks_path" driver_info '
+                       'value, in addition to the directory configured in '
+                       '"[ansible]playbooks_path". Paths listed here are '
+                       'validated as absolute paths and will be rejected if '
+                       'they contain path traversal mechanisms, such as "..". '
+                       'A per-node '
+                       '"ansible_playbooks_path" must resolve to a location '
+                       'within "[ansible]playbooks_path" or one of these '
+                       'directories. Whether a value outside the permitted '
+                       'directories is rejected or only logged is controlled '
+                       'by "[ansible]enforce_playbooks_path".')),
+    cfg.BoolOpt('enforce_playbooks_path',
+                default=False,
+                help=_('Whether to enforce that a per-node '
+                       '"ansible_playbooks_path" driver_info value resolves '
+                       'to a location within "[ansible]playbooks_path" or one '
+                       'of the directories listed in '
+                       '"[ansible]playbooks_path_allowlist". When False (the '
+                       'current default) a value outside those directories is '
+                       'logged as a warning but the operation is allowed to '
+                       'proceed. This default is expected to change to True '
+                       'in a future release, so operators relying on custom '
+                       'per-node playbook directories should add them to '
+                       '"[ansible]playbooks_path_allowlist".')),
     cfg.StrOpt('config_file_path',
                default=os.path.join(
                    '$pybasedir',
