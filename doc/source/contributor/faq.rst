@@ -95,13 +95,13 @@ in master and cherry-pick it. If you do, `see how the mess was cleaned up
 
 You have an issue and would like a decision to be made. First, make sure
 that the issue hasn't already been addressed, by looking at documentation,
-stories, specifications, or asking. Information and links can be found on the
-`Ironic wiki`_ page.
+stories, specifications, or asking. Information and links can be found in the
+`Ironic documentation`_ page.
 
 There are several ways to solicit comments and opinions:
 
-* bringing it up at the `weekly Ironic meeting`_
-* bringing it up on IRC_
+* bringing it up at the `weekly Ironic meeting`_, or otherwise in
+  #openstack-ironic on OFTC
 * bringing it up on the `mailing list`_ (add "[Ironic]" to the Subject of the
   email)
 
@@ -137,7 +137,7 @@ Ironic operates via a consensus driven model of collaboration. Often, others
 want the similarly shaped features, but may not agree on the details.
 Or different words may be used for the exact same meaning. The
 best way to build awareness, consensus, and a common set of words to
-describe the feature which you desire is to join the weekly `IRC`_ meeting
+describe the feature which you desire is to join the `weekly Ironic meeting`_
 and bringing up the desire during the ``Open Discussion`` portion of the
 meeting. Often Ironic contributors will ask for an RFE or a specification
 documentation to be started which we can collaborate on.
@@ -146,8 +146,7 @@ Persistence and collaboration are key. Often contributors are quite busy
 with numerous other tasks. In other words, if we don't respond quickly or
 on your first attempt, it is not you. Just try again.
 
-.. _Ironic wiki: https://wiki.openstack.org/wiki/Ironic
-.. _weekly Ironic meeting: https://wiki.openstack.org/wiki/Meetings/Ironic
-.. _IRC: https://wiki.openstack.org/wiki/Ironic#IRC
+.. _Ironic documentation: https://docs.openstack.org/ironic/latest/
+.. _weekly Ironic meeting: https://etherpad.opendev.org/p/ironic-meeting-agenda
 .. _mailing list: http://lists.openstack.org/cgi-bin/mailman/listinfo/openstack-discuss
 .. _process for making decisions: http://lists.openstack.org/pipermail/openstack-dev/2016-May/095460.html

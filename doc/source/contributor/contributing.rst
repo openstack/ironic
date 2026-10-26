@@ -81,7 +81,7 @@ Feature Submission Process
    about the RFE, and whether to approve it will occur. If the RFE has not
    been triaged and you'd like it to receive immediate attention, add it to
    the Open Discussion section of our
-   `weekly meeting agenda <https://wiki.openstack.org/wiki/Meetings/Ironic>`_,
+   `weekly meeting agenda <https://etherpad.opendev.org/p/ironic-meeting-agenda>`_,
    and, timezone permitting, attend the meeting to advocate for your RFE.
 
 #. Contributors will evaluate the RFE and may advise the submitter to file a
@@ -108,8 +108,8 @@ Change Tracking
 
 Please ensure work related to a bug or RFE is tagged with the bug. This
 generally is a "Closes-bug", "Partial-bug" or "Related-bug" tag as described
-in the
-`Git Commit messages guide <https://wiki.openstack.org/wiki/GitCommitMessages#Including_external_references>`_.
+in the `Git Commit messages guide <https://docs.openstack.org/contributors/common/git.html#commit-messages>`_.
+
 
 .. note:: **RFEs may only be approved by members of the ironic-core team**.
 
@@ -291,8 +291,8 @@ For approved and completed specs:
 - changing the definition of the feature should be done in a new spec.
 
 
-Please see the `Ironic specs process wiki page <https://wiki.openstack.org/
-wiki/Ironic/Specs_Process>`_ for further reference.
+Please see the `Ironic specs process <https://specs.openstack.org/openstack/
+ironic-specs/>`_ for further reference.
 
 Project Team Leader Duties
 ==========================
