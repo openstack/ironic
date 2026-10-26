@@ -1,0 +1,15 @@
+---
+security:
+  - |
+    The ``[ansible]enforce_playbooks_path`` option now defaults to ``True``.
+    A per-node ``ansible_playbooks_path`` in ``driver_info`` that resolves
+    outside ``[ansible]playbooks_path`` or ``[ansible]playbooks_path_allowlist``
+    is now rejected rather than merely logged.
+upgrade:
+  - |
+    The ``[ansible]enforce_playbooks_path`` option now defaults to ``True``.
+    Operators who point individual nodes at custom playbook directories via
+    the ``ansible_playbooks_path`` ``driver_info`` value must list those
+    directories in ``[ansible]playbooks_path_allowlist`` or those nodes will
+    fail validation. Setting ``[ansible]enforce_playbooks_path`` to ``False``
+    restores the previous non-enforcing behaviour.

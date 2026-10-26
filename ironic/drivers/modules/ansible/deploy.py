@@ -139,8 +139,9 @@ def _validate_playbooks_path(node):
             'allowed': ', '.join(allowed)})
     if CONF.ansible.enforce_playbooks_path:
         raise exception.InvalidParameterValue(msg)
-    LOG.warning('%s This will be rejected in a future release once '
-                '[ansible]enforce_playbooks_path is enabled by default.', msg)
+    LOG.warning('%s This is permitted only because '
+                '[ansible]enforce_playbooks_path is disabled; it will be '
+                'rejected once enforcement is enabled.', msg)
 
 
 def _parse_ansible_driver_info(node, action='deploy'):

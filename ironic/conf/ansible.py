@@ -59,18 +59,19 @@ opts = [
                        'directories is rejected or only logged is controlled '
                        'by "[ansible]enforce_playbooks_path".')),
     cfg.BoolOpt('enforce_playbooks_path',
-                default=False,
+                default=True,
                 help=_('Whether to enforce that a per-node '
                        '"ansible_playbooks_path" driver_info value resolves '
                        'to a location within "[ansible]playbooks_path" or one '
                        'of the directories listed in '
-                       '"[ansible]playbooks_path_allowlist". When False (the '
-                       'current default) a value outside those directories is '
-                       'logged as a warning but the operation is allowed to '
-                       'proceed. This default is expected to change to True '
-                       'in a future release, so operators relying on custom '
-                       'per-node playbook directories should add them to '
-                       '"[ansible]playbooks_path_allowlist".')),
+                       '"[ansible]playbooks_path_allowlist". When True (the '
+                       'default) a value outside those directories is '
+                       'rejected. Operators relying on custom per-node '
+                       'playbook directories must add them to '
+                       '"[ansible]playbooks_path_allowlist". Setting this to '
+                       'False restores the previous behaviour, where a value '
+                       'outside those directories is only logged as a '
+                       'warning.')),
     cfg.StrOpt('config_file_path',
                default=os.path.join(
                    '$pybasedir',

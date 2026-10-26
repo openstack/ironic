@@ -519,6 +519,14 @@ class TestAnsibleMethods(AnsibleDeployTestCaseBase):
         self.assertRaises(exception.InvalidParameterValue,
                           ansible_deploy._validate_playbooks_path, self.node)
 
+    def test__validate_playbooks_path_outside_default(self):
+        # Enforcement is on by default, so an outside path is rejected
+        # without any explicit enforce_playbooks_path configuration.
+        self.config(group='ansible', playbooks_path='/opt/playbooks')
+        self.node.driver_info['ansible_playbooks_path'] = '/tmp'
+        self.assertRaises(exception.InvalidParameterValue,
+                          ansible_deploy._validate_playbooks_path, self.node)
+
     @mock.patch.object(ansible_deploy, 'LOG', autospec=True)
     def test__validate_playbooks_path_outside_not_enforced(self, log_mock):
         self.config(group='ansible', playbooks_path='/opt/playbooks')
