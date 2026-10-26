@@ -1,0 +1,20 @@
+---
+- job:
+    name: ironic-build-partition-image
+    parent: publish-openstack-artifacts
+    description: Build and publish the Ironic Ubuntu partition image fixture.
+    timeout: 3600
+    run: playbooks/ci/build-partition-image.yaml
+    required-projects:
+      - opendev.org/openstack/diskimage-builder
+      - opendev.org/openstack/requirements
+
+- job:
+    name: ironic-check-build-partition-image
+    parent: base
+    description: Build the Ironic partition image fixture without publishing it.
+    timeout: 3600
+    run: playbooks/ci/build-partition-image.yaml
+    required-projects:
+      - opendev.org/openstack/diskimage-builder
+      - opendev.org/openstack/requirements

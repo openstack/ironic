@@ -10,6 +10,12 @@
       - release-notes-jobs-python3
     check:
       jobs:
+        - ironic-check-build-partition-image:
+            voting: false
+            files:
+              - ^playbooks/ci/build-partition-image.yaml$
+              - ^zuul.d/ironic-image-jobs.yaml$
+              - ^zuul.d/project.yaml$
         - ironic-tox-mypy
         - ironic-tox-unit-mysql-migrations
         - ironic-tox-unit-with-driver-libs
@@ -115,6 +121,9 @@
         # stable branches, and as far as we are aware these jobs
         # can be removed once this branch is made stable.
         #- metal3-integration
+    periodic:
+      jobs:
+        - ironic-build-partition-image
     experimental:
       jobs:
         # NOTE(dtantsur): this job is rarely used, no need to run it always.
