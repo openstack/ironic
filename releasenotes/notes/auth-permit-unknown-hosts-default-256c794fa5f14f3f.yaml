@@ -1,0 +1,19 @@
+---
+upgrade:
+  - |
+    The default value of
+    ``[deploy]image_server_auth_permit_unknown_hosts`` has changed
+    from ``True`` to ``False``. Operators who have configured
+    ``[deploy]image_server_auth_strategy`` to ``http_basic`` must
+    now also configure ``[deploy]image_server_auth_hosts`` for
+    credentials to be sent. Deployments using the default
+    ``noauth`` strategy are not affected.
+security:
+  - |
+    Ironic now refuses to start when ``[deploy]image_server_password``
+    is configured without either ``[deploy]image_server_auth_hosts`` or
+    ``[deploy]image_server_auth_permit_unknown_hosts``. This prevents
+    image server credentials from being silently sent to untrusted,
+    potentially user-supplied, hosts. See
+    `bug 2162816 <https://bugs.launchpad.net/ironic/+bug/2162816>`_ for
+    details.

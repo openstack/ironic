@@ -97,7 +97,7 @@ opts = [
                        "to prevent leakage of image server credentials "
                        "to untrusted hosts.")),
     cfg.BoolOpt('image_server_auth_permit_unknown_hosts',
-                default=True,
+                default=False,
                 mutable=True,
                 help=_("This option only takes effect when "
                        "``image_server_auth_strategy`` is set to a "
@@ -110,14 +110,13 @@ opts = [
                        "credentials to untrusted hosts. When set to "
                        "False, credentials will only be sent to hosts "
                        "explicitly listed in "
-                       "``image_server_auth_hosts``. "
-                       "DEPRECATED: The default value of this option "
-                       "will change to False in the 2026.2 release. "
-                       "Operators who have configured "
-                       "``image_server_auth_strategy`` to ``http_basic``"
-                       " should configure ``image_server_auth_hosts`` "
-                       "and set this option to False before that "
-                       "release.")),
+                       "``image_server_auth_hosts``. The default "
+                       "value of this option changed to False in "
+                       "the 2027.1 release. Operators who have "
+                       "configured ``image_server_auth_strategy`` "
+                       "to ``http_basic`` and need the previous "
+                       "behavior must explicitly set this option "
+                       "to True.")),
     cfg.URIOpt('external_http_url',
                schemes=['http', 'https'],
                help=_("URL of the ironic-conductor node's HTTP server for "
