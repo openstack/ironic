@@ -21,10 +21,10 @@ from oslo_utils import uuidutils
 
 from ironic.common import dhcp_factory
 from ironic.common import exception
+from ironic.common.network import NetType
 from ironic.common import pxe_utils
 from ironic.conductor import task_manager
 from ironic.dhcp import neutron
-from ironic.drivers.modules.network.common import NetType
 from ironic.tests.unit.db import base as db_base
 from ironic.tests.unit.objects import utils as object_utils
 

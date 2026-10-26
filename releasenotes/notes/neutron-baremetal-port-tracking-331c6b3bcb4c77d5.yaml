@@ -1,0 +1,9 @@
+---
+fixes:
+  - |
+    Fix an issue where the ``[neutron].fail_on_port_binding_failure``
+    option could cause us to not properly track and clean up ports if one
+    port bound successfully and then the next port did not bind correctly
+    because the ports were only recorded on success of all port binding.
+    See `bug 2148615 <https://bugs.launchpad.net/ironic/+bug/2148615>`_
+    for details.

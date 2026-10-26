@@ -24,6 +24,9 @@ from ironic.common import context as ironic_context
 from ironic.common import exception
 from ironic.common.i18n import _
 from ironic.common import keystone
+from ironic.common.network import forget_vif
+from ironic.common.network import NetType
+from ironic.common.network import record_vif
 from ironic.common.pxe_utils import DHCP_CLIENT_ID
 from ironic.conf import CONF
 from ironic import objects
@@ -339,7 +342,8 @@ def _add_ip_addresses_for_ipv6_stateful(context, port, client):
         update_neutron_port(context, port.id, attrs, client=client)
 
 
-def add_ports_to_network(task, network_uuid, security_groups=None):
+def add_ports_to_network(task, network_uuid, net_type: NetType,
+                         security_groups=None):
     """Create neutron ports to boot the ramdisk.
 
     Create neutron ports for each pxe_enabled port on task.node to boot
@@ -352,6 +356,9 @@ def add_ports_to_network(task, network_uuid, security_groups=None):
     :param task: a TaskManager instance.
     :param network_uuid: UUID of a neutron network where ports will be
         created.
+    :param net_type: the NetType being created; its ``vif_key`` is the
+        ``internal_info`` key on the baremetal port under which each
+        created neutron port's ID is recorded.
     :param security_groups: List of Security Groups UUIDs to be used for
         network.
     :raises: NetworkError
@@ -453,6 +460,8 @@ def add_ports_to_network(task, network_uuid, security_groups=None):
                 wait_for_host_agent(
                     client, update_port_attrs['binding:host_id'])
             port = client.create_port(**port_attrs)
+            # record this neutron port for the baremetal port
+            record_vif(ironic_port, net_type, port.id)
             port = update_neutron_port(task.context, port.id,
                                        update_port_attrs)
             if CONF.neutron.dhcpv6_stateful_address_count > 1:
@@ -489,7 +498,6 @@ def add_ports_to_network(task, network_uuid, security_groups=None):
 
     if failures:
         if len(failures) == len(ports_to_create):
-            rollback_ports(task, network_uuid)
             client.close()
             raise exception.NetworkError(_(
                 "Failed to create neutron ports for node's %(node)s ports "
@@ -508,11 +516,14 @@ def add_ports_to_network(task, network_uuid, security_groups=None):
     return ports
 
 
-def remove_ports_from_network(task, network_uuid):
+def remove_ports_from_network(task, network_uuid, net_type: NetType):
     """Deletes the neutron ports created for booting the ramdisk.
 
     :param task: a TaskManager instance.
     :param network_uuid: UUID of a neutron network ports will be deleted from.
+    :param net_type: the NetType the neutron ports belong to. The ``vif_key``
+        record of each deleted neutron port is removed from the baremetal
+        ports.
     :raises: NetworkError
     """
     pxe_capability = 'pxe_boot' in task.driver.boot.capabilities
@@ -529,14 +540,20 @@ def remove_ports_from_network(task, network_uuid):
         LOG.debug("Removing ports on network %(net)s on node %(node)s.",
                   {'net': network_uuid, 'node': task.node.uuid})
 
-        remove_neutron_ports(task, params)
+        remove_neutron_ports(task, params, net_type)
 
 
-def remove_neutron_ports(task, params):
+def remove_neutron_ports(task, params, net_type: NetType):
     """Deletes the neutron ports matched by params.
+
+    This cleans up the neutron ports matched by params as well as any stale
+    ports still recorded on the baremetal ports for ``net_type``, such as
+    ones that listing did not return because they are already gone. The
+    record of every deleted port is removed.
 
     :param task: a TaskManager instance.
     :param params: Dict of params to filter ports.
+    :param net_type: the NetType the neutron ports belong to.
     :raises: NetworkError
     """
     client = get_client(context=task.context, auth_from_config=True)
@@ -552,11 +569,6 @@ def remove_neutron_ports(task, params):
         client.close()
         raise exception.NetworkError(msg)
 
-    if not ports:
-        LOG.debug('No ports to remove for node %s', node_uuid)
-        client.close()
-        return
-
     for port in ports:
         LOG.debug('Deleting neutron port %(vif_port_id)s of node '
                   '%(node_id)s.',
@@ -569,6 +581,8 @@ def remove_neutron_ports(task, params):
         # NOTE(mgoddard): Ignore if the port was deleted by nova.
         except openstack_exc.ResourceNotFound:
             LOG.info('Port %s was not found while deleting.', port.id)
+            for ironic_port in task.ports:
+                forget_vif(ironic_port, net_type, port.id)
         except openstack_exc.OpenStackCloudException as e:
             msg = (_('Could not remove VIF %(vif)s of node %(node)s, possibly '
                      'a network issue: %(exc)s') %
@@ -576,6 +590,39 @@ def remove_neutron_ports(task, params):
             LOG.exception(msg)
             client.close()
             raise exception.NetworkError(msg)
+        else:
+            for ironic_port in task.ports:
+                forget_vif(ironic_port, net_type, port.id)
+
+    # Tenant VIFs are attached by the user, not created by Ironic, so they
+    # are never ours to delete.
+    if net_type != NetType.TENANT:
+        for ironic_port in task.ports:
+            vif_id = ironic_port.internal_info.get(net_type.vif_key)
+            if not vif_id:
+                continue
+            LOG.debug('Deleting recorded neutron port %(vif_port_id)s of '
+                      'baremetal port %(port)s of node %(node_id)s.',
+                      {'vif_port_id': vif_id, 'port': ironic_port.uuid,
+                       'node_id': node_uuid})
+            try:
+                client.delete_port(vif_id, ignore_missing=False)
+            except openstack_exc.ResourceNotFound:
+                LOG.info('Neutron port %(vif_port_id)s recorded for '
+                         'baremetal port %(port)s of node %(node_id)s '
+                         'was not found while deleting, it is already gone.',
+                         {'vif_port_id': vif_id, 'port': ironic_port.uuid,
+                          'node_id': node_uuid})
+            except openstack_exc.OpenStackCloudException as e:
+                msg = (_('Could not remove VIF %(vif)s of baremetal port '
+                         '%(port)s of node %(node)s, possibly a network '
+                         'issue: %(exc)s') %
+                       {'vif': vif_id, 'port': ironic_port.uuid,
+                        'node': node_uuid, 'exc': e})
+                LOG.exception(msg)
+                client.close()
+                raise exception.NetworkError(msg)
+            forget_vif(ironic_port, net_type, vif_id)
 
     LOG.info('Successfully removed node %(node_uuid)s neutron ports.',
              {'node_uuid': node_uuid})
@@ -849,7 +896,7 @@ def get_local_group_information(task, portgroup):
     }
 
 
-def rollback_ports(task, network_uuid):
+def rollback_ports(task, network_uuid, net_type: NetType):
     """Attempts to delete any ports created by cleaning/provisioning
 
     Purposefully will not raise any exceptions so error handling can
@@ -857,9 +904,12 @@ def rollback_ports(task, network_uuid):
 
     :param task: a TaskManager instance.
     :param network_uuid: UUID of a neutron network.
+    :param net_type: the NetType the neutron ports belong to. The ``vif_key``
+        record of each deleted neutron port is removed from the baremetal
+        ports.
     """
     try:
-        remove_ports_from_network(task, network_uuid)
+        remove_ports_from_network(task, network_uuid, net_type)
     except exception.NetworkError:
         # Only log the error
         LOG.exception('Failed to rollback port changes for '
