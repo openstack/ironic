@@ -18,10 +18,10 @@ from oslo_config import cfg
 from oslo_utils import uuidutils
 
 from ironic.common import exception
+from ironic.common.network import NetType
 from ironic.common import neutron as neutron_common
 from ironic.conductor import task_manager
 from ironic.drivers import base as drivers_base
-from ironic.drivers.modules.network.common import NetType
 from ironic.drivers.modules.network import neutron
 from ironic.tests.unit.db import base as db_base
 from ironic.tests.unit.objects import utils
@@ -120,6 +120,22 @@ class NeutronInterfaceTestCase(db_base.DbTestCase):
                        side_effect=lambda n, t, context=None: n, autospec=True)
     @mock.patch.object(neutron_common, 'rollback_ports', autospec=True)
     @mock.patch.object(neutron_common, 'add_ports_to_network', autospec=True)
+    def test_add_provisioning_network_unexpected_error_rolls_back(
+            self, add_ports_mock, rollback_mock, validate_mock):
+        add_ports_mock.side_effect = RuntimeError('boom')
+        with task_manager.acquire(self.context, self.node.id) as task:
+            self.assertRaises(RuntimeError,
+                              self.interface.add_provisioning_network, task)
+            # once for leftovers, once for cleanup after the failure
+            self.assertEqual(2, rollback_mock.call_count)
+            rollback_mock.assert_called_with(
+                task, CONF.neutron.provisioning_network,
+                NetType.PROVISIONING)
+
+    @mock.patch.object(neutron_common, 'validate_network',
+                       side_effect=lambda n, t, context=None: n, autospec=True)
+    @mock.patch.object(neutron_common, 'rollback_ports', autospec=True)
+    @mock.patch.object(neutron_common, 'add_ports_to_network', autospec=True)
     def test_add_provisioning_network(self, add_ports_mock, rollback_mock,
                                       validate_mock):
         self.port.internal_info = {
@@ -130,16 +146,15 @@ class NeutronInterfaceTestCase(db_base.DbTestCase):
         with task_manager.acquire(self.context, self.node.id) as task:
             self.interface.add_provisioning_network(task)
             rollback_mock.assert_called_once_with(
-                task, CONF.neutron.provisioning_network)
+                task, CONF.neutron.provisioning_network,
+                NetType.PROVISIONING)
             add_ports_mock.assert_called_once_with(
                 task, CONF.neutron.provisioning_network,
+                NetType.PROVISIONING,
                 security_groups=[])
             validate_mock.assert_called_once_with(
                 CONF.neutron.provisioning_network,
                 'provisioning_network', context=task.context)
-        self.port.refresh()
-        self.assertEqual(self.neutron_port.id,
-                         self.port.internal_info[NetType.PROVISIONING.vif_key])
 
     @mock.patch.object(neutron_common, 'validate_network',
                        side_effect=lambda n, t, context=None: n, autospec=True)
@@ -164,16 +179,15 @@ class NeutronInterfaceTestCase(db_base.DbTestCase):
             with task_manager.acquire(self.context, self.node.id) as task:
                 self.interface.add_provisioning_network(task)
                 rollback_mock.assert_called_with(
-                    task, provisioning_network_uuid)
+                    task, provisioning_network_uuid,
+                    NetType.PROVISIONING)
                 add_ports_mock.assert_called_with(
                     task, provisioning_network_uuid,
+                    NetType.PROVISIONING,
                     security_groups=[])
                 validate_mock.assert_called_once_with(
                     provisioning_network_uuid,
                     'provisioning_network', context=task.context)
-        self.port.refresh()
-        self.assertEqual(self.neutron_port.id,
-                         self.port.internal_info[NetType.PROVISIONING.vif_key])
 
     @mock.patch.object(neutron_common, 'validate_network',
                        lambda n, t, context=None: n)
@@ -191,14 +205,13 @@ class NeutronInterfaceTestCase(db_base.DbTestCase):
         with task_manager.acquire(self.context, self.node.id) as task:
             self.interface.add_provisioning_network(task)
             rollback_mock.assert_called_once_with(
-                task, CONF.neutron.provisioning_network)
+                task, CONF.neutron.provisioning_network,
+                NetType.PROVISIONING)
             add_ports_mock.assert_called_once_with(
                 task, CONF.neutron.provisioning_network,
+                NetType.PROVISIONING,
                 security_groups=(
                     CONF.neutron.provisioning_network_security_groups))
-        self.port.refresh()
-        self.assertEqual(self.neutron_port.id,
-                         self.port.internal_info[NetType.PROVISIONING.vif_key])
 
     @mock.patch.object(neutron_common, 'validate_network',
                        side_effect=lambda n, t, context=None: n, autospec=True)
@@ -206,20 +219,14 @@ class NeutronInterfaceTestCase(db_base.DbTestCase):
                        autospec=True)
     def test_remove_provisioning_network(self, remove_ports_mock,
                                          validate_mock):
-        self.port.internal_info = {
-            NetType.PROVISIONING.vif_key: 'vif-port-id'
-        }
-        self.port.save()
         with task_manager.acquire(self.context, self.node.id) as task:
             self.interface.remove_provisioning_network(task)
             remove_ports_mock.assert_called_once_with(
-                task, CONF.neutron.provisioning_network)
+                task, CONF.neutron.provisioning_network,
+                NetType.PROVISIONING)
             validate_mock.assert_called_once_with(
                 CONF.neutron.provisioning_network,
                 'provisioning_network', context=task.context)
-        self.port.refresh()
-        self.assertNotIn(NetType.PROVISIONING.vif_key,
-                         self.port.internal_info)
 
     @mock.patch.object(neutron_common, 'validate_network',
                        side_effect=lambda n, t, context=None: n, autospec=True)
@@ -227,10 +234,6 @@ class NeutronInterfaceTestCase(db_base.DbTestCase):
                        autospec=True)
     def test_remove_provisioning_network_from_node(self, remove_ports_mock,
                                                    validate_mock):
-        self.port.internal_info = {
-            NetType.PROVISIONING.vif_key: 'vif-port-id'
-        }
-        self.port.save()
         provisioning_network_uuid = '3aea0de6-4b92-44da-9aa0-52d134c83f9c'
         driver_info = self.node.driver_info
         driver_info['provisioning_network'] = provisioning_network_uuid
@@ -239,13 +242,11 @@ class NeutronInterfaceTestCase(db_base.DbTestCase):
         with task_manager.acquire(self.context, self.node.id) as task:
             self.interface.remove_provisioning_network(task)
             remove_ports_mock.assert_called_once_with(
-                task, provisioning_network_uuid)
+                task, provisioning_network_uuid,
+                NetType.PROVISIONING)
             validate_mock.assert_called_once_with(
                 provisioning_network_uuid,
                 'provisioning_network', context=task.context)
-        self.port.refresh()
-        self.assertNotIn(NetType.PROVISIONING.vif_key,
-                         self.port.internal_info)
 
     @mock.patch.object(neutron_common, 'validate_network',
                        side_effect=lambda n, t, context=None: n, autospec=True)
@@ -257,14 +258,12 @@ class NeutronInterfaceTestCase(db_base.DbTestCase):
         with task_manager.acquire(self.context, self.node.id) as task:
             res = self.interface.add_cleaning_network(task)
             rollback_mock.assert_called_once_with(
-                task, CONF.neutron.cleaning_network)
+                task, CONF.neutron.cleaning_network,
+                NetType.CLEANING)
             self.assertEqual(res, add_ports_mock.return_value)
             validate_mock.assert_called_once_with(
                 CONF.neutron.cleaning_network,
                 'cleaning_network', context=task.context)
-        self.port.refresh()
-        self.assertEqual(self.neutron_port.id,
-                         self.port.internal_info[NetType.CLEANING.vif_key])
 
     @mock.patch.object(neutron_common, 'validate_network',
                        side_effect=lambda n, t, context=None: n, autospec=True)
@@ -283,14 +282,12 @@ class NeutronInterfaceTestCase(db_base.DbTestCase):
             self.node.save()
             with task_manager.acquire(self.context, self.node.id) as task:
                 res = self.interface.add_cleaning_network(task)
-                rollback_mock.assert_called_with(task, cleaning_network_uuid)
+                rollback_mock.assert_called_with(task, cleaning_network_uuid,
+                                                 NetType.CLEANING)
                 self.assertEqual(res, add_ports_mock.return_value)
                 validate_mock.assert_called_once_with(
                     cleaning_network_uuid,
                     'cleaning_network', context=task.context)
-        self.port.refresh()
-        self.assertEqual(self.neutron_port.id,
-                         self.port.internal_info[NetType.CLEANING.vif_key])
 
     @mock.patch.object(neutron_common, 'validate_network',
                        lambda n, t, context=None: n)
@@ -306,13 +303,12 @@ class NeutronInterfaceTestCase(db_base.DbTestCase):
             res = self.interface.add_cleaning_network(task)
             add_ports_mock.assert_called_once_with(
                 task, CONF.neutron.cleaning_network,
+                NetType.CLEANING,
                 security_groups=CONF.neutron.cleaning_network_security_groups)
             rollback_mock.assert_called_once_with(
-                task, CONF.neutron.cleaning_network)
+                task, CONF.neutron.cleaning_network,
+                NetType.CLEANING)
             self.assertEqual(res, add_ports_mock.return_value)
-        self.port.refresh()
-        self.assertEqual(self.neutron_port.id,
-                         self.port.internal_info[NetType.CLEANING.vif_key])
 
     @mock.patch.object(neutron_common, 'validate_network',
                        side_effect=lambda n, t, context=None: n, autospec=True)
@@ -320,20 +316,14 @@ class NeutronInterfaceTestCase(db_base.DbTestCase):
                        autospec=True)
     def test_remove_cleaning_network(self, remove_ports_mock,
                                      validate_mock):
-        self.port.internal_info = {
-            NetType.CLEANING.vif_key: 'vif-port-id'
-        }
-        self.port.save()
         with task_manager.acquire(self.context, self.node.id) as task:
             self.interface.remove_cleaning_network(task)
             remove_ports_mock.assert_called_once_with(
-                task, CONF.neutron.cleaning_network)
+                task, CONF.neutron.cleaning_network,
+                NetType.CLEANING)
             validate_mock.assert_called_once_with(
                 CONF.neutron.cleaning_network,
                 'cleaning_network', context=task.context)
-        self.port.refresh()
-        self.assertNotIn(NetType.CLEANING.vif_key,
-                         self.port.internal_info)
 
     @mock.patch.object(neutron_common, 'validate_network',
                        side_effect=lambda n, t, context=None: n, autospec=True)
@@ -341,10 +331,6 @@ class NeutronInterfaceTestCase(db_base.DbTestCase):
                        autospec=True)
     def test_remove_cleaning_network_from_node(self, remove_ports_mock,
                                                validate_mock):
-        self.port.internal_info = {
-            NetType.CLEANING.vif_key: 'vif-port-id'
-        }
-        self.port.save()
         cleaning_network_uuid = '3aea0de6-4b92-44da-9aa0-52d134c83fdf'
         driver_info = self.node.driver_info
         driver_info['cleaning_network'] = cleaning_network_uuid
@@ -353,13 +339,11 @@ class NeutronInterfaceTestCase(db_base.DbTestCase):
         with task_manager.acquire(self.context, self.node.id) as task:
             self.interface.remove_cleaning_network(task)
             remove_ports_mock.assert_called_once_with(
-                task, cleaning_network_uuid)
+                task, cleaning_network_uuid,
+                NetType.CLEANING)
             validate_mock.assert_called_once_with(
                 cleaning_network_uuid,
                 'cleaning_network', context=task.context)
-        self.port.refresh()
-        self.assertNotIn(NetType.CLEANING.vif_key,
-                         self.port.internal_info)
 
     @mock.patch.object(neutron_common, 'validate_network',
                        side_effect=lambda n, t, context=None: n, autospec=True)
@@ -402,18 +386,15 @@ class NeutronInterfaceTestCase(db_base.DbTestCase):
             res = self.interface.add_rescuing_network(task)
             add_ports_mock.assert_called_once_with(
                 task, CONF.neutron.rescuing_network,
+                NetType.RESCUING,
                 security_groups=[])
             rollback_mock.assert_called_once_with(
-                task, CONF.neutron.rescuing_network)
+                task, CONF.neutron.rescuing_network,
+                NetType.RESCUING)
             self.assertEqual(add_ports_mock.return_value, res)
             validate_mock.assert_called_once_with(
                 CONF.neutron.rescuing_network,
                 'rescuing_network', context=task.context)
-        other_port.refresh()
-        self.assertEqual(neutron_other_port['id'],
-                         other_port.internal_info[NetType.RESCUING.vif_key])
-        self.assertNotIn(NetType.RESCUING.vif_key,
-                         self.port.internal_info)
 
     @mock.patch.object(neutron_common, 'validate_network',
                        side_effect=lambda n, t, context=None: n, autospec=True)
@@ -440,18 +421,15 @@ class NeutronInterfaceTestCase(db_base.DbTestCase):
             res = self.interface.add_rescuing_network(task)
             add_ports_mock.assert_called_once_with(
                 task, rescuing_network_uuid,
+                NetType.RESCUING,
                 security_groups=[])
             rollback_mock.assert_called_once_with(
-                task, rescuing_network_uuid)
+                task, rescuing_network_uuid,
+                NetType.RESCUING)
             self.assertEqual(add_ports_mock.return_value, res)
             validate_mock.assert_called_once_with(
                 rescuing_network_uuid,
                 'rescuing_network', context=task.context)
-        other_port.refresh()
-        self.assertEqual(neutron_other_port['id'],
-                         other_port.internal_info[NetType.RESCUING.vif_key])
-        self.assertNotIn(NetType.RESCUING.vif_key,
-                         self.port.internal_info)
 
     @mock.patch.object(neutron_common, 'validate_network',
                        lambda n, t, context=None: n)
@@ -467,13 +445,12 @@ class NeutronInterfaceTestCase(db_base.DbTestCase):
             res = self.interface.add_rescuing_network(task)
             add_ports_mock.assert_called_once_with(
                 task, CONF.neutron.rescuing_network,
+                NetType.RESCUING,
                 security_groups=CONF.neutron.rescuing_network_security_groups)
             rollback_mock.assert_called_once_with(
-                task, CONF.neutron.rescuing_network)
+                task, CONF.neutron.rescuing_network,
+                NetType.RESCUING)
             self.assertEqual(add_ports_mock.return_value, res)
-        self.port.refresh()
-        self.assertEqual(self.neutron_port.id,
-                         self.port.internal_info[NetType.RESCUING.vif_key])
 
     @mock.patch.object(neutron_common, 'validate_network',
                        side_effect=lambda n, t, context=None: n, autospec=True)
@@ -481,28 +458,14 @@ class NeutronInterfaceTestCase(db_base.DbTestCase):
                        autospec=True)
     def test_remove_rescuing_network(self, remove_ports_mock,
                                      validate_mock):
-        other_port = utils.create_test_port(
-            self.context, node_id=self.node.id,
-            address='52:54:00:cf:2d:33',
-            uuid=uuidutils.generate_uuid(),
-            internal_info={
-                NetType.TENANT.vif_key: uuidutils.generate_uuid()})
-        other_port.internal_info = {
-            NetType.RESCUING.vif_key: 'vif-port-id'
-        }
-        other_port.save()
         with task_manager.acquire(self.context, self.node.id) as task:
             self.interface.remove_rescuing_network(task)
             remove_ports_mock.assert_called_once_with(
-                task, CONF.neutron.rescuing_network)
+                task, CONF.neutron.rescuing_network,
+                NetType.RESCUING)
             validate_mock.assert_called_once_with(
                 CONF.neutron.rescuing_network,
                 'rescuing_network', context=task.context)
-        other_port.refresh()
-        self.assertNotIn(NetType.RESCUING.vif_key,
-                         self.port.internal_info)
-        self.assertNotIn(NetType.RESCUING.vif_key,
-                         other_port.internal_info)
 
     @mock.patch.object(neutron_common, 'unbind_neutron_port', autospec=True)
     def test_unconfigure_tenant_networks(self, mock_unbind_port):
@@ -936,14 +899,12 @@ class NeutronInterfaceTestCase(db_base.DbTestCase):
         with task_manager.acquire(self.context, self.node.id) as task:
             res = self.interface.add_inspection_network(task)
             rollback_mock.assert_called_once_with(
-                task, CONF.neutron.inspection_network)
+                task, CONF.neutron.inspection_network,
+                NetType.INSPECTION)
             self.assertEqual(res, add_ports_mock.return_value)
             validate_mock.assert_called_once_with(
                 CONF.neutron.inspection_network,
                 'inspection_network', context=task.context)
-        self.port.refresh()
-        self.assertEqual(self.neutron_port.id,
-                         self.port.internal_info[NetType.INSPECTION.vif_key])
 
     @mock.patch.object(neutron_common, 'validate_network',
                        side_effect=lambda n, t, context=None: n, autospec=True)
@@ -963,14 +924,12 @@ class NeutronInterfaceTestCase(db_base.DbTestCase):
             self.node.save()
             with task_manager.acquire(self.context, self.node.id) as task:
                 res = self.interface.add_inspection_network(task)
-                rollback_mock.assert_called_with(task, inspection_network_uuid)
+                rollback_mock.assert_called_with(task, inspection_network_uuid,
+                                                 NetType.INSPECTION)
                 self.assertEqual(res, add_ports_mock.return_value)
                 validate_mock.assert_called_once_with(
                     inspection_network_uuid,
                     'inspection_network', context=task.context)
-        self.port.refresh()
-        self.assertEqual(self.neutron_port.id,
-                         self.port.internal_info[NetType.INSPECTION.vif_key])
 
     @mock.patch.object(neutron_common, 'validate_network',
                        lambda n, t, context=None: n)
@@ -988,13 +947,12 @@ class NeutronInterfaceTestCase(db_base.DbTestCase):
             res = self.interface.add_inspection_network(task)
             add_ports_mock.assert_called_once_with(
                 task, CONF.neutron.inspection_network,
+                NetType.INSPECTION,
                 security_groups=sg)
             rollback_mock.assert_called_once_with(
-                task, CONF.neutron.inspection_network)
+                task, CONF.neutron.inspection_network,
+                NetType.INSPECTION)
             self.assertEqual(res, add_ports_mock.return_value)
-        self.port.refresh()
-        self.assertEqual(self.neutron_port.id,
-                         self.port.internal_info[NetType.INSPECTION.vif_key])
 
     @mock.patch.object(neutron_common, 'validate_network',
                        side_effect=lambda n, t, context=None: n, autospec=True)
