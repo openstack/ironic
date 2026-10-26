@@ -22,6 +22,7 @@ from ironic.common.i18n import _
 from ironic.common import neutron
 from ironic.drivers import base
 from ironic.drivers.modules.network import common
+from ironic.drivers.modules.network.common import NetType
 
 LOG = log.getLogger(__name__)
 
@@ -93,7 +94,7 @@ class NeutronNetwork(common.NeutronVIFPortIDMixin,
         self._add_network(
             task, self.get_provisioning_network_uuid(task),
             CONF.neutron.provisioning_network_security_groups,
-            common.NetType.PROVISIONING)
+            NetType.PROVISIONING)
 
     def remove_provisioning_network(self, task):
         """Remove the provisioning network from a node.
@@ -103,7 +104,7 @@ class NeutronNetwork(common.NeutronVIFPortIDMixin,
         """
         return self._remove_network(
             task, self.get_provisioning_network_uuid(task),
-            common.NetType.PROVISIONING)
+            NetType.PROVISIONING)
 
     def add_cleaning_network(self, task):
         """Create neutron ports for each port on task.node to boot the ramdisk.
@@ -115,7 +116,7 @@ class NeutronNetwork(common.NeutronVIFPortIDMixin,
         return self._add_network(
             task, self.get_cleaning_network_uuid(task),
             CONF.neutron.cleaning_network_security_groups,
-            common.NetType.CLEANING)
+            NetType.CLEANING)
 
     def remove_cleaning_network(self, task):
         """Deletes the neutron port created for booting the ramdisk.
@@ -125,7 +126,7 @@ class NeutronNetwork(common.NeutronVIFPortIDMixin,
         """
         return self._remove_network(
             task, self.get_cleaning_network_uuid(task),
-            common.NetType.CLEANING)
+            NetType.CLEANING)
 
     def validate_rescue(self, task):
         """Validates the network interface for rescue operation.
@@ -146,7 +147,7 @@ class NeutronNetwork(common.NeutronVIFPortIDMixin,
         return self._add_network(
             task, self.get_rescuing_network_uuid(task),
             CONF.neutron.rescuing_network_security_groups,
-            common.NetType.RESCUING)
+            NetType.RESCUING)
 
     def remove_rescuing_network(self, task):
         """Deletes neutron port created for booting the rescue ramdisk.
@@ -156,7 +157,7 @@ class NeutronNetwork(common.NeutronVIFPortIDMixin,
         """
         return self._remove_network(
             task, self.get_rescuing_network_uuid(task),
-            common.NetType.RESCUING)
+            NetType.RESCUING)
 
     def configure_tenant_networks(self, task):
         """Configure tenant networks for a node.
@@ -255,7 +256,7 @@ class NeutronNetwork(common.NeutronVIFPortIDMixin,
         return self._add_network(
             task, self.get_inspection_network_uuid(task),
             CONF.neutron.inspection_network_security_groups,
-            common.NetType.INSPECTION)
+            NetType.INSPECTION)
 
     def remove_inspection_network(self, task):
         """Removes the inspection network from a node.
@@ -267,7 +268,7 @@ class NeutronNetwork(common.NeutronVIFPortIDMixin,
         """
         return self._remove_network(
             task, self.get_inspection_network_uuid(task),
-            common.NetType.INSPECTION)
+            NetType.INSPECTION)
 
     def validate_servicing(self, task):
         """Validates the network interface for servicing operation.
@@ -288,7 +289,7 @@ class NeutronNetwork(common.NeutronVIFPortIDMixin,
         return self._add_network(
             task, self.get_servicing_network_uuid(task),
             CONF.neutron.servicing_network_security_groups,
-            common.NetType.SERVICING)
+            NetType.SERVICING)
 
     def remove_servicing_network(self, task):
         """Deletes neutron port created for booting the servicing ramdisk.
@@ -298,7 +299,7 @@ class NeutronNetwork(common.NeutronVIFPortIDMixin,
         """
         return self._remove_network(
             task, self.get_servicing_network_uuid(task),
-            common.NetType.SERVICING)
+            NetType.SERVICING)
 
     @base.service_step(priority=0, requires_ramdisk=False)
     def reattach_networking(self, task):

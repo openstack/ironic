@@ -19,7 +19,7 @@ from oslo_utils import uuidutils
 from ironic.common import exception
 from ironic.common import neutron
 from ironic.conductor import task_manager
-from ironic.drivers.modules.network import common
+from ironic.drivers.modules.network.common import NetType
 from ironic.drivers.modules.network import flat as flat_interface
 from ironic.tests.unit.db import base as db_base
 from ironic.tests.unit.objects import utils
@@ -37,7 +37,7 @@ class TestFlatInterface(db_base.DbTestCase):
         self.port = utils.create_test_port(
             self.context, node_id=self.node.id,
             internal_info={
-                common.NetType.CLEANING.vif_key: uuidutils.generate_uuid()})
+                NetType.CLEANING.vif_key: uuidutils.generate_uuid()})
 
     @mock.patch('%s.vif_list' % VIFMIXINPATH, autospec=True)
     def test_vif_list(self, mock_vif_list):
@@ -112,7 +112,7 @@ class TestFlatInterface(db_base.DbTestCase):
                 context=task.context)
         self.port.refresh()
         self.assertEqual('vif-port-id',
-                         self.port.internal_info[common.NetType.CLEANING.vif_key])
+                         self.port.internal_info[NetType.CLEANING.vif_key])
 
     @mock.patch.object(neutron, 'validate_network',
                        side_effect=lambda n, t, context=None: n, autospec=True)
@@ -138,7 +138,7 @@ class TestFlatInterface(db_base.DbTestCase):
                     'cleaning_network', context=task.context)
         self.port.refresh()
         self.assertEqual('vif-port-id',
-                         self.port.internal_info[common.NetType.CLEANING.vif_key])
+                         self.port.internal_info[NetType.CLEANING.vif_key])
 
     @mock.patch.object(neutron, 'validate_network',
                        side_effect=lambda n, t, context=None: n, autospec=True)
@@ -152,7 +152,7 @@ class TestFlatInterface(db_base.DbTestCase):
                 CONF.neutron.cleaning_network,
                 'cleaning_network', context=task.context)
         self.port.refresh()
-        self.assertNotIn(common.NetType.CLEANING.vif_key,
+        self.assertNotIn(NetType.CLEANING.vif_key,
                          self.port.internal_info)
 
     @mock.patch.object(neutron, 'validate_network',
@@ -172,12 +172,12 @@ class TestFlatInterface(db_base.DbTestCase):
                 cleaning_network_uuid,
                 'cleaning_network', context=task.context)
         self.port.refresh()
-        self.assertNotIn(common.NetType.CLEANING.vif_key,
+        self.assertNotIn(NetType.CLEANING.vif_key,
                          self.port.internal_info)
 
     @mock.patch.object(neutron, 'update_neutron_port', autospec=True)
     def test__bind_flat_ports_set_binding_host_id(self, update_mock):
-        internal_info = {common.NetType.TENANT.vif_key: 'foo'}
+        internal_info = {NetType.TENANT.vif_key: 'foo'}
         utils.create_test_port(self.context, node_id=self.node.id,
                                address='52:54:00:cf:2d:33',
                                internal_info=internal_info,
@@ -191,13 +191,13 @@ class TestFlatInterface(db_base.DbTestCase):
 
     @mock.patch.object(neutron, 'update_neutron_port', autospec=True)
     def test__bind_flat_ports_set_binding_host_id_portgroup(self, update_mock):
-        internal_info = {common.NetType.TENANT.vif_key: 'foo'}
+        internal_info = {NetType.TENANT.vif_key: 'foo'}
         utils.create_test_portgroup(
             self.context, node_id=self.node.id, internal_info=internal_info,
             uuid=uuidutils.generate_uuid())
         utils.create_test_port(
             self.context, node_id=self.node.id, address='52:54:00:cf:2d:33',
-            internal_info={common.NetType.TENANT.vif_key: 'bar'},
+            internal_info={NetType.TENANT.vif_key: 'bar'},
             uuid=uuidutils.generate_uuid())
         exp_body1 = {'binding:host_id': self.node.uuid,
                      'binding:vnic_type': neutron.VNIC_BAREMETAL,
@@ -213,7 +213,7 @@ class TestFlatInterface(db_base.DbTestCase):
 
     @mock.patch.object(neutron, 'unbind_neutron_port', autospec=True)
     def test__unbind_flat_ports(self, unbind_neutron_port_mock):
-        internal_info = {common.NetType.TENANT.vif_key: 'foo'}
+        internal_info = {NetType.TENANT.vif_key: 'foo'}
         utils.create_test_port(self.context, node_id=self.node.id,
                                address='52:54:00:cf:2d:33',
                                internal_info=internal_info,
@@ -225,11 +225,11 @@ class TestFlatInterface(db_base.DbTestCase):
 
     @mock.patch.object(neutron, 'unbind_neutron_port', autospec=True)
     def test__unbind_flat_ports_portgroup(self, unbind_neutron_port_mock):
-        internal_info = {common.NetType.TENANT.vif_key: 'foo'}
+        internal_info = {NetType.TENANT.vif_key: 'foo'}
         utils.create_test_portgroup(self.context, node_id=self.node.id,
                                     internal_info=internal_info,
                                     uuid=uuidutils.generate_uuid())
-        internal_info = {common.NetType.TENANT.vif_key: 'bar'}
+        internal_info = {NetType.TENANT.vif_key: 'bar'}
         utils.create_test_port(self.context, node_id=self.node.id,
                                address='52:54:00:cf:2d:33',
                                internal_info=internal_info,
@@ -243,7 +243,7 @@ class TestFlatInterface(db_base.DbTestCase):
     @mock.patch.object(neutron, 'update_neutron_port', autospec=True)
     def test__bind_flat_ports_set_binding_host_id_raise(self, update_mock):
         update_mock.side_effect = openstack_exc.OpenStackCloudException()
-        internal_info = {common.NetType.TENANT.vif_key: 'foo'}
+        internal_info = {NetType.TENANT.vif_key: 'foo'}
         utils.create_test_port(self.context, node_id=self.node.id,
                                address='52:54:00:cf:2d:33',
                                internal_info=internal_info,
@@ -258,7 +258,7 @@ class TestFlatInterface(db_base.DbTestCase):
                                internal_info={},
                                uuid=uuidutils.generate_uuid())
         internal_info = {
-            common.NetType.CLEANING.vif_key: uuidutils.generate_uuid()
+            NetType.CLEANING.vif_key: uuidutils.generate_uuid()
         }
         utils.create_test_port(self.context, node_id=self.node.id,
                                address='52:54:00:cf:2d:34',
@@ -315,7 +315,7 @@ class TestFlatInterface(db_base.DbTestCase):
                 context=task.context)
         self.port.refresh()
         self.assertEqual('vif-port-id',
-                         self.port.internal_info[common.NetType.INSPECTION.vif_key])
+                         self.port.internal_info[NetType.INSPECTION.vif_key])
 
     @mock.patch.object(neutron, 'validate_network',
                        side_effect=lambda n, t, context=None: n, autospec=True)
@@ -342,7 +342,7 @@ class TestFlatInterface(db_base.DbTestCase):
                     'inspection_network', context=task.context)
         self.port.refresh()
         self.assertEqual('vif-port-id',
-                         self.port.internal_info[common.NetType.INSPECTION.vif_key])
+                         self.port.internal_info[NetType.INSPECTION.vif_key])
 
     @mock.patch.object(neutron, 'validate_network',
                        side_effect=lambda n, t, context=None: n, autospec=True)

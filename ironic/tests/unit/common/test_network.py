@@ -22,7 +22,7 @@ from ironic.common import network
 from ironic.common import neutron as neutron_common
 from ironic.common import states
 from ironic.conductor import task_manager
-from ironic.drivers.modules.network import common as driver_common
+from ironic.drivers.modules.network.common import NetType
 from ironic.tests.unit.db import base as db_base
 from ironic.tests.unit.db import utils as db_utils
 from ironic.tests.unit.objects import utils as object_utils
@@ -43,7 +43,7 @@ class TestNetwork(db_base.DbTestCase):
 
     def test_get_node_vif_ids_one_port_int_info(self):
         kwargs1 = {'internal_info': {
-            driver_common.NetType.TENANT.vif_key: 'test-vif-A'}
+            NetType.TENANT.vif_key: 'test-vif-A'}
         }
         port1 = db_utils.create_test_port(node_id=self.node.id,
                                           address='aa:bb:cc:dd:ee:ff',
@@ -57,7 +57,7 @@ class TestNetwork(db_base.DbTestCase):
 
     def test_get_node_vif_ids_one_portgroup_int_info(self):
         kwargs1 = {'internal_info': {
-            driver_common.NetType.TENANT.vif_key: 'test-vif-A'}
+            NetType.TENANT.vif_key: 'test-vif-A'}
         }
         pg1 = db_utils.create_test_portgroup(
             node_id=self.node.id, **kwargs1)
@@ -70,10 +70,10 @@ class TestNetwork(db_base.DbTestCase):
 
     def test_get_node_vif_ids_two_ports_int_info(self):
         kwargs1 = {'internal_info': {
-            driver_common.NetType.TENANT.vif_key: 'test-vif-A'}
+            NetType.TENANT.vif_key: 'test-vif-A'}
         }
         kwargs2 = {'internal_info': {
-            driver_common.NetType.TENANT.vif_key: 'test-vif-B'}
+            NetType.TENANT.vif_key: 'test-vif-B'}
         }
         port1 = db_utils.create_test_port(node_id=self.node.id,
                                           address='aa:bb:cc:dd:ee:ff',
@@ -92,10 +92,10 @@ class TestNetwork(db_base.DbTestCase):
 
     def test_get_node_vif_ids_two_portgroups_int_info(self):
         kwargs1 = {'internal_info': {
-            driver_common.NetType.TENANT.vif_key: 'test-vif-A'}
+            NetType.TENANT.vif_key: 'test-vif-A'}
         }
         kwargs2 = {'internal_info': {
-            driver_common.NetType.TENANT.vif_key: 'test-vif-B'}
+            NetType.TENANT.vif_key: 'test-vif-B'}
         }
         pg1 = db_utils.create_test_portgroup(
             node_id=self.node.id, **kwargs1)
@@ -125,29 +125,29 @@ class TestNetwork(db_base.DbTestCase):
         self.assertEqual(expected, result)
 
     def test_get_node_vif_ids_during_cleaning(self):
-        self._test_get_node_vif_ids_multitenancy(driver_common.NetType.CLEANING.vif_key)
+        self._test_get_node_vif_ids_multitenancy(NetType.CLEANING.vif_key)
 
     def test_get_node_vif_ids_during_provisioning(self):
-        self._test_get_node_vif_ids_multitenancy(driver_common.NetType.PROVISIONING.vif_key)
+        self._test_get_node_vif_ids_multitenancy(NetType.PROVISIONING.vif_key)
 
     def test_get_node_vif_ids_during_rescuing(self):
-        self._test_get_node_vif_ids_multitenancy(driver_common.NetType.RESCUING.vif_key)
+        self._test_get_node_vif_ids_multitenancy(NetType.RESCUING.vif_key)
 
     def test_get_node_vif_ids_during_inspection(self):
-        self._test_get_node_vif_ids_multitenancy(driver_common.NetType.INSPECTION.vif_key)
+        self._test_get_node_vif_ids_multitenancy(NetType.INSPECTION.vif_key)
 
     def test_get_node_vif_ids_during_servicing(self):
-        self._test_get_node_vif_ids_multitenancy(driver_common.NetType.SERVICING.vif_key)
+        self._test_get_node_vif_ids_multitenancy(NetType.SERVICING.vif_key)
 
     @mock.patch.object(neutron_common, 'unbind_neutron_port',
                        autospec=True)
     def test_remove_vifs_from_node(self, mock_unp):
         db_utils.create_test_port(
             node_id=self.node.id, address='aa:bb:cc:dd:ee:ff',
-            internal_info={driver_common.NetType.TENANT.vif_key: 'test-vif-A'})
+            internal_info={NetType.TENANT.vif_key: 'test-vif-A'})
         db_utils.create_test_portgroup(
             node_id=self.node.id, address='dd:ee:ff:aa:bb:cc',
-            internal_info={driver_common.NetType.TENANT.vif_key: 'test-vif-B'})
+            internal_info={NetType.TENANT.vif_key: 'test-vif-B'})
         with task_manager.acquire(self.context, self.node.uuid) as task:
             network.remove_vifs_from_node(task)
         with task_manager.acquire(self.context, self.node.uuid) as task:
@@ -170,10 +170,10 @@ class TestRemoveVifsTestCase(db_base.DbTestCase):
     def test_remove_vifs_from_node_failure(self, mock_unbind):
         db_utils.create_test_port(
             node_id=self.node.id, address='aa:bb:cc:dd:ee:ff',
-            internal_info={driver_common.NetType.TENANT.vif_key: 'test-vif-A'})
+            internal_info={NetType.TENANT.vif_key: 'test-vif-A'})
         db_utils.create_test_portgroup(
             node_id=self.node.id, address='dd:ee:ff:aa:bb:cc',
-            internal_info={driver_common.NetType.TENANT.vif_key: 'test-vif-B'})
+            internal_info={NetType.TENANT.vif_key: 'test-vif-B'})
         mock_unbind.side_effect = [exception.NetworkError, None]
         with task_manager.acquire(self.context, self.node.uuid) as task:
             network.remove_vifs_from_node(task)

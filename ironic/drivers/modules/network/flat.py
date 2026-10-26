@@ -23,6 +23,7 @@ from ironic.common.i18n import _
 from ironic.common import neutron
 from ironic.drivers import base
 from ironic.drivers.modules.network import common
+from ironic.drivers.modules.network.common import NetType
 
 
 LOG = log.getLogger(__name__)
@@ -165,7 +166,7 @@ class FlatNetwork(common.NeutronVIFPortIDMixin,
         """
         return self._add_service_network(
             task, self.get_cleaning_network_uuid(task),
-            common.NetType.CLEANING)
+            NetType.CLEANING)
 
     def remove_cleaning_network(self, task):
         """Remove the cleaning network from a node.
@@ -175,7 +176,7 @@ class FlatNetwork(common.NeutronVIFPortIDMixin,
         """
         return self._remove_service_network(
             task, self.get_cleaning_network_uuid(task),
-            common.NetType.CLEANING)
+            NetType.CLEANING)
 
     def add_rescuing_network(self, task):
         """Add the rescuing network to a node.
@@ -213,7 +214,7 @@ class FlatNetwork(common.NeutronVIFPortIDMixin,
         """
         return self._add_service_network(
             task, self.get_inspection_network_uuid(task),
-            common.NetType.INSPECTION)
+            NetType.INSPECTION)
 
     def remove_inspection_network(self, task):
         """Removes the inspection network from a node.
@@ -225,7 +226,7 @@ class FlatNetwork(common.NeutronVIFPortIDMixin,
         """
         return self._remove_service_network(
             task, self.get_inspection_network_uuid(task),
-            common.NetType.INSPECTION)
+            NetType.INSPECTION)
 
     def add_servicing_network(self, task):
         """Add the rescuing network to a node.
