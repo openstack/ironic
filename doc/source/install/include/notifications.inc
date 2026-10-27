@@ -11,3 +11,7 @@ These can be consumed by an external service reading from the message bus.
 Notifications are disabled by default.  For a complete list of available
 notifications and instructions for how to enable them, see the
 :doc:`/admin/notifications`.
+
+.. warning::
+   Enabling notifications without consuming notifications can have
+   negative impacts on your message bus infrastructure.
