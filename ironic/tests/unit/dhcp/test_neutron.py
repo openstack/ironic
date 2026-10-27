@@ -24,7 +24,7 @@ from ironic.common import exception
 from ironic.common import pxe_utils
 from ironic.conductor import task_manager
 from ironic.dhcp import neutron
-from ironic.drivers.modules.network import common
+from ironic.drivers.modules.network.common import NetType
 from ironic.tests.unit.db import base as db_base
 from ironic.tests.unit.objects import utils as object_utils
 
@@ -417,22 +417,22 @@ class TestNeutron(db_base.DbTestCase):
                                           mock.sentinel.client)
 
     def test__get_port_ip_address_tenant(self):
-        self._test__get_port_ip_address(net_type=common.NetType.TENANT)
+        self._test__get_port_ip_address(net_type=NetType.TENANT)
 
     def test__get_port_ip_address_cleaning(self):
-        self._test__get_port_ip_address(net_type=common.NetType.CLEANING)
+        self._test__get_port_ip_address(net_type=NetType.CLEANING)
 
     def test__get_port_ip_address_provisioning(self):
-        self._test__get_port_ip_address(net_type=common.NetType.PROVISIONING)
+        self._test__get_port_ip_address(net_type=NetType.PROVISIONING)
 
     def test__get_port_ip_address_rescuing(self):
-        self._test__get_port_ip_address(net_type=common.NetType.RESCUING)
+        self._test__get_port_ip_address(net_type=NetType.RESCUING)
 
     def test__get_port_ip_address_inspecting(self):
-        self._test__get_port_ip_address(net_type=common.NetType.INSPECTION)
+        self._test__get_port_ip_address(net_type=NetType.INSPECTION)
 
     def test__get_port_ip_address_servicing(self):
-        self._test__get_port_ip_address(net_type=common.NetType.SERVICING)
+        self._test__get_port_ip_address(net_type=NetType.SERVICING)
 
     @mock.patch('ironic.dhcp.neutron.NeutronDHCPApi._get_fixed_ip_address',
                 autospec=True)
@@ -441,7 +441,7 @@ class TestNeutron(db_base.DbTestCase):
         pg = object_utils.create_test_portgroup(
             self.context, node_id=self.node.id, address='aa:bb:cc:dd:ee:ff',
             uuid=uuidutils.generate_uuid(),
-            internal_info={common.NetType.TENANT.vif_key: 'test-vif-A'})
+            internal_info={NetType.TENANT.vif_key: 'test-vif-A'})
         mock_gfia.return_value = expected
         with task_manager.acquire(self.context,
                                   self.node.uuid) as task:
@@ -489,7 +489,7 @@ class TestNeutron(db_base.DbTestCase):
                 autospec=True)
     def test__get_ip_addresses_ports_int_info(self, mock_gfia):
         kwargs1 = {'internal_info': {
-            common.NetType.TENANT.vif_key: 'test-vif-A'}
+            NetType.TENANT.vif_key: 'test-vif-A'}
         }
         ip_address = '10.10.0.1'
         expected = [ip_address]
@@ -509,7 +509,7 @@ class TestNeutron(db_base.DbTestCase):
                 autospec=True)
     def test__get_ip_addresses_portgroup_int_info(self, mock_gfia):
         kwargs1 = {'internal_info': {
-            common.NetType.TENANT.vif_key: 'test-vif-A'}
+            NetType.TENANT.vif_key: 'test-vif-A'}
         }
         ip_address = '10.10.0.1'
         expected = [ip_address]
@@ -547,7 +547,7 @@ class TestNeutron(db_base.DbTestCase):
         object_utils.create_test_portgroup(
             self.context, node_id=self.node.id, address='aa:bb:cc:dd:ee:ff',
             uuid=uuidutils.generate_uuid(),
-            internal_info={common.NetType.TENANT.vif_key: 'test-vif-A'})
+            internal_info={NetType.TENANT.vif_key: 'test-vif-A'})
 
         with task_manager.acquire(self.context, self.node.uuid) as task:
             api = dhcp_factory.DHCPFactory().provider
