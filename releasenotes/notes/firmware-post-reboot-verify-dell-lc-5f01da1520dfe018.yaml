@@ -1,0 +1,12 @@
+---
+fixes:
+  - |
+    On Dell iDRAC, Redfish firmware updates that are applied by rebooting
+    the node now also wait for the Lifecycle Controller jobs applying the
+    firmware, and fail the step if one of them fails. This is in addition
+    to the ``BootProgress`` check, not instead of it. A job still running
+    keeps the step waiting past
+    ``[redfish]firmware_update_post_reboot_wait``, up to
+    ``[redfish]firmware_update_overall_timeout``. This includes the
+    job of a NIC update whose reboot was carried out after later
+    components were submitted.

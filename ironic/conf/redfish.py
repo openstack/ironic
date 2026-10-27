@@ -177,7 +177,9 @@ opts = [
                       'longest POST expected, flashing included. If that '
                       'is not seen in time, for example because the BMC '
                       'does not show it, the step continues with a '
-                      'warning.')),
+                      'warning. Dell Lifecycle Controller jobs still '
+                      'applying firmware keep the step waiting past it, up '
+                      'to ``firmware_update_overall_timeout``.')),
     cfg.IntOpt('firmware_update_overall_timeout',
                min=0,
                default=7200,
