@@ -352,3 +352,19 @@ class SystemdConsoleContainer(base.BaseConsoleContainer):
                 self._reload()
             except Exception:
                 pass
+
+    def is_stopped(self, task):
+        """Check whether the console container for this node has stopped.
+
+        :param task: A TaskManager instance.
+        :returns: True if the container is definitively stopped (inactive,
+            failed, or the unit does not exist), False if it is running or
+            still starting.
+        """
+        unit = self._unit_name(task.node.uuid)
+        out, _ = utils.execute('systemctl', '--user', 'is-active', unit,
+                               check_exit_code=False)
+        # NOTE(abongale): a unit which is 'activating' is still starting up,
+        # which does not count as stopped. A unit which does not exist reports
+        # 'inactive', so a deleted container counts as stopped.
+        return out.strip() in ('inactive', 'failed')

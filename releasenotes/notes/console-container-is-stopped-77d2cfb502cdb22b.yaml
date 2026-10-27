@@ -1,0 +1,24 @@
+---
+features:
+  - |
+    The graphical console periodic task now detects console containers
+    which were stopped, exited or deleted out-of-band, and cleans up the
+    node's console session instead of waiting for the session token to
+    expire. Console container providers gained an ``is_stopped`` check
+    for this, implemented by all in-tree providers (``systemd``,
+    ``kubernetes``, ``container`` and ``fake``). It only reports a
+    stopped container when it has definitively stopped, so a container
+    which is still starting (for example a kubernetes pod in the
+    ``Pending`` phase) does not end the console session. See `bug 2158578
+    <https://bugs.launchpad.net/ironic/+bug/2158578>`_.
+upgrade:
+  - |
+    Out-of-tree console container providers must now implement the
+    ``is_stopped`` method of
+    ``ironic.console.container.base.BaseConsoleContainer``, which the
+    graphical console periodic task uses to reconcile console sessions
+    with actual container state. It must return ``True`` only when the
+    container is definitively stopped, ``False`` when it is running or
+    still starting, and raise ``ConsoleContainerError`` when the state
+    cannot be determined; anything other than a definitively stopped
+    container leaves the console session alone.

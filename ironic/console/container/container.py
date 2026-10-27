@@ -289,3 +289,29 @@ class ContainerConsoleContainer(base.BaseConsoleContainer):
         for container in out.split():
             self._capture_logs(container)
             self._remove_container(container)
+
+    def is_stopped(self, task):
+        """Check whether the console container for this node has stopped.
+
+        :param task: A TaskManager instance.
+        :returns: True if the container is definitively not running
+            (stopped, exited, or deleted), False if it is running.
+        :raises: ConsoleContainerError
+        """
+        uuid = task.node.uuid
+        LOG.debug('Checking console container status for node %s', uuid)
+        try:
+            # NOTE(abongale): 'ps' without --all only lists running containers,
+            # so an empty result means the container is stopped, exited or
+            # removed. The node label is an exact match, unlike the name
+            # filter which matches substrings and could match another
+            # node's container.
+            out, _ = self._execute(
+                'ps', '--quiet', '--filter',
+                f'label={LABEL_PREFIX}.node={uuid}')
+        except processutils.ProcessExecutionError as e:
+            LOG.exception('Problem checking console container for node %s',
+                          uuid)
+            raise exception.ConsoleContainerError(
+                provider=self.provider_name, reason=e)
+        return not bool(out.strip())

@@ -97,3 +97,19 @@ class BaseConsoleContainer(object, metaclass=abc.ABCMeta):
         reason = f"RFB data not returned by {host}:{port}"
         raise exception.ConsoleContainerError(
             provider=self.provider_name, reason=reason)
+
+    @abc.abstractmethod
+    def is_stopped(self, task):
+        """Check whether the console container for this node has stopped.
+
+        This is used by the graphical console periodic task to reconcile
+        console sessions with actual container state, so True must only
+        be returned when the container is definitively stopped. A
+        container which is still starting, such as a Pending kubernetes
+        pod, must return False.
+
+        :param task: A TaskManager instance.
+        :returns: True if the container is definitively stopped (stopped,
+            exited, or deleted), False if it is running or still starting.
+        :raises: ConsoleContainerError if the state cannot be determined.
+        """

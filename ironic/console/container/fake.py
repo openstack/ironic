@@ -31,3 +31,6 @@ class FakeConsoleContainer(base.BaseConsoleContainer):
 
     def stop_all_containers(self):
         pass
+
+    def is_stopped(self, task):
+        return False
