@@ -166,6 +166,18 @@ opts = [
                       'start applying firmware, while others can begin '
                       'immediately. This timeout helps determine which '
                       'behavior the hardware exhibits.')),
+    cfg.IntOpt('firmware_update_post_reboot_wait',
+               min=0,
+               default=600,
+               help=_('Maximum time (in seconds), after rebooting a node '
+                      'to apply firmware, to wait for BootProgress to show '
+                      'that the node has booted past POST since the '
+                      'reboot: OSRunning when servicing. Firmware may be '
+                      'flashed during POST, so it should exceed the '
+                      'longest POST expected, flashing included. If that '
+                      'is not seen in time, for example because the BMC '
+                      'does not show it, the step continues with a '
+                      'warning.')),
     cfg.IntOpt('firmware_update_overall_timeout',
                min=0,
                default=7200,

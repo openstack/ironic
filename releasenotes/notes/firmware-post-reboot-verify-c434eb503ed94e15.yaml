@@ -1,0 +1,23 @@
+---
+fixes:
+  - |
+    Redfish firmware updates that are applied by rebooting the node are
+    now verified after the reboot. Previously the step continued as soon
+    as the update task finished, while firmware could still be flashing
+    during POST, and the old firmware versions were recorded. Ironic now
+    waits until ``BootProgress`` shows that the node has booted past POST
+    since the reboot, to ``OSRunning`` when servicing. If that is not seen
+    within ``[redfish]firmware_update_post_reboot_wait``, for example
+    because the BMC does not show it, the step continues with a warning.
+    Nodes whose BMC reports no ``BootProgress`` are not checked.
+  - |
+    A Redfish NIC firmware update that is not the last in the list no
+    longer loses its pending reboot when the next component is submitted.
+    Previously the step could complete with the NIC firmware staged but
+    never applied.
+upgrade:
+  - |
+    The new ``[redfish]firmware_update_post_reboot_wait`` option (default 600
+    seconds) limits how long Ironic waits, after a reboot that applies
+    firmware, for ``BootProgress`` to show that the node has booted past
+    POST. Set it above the longest POST expected, flashing included.
