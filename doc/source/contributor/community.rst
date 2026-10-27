@@ -18,7 +18,7 @@ Code Review
     https://review.opendev.org/#/q/status:open+project:openstack/ironic,n,z
 
 Weekly Meeting Agenda
-    https://wiki.openstack.org/wiki/Meetings/Ironic#Agenda_for_next_meeting
+    https://etherpad.opendev.org/p/ironic-meeting-agenda
 
 Ironic Contributors' Whiteboard
     https://etherpad.opendev.org/p/IronicWhiteBoard

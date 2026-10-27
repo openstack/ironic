@@ -824,6 +824,6 @@ indicate a node's provision states before state change, "event" is the FSM
     "publisher_id":"ironic-conductor.hostname01"
    }
 
-.. [1] https://wiki.openstack.org/wiki/LoggingStandards#Log_level_definitions
+.. [1] https://docs.openstack.org/oslo.log/latest/user/guidelines.html
 .. [2] https://www.rabbitmq.com/documentation.html
 .. [3] https://en.wikipedia.org/wiki/Create,_read,_update_and_delete

@@ -129,4 +129,4 @@ the following cases:
 .. _Launchpad: https://bugs.launchpad.net/ironic/+bugs
 .. _bifrost: https://docs.openstack.org/bifrost
 .. _spec: https://specs.openstack.org/openstack/ironic-specs/
-.. _weekly meeting: https://wiki.openstack.org/wiki/Meetings/Ironic
+.. _weekly meeting: https://etherpad.opendev.org/p/ironic-meeting-agenda

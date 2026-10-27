@@ -32,4 +32,4 @@ Proposing a new project to ironic governance
 ============================================
 
 Bring the proposal to the ironic `weekly meeting
-<https://wiki.openstack.org/wiki/Meetings/Ironic>`_ to discuss with the team.
+<https://etherpad.opendev.org/p/ironic-meeting-agenda>`_ to discuss with the team.

@@ -13,7 +13,7 @@ Who is responsible for releases?
 
 The current PTL is ultimately responsible for making sure code gets released.
 They may choose to delegate this responsibility to a liaison, which is
-documented in the `cross-project liaison wiki`_.
+documented in the `release liaison documentation`_.
 
 Anyone may submit a release request per the process below, but the PTL or
 liaison must +1 the request for it to be processed.
@@ -529,7 +529,7 @@ For all releases, whether or not it results in a stable branch:
 * remove any -2s on patches that were blocked until after the release.
 
 .. _`bifrost`: https://opendev.org/openstack/bifrost
-.. _`cross-project liaison wiki`: https://wiki.openstack.org/wiki/CrossProjectLiaisons#Release_management
+.. _`release liaison documentation`: https://docs.openstack.org/project-team-guide/release-management.html#release-liaisons
 .. _`governance site`: https://governance.openstack.org/reference/projects/ironic.html
 .. _`ironic`: https://opendev.org/openstack/ironic
 .. _`ironic-prometheus-exporter`: https://opendev.org/openstack/ironic-prometheus-exporter
