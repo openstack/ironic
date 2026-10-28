@@ -1587,6 +1587,37 @@ class TestGetSegmentBySubnetUUID(base.TestCase):
         self.assertIsNone(result)
 
 
+@mock.patch.object(neutron, '_get_network_by_uuid_or_name', autospec=True)
+@mock.patch.object(neutron, '_get_port_by_uuid', autospec=True)
+class TestGetVifInfo(base.TestCase):
+
+    def setUp(self):
+        super(TestGetVifInfo, self).setUp()
+        self.client = mock.MagicMock()
+
+    def test_get_vif_info(self, mock_gp, mock_gn):
+        mock_gp.return_value = stubs.FakeNeutronPort(
+            network_id='net-id', name='port-name', tags=['p1', 'p2'])
+        mock_gn.return_value = stubs.FakeNeutronNetwork(
+            id='net-id', name='net-name', tags=['n1'])
+        result = neutron.get_vif_info(self.client, 'port-id')
+        mock_gp.assert_called_once_with(self.client, 'port-id')
+        mock_gn.assert_called_once_with(self.client, 'net-id')
+        self.assertEqual({'id': 'port-id', 'name': 'port-name',
+                          'tags': ['p1', 'p2'], 'network_id': 'net-id',
+                          'network_name': 'net-name',
+                          'network_tags': ['n1']}, result)
+
+    def test_get_vif_info_no_tags(self, mock_gp, mock_gn):
+        mock_gp.return_value = stubs.FakeNeutronPort(
+            network_id='net-id', name='port-name', tags=None)
+        mock_gn.return_value = stubs.FakeNeutronNetwork(
+            id='net-id', name='net-name', tags=None)
+        result = neutron.get_vif_info(self.client, 'port-id')
+        self.assertEqual([], result['tags'])
+        self.assertEqual([], result['network_tags'])
+
+
 @mock.patch.object(neutron, '_get_segment_by_subnet_uuid', autospec=True)
 @mock.patch.object(neutron, '_get_network_by_uuid_or_name', autospec=True)
 @mock.patch.object(neutron, '_get_port_by_uuid', autospec=True)

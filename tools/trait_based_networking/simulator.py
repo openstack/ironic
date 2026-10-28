@@ -66,7 +66,8 @@ def main():
                                         "fake_node_uuid",
                                         data.ports(),
                                         data.portgroups(),
-                                        data.networks())
+                                        data.networks(),
+                                        data.vif())
         print(f"Got {len(actions)} actions:")
         for action in actions:
             print(f"    {str(action)}")
@@ -105,6 +106,12 @@ class TestNetworkDataFile(object):
             for network in self._contents['networks']
         ]
 
+        vif = self._contents.get('vif', {})
+        self._vif = tbn.Vif(
+            id=vif.get('id'),
+            name=vif.get('name'),
+            tags=frozenset(vif.get('tags', ())))
+
     def ports(self):
         return self._ports
 
@@ -113,6 +120,9 @@ class TestNetworkDataFile(object):
 
     def networks(self):
         return self._networks
+
+    def vif(self):
+        return self._vif
 
 
 if __name__ == "__main__":

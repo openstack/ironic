@@ -10,6 +10,7 @@
 # License for the specific language governing permissions and limitations
 # under the License.
 
+from collections.abc import Mapping
 import copy
 import ipaddress
 
@@ -1009,6 +1010,29 @@ def _get_network_by_uuid_or_name(client, uuid_or_name, net_type=_('network')):
               {'uuid_or_name': uuid_or_name, 'result': network})
 
     return network
+
+
+def get_vif_info(client, vif_id: str
+                 ) -> Mapping[str, str | list[str] | None]:
+    """Return details of a neutron port and its network for TBN matching.
+
+    :param client: A Neutron client object.
+    :param vif_id: UUID of the Neutron port supplied as the VIF.
+    :returns: A dict with 'id', 'name' and 'tags' of the port and
+        'network_id', 'network_name' and 'network_tags' of its network.
+    :raises: NetworkError if a neutron query fails.
+    :raises: InvalidParameterValue for a missing port or network.
+    """
+    port = _get_port_by_uuid(client, vif_id)
+    network = _get_network_by_uuid_or_name(client, port.network_id)
+    return {
+        'id': vif_id,
+        'name': port.name,
+        'tags': list(port.tags or []),
+        'network_id': network.id,
+        'network_name': network.name,
+        'network_tags': list(network.tags or []),
+    }
 
 
 def _get_port_by_uuid(client, port_uuid):

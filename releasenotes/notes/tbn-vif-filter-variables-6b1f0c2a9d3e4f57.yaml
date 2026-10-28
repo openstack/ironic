@@ -1,0 +1,12 @@
+---
+features:
+  - |
+    Trait Based Networking filter expressions can now use the ``vif.id``,
+    ``vif.name`` and ``vif.tags`` variables, which match against the neutron
+    port supplied as the VIF. ``vif.tags`` is a collection and supports the
+    same ``==``, ``!=`` and ``=~`` semantics as ``network.tags``.
+fixes:
+  - |
+    Trait Based Networking now looks up the neutron port and network of a VIF
+    when attaching, so that ``network.name`` and ``network.tags`` are
+    populated from the network the port is attached to.

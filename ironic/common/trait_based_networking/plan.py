@@ -53,7 +53,8 @@ def plan_network(
         node_uuid: str,
         node_ports: list[base.Port],
         node_portgroups: list[base.Portgroup],
-        node_networks: list[base.Network]) -> list[base.RenderedAction]:
+        node_networks: list[base.Network],
+        vif: base.Vif) -> list[base.RenderedAction]:
     """Plan the network of a node based on TBN traits
 
     :param network_trait: A single NetworkTrait to consider for planning.
@@ -61,6 +62,7 @@ def plan_network(
     :param ports: A list of Ports available to this node.
     :param portgroups: A list of Portgroups available to this node.
     :param node_networks: A list of networks available to this node.
+    :param vif: The Vif (neutron port) being attached.
 
     :returns: A list of RenderedActions which should be executed by the
         appropriate network driver.
@@ -81,7 +83,7 @@ def plan_network(
             case base.Actions.ATTACH_PORT:
                 new_actions = _plan_attach_portlike(
                     trait_action, node_uuid, portlikes,
-                    node_networks, 'port',
+                    node_networks, vif, 'port',
                     lambda action_args:
                         base.AttachPort(*action_args))
 
@@ -91,7 +93,7 @@ def plan_network(
             case base.Actions.ATTACH_PORTGROUP:
                 new_actions = _plan_attach_portlike(
                     trait_action, node_uuid, portgrouplikes,
-                    node_networks, 'portgroup',
+                    node_networks, vif, 'portgroup',
                     lambda action_args:
                         base.AttachPortgroup(*action_args))
 
@@ -103,7 +105,7 @@ def plan_network(
             case base.Actions.GROUP_AND_ATTACH_PORTS:
                 new_actions = _plan_group_and_attach_ports(
                     trait_action, node_uuid, portlikes,
-                    node_networks)
+                    node_networks, vif)
                 if not is_no_match_list(new_actions):
                     portlikes = filter_out_grouped_ports(
                             portlikes,
@@ -126,6 +128,7 @@ def _plan_attach_portlike(
         node_uuid: str,
         node_portlikes: list[base.PrimordialPort],
         node_networks: list[base.Network],
+        vif: base.Vif,
         type_name: str,
         action_func: Callable[[base.NetworkTrait, str, str, str],
                               base.RenderedAction]
@@ -134,11 +137,11 @@ def _plan_attach_portlike(
     actions = []
     for (portlike, network) in itertools.product(node_portlikes,
                                                  node_networks):
-        if trait_action.matches(portlike, network):
+        if trait_action.matches(portlike, network, vif):
             actions.append(action_func((trait_action,
                                        node_uuid,
                                        portlike.uuid,
-                                       network.id)))
+                                       vif.id)))
             # No minimum count means match the first one.
             if trait_action.min_count is None:
                 break
@@ -167,7 +170,8 @@ def _plan_group_and_attach_ports(
         trait_action: base.TraitAction,
         node_uuid: str,
         node_ports: list[base.Port],
-        node_networks: list[base.Network]) -> list[base.RenderedAction]:
+        node_networks: list[base.Network],
+        vif: base.Vif) -> list[base.RenderedAction]:
     """Called by plan_network to handle group_and_attach_ports actions"""
     matched_ports: list [base.Port] = []
 
@@ -181,10 +185,11 @@ def _plan_group_and_attach_ports(
     ]
 
     for port in available_ports:
-        # NOTE(clif): Network is not considered when grouping ports together.
-        # It will be when deciding which network to attach.
+        # NOTE(clif): Network and vif are not considered when grouping ports
+        # together. They will be when deciding which network to attach.
         if trait_action.matches(port,
-                                base.Network.universal_network()):
+                                base.Network.universal_network(),
+                                base.Vif.universal_vif()):
             if len(matched_ports) > 0:
                 # NOTE(clif): Once we match a port, all subsequent ports must
                 # have the same physical_network. This is a requirement of
@@ -210,12 +215,12 @@ def _plan_group_and_attach_ports(
     # NOTE(clif) Now decide which network we'll attach to. We consider the
     # first port selected to stand in for the portgroup.
     for network in node_networks:
-        if trait_action.matches(matched_ports[0], network):
+        if trait_action.matches(matched_ports[0], network, vif):
             return [base.GroupAndAttachPorts(
                         trait_action,
                         node_uuid,
                         [portlike.uuid for portlike in matched_ports],
-                        network.id)]
+                        vif.id)]
 
     # NOTE(clif) If we made it here, no networks matched.
     return [base.NoMatch(trait_action,
@@ -261,6 +266,7 @@ def plan_vif_attach(traits: list[base.NetworkTrait],
     """
     # TODO(clif): Take cues from get_free_port_like_object where appropriate.
     net = base.Network.from_vif_info(vif_info)
+    vif = base.Vif.from_vif_info(vif_info)
 
     # Filter out already attached ports and portgroups.
     free_ports = [port for port in task.ports
@@ -275,7 +281,8 @@ def plan_vif_attach(traits: list[base.NetworkTrait],
             task.node.uuid,
             free_ports,
             free_portgroups,
-            [net])
+            [net],
+            vif)
         # If no actions matched, try the next trait.
         if all_no_match(actions):
             continue
