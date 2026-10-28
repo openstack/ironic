@@ -1,0 +1,7 @@
+---
+fixes:
+  - |
+    Fixed the error message of the Trait Based Networking
+    ``TBNNoPortMatchesFound`` exception. A misspelled attribute caused the
+    intended message to be ignored and a generic, uninformative message to be
+    shown instead.
