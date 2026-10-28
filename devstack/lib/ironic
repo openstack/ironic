@@ -1707,21 +1707,7 @@ function configure_ironic {
     if [[ -n "$IRONIC_AGENT_IMAGE_DOWNLOAD_SOURCE" ]]; then
         iniset $IRONIC_CONF_FILE agent image_download_source $IRONIC_AGENT_IMAGE_DOWNLOAD_SOURCE
     fi
-    # Configure JSON RPC backend
-    iniset $IRONIC_CONF_FILE DEFAULT rpc_transport $IRONIC_RPC_TRANSPORT
-    iniset $IRONIC_CONF_FILE json_rpc port $IRONIC_JSON_RPC_PORT
-    if [[ "$IRONIC_JSON_RPC_AUTH_STRATEGY" != "" ]]; then
-        iniset $IRONIC_CONF_FILE json_rpc auth_strategy $IRONIC_JSON_RPC_AUTH_STRATEGY
-    fi
-    if [[ "$IRONIC_JSON_RPC_AUTH_STRATEGY" == "http_basic" ]]; then
-        iniset $IRONIC_CONF_FILE json_rpc username myName
-        iniset $IRONIC_CONF_FILE json_rpc password myPassword
-        # json-rpc auth file with bcrypt hash of myPassword
-        echo 'myName:$2y$05$lE3eGtyj41jZwrzS87KTqe6.JETVCWBkc32C63UP2aYrGoYOEpbJm' > /etc/ironic/htpasswd-json-rpc
-    fi
-    if [[ "$IRONIC_JSON_RPC_AUTH_STRATEGY" == "" ]] || [[ "$IRONIC_JSON_RPC_AUTH_STRATEGY" == "keystone" ]]; then
-        configure_client_for json_rpc
-    fi
+
     if [[ "$IRONIC_ENFORCE_SCOPE" == "False" ]]; then
         iniset $IRONIC_CONF_FILE oslo_policy enforce_scope false
         iniset $IRONIC_CONF_FILE oslo_policy enforce_new_defaults false
@@ -1747,9 +1733,26 @@ function configure_ironic {
         iniset $IRONIC_CONF_FILE deploy configdrive_use_object_store True
     fi
 
-    # No need to check if RabbitMQ is enabled, this call does it in a smart way
+    iniset $IRONIC_CONF_FILE DEFAULT rpc_transport $IRONIC_RPC_TRANSPORT
     if [[ "$IRONIC_RPC_TRANSPORT" == "oslo" ]]; then
+        # No need to check if RabbitMQ is enabled, this call does it in a smart
+        # way
         iniset_rpc_backend ironic $IRONIC_CONF_FILE
+    elif [[ "$IRONIC_RPC_TRANSPORT" == "json-rpc" ]]; then
+        # Configure JSON RPC backend
+        iniset $IRONIC_CONF_FILE json_rpc port $IRONIC_JSON_RPC_PORT
+        if [[ "$IRONIC_JSON_RPC_AUTH_STRATEGY" != "" ]]; then
+            iniset $IRONIC_CONF_FILE json_rpc auth_strategy $IRONIC_JSON_RPC_AUTH_STRATEGY
+        fi
+        if [[ "$IRONIC_JSON_RPC_AUTH_STRATEGY" == "http_basic" ]]; then
+            iniset $IRONIC_CONF_FILE json_rpc username myName
+            iniset $IRONIC_CONF_FILE json_rpc password myPassword
+            # json-rpc auth file with bcrypt hash of myPassword
+            echo 'myName:$2y$05$lE3eGtyj41jZwrzS87KTqe6.JETVCWBkc32C63UP2aYrGoYOEpbJm' > /etc/ironic/htpasswd-json-rpc
+        fi
+        if [[ "$IRONIC_JSON_RPC_AUTH_STRATEGY" == "" ]] || [[ "$IRONIC_JSON_RPC_AUTH_STRATEGY" == "keystone" ]]; then
+            configure_client_for json_rpc
+        fi
     fi
 
     # Configure Ironic conductor, if it was enabled.
