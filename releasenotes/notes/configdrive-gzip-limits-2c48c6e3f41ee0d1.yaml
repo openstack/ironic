@@ -1,12 +1,17 @@
 security:
   - |
     Fixes an issue where an Ironic conductor could experience a memory or disk
-    exhaustion issue when a tenant provides a gzip bomb instead of a valid
-    configdrive. This security concern is only present in configurations where
-    Ironic modifies network metadata (network_data.json) during deployment.
+    exhaustion condition when a tenant provides a gzip bomb instead of a valid
+    configdrive. Any tenant authorized to deploy machines could trigger this by
+    supplying a base64-encoded gzip payload that Ironic decompresses while
+    preparing the configdrive for deployment.
 
-    Now, the conductor will raise an error if, while extracting the configdrive
-    to update metadata, it extracts more than 64MiB of data -- our hardcoded
-    limitation on configdrive size in Ironic Python Agent.
+    This affected deployments using the Anaconda deploy interface, the
+    ``redfish-virtual-media`` boot interface, and deployments where Ironic
+    updates network metadata (network_data.json).
+
+    Now, Ironic decompresses configdrives in bounded chunks and rejects any
+    configdrive that expands to more than 64MiB -- the same limit enforced by
+    Ironic Python Agent (and the size of the partition it creates).
 
     This security issue is tracked as CVE-2026-115638.
