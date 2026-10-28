@@ -306,6 +306,85 @@ class RedfishManagementTestCase(db_base.DbTestCase):
                 mock_sync_boot_mode.reset_mock()
                 mock_get_system.reset_mock()
 
+    @mock.patch.object(boot_mode_utils, 'sync_boot_mode', autospec=True)
+    @mock.patch.object(redfish_utils, 'get_system', autospec=True)
+    def test_set_boot_device_full_boot_request_vendor(self, mock_get_system,
+                                                      mock_sync_boot_mode):
+        """Vendors in VENDORS_REQUIRING_FULL_BOOT_REQUEST always send enabled.
+
+        Unlike the default path which skips enabled when it matches the
+        current value, full-boot-request vendors must always send enabled
+        along with mode.
+        """
+        fake_system = mock_get_system.return_value
+        # Set current enabled to CONTINUOUS — same as desired (persistent=True)
+        fake_system.boot.get.side_effect = lambda key, *a: {
+            'enabled': sushy.BOOT_SOURCE_ENABLED_CONTINUOUS,
+            'mode': sushy.BOOT_SOURCE_MODE_UEFI,
+        }.get(key)
+
+        properties = self.node.properties
+        properties['vendor'] = 'American Megatrends International'
+        self.node.properties = properties
+        self.node.save()
+        with task_manager.acquire(self.context, self.node.uuid,
+                                  shared=False) as task:
+            task.driver.management.set_boot_device(
+                task, boot_devices.PXE, persistent=True)
+            # enabled must be CONTINUOUS even though current is already
+            # CONTINUOUS (the default path would pass None here).
+            fake_system.set_system_boot_options.assert_called_once_with(
+                sushy.BOOT_SOURCE_TARGET_PXE,
+                mode=sushy.BOOT_SOURCE_MODE_UEFI,
+                enabled=sushy.BOOT_SOURCE_ENABLED_CONTINUOUS,
+                http_boot_uri=None)
+            mock_sync_boot_mode.assert_not_called()
+
+    @mock.patch.object(sushy, 'Sushy', autospec=True)
+    @mock.patch.object(redfish_utils, 'get_system', autospec=True)
+    def test_set_boot_device_persistence_fallback_full_boot_vendor(
+            self, mock_get_system, mock_sushy):
+        """CONTINUOUS fallback triggers for full-boot-request vendors.
+
+        Before the fix, full-boot-request vendors used a different variable
+        (desired_enabled) for the call than the one checked in the fallback
+        (enabled), so the fallback would never trigger. Regression test for
+        LP#2142498.
+        """
+        fake_system = mock.Mock()
+        fake_system.boot.get.side_effect = lambda key, *a: {
+            'enabled': sushy.BOOT_SOURCE_ENABLED_CONTINUOUS,
+            'mode': sushy.BOOT_SOURCE_MODE_UEFI,
+        }.get(key)
+        fake_system.set_system_boot_options.side_effect = [
+            sushy.exceptions.SushyError(),
+            None,
+        ]
+        mock_get_system.return_value = fake_system
+
+        properties = self.node.properties
+        properties['vendor'] = 'AMI'
+        self.node.properties = properties
+        self.node.save()
+        with task_manager.acquire(self.context, self.node.uuid,
+                                  shared=False) as task:
+            task.driver.management.set_boot_device(
+                task, boot_devices.PXE, persistent=True)
+            fake_system.set_system_boot_options.assert_has_calls([
+                mock.call(sushy.BOOT_SOURCE_TARGET_PXE,
+                          mode=sushy.BOOT_SOURCE_MODE_UEFI,
+                          enabled=sushy.BOOT_SOURCE_ENABLED_CONTINUOUS,
+                          http_boot_uri=None),
+                mock.call(sushy.BOOT_SOURCE_TARGET_PXE,
+                          enabled=sushy.BOOT_SOURCE_ENABLED_ONCE,
+                          http_boot_uri=None)
+            ])
+
+            task.node.refresh()
+            self.assertEqual(
+                boot_devices.PXE,
+                task.node.driver_internal_info['redfish_boot_device'])
+
     @mock.patch.object(redfish_utils, 'get_system', autospec=True)
     def test_set_boot_device_http_boot(self, mock_get_system):
         fake_system = mock.Mock()
