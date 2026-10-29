@@ -59,11 +59,23 @@ class PciDevicesTestCase(db_base.DbTestCase):
         self.node = obj_utils.create_test_node(self.context,
                                                inspect_interface='agent')
         self.inventory = {'fake': 'fake-inventory'}
-        self.plugin_data = _PLUGIN_DATA
+        self.plugin_data = _PLUGIN_DATA.copy()
         self.pci_devices_hook = pci_devices_hook.PciDevicesHook()
         self.pci_devices_hook._aliases = _ALIASES
 
     def test_pci_devices(self):
+        with task_manager.acquire(self.context, self.node.id) as task:
+            self.pci_devices_hook.__call__(task, self.inventory,
+                                           self.plugin_data)
+            self.node.refresh()
+            result = self.node.properties.get('capabilities', '')
+            expected = 'EightyTwentyTwo:1,EightyEighteen:1,OneBZeroC:2'
+            self.assertEqual(expected, result)
+
+    def test_pci_devices_from_inventory(self):
+        self.inventory = {
+            'pci_devices': self.plugin_data.pop('pci_devices'),
+        }
         with task_manager.acquire(self.context, self.node.id) as task:
             self.pci_devices_hook.__call__(task, self.inventory,
                                            self.plugin_data)
