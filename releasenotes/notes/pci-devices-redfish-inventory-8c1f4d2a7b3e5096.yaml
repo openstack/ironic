@@ -1,0 +1,5 @@
+---
+fixes:
+  - |
+    The ``pci-devices`` inspection hook now works with the Redfish inspection,
+    which reports PCI devices in the inventory rather than in the plugin data.

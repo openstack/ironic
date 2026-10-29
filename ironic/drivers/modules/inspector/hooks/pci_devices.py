@@ -61,7 +61,13 @@ class PciDevicesHook(base.InspectionHook):
     def __call__(self, task, inventory, plugin_data):
         """Update node capabilities with PCI devices."""
 
-        if 'pci_devices' not in plugin_data:
+        # NOTE: inconsistency here: IPA uses plugin_data, while
+        # Redfish put it in inventory.
+        found_devices = plugin_data.get('pci_devices')
+        if not found_devices:
+            found_devices = inventory.get('pci_devices')
+
+        if not found_devices:
             if CONF.inspector.pci_device_alias:
                 LOG.warning('No information about PCI devices was received '
                             'from the ramdisk.')
@@ -69,7 +75,7 @@ class PciDevicesHook(base.InspectionHook):
 
         alias_count = {self._aliases[id_pair]: count for id_pair, count in
                        self._found_pci_devices_count(
-                           plugin_data['pci_devices']).items()}
+                           found_devices).items()}
         if alias_count:
             LOG.info('Found the following PCI devices: %s', alias_count)
 
