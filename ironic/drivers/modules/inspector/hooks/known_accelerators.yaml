@@ -1,4 +1,5 @@
 pci_devices:
+  # NVIDIA enterprise GPUs
   - vendor_id: "10de"
     device_id: "1eb8"
     type: GPU
@@ -6,7 +7,7 @@ pci_devices:
   - vendor_id: "10de"
     device_id: "1df6"
     type: GPU
-    device_info: NVIDIA Corporation GV100GL
+    device_info: NVIDIA Corporation Tesla V100S PCIe 32GB
   - vendor_id: "10de"
     device_id: "2236"
     type: GPU
@@ -16,10 +17,140 @@ pci_devices:
     type: GPU
     device_info: NVIDIA Corporation A40
   - vendor_id: "10de"
+    device_id: "20b7"
+    type: GPU
+    device_info: NVIDIA Corporation A30
+  - vendor_id: "10de"
     device_id: "26b9"
     type: GPU
     device_info: NVIDIA Corporation L40S
   - vendor_id: "10de"
+    device_id: "26b5"
+    type: GPU
+    device_info: NVIDIA Corporation L40
+  - vendor_id: "10de"
     device_id: "26ba"
     type: GPU
     device_info: NVIDIA Corporation L20
+  - vendor_id: "10de"
+    device_id: "27b8"
+    type: GPU
+    device_info: NVIDIA Corporation L4
+  - vendor_id: "10de"
+    device_id: "1db1"
+    type: GPU
+    device_info: NVIDIA Corporation Tesla V100 SXM2 16GB
+  - vendor_id: "10de"
+    device_id: "1db5"
+    type: GPU
+    device_info: NVIDIA Corporation Tesla V100 SXM2 32GB
+  - vendor_id: "10de"
+    device_id: "1db4"
+    type: GPU
+    device_info: NVIDIA Corporation Tesla V100 PCIe 16GB
+  - vendor_id: "10de"
+    device_id: "20b0"
+    type: GPU
+    device_info: NVIDIA Corporation A100 SXM4 40GB
+  - vendor_id: "10de"
+    device_id: "20b2"
+    type: GPU
+    device_info: NVIDIA Corporation A100 SXM4 80GB
+  - vendor_id: "10de"
+    device_id: "20f1"
+    type: GPU
+    device_info: NVIDIA Corporation A100 PCIe 40GB
+  - vendor_id: "10de"
+    device_id: "20b5"
+    type: GPU
+    device_info: NVIDIA Corporation A100 PCIe 80GB
+  - vendor_id: "10de"
+    device_id: "2330"
+    type: GPU
+    device_info: NVIDIA Corporation H100 SXM5
+  - vendor_id: "10de"
+    device_id: "2331"
+    type: GPU
+    device_info: NVIDIA Corporation H100 PCIe
+  - vendor_id: "10de"
+    device_id: "2321"
+    type: GPU
+    device_info: NVIDIA Corporation H100 NVL
+  - vendor_id: "10de"
+    device_id: "2335"
+    type: GPU
+    device_info: NVIDIA Corporation H200 SXM
+  - vendor_id: "10de"
+    device_id: "233b"
+    type: GPU
+    device_info: NVIDIA Corporation H200 NVL
+  - vendor_id: "10de"
+    device_id: "2901"
+    type: GPU
+    device_info: NVIDIA Corporation B200
+  - vendor_id: "10de"
+    device_id: "3182"
+    type: GPU
+    device_info: NVIDIA Corporation B300
+  - vendor_id: "10de"
+    device_id: ["31c2", "31c3"]
+    type: GPU
+    device_info: NVIDIA Corporation GB300 NVL
+  - vendor_id: "10de"
+    device_id: "2342"
+    type: GPU
+    device_info: NVIDIA Corporation GH200
+  - vendor_id: "10de"
+    device_id: "2348"
+    type: GPU
+    device_info: NVIDIA Corporation GH200 144GB
+  # NVIDIA professional and workstation GPUs sometimes used in servers
+  - vendor_id: "10de"
+    device_id: "27b2"
+    type: GPU
+    device_info: NVIDIA Corporation RTX 4000 Ada Generation
+  - vendor_id: "10de"
+    device_id: "27b1"
+    type: GPU
+    device_info: NVIDIA Corporation RTX 4500 Ada Generation
+  - vendor_id: "10de"
+    device_id: "26b2"
+    type: GPU
+    device_info: NVIDIA Corporation RTX 5000 Ada Generation
+  - vendor_id: "10de"
+    device_id: "26b1"
+    type: GPU
+    device_info: NVIDIA Corporation RTX 6000 Ada Generation
+  - vendor_id: "10de"
+    device_id: "2c3a"  # server edition only
+    type: GPU
+    device_info: NVIDIA Corporation RTX PRO 4500
+  - vendor_id: "10de"
+    device_id: ["2bbc", "2bb4", "2bb5"] # workstation Max-Q vs server editions
+    type: GPU
+    device_info: NVIDIA Corporation RTX PRO 6000
+  # AMD enterprise GPUs
+  - vendor_id: "1002"
+    device_id: "740f"
+    type: GPU
+    device_info: AMD Instinct MI210
+  - vendor_id: "1002"
+    device_id: "7408"
+    type: GPU
+    device_info: AMD Instinct MI250X
+  - vendor_id: "1002"
+    device_id: "74a1"
+    type: GPU
+    device_info: AMD Instinct MI300X
+  - vendor_id: "1002"
+    device_id: "74a5"
+    type: GPU
+    device_info: AMD Instinct MI325X
+  - vendor_id: "1002"
+    device_id: "75a0"
+    type: GPU
+    device_info: AMD Instinct MI350X
+  - vendor_id: "1002"
+    device_id: "75a8"
+    type: GPU
+    device_info: AMD Instinct MI350P
