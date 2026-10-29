@@ -575,7 +575,13 @@ class RedfishInspect(base.InspectInterface):
         if pcie_function.vendor_id:
             pci_info['vendor'] = pcie_function.vendor_id
         if pcie_function.device_id:
+            pci_info['device'] = pcie_function.device_id
+            # IPA compatibility
             pci_info['product'] = pcie_function.device_id
+        if pcie_function.subsystem_id:
+            pci_info['subsystem'] = pcie_function.subsystem_id
+        if pcie_function.subsystem_vendor_id:
+            pci_info['subsystem_vendor'] = pcie_function.subsystem_vendor_id
 
         if (pcie_function.bus_number is not None
                 and pcie_function.device_number is not None
