@@ -612,8 +612,14 @@ class NeutronVIFPortIDMixin(VIFPortIDMixin):
                                'reason': ', '.join(reason)})
                         raise exception.Conflict(msg)
 
-    def _create_dynamic_portgroup(self, task, first_port):
-        """Creates a dynamic portgroup"""
+    def _create_dynamic_portgroup(self, task, first_port, mode=None,
+                                  properties=None):
+        """Creates a dynamic portgroup
+
+        :param mode: Optional portgroup mode. If None the default portgroup
+            mode is used.
+        :param properties: Optional dict of portgroup properties.
+        """
 
         def pick_random_suffix():
             return ''.join(random.choices(string.ascii_letters + string.digits,
@@ -621,6 +627,12 @@ class NeutronVIFPortIDMixin(VIFPortIDMixin):
 
         def generate_name():
             return f'tbn_dyn_portgroup_{pick_random_suffix()}'
+
+        extra_fields = {}
+        if mode is not None:
+            extra_fields['mode'] = mode
+        if properties:
+            extra_fields['properties'] = dict(properties)
 
         # Retries a few times if there's a name collision.
         for i in range(0, 3):
@@ -630,7 +642,8 @@ class NeutronVIFPortIDMixin(VIFPortIDMixin):
                 node_id=task.node.id,
                 node_uuid=task.node.uuid,
                 physical_network=first_port.physical_network,
-                dynamic_portgroup=True
+                dynamic_portgroup=True,
+                **extra_fields
             )
 
             # Create the dynamic portgroup.
@@ -738,8 +751,11 @@ class NeutronVIFPortIDMixin(VIFPortIDMixin):
                                % {'exc': e})
                         raise exception.NetworkError(msg)
 
+                    params = action.trait_action.params or {}
                     dyn_portgroup = self._create_dynamic_portgroup(
-                        task, dyn_pg_ports[0])
+                        task, dyn_pg_ports[0],
+                        mode=params.get('mode'),
+                        properties=params.get('properties'))
 
                     # Update every port so it is part of the new portgroup
                     for port in dyn_pg_ports:
