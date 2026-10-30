@@ -11,7 +11,9 @@ provisioning will happen in a multi-tenant environment (which means using the
    For standalone deployments without the Networking service (Neutron), the
    ``ironic-networking`` network interface provides an alternative approach
    for managing switch port configurations. See
-   :doc:`/install/standalone/networking` for details.
+   :doc:`/install/standalone/networking` for details. If users access the
+   Ironic API directly in a multi-tenant environment, see
+   :ref:`standalone-networking-tenant-isolation`.
 
 #. Network interfaces can be enabled on ironic-conductor by adding them to the
    ``enabled_network_interfaces`` configuration option under the ``default``
