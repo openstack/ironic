@@ -24,6 +24,7 @@ import tenacity
 
 from ironic.common import context
 from ironic.common import exception
+from ironic.common.network import NetType
 from ironic.common import neutron
 from ironic.conductor import task_manager
 from ironic.tests import base
@@ -321,7 +322,8 @@ class TestNeutronNetworkActions(db_base.DbTestCase):
                 # force override of driver properties, just to keep it simple.
                 task.driver.boot.capabilities = ['not_pxe']
             ports = neutron.add_ports_to_network(
-                task, self.network_uuid, security_groups=security_groups)
+                task, self.network_uuid, NetType.PROVISIONING,
+                security_groups=security_groups)
             self.assertEqual(expected, ports)
             if add_all_ports or boot_not_pxe:
                 create_calls = [mock.call(**expected_create_attrs),
@@ -391,7 +393,8 @@ class TestNeutronNetworkActions(db_base.DbTestCase):
         expected = {port.uuid: self.neutron_port['id']}
 
         with task_manager.acquire(self.context, self.node.uuid) as task:
-            ports = neutron.add_ports_to_network(task, self.network_uuid)
+            ports = neutron.add_ports_to_network(
+                task, self.network_uuid, NetType.PROVISIONING)
             self.assertEqual(expected, ports)
             self.client_mock.create_port.assert_called_once_with(
                 **expected_create_attrs)
@@ -525,7 +528,8 @@ class TestNeutronNetworkActions(db_base.DbTestCase):
         update_mock.return_value = self.neutron_port
         expected = {port.uuid: self.neutron_port.id}
         with task_manager.acquire(self.context, self.node.uuid) as task:
-            ports = neutron.add_ports_to_network(task, self.network_uuid)
+            ports = neutron.add_ports_to_network(
+                task, self.network_uuid, NetType.PROVISIONING)
             self.assertEqual(expected, ports)
             self.client_mock.create_port.assert_called_once_with(
                 **expected_create_body)
@@ -543,21 +547,39 @@ class TestNeutronNetworkActions(db_base.DbTestCase):
         update_mock.return_value = self.neutron_port
 
         with task_manager.acquire(self.context, self.node.uuid) as task:
-            neutron.add_ports_to_network(task, self.network_uuid)
+            neutron.add_ports_to_network(
+                task, self.network_uuid, NetType.PROVISIONING)
 
         self.client_mock.close.assert_called_once()
 
     @mock.patch.object(neutron, 'rollback_ports', autospec=True)
     def test_add_network_all_ports_fail(self, rollback_mock):
-        # Check that if creating a port fails, the ports are cleaned up
+        # Cleanup is the caller's responsibility, so that ports recorded
+        # in internal_info are still available to it.
         self.client_mock.create_port.side_effect = \
             openstack_exc.OpenStackCloudException
 
         with task_manager.acquire(self.context, self.node.uuid) as task:
             self.assertRaises(
                 exception.NetworkError, neutron.add_ports_to_network, task,
-                self.network_uuid)
-            rollback_mock.assert_called_once_with(task, self.network_uuid)
+                self.network_uuid, NetType.PROVISIONING)
+            rollback_mock.assert_not_called()
+
+    @mock.patch.object(neutron, 'update_neutron_port', autospec=True)
+    def test_add_network_records_port_on_later_failure(self, update_mock):
+        # The neutron port must be recorded on the baremetal port as soon
+        # as it is created, even if a later step (e.g. binding) fails.
+        update_mock.side_effect = openstack_exc.OpenStackCloudException
+        self.client_mock.create_port.return_value = self.neutron_port
+
+        with task_manager.acquire(self.context, self.node.uuid) as task:
+            self.assertRaises(
+                exception.NetworkError, neutron.add_ports_to_network, task,
+                self.network_uuid, NetType.PROVISIONING)
+        self.ports[0].refresh()
+        self.assertEqual(
+            self.neutron_port.id,
+            self.ports[0].internal_info[NetType.PROVISIONING.vif_key])
 
     @mock.patch.object(neutron, 'update_neutron_port', autospec=True)
     @mock.patch.object(neutron, 'LOG', autospec=True)
@@ -572,7 +594,8 @@ class TestNeutronNetworkActions(db_base.DbTestCase):
             self.neutron_port, openstack_exc.OpenStackCloudException]
         update_mock.return_value = self.neutron_port
         with task_manager.acquire(self.context, self.node.uuid) as task:
-            neutron.add_ports_to_network(task, self.network_uuid)
+            neutron.add_ports_to_network(
+                task, self.network_uuid, NetType.PROVISIONING)
             self.assertIn("Could not create neutron port for node's",
                           log_mock.warning.call_args_list[0][0][0])
             self.assertIn("Some errors were encountered when updating",
@@ -586,7 +609,8 @@ class TestNeutronNetworkActions(db_base.DbTestCase):
             self.assertEqual([], task.ports)
             self.assertRaisesRegex(exception.NetworkError, 'No available',
                                    neutron.add_ports_to_network,
-                                   task, self.network_uuid)
+                                   task, self.network_uuid,
+                                   NetType.PROVISIONING)
 
     def test_add_network_no_pxe_enabled_ports(self):
         # Have port but no PXE enabled
@@ -597,16 +621,19 @@ class TestNeutronNetworkActions(db_base.DbTestCase):
             self.assertFalse(task.ports[0].pxe_enabled)
             self.assertRaisesRegex(exception.NetworkError, 'No available',
                                    neutron.add_ports_to_network,
-                                   task, self.network_uuid)
+                                   task, self.network_uuid,
+                                   NetType.PROVISIONING)
 
     @mock.patch.object(neutron, 'remove_neutron_ports', autospec=True)
     def test_remove_ports_from_network(self, remove_mock):
         with task_manager.acquire(self.context, self.node.uuid) as task:
-            neutron.remove_ports_from_network(task, self.network_uuid)
+            neutron.remove_ports_from_network(task, self.network_uuid,
+                                              NetType.CLEANING)
             remove_mock.assert_called_once_with(
                 task,
                 {'network_id': self.network_uuid,
-                 'mac_address': [self.ports[0].address]}
+                 'mac_address': [self.ports[0].address]},
+                NetType.CLEANING
             )
 
     @mock.patch.object(neutron, 'remove_neutron_ports', autospec=True)
@@ -618,11 +645,13 @@ class TestNeutronNetworkActions(db_base.DbTestCase):
             pxe_enabled=False
         )
         with task_manager.acquire(self.context, self.node.uuid) as task:
-            neutron.remove_ports_from_network(task, self.network_uuid)
+            neutron.remove_ports_from_network(task, self.network_uuid,
+                                              NetType.CLEANING)
             remove_mock.assert_called_once_with(
                 task,
                 {'network_id': self.network_uuid,
-                 'mac_address': [self.ports[0].address]}
+                 'mac_address': [self.ports[0].address]},
+                NetType.CLEANING
             )
 
     @mock.patch.object(neutron, 'remove_neutron_ports', autospec=True)
@@ -636,18 +665,21 @@ class TestNeutronNetworkActions(db_base.DbTestCase):
             pxe_enabled=False
         )
         with task_manager.acquire(self.context, self.node.uuid) as task:
-            neutron.remove_ports_from_network(task, self.network_uuid)
+            neutron.remove_ports_from_network(task, self.network_uuid,
+                                              NetType.CLEANING)
             calls = [
                 mock.call(task, {'network_id': self.network_uuid,
                                  'mac_address': [task.ports[0].address,
-                                                 task.ports[1].address]}),
+                                                 task.ports[1].address]},
+                          NetType.CLEANING),
             ]
             remove_mock.assert_has_calls(calls)
 
     def test_remove_neutron_ports(self):
         with task_manager.acquire(self.context, self.node.uuid) as task:
             self.client_mock.ports.return_value = iter([self.neutron_port])
-            neutron.remove_neutron_ports(task, {'param': 'value'})
+            neutron.remove_neutron_ports(task, {'param': 'value'},
+                                         NetType.CLEANING)
         self.client_mock.ports.assert_called_once_with(**{'param': 'value'})
         self.client_mock.delete_port.assert_called_once_with(self.neutron_port)
         self.client_mock.close.assert_called_once()
@@ -658,7 +690,8 @@ class TestNeutronNetworkActions(db_base.DbTestCase):
                 openstack_exc.OpenStackCloudException)
             self.assertRaisesRegex(
                 exception.NetworkError, 'Could not get given network VIF',
-                neutron.remove_neutron_ports, task, {'param': 'value'})
+                neutron.remove_neutron_ports, task, {'param': 'value'},
+                NetType.CLEANING)
         self.client_mock.ports.assert_called_once_with(**{'param': 'value'})
         self.client_mock.close.assert_called_once()
 
@@ -669,7 +702,8 @@ class TestNeutronNetworkActions(db_base.DbTestCase):
             self.client_mock.ports.return_value = iter([self.neutron_port])
             self.assertRaisesRegex(
                 exception.NetworkError, 'Could not remove VIF',
-                neutron.remove_neutron_ports, task, {'param': 'value'})
+                neutron.remove_neutron_ports, task, {'param': 'value'},
+                NetType.CLEANING)
         self.client_mock.ports.assert_called_once_with(**{'param': 'value'})
         self.client_mock.delete_port.assert_called_once_with(self.neutron_port)
         self.client_mock.close.assert_called_once()
@@ -679,10 +713,118 @@ class TestNeutronNetworkActions(db_base.DbTestCase):
             self.client_mock.delete_port.side_effect = \
                 openstack_exc.ResourceNotFound
             self.client_mock.ports.return_value = iter([self.neutron_port])
-            neutron.remove_neutron_ports(task, {'param': 'value'})
+            neutron.remove_neutron_ports(task, {'param': 'value'},
+                                         NetType.CLEANING)
         self.client_mock.ports.assert_called_once_with(**{'param': 'value'})
         self.client_mock.delete_port.assert_called_once_with(self.neutron_port)
         self.client_mock.close.assert_called_once()
+
+    def _record_vifs(self, vif_key):
+        # one port tracking the neutron port under test, another tracking
+        # a neutron port of a different network type that must be left alone
+        other = object_utils.create_test_port(
+            self.context, node_id=self.node.id,
+            uuid=uuidutils.generate_uuid(),
+            address='52:54:55:cf:2d:32',
+            internal_info={NetType.PROVISIONING.vif_key: 'other-neutron-port'})
+        self.ports[0].internal_info = {vif_key: self.neutron_port.id}
+        self.ports[0].save()
+        return other
+
+    def test_remove_neutron_ports_clears_vif_key(self):
+        vif_key = NetType.CLEANING.vif_key
+        other = self._record_vifs(vif_key)
+        with task_manager.acquire(self.context, self.node.uuid) as task:
+            self.client_mock.ports.return_value = iter([self.neutron_port])
+            neutron.remove_neutron_ports(task, {'param': 'value'},
+                                         NetType.CLEANING)
+        self.ports[0].refresh()
+        other.refresh()
+        self.assertNotIn(vif_key, self.ports[0].internal_info)
+        self.assertEqual(
+            'other-neutron-port',
+            other.internal_info[NetType.PROVISIONING.vif_key])
+
+    def test_remove_neutron_ports_delete_race_clears_vif_key(self):
+        vif_key = NetType.CLEANING.vif_key
+        self._record_vifs(vif_key)
+        with task_manager.acquire(self.context, self.node.uuid) as task:
+            self.client_mock.delete_port.side_effect = \
+                openstack_exc.ResourceNotFound
+            self.client_mock.ports.return_value = iter([self.neutron_port])
+            neutron.remove_neutron_ports(task, {'param': 'value'},
+                                         NetType.CLEANING)
+        self.ports[0].refresh()
+        self.assertNotIn(vif_key, self.ports[0].internal_info)
+
+    def test_remove_neutron_ports_delete_fail_keeps_vif_key(self):
+        vif_key = NetType.CLEANING.vif_key
+        self._record_vifs(vif_key)
+        with task_manager.acquire(self.context, self.node.uuid) as task:
+            self.client_mock.delete_port.side_effect = \
+                openstack_exc.OpenStackCloudException
+            self.client_mock.ports.return_value = iter([self.neutron_port])
+            self.assertRaises(
+                exception.NetworkError, neutron.remove_neutron_ports, task,
+                {'param': 'value'}, NetType.CLEANING)
+        self.ports[0].refresh()
+        self.assertEqual(self.neutron_port.id,
+                         self.ports[0].internal_info[vif_key])
+
+    def test_remove_neutron_ports_recorded_vif_not_listed(self):
+        # the recorded neutron port is not returned by the listing, e.g.
+        # because it was already deleted, but the record must not survive
+        vif_key = NetType.CLEANING.vif_key
+        self._record_vifs(vif_key)
+        with task_manager.acquire(self.context, self.node.uuid) as task:
+            self.client_mock.ports.return_value = iter([])
+            neutron.remove_neutron_ports(task, {'param': 'value'},
+                                         NetType.CLEANING)
+        self.client_mock.delete_port.assert_called_once_with(
+            self.neutron_port.id, ignore_missing=False)
+        self.client_mock.close.assert_called_once()
+        self.ports[0].refresh()
+        self.assertNotIn(vif_key, self.ports[0].internal_info)
+
+    def test_remove_neutron_ports_recorded_vif_not_found(self):
+        vif_key = NetType.CLEANING.vif_key
+        self._record_vifs(vif_key)
+        with task_manager.acquire(self.context, self.node.uuid) as task:
+            self.client_mock.delete_port.side_effect = \
+                openstack_exc.ResourceNotFound
+            self.client_mock.ports.return_value = iter([])
+            neutron.remove_neutron_ports(task, {'param': 'value'},
+                                         NetType.CLEANING)
+        self.ports[0].refresh()
+        self.assertNotIn(vif_key, self.ports[0].internal_info)
+
+    def test_remove_neutron_ports_recorded_vif_delete_fail(self):
+        vif_key = NetType.CLEANING.vif_key
+        self._record_vifs(vif_key)
+        with task_manager.acquire(self.context, self.node.uuid) as task:
+            self.client_mock.delete_port.side_effect = \
+                openstack_exc.OpenStackCloudException
+            self.client_mock.ports.return_value = iter([])
+            self.assertRaises(
+                exception.NetworkError, neutron.remove_neutron_ports, task,
+                {'param': 'value'}, NetType.CLEANING)
+        self.client_mock.close.assert_called_once()
+        self.ports[0].refresh()
+        self.assertEqual(self.neutron_port.id,
+                         self.ports[0].internal_info[vif_key])
+
+    def test_remove_neutron_ports_recorded_tenant_vif_kept(self):
+        # tenant VIFs are not created by Ironic, so they are never deleted
+        vif_key = NetType.TENANT.vif_key
+        self._record_vifs(vif_key)
+        with task_manager.acquire(self.context, self.node.uuid) as task:
+            self.client_mock.ports.return_value = iter([])
+            neutron.remove_neutron_ports(task, {'param': 'value'},
+                                         NetType.TENANT)
+        self.client_mock.delete_port.assert_not_called()
+        self.ports[0].refresh()
+        self.assertEqual(self.neutron_port.id,
+                         self.ports[0].internal_info[vif_key])
 
     def test__uncidr_ipv4(self):
         network, netmask = neutron._uncidr('10.0.0.0/24')
@@ -910,15 +1052,16 @@ class TestNeutronNetworkActions(db_base.DbTestCase):
     @mock.patch.object(neutron, 'remove_ports_from_network', autospec=True)
     def test_rollback_ports(self, remove_mock):
         with task_manager.acquire(self.context, self.node.uuid) as task:
-            neutron.rollback_ports(task, self.network_uuid)
-            remove_mock.assert_called_once_with(task, self.network_uuid)
+            neutron.rollback_ports(task, self.network_uuid, NetType.CLEANING)
+            remove_mock.assert_called_once_with(
+                task, self.network_uuid, NetType.CLEANING)
 
     @mock.patch.object(neutron, 'LOG', autospec=True)
     @mock.patch.object(neutron, 'remove_ports_from_network', autospec=True)
     def test_rollback_ports_exception(self, remove_mock, log_mock):
         remove_mock.side_effect = exception.NetworkError('boom')
         with task_manager.acquire(self.context, self.node.uuid) as task:
-            neutron.rollback_ports(task, self.network_uuid)
+            neutron.rollback_ports(task, self.network_uuid, NetType.CLEANING)
             self.assertTrue(log_mock.exception.called)
 
     @mock.patch.object(neutron, 'LOG', autospec=True)
@@ -1181,7 +1324,8 @@ class TestNeutronNetworkActions(db_base.DbTestCase):
         update_mock.return_value = self.neutron_port
         expected = {port.uuid: self.neutron_port.id}
         with task_manager.acquire(self.context, self.node.uuid) as task:
-            ports = neutron.add_ports_to_network(task, self.network_uuid)
+            ports = neutron.add_ports_to_network(
+                task, self.network_uuid, NetType.PROVISIONING)
             self.assertEqual(expected, ports)
             self.client_mock.create_port.assert_called_once_with(
                 **expected_create_attrs)
@@ -1201,7 +1345,8 @@ class TestNeutronNetworkActions(db_base.DbTestCase):
             is_smartnic_mock.return_value = True
             self.neutron_port['binding:host_id'] = 'hostname'
             self.client_mock.ports.return_value = iter([self.neutron_port])
-            neutron.remove_neutron_ports(task, {'param': 'value'})
+            neutron.remove_neutron_ports(task, {'param': 'value'},
+                                         NetType.CLEANING)
         self.client_mock.ports.assert_called_once_with(
             **{'param': 'value'})
         self.client_mock.delete_port.assert_called_once_with(

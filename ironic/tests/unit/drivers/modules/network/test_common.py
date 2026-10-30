@@ -20,11 +20,11 @@ from oslo_config import cfg
 from oslo_utils import uuidutils
 
 from ironic.common import exception
+from ironic.common.network import NetType
 from ironic.common import neutron as neutron_common
 from ironic.common import states
 from ironic.conductor import task_manager
 from ironic.drivers.modules.network import common
-from ironic.drivers.modules.network.common import NetType
 from ironic.objects import portgroup
 from ironic.tests.unit.db import base as db_base
 from ironic.tests.unit.objects import utils as obj_utils

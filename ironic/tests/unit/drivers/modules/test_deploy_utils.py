@@ -28,6 +28,7 @@ from ironic.common import checksum_utils
 from ironic.common import exception
 from ironic.common import faults
 from ironic.common import image_service
+from ironic.common.network import NetType
 from ironic.common import states
 from ironic.common import utils as common_utils
 from ironic.conductor import task_manager
@@ -35,7 +36,6 @@ from ironic.conductor import utils as manager_utils
 from ironic.drivers.modules import deploy_utils as utils
 from ironic.drivers.modules import fake
 from ironic.drivers.modules import image_cache
-from ironic.drivers.modules.network.common import NetType
 from ironic.drivers.modules import pxe
 from ironic.drivers.modules.storage import cinder
 from ironic.drivers import utils as driver_utils
