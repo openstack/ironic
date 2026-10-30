@@ -1,0 +1,72 @@
+---
+- hosts: all
+  environment:
+    PIP_BREAK_SYSTEM_PACKAGES: 1
+  roles:
+    - ensure-pip
+  vars:
+    dib_source: "{{ ansible_user_dir }}/src/opendev.org/openstack/diskimage-builder"
+    image_dir: "{{ ansible_user_dir }}/ironic-partition-image"
+    image_prefix: "ironic-partition-debian-trixie"
+    image_artifact_dir: "{{ zuul.executor.work_root }}/artifacts/partition-image"
+  tasks:
+    - name: Install DIB binary dependencies
+      include_role:
+        name: bindep
+      vars:
+        bindep_dir: "{{ dib_source }}"
+
+    - name: Install diskimage-builder requirements
+      ansible.builtin.pip:
+        requirements: "{{ dib_source }}/requirements.txt"
+        extra_args: "-c {{ ansible_user_dir }}/src/opendev.org/openstack/requirements/upper-constraints.txt"
+      become: true
+
+    - name: Install diskimage-builder from source
+      ansible.builtin.pip:
+        name: "{{ dib_source }}"
+        extra_args: --no-deps
+      become: true
+
+    - name: Create the image build directory
+      ansible.builtin.file:
+        path: "{{ image_dir }}"
+        state: directory
+
+    - name: Build the Debian partition image
+      ansible.builtin.command:
+        cmd: >-
+          disk-image-create debian-minimal baremetal dhcp-all-interfaces grub2
+          -o {{ image_dir }}/{{ image_prefix }}
+      environment:
+        DIB_RELEASE: trixie
+        DIB_IMAGE_SIZE: 4
+      args:
+        creates: "{{ image_dir }}/{{ image_prefix }}.qcow2"
+
+    - name: Create the local artifact directory
+      ansible.builtin.file:
+        path: "{{ image_artifact_dir }}"
+        state: directory
+      delegate_to: localhost
+
+    - name: Copy partition image artifacts
+      ansible.builtin.fetch:
+        src: "{{ image_dir }}/{{ image_prefix }}.{{ item }}"
+        dest: "{{ image_artifact_dir }}/{{ image_prefix }}.{{ item }}"
+        flat: true
+      loop:
+        - qcow2
+        - vmlinuz
+        - initrd
+
+    - name: Generate artifact checksums
+      ansible.builtin.shell:
+        cmd: >-
+          sha256sum {{ image_artifact_dir }}/{{ image_prefix }}.{{ item }}
+          > {{ image_artifact_dir }}/{{ image_prefix }}.{{ item }}.sha256
+      delegate_to: localhost
+      loop:
+        - qcow2
+        - vmlinuz
+        - initrd
