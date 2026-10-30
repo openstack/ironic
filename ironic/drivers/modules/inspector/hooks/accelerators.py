@@ -46,12 +46,6 @@ class AcceleratorsHook(base.InspectionHook):
                                    'configuration file is missing vendor_id '
                                    'or device_id.')
 
-    def _find_accelerator(self, vendor_id, device_id):
-        for dev in self._known_devices['pci_devices']:
-            if (dev['vendor_id'] == vendor_id
-                    and dev['device_id'] == device_id):
-                return dev
-
     def __call__(self, task, inventory, plugin_data):
         # NOTE(dtantsur): inconsistency here: IPA uses plugin_data, while
         # Redfish put it in inventory.
@@ -65,12 +59,20 @@ class AcceleratorsHook(base.InspectionHook):
                         'node %s.', task.node.uuid)
             return
 
+        index = {}
+        for dev in self._known_devices['pci_devices']:
+            dev_ids = dev['device_id']
+            if isinstance(dev_ids, str):
+                dev_ids = (dev_ids,)
+            for dev_id in dev_ids:
+                index[(dev['vendor_id'], dev_id)] = dev
+
         accelerators = []
         for pci_dev in pci_devices:
-            known_device = self._find_accelerator(pci_dev['vendor_id'],
-                                                  pci_dev['product_id'])
+            known_device = index.get((pci_dev['vendor_id'],
+                                      pci_dev['product_id']))
             if known_device:
-                accelerator = {k: known_device[k] for k in known_device.keys()}
+                accelerator = known_device.copy()
                 accelerator.update(pci_address=pci_dev['bus'])
                 accelerators.append(accelerator)
 
