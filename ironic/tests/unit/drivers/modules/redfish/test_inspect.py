@@ -154,6 +154,16 @@ class RedfishInspectTestCase(db_base.DbTestCase):
         mock_pcie_function1.subsystem_id = '0x1402'
         mock_pcie_function1.subsystem_vendor_id = '0x14e4'
         mock_pcie_function1.revision_id = '0x01'
+        mock_pcie_function1.bus_number = None
+        mock_pcie_function1.device_number = None
+        mock_pcie_function1.function_number = None
+        mock_pcie_function1.segment_number = None
+        mock_pcie_function1.links = {
+            'EthernetInterfaces': [
+                {'@odata.id': '/redfish/v1/Systems/1/EthernetInterfaces/'
+                              'NIC.Integrated.1-1'}
+            ]
+        }
 
         mock_pcie_function2 = mock.Mock()
         mock_pcie_function2.device_class = \
@@ -163,6 +173,11 @@ class RedfishInspectTestCase(db_base.DbTestCase):
         mock_pcie_function2.subsystem_id = None
         mock_pcie_function2.subsystem_vendor_id = None
         mock_pcie_function2.revision_id = '0x02'
+        mock_pcie_function2.bus_number = None
+        mock_pcie_function2.device_number = None
+        mock_pcie_function2.function_number = None
+        mock_pcie_function2.segment_number = None
+        mock_pcie_function2.links = {}
 
         mock_pcie_device1 = mock.Mock()
         mock_pcie_device1.pcie_functions.get_members.return_value = [
@@ -242,7 +257,9 @@ class RedfishInspectTestCase(db_base.DbTestCase):
 
         expected_interfaces = [{'mac_address': '00:11:22:33:44:55',
                                 'name': 'NIC.Integrated.1-1',
-                                'speed_mbps': 25000},
+                                'speed_mbps': 25000,
+                                'vendor': '0x14e4',
+                                'product': '0x16d7'},
                                {'mac_address': '66:77:88:99:aa:bb',
                                 'name': 'NIC.Integrated.2-1',
                                 'speed_mbps': 25000}]
@@ -870,6 +887,11 @@ class RedfishInspectTestCase(db_base.DbTestCase):
         mock_pcie_function.subsystem_id = '0x1402'
         mock_pcie_function.subsystem_vendor_id = None
         mock_pcie_function.revision_id = '0x01'
+        mock_pcie_function.bus_number = None
+        mock_pcie_function.device_number = None
+        mock_pcie_function.function_number = None
+        mock_pcie_function.segment_number = None
+        mock_pcie_function.links = None
 
         mock_pcie_device = mock.Mock()
         mock_pcie_device.pcie_functions.get_members.return_value = [
@@ -890,6 +912,53 @@ class RedfishInspectTestCase(db_base.DbTestCase):
         ]
         self.assertEqual(expected_pcie_devices,
                          inventory['inventory']['pci_devices'])
+
+    @mock.patch.object(redfish_utils, 'get_enabled_macs', autospec=True)
+    @mock.patch.object(redfish_utils, 'get_system', autospec=True)
+    def test_inspect_hardware_nic_pci_with_address(
+            self, mock_get_system, mock_get_enabled_macs):
+        system_mock = self.init_system_mock(mock_get_system.return_value)
+        mock_pcie_function = mock.Mock()
+        mock_pcie_function.device_class = sushy.DeviceClass.NETWORK_CONTROLLER
+        mock_pcie_function.device_id = '0x1593'
+        mock_pcie_function.vendor_id = '0x8086'
+        mock_pcie_function.subsystem_id = '0x000a'
+        mock_pcie_function.subsystem_vendor_id = '0x8086'
+        mock_pcie_function.revision_id = '0x02'
+        mock_pcie_function.bus_number = 0xc1
+        mock_pcie_function.device_number = 0x00
+        mock_pcie_function.function_number = 0x0
+        mock_pcie_function.segment_number = 0
+        mock_pcie_function.links = {
+            'EthernetInterfaces': [
+                {'@odata.id': '/redfish/v1/Systems/1/EthernetInterfaces/'
+                              'NIC.Integrated.1-1'}
+            ]
+        }
+
+        mock_pcie_device = mock.Mock()
+        mock_pcie_device.pcie_functions.get_members.return_value = [
+            mock_pcie_function]
+        system_mock.pcie_devices.get_members.return_value = [mock_pcie_device]
+
+        with task_manager.acquire(self.context, self.node.uuid,
+                                  shared=True) as task:
+            task.driver.inspect.inspect_hardware(task)
+
+        inventory = inspect_utils.get_inspection_data(self.node,
+                                                      self.context)
+        interfaces = inventory['inventory']['interfaces']
+        nic1 = next(i for i in interfaces
+                    if i['name'] == 'NIC.Integrated.1-1')
+        self.assertEqual('0x8086', nic1['vendor'])
+        self.assertEqual('0x1593', nic1['product'])
+        self.assertEqual('0000:c1:00.0', nic1['pci_address'])
+
+        nic2 = next(i for i in interfaces
+                    if i['name'] == 'NIC.Integrated.2-1')
+        self.assertNotIn('vendor', nic2)
+        self.assertNotIn('product', nic2)
+        self.assertNotIn('pci_address', nic2)
 
     @mock.patch.object(redfish_utils, 'get_enabled_macs', autospec=True)
     @mock.patch.object(redfish_utils, 'get_system', autospec=True)

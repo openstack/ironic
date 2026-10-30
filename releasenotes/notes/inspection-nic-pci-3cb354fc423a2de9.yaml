@@ -1,0 +1,5 @@
+---
+features:
+  - |
+    Redfish inspection now discovers ``vendor``, ``product``, and
+    ``pci_address`` for network interfaces when available.
