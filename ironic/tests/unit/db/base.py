@@ -49,7 +49,7 @@ class Database(fixtures.Fixture):
     def setup_sqlite(self, db_migrate):
         if db_migrate.version():
             return
-        models.Base.metadata.create_all(self.engine)
+        models.IronicBase.metadata.create_all(self.engine)
         db_migrate.stamp('head')
 
     def setUp(self):

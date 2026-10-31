@@ -1678,7 +1678,7 @@ class ModelsMigrationSyncMixin(object):
                                          gentle=False))
 
     def get_metadata(self):
-        return models.Base.metadata
+        return models.IronicBase.metadata
 
     def get_engine(self):
         return self.engine

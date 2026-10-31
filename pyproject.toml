@@ -286,8 +286,6 @@ module = [
     "ironic.common.service",
     "ironic.common.trait_based_networking.plan",
     "ironic.conductor.deployments",
-    "ironic.db.sqlalchemy.alembic.env",
-    "ironic.db.sqlalchemy.models",
     "ironic.drivers.modules.agent",
     "ironic.drivers.modules.agent_base",
     "ironic.drivers.modules.ipmitool",

@@ -104,7 +104,7 @@ class ReleaseMappingsTestCase(base.TestCase):
 
     def test_contains_all_db_objects(self):
         self.assertIn('master', release_mappings.RELEASE_MAPPING)
-        use_models = models.Base.__subclasses__()
+        use_models = models.IronicBase.__subclasses__()
         use_models.append(models.Node)
         model_names = set((s.__name__ for s in use_models))
         # NOTE(xek): As a rule, all models which can be changed between
