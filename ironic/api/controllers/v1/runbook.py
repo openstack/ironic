@@ -26,6 +26,7 @@ from ironic.api.controllers.v1 import collection
 from ironic.api.controllers.v1 import notification_utils as notify
 from ironic.api.controllers.v1 import utils as api_utils
 from ironic.api import method
+from ironic.api.schemas import common
 from ironic.common import args
 from ironic.common import exception
 from ironic.common.i18n import _
@@ -51,7 +52,7 @@ RUNBOOK_NAME_SCHEMA = {
     'pattern': r'^[A-Za-z0-9\-._~]+$',
 }
 
-RUNBOOK_SCHEMA = {
+RUNBOOK_SCHEMA: common.Schema = {
     'type': 'object',
     'properties': {
         'uuid': {'type': ['string', 'null']},

@@ -12,6 +12,7 @@
 
 import copy
 
+from ironic.api.schemas import common
 from ironic.api.schemas.common import request_types
 from ironic.api.schemas.common import response_types
 
@@ -32,7 +33,7 @@ delete_request_parameter = copy.deepcopy(_allocation_request_parameter)
 
 # request query string schemas
 
-index_request_query = {
+index_request_query: common.Schema = {
     'type': 'object',
     'properties': {
         'fields': {
@@ -79,7 +80,7 @@ index_request_query_v60['properties']['fields']['items']['enum'].append(
     'owner'
 )
 
-show_request_query = {
+show_request_query: common.Schema = {
     'type': 'object',
     'properties': {
         'fields': {
@@ -117,7 +118,7 @@ show_request_query_v60['properties']['fields']['items']['enum'].append(
 
 # request body schemas
 
-create_request_body = {
+create_request_body: common.Schema = {
     'type': 'object',
     'properties': {
         'candidate_nodes': {
@@ -176,7 +177,7 @@ update_request_body_v60 = copy.deepcopy(update_request_body)
 
 # response body schemas
 
-_allocation_response_body = {
+_allocation_response_body: common.Schema = {
     'type': 'object',
     'properties': {
         'candidate_nodes': {
@@ -212,7 +213,7 @@ _allocation_response_body_v60['properties'].update({
     'owner': {'type': ['string', 'null']},
 })
 
-index_response_body = {
+index_response_body: common.Schema = {
     'type': 'object',
     'properties': {
         'allocations': {

@@ -12,6 +12,7 @@
 
 import copy
 
+from ironic.api.schemas import common
 from ironic.api.schemas.common import request_types
 from ironic.api.schemas.common import response_types
 
@@ -114,7 +115,7 @@ _bios_response_body_v74 = {
     'additionalProperties': False,
 }
 
-index_response_body = {
+index_response_body: common.Schema = {
     'type': 'object',
     'properties': {
         'bios': {
@@ -130,7 +131,7 @@ index_response_body_v74['properties']['bios']['items'] = copy.deepcopy(
     _bios_response_body_v74
 )
 
-show_response_body = {
+show_response_body: common.Schema = {
     'type': 'object',
     'patternProperties': {
         r'(?i)^[A-Z0-9-._~]+$': copy.deepcopy(_bios_response_body),
