@@ -274,7 +274,6 @@ ignore_errors = true
 # They are parsed but their errors are suppressed. Remove entries from this
 # list as the modules are fixed; do not add new ones.
 module = [
-    "ironic.api.controllers.v1.port",
     "ironic.api.controllers.v1.runbook",
     "ironic.api.controllers.v1.utils",
     "ironic.api.schemas.v1.allocation",

@@ -134,7 +134,7 @@ def hide_fields_in_newer_versions(port):
     # net fields, since otherwise we removed local_link_connection above
     # and don't want to re-add it here
     if (not api_utils.allow_ovn_vtep_version()
-            and api_utils.allow_port_advanced_net_fields):
+            and api_utils.allow_port_advanced_net_fields()):
         local_link_connection = port.get('local_link_connection', {})
         if any(key for key in local_link_connection.keys()
                if key in api_utils.LOCAL_LINK_OVN_90_FIELDS):
