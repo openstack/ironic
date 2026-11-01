@@ -25,7 +25,7 @@ from ironic.db import api as dbapi
 from ironic.objects import base
 from ironic.objects import fields as object_fields
 from ironic.objects import notification
-from ironic.objects import Port
+from ironic.objects.port import Port
 
 
 @base.IronicObjectRegistry.register
