@@ -277,13 +277,13 @@ def run_suite(data_dir, rules_file):
     """
     if not os.path.isdir(data_dir):
         LOG.error("No data directory found at %s", data_dir)
-        return 0
+        return 1
 
     test_dirs = sorted(
         entry.path for entry in os.scandir(data_dir) if entry.is_dir())
     if not test_dirs:
         LOG.error("No test cases found in %s", data_dir)
-        return 0
+        return 1
 
     passed = 0
     failed = []

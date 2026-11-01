@@ -265,12 +265,12 @@ class RunSuiteTestCase(BaseTesterTestCase):
                               os.path.join(self.temp_dir, 'nope'),
                               self.rules_file)
 
-        self.assertEqual(0, rc)
+        self.assertEqual(1, rc)
         self.assertIn('No data directory found', output)
 
     def test_no_test_cases(self):
         rc, output = _capture(tester.run_suite, self.temp_dir,
                               self.rules_file)
 
-        self.assertEqual(0, rc)
+        self.assertEqual(1, rc)
         self.assertIn('No test cases found', output)
