@@ -18,9 +18,10 @@ from ironic.tests.base import TestCase
 
 class CommonConfigTestCase(TestCase):
     def test_validate_opts_using_custom_ironic_config_types(self):
-        # Should run without throwing an exception, since defaults for these
-        # options should validate.
+        # Validate both the defaults and a configured network value.
         self.assertFalse(CONF.conductor.disable_kernel_parameter_parsing)
+        self.config(group='ironic_networking',
+                    servicing_network='access/native_vlan=100')
         self.assertIsNone(
             config.validate_opts_using_custom_ironic_config_types())
 

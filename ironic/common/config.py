@@ -90,7 +90,16 @@ def validate_opts_using_custom_ironic_config_types():
         ('ansible', 'playbooks_path_allowlist'),
         ('conductor', 'file_url_allowed_paths'),
     ]
-    custom_opts = kernel_param_opts + explicit_abs_path_opts
+    # Options using SwitchPortConfigString
+    networking_opts = [
+        ('ironic_networking', 'cleaning_network'),
+        ('ironic_networking', 'rescuing_network'),
+        ('ironic_networking', 'provisioning_network'),
+        ('ironic_networking', 'servicing_network'),
+        ('ironic_networking', 'inspection_network'),
+        ('ironic_networking', 'idle_network'),
+    ]
+    custom_opts = kernel_param_opts + explicit_abs_path_opts + networking_opts
 
     for opt_tuple in custom_opts:
         group_name, opt_name = opt_tuple

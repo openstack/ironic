@@ -11,6 +11,7 @@
 #    under the License.
 
 from ironic.conf import CONF
+from ironic.conf import ironic_networking as networking_conf
 from ironic.conf import types
 from ironic.tests.base import TestCase
 
@@ -100,3 +101,52 @@ class KernelParameterStringTestCase(TestCase):
         CONF.set_override('disable_kernel_parameter_parsing',
                           True, group='conductor')
         self.assertIsInstance(self.kps("qu\niet"), str)
+
+
+@ddt
+class SwitchPortConfigStringTestCase(TestCase):
+    def setUp(self):
+        super(SwitchPortConfigStringTestCase, self).setUp()
+        self.switchport_config = types.SwitchPortConfigString()
+
+    def test_type_name(self):
+        self.assertEqual(self.switchport_config.type_name,
+                         types.SwitchPortConfigString.TYPE_NAME)
+
+    @data(
+        '',
+        'access/native_vlan=100',
+        'trunk/native_vlan=100/allowed_vlans=100,200/mtu=9000',
+        'hybrid/native_vlan=100/allowed_vlans=100-102',
+    )
+    def test_valid_config(self, value):
+        self.assertEqual(value, self.switchport_config(value))
+
+    @data(
+        'bogus/native_vlan=100',
+        'access/native_vlan=not-a-vlan',
+        'access/native_vlan=100/mtu=not-an-mtu',
+    )
+    def test_invalid_config(self, value):
+        self.assertRaises(ValueError, self.switchport_config, value)
+
+    def test_network_options_use_custom_type(self):
+        network_options = {
+            'cleaning_network',
+            'rescuing_network',
+            'provisioning_network',
+            'servicing_network',
+            'inspection_network',
+            'idle_network',
+        }
+        typed_options = set()
+        for option in networking_conf.opts:
+            if isinstance(option.type, types.SwitchPortConfigString):
+                typed_options.add(option.name)
+        self.assertEqual(network_options, typed_options)
+
+    def test_invalid_config_override_is_rejected(self):
+        self.assertRaisesRegex(
+            ValueError, 'Invalid configured network value',
+            CONF.set_override, 'servicing_network',
+            'access/native_vlan=100/mtu=0', group='ironic_networking')

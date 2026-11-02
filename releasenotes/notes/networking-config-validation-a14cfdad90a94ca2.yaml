@@ -1,0 +1,7 @@
+---
+features:
+  - |
+    Global networking options for cleaning, rescuing, provisioning, servicing,
+    inspection, and idle networks are validated when Ironic loads its
+    configuration. Invalid values now cause startup to fail with a parsing
+    error instead of waiting until a node operation uses the value.
