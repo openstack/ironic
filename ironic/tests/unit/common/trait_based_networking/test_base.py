@@ -18,10 +18,38 @@ from ironic.tests import base
 import ironic.tests.unit.common.trait_based_networking.utils as tbn_test_utils
 from ironic.tests.unit.objects import utils as obj_utils
 
+from ddt import ddt
+from ddt import named_data
+from ddt import unpack
+
 import itertools
 
 
+def _named(enum_cls):
+    return named_data(*((m.name, m) for m in enum_cls))
+
+@ddt
 class TraitBasedNetworkingBaseTestCase(base.TestCase):
+    @_named(tbn.Variables)
+    @unpack
+    def test_all_variables_parse(self, variable):
+        expr = tbn.FilterExpression.parse(f"{variable.value} == 'test'")
+        self.assertEqual(expr._expression._variable, variable)
+
+    @_named(tbn.Comparator)
+    @unpack
+    def test_all_comparators_parse(self, comparator):
+        expr = tbn.FilterExpression.parse(
+            f"port.address {comparator.value} 'test'")
+        self.assertEqual(expr._expression._comparator, comparator)
+
+    @_named(tbn.Operator)
+    @unpack
+    def test_all_operators_parse(self, operator):
+        expr = tbn.FilterExpression.parse(
+            f"port.address == 'test' {operator.value} port.is_port")
+        self.assertEqual(expr._expression._operator, operator)
+
     def test_filter_expression_str_representation(self):
         exp = tbn.SingleExpression(
             tbn.Variables.PORT_ADDRESS, tbn.Comparator.EQUALITY, "test"
