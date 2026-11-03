@@ -64,7 +64,8 @@ opts = [
             type=ir_types.SwitchPortConfigString(),
             help=_('The network to use for cleaning nodes. '
                    'This should be expressed as '
-                   '{access|trunk}/native_vlan=VLAN_ID[/mtu=MTU]. '
+                   '{access|trunk|hybrid}/native_vlan=VLAN_ID'
+                   '[/allowed_vlans=V1,V2,Vn-Vm,...][/mtu=MTU]. '
                    'Can be overridden on a per-node basis using the '
                    'driver_info attribute and specifying this as '
                    '`cleaning_network`')),
@@ -73,7 +74,8 @@ opts = [
             type=ir_types.SwitchPortConfigString(),
             help=_('The network to use for rescuing nodes. '
                    'This should be expressed as '
-                   '{access|trunk}/native_vlan=VLAN_ID[/mtu=MTU]. '
+                   '{access|trunk|hybrid}/native_vlan=VLAN_ID'
+                   '[/allowed_vlans=V1,V2,Vn-Vm,...][/mtu=MTU]. '
                    'Can be overridden on a per-node basis using the '
                    'driver_info attribute and specifying this as '
                    '`rescuing_network`')),
@@ -82,7 +84,8 @@ opts = [
             type=ir_types.SwitchPortConfigString(),
             help=_('The network to use for provisioning nodes. '
                    'This should be expressed as '
-                   '{access|trunk}/native_vlan=VLAN_ID[/mtu=MTU]. '
+                   '{access|trunk|hybrid}/native_vlan=VLAN_ID'
+                   '[/allowed_vlans=V1,V2,Vn-Vm,...][/mtu=MTU]. '
                    'Can be overridden on a per-node basis using the '
                    'driver_info attribute and specifying this as '
                    '`provisioning_network`')),
@@ -91,7 +94,8 @@ opts = [
             type=ir_types.SwitchPortConfigString(),
             help=_('The network to use for servicing nodes. '
                    'This should be expressed as '
-                   '{access|trunk}/native_vlan=VLAN_ID[/mtu=MTU]. '
+                   '{access|trunk|hybrid}/native_vlan=VLAN_ID'
+                   '[/allowed_vlans=V1,V2,Vn-Vm,...][/mtu=MTU]. '
                    'Can be overridden on a per-node basis using the '
                    'driver_info attribute and specifying this as '
                    '`servicing_network`')),
@@ -100,7 +104,8 @@ opts = [
             type=ir_types.SwitchPortConfigString(),
             help=_('The network to use for inspecting nodes. '
                    'This should be expressed as '
-                   '{access|trunk}/native_vlan=VLAN_ID[/mtu=MTU]. '
+                   '{access|trunk|hybrid}/native_vlan=VLAN_ID'
+                   '[/allowed_vlans=V1,V2,Vn-Vm,...][/mtu=MTU]. '
                    'Can be overridden on a per-node basis using the '
                    'driver_info attribute and specifying this as '
                    '`inspection_network`')),
@@ -112,7 +117,8 @@ opts = [
                    'this network whenever any of the other networks are '
                    'removed/unconfigured. '
                    'This should be expressed as '
-                   '{access|trunk}/native_vlan=VLAN_ID[/mtu=MTU]. '
+                   '{access|trunk|hybrid}/native_vlan=VLAN_ID'
+                   '[/allowed_vlans=V1,V2,Vn-Vm,...][/mtu=MTU]. '
                    'Can be overridden on a per-node basis using the '
                    'driver_info attribute and specifying this as '
                    '`idle_network`'))

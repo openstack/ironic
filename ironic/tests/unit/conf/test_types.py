@@ -115,6 +115,8 @@ class SwitchPortConfigStringTestCase(TestCase):
 
     @data(
         '',
+        'access/native_vlan=1',
+        'access/native_vlan=4094',
         'access/native_vlan=100',
         'trunk/native_vlan=100/allowed_vlans=100,200/mtu=9000',
         'hybrid/native_vlan=100/allowed_vlans=100-102',
@@ -125,7 +127,16 @@ class SwitchPortConfigStringTestCase(TestCase):
     @data(
         'bogus/native_vlan=100',
         'access/native_vlan=not-a-vlan',
+        'access/native_vlan=-1',
+        'access/native_vlan=0',
+        'access/native_vlan=4095',
         'access/native_vlan=100/mtu=not-an-mtu',
+        'access/native_vlan=100/unknown=42',
+        'access/native_vlan=100/unknown=',
+        'access/native_vlan=100/unknown=42/unknown=43',
+        'access/native_vlan=100/native_vlan=200',
+        'access/mtu=9000',
+        'trunk/native_vlan=10/allowed_vlans=10,,20',
     )
     def test_invalid_config(self, value):
         self.assertRaises(ValueError, self.switchport_config, value)
@@ -145,8 +156,14 @@ class SwitchPortConfigStringTestCase(TestCase):
                 typed_options.add(option.name)
         self.assertEqual(network_options, typed_options)
 
-    def test_invalid_config_override_is_rejected(self):
+    @data(
+        'access/native_vlan=100/mtu=0',
+        'access/native_vlan=-1',
+        'access/native_vlan=0',
+        'access/native_vlan=4095',
+    )
+    def test_invalid_config_override_is_rejected(self, value):
         self.assertRaisesRegex(
             ValueError, 'Invalid configured network value',
             CONF.set_override, 'servicing_network',
-            'access/native_vlan=100/mtu=0', group='ironic_networking')
+            value, group='ironic_networking')

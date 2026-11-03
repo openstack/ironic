@@ -76,6 +76,18 @@ class SwitchPortConfig:
                         f"expected key=value, got '{part}'")
                 key = key.strip()
                 val = val.strip()
+                if key not in ('native_vlan', 'allowed_vlans', 'mtu'):
+                    raise ValueError(f"unknown key '{key}'")
+                if not val:
+                    raise ValueError(f"value for '{key}' is empty")
+                if key == 'native_vlan' and native_vlan is not None:
+                    raise ValueError(
+                        "'native_vlan' may only be specified once")
+                if key == 'allowed_vlans' and allowed_vlans is not None:
+                    raise ValueError(
+                        "'allowed_vlans' may only be specified once")
+                if key == 'mtu' and mtu is not None:
+                    raise ValueError("'mtu' may only be specified once")
                 if key == 'native_vlan':
                     native_vlan = int(val)
                 elif key == 'allowed_vlans':
@@ -83,6 +95,10 @@ class SwitchPortConfig:
                         val)
                 elif key == 'mtu':
                     mtu = int(val)
+            if native_vlan is None:
+                raise ValueError("'native_vlan' is required")
+            if not 1 <= native_vlan <= 4094:
+                raise ValueError("native_vlan must be between 1 and 4094")
             net_utils.validate_mtu(mtu)
         except (ValueError, IndexError) as e:
             raise exception.InvalidParameterValue(
@@ -108,6 +124,8 @@ class SwitchPortConfig:
         :raises: InvalidParameterValue if any element is not a valid
             VLAN ID or range.
         """
+        if any(not item.strip() for item in val.split(',')):
+            raise ValueError("allowed_vlans must not contain empty values")
         vlan_set = net_utils.parse_vlan_ranges(val)
         return sorted(vlan_set)
 

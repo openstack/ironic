@@ -278,7 +278,7 @@ class NetworkingManager(object):
         :param switch_id: Identifier of the network switch.
         :param port_name: Name of the port to update.
         :param description: Description for the port.
-        :param mode: Port mode (e.g., 'access', 'trunk').
+        :param mode: Port mode (e.g., 'access', 'trunk', or 'hybrid').
         :param native_vlan: VLAN ID to be removed from the port.
         :param allowed_vlans: Allowed VLAN IDs to be removed (optional).
         :param default_vlan: VLAN ID to restore onto the port (optional).
@@ -353,7 +353,7 @@ class NetworkingManager(object):
         :param switch_id: Identifier of the network switch.
         :param port_name: Name of the port to update.
         :param description: Description for the port.
-        :param mode: Port mode (e.g., 'access', 'trunk').
+        :param mode: Port mode (e.g., 'access', 'trunk', or 'hybrid').
         :param native_vlan: VLAN ID to be removed from the port.
         :param allowed_vlans: Allowed VLAN IDs to be removed (optional).
         :param default_vlan: VLAN ID to restore onto the port (optional).
@@ -370,7 +370,7 @@ class NetworkingManager(object):
         )
 
         # Validate mode
-        valid_modes = ["access", "trunk"]
+        valid_modes = ["access", "trunk", "hybrid"]
         if mode not in valid_modes:
             raise exception.InvalidParameterValue(
                 _("mode must be one of: %s") % ", ".join(valid_modes)
@@ -576,7 +576,7 @@ class NetworkingManager(object):
         :param switch_ids: List of switch identifiers.
         :param lag_name: Name of the LAG to update.
         :param description: Description for the LAG.
-        :param mode: LAG mode (e.g., 'access', 'trunk').
+        :param mode: LAG mode (e.g., 'access', 'trunk', or 'hybrid').
         :param native_vlan: VLAN ID to be removed from the port.
         :param aggregation_mode: Aggregation mode (e.g., 'lacp', 'static').
         :param allowed_vlans: Allowed VLAN IDs to be removed (optional).

@@ -1,0 +1,13 @@
+---
+upgrade:
+  - |
+    Switch-port network configuration strings now reject unknown keys,
+    duplicate keys, empty values, missing ``native_vlan`` values,
+    ``native_vlan`` IDs outside 1-4094, and empty elements in ``allowed_vlans``
+    lists.
+
+    Before upgrading, check the ``cleaning_network``, ``rescuing_network``,
+    ``provisioning_network``, ``servicing_network``, ``inspection_network``, and
+    ``idle_network`` options in ``[ironic_networking]``, along with corresponding
+    per-node ``driver_info`` overrides. Invalid global values can prevent
+    startup, while invalid node overrides can cause node operations to fail.

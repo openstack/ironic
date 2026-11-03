@@ -31,6 +31,32 @@ class TestSwitchPortConfigFromString(test_base.TestCase):
         self.assertEqual(200, config.native_vlan)
         self.assertIsNone(config.allowed_vlans)
 
+    def test_native_vlan_at_minimum(self):
+        config = SwitchPortConfig.from_string('access/native_vlan=1')
+        self.assertEqual(1, config.native_vlan)
+
+    def test_native_vlan_at_maximum(self):
+        config = SwitchPortConfig.from_string('access/native_vlan=4094')
+        self.assertEqual(4094, config.native_vlan)
+
+    def test_native_vlan_below_minimum(self):
+        self.assertRaisesRegex(
+            exception.InvalidParameterValue,
+            'native_vlan must be between 1 and 4094',
+            SwitchPortConfig.from_string, 'access/native_vlan=0')
+
+    def test_native_vlan_negative(self):
+        self.assertRaisesRegex(
+            exception.InvalidParameterValue,
+            'native_vlan must be between 1 and 4094',
+            SwitchPortConfig.from_string, 'access/native_vlan=-1')
+
+    def test_native_vlan_above_maximum(self):
+        self.assertRaisesRegex(
+            exception.InvalidParameterValue,
+            'native_vlan must be between 1 and 4094',
+            SwitchPortConfig.from_string, 'access/native_vlan=4095')
+
     def test_hybrid_with_native_vlan(self):
         config = SwitchPortConfig.from_string('hybrid/native_vlan=300')
         self.assertEqual('hybrid', config.mode)
@@ -142,12 +168,47 @@ class TestSwitchPortConfigFromString(test_base.TestCase):
             SwitchPortConfig.from_string,
             'bogus/native_vlan=10')
 
-    def test_unknown_key_ignored(self):
-        config = SwitchPortConfig.from_string(
+    def test_unknown_key_raises(self):
+        self.assertRaisesRegex(
+            exception.InvalidParameterValue, "unknown key 'unknown'",
+            SwitchPortConfig.from_string,
             'trunk/native_vlan=10/unknown=42/allowed_vlans=10,20')
-        self.assertEqual('trunk', config.mode)
-        self.assertEqual(10, config.native_vlan)
-        self.assertEqual([10, 20], config.allowed_vlans)
+
+    def test_empty_unknown_value_raises(self):
+        self.assertRaisesRegex(
+            exception.InvalidParameterValue, "unknown key 'unknown'",
+            SwitchPortConfig.from_string,
+            'access/native_vlan=10/unknown=')
+
+    def test_duplicate_unknown_key_raises(self):
+        self.assertRaisesRegex(
+            exception.InvalidParameterValue, "unknown key 'unknown'",
+            SwitchPortConfig.from_string,
+            'access/native_vlan=10/unknown=42/unknown=43')
+
+    def test_duplicate_key_raises(self):
+        self.assertRaises(
+            exception.InvalidParameterValue,
+            SwitchPortConfig.from_string,
+            'access/native_vlan=10/native_vlan=20')
+
+    def test_empty_value_raises(self):
+        self.assertRaises(
+            exception.InvalidParameterValue,
+            SwitchPortConfig.from_string,
+            'access/native_vlan=')
+
+    def test_empty_allowed_vlan_raises(self):
+        self.assertRaises(
+            exception.InvalidParameterValue,
+            SwitchPortConfig.from_string,
+            'trunk/native_vlan=10/allowed_vlans=10,,20')
+
+    def test_missing_native_vlan_raises(self):
+        self.assertRaises(
+            exception.InvalidParameterValue,
+            SwitchPortConfig.from_string,
+            'access/mtu=9000')
 
     def test_invalid_missing_equals(self):
         self.assertRaises(
