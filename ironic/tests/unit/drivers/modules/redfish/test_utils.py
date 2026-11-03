@@ -15,13 +15,11 @@
 
 import collections
 import copy
-import datetime
 import os
 import time
 from unittest import mock
 
 from oslo_config import cfg
-from oslo_utils import timeutils
 import requests
 import sushy
 
@@ -890,6 +888,19 @@ class GetBootProgressTargetsTestCase(db_base.DbTestCase):
                        sushy.BootProgressStates.OS_RUNNING}),
             redfish_utils.BOOT_PROGRESS_POST_COMPLETE)
 
+    def test_reset_states(self):
+        self.assertEqual(
+            frozenset({sushy.BootProgressStates.NONE,
+                       sushy.BootProgressStates.PRIMARY_PROCESSOR,
+                       sushy.BootProgressStates.BUS,
+                       sushy.BootProgressStates.MEMORY,
+                       sushy.BootProgressStates.SECONDARY_PROCESSOR,
+                       sushy.BootProgressStates.PCI_RESOURCE_CONFIG,
+                       sushy.BootProgressStates.SETUP}),
+            redfish_utils.BOOT_PROGRESS_RESET_STATES)
+        self.assertNotIn(sushy.BootProgressStates.OEM,
+                         redfish_utils.BOOT_PROGRESS_RESET_STATES)
+
 
 class CheckBootProgressTestCase(db_base.DbTestCase):
 
@@ -948,70 +959,16 @@ class CheckBootProgressTestCase(db_base.DbTestCase):
         self.assertEqual(redfish_utils.BootProgressStatus.WAITING, status)
         self.assertEqual(sushy.BootProgressStates.OEM, last_state)
 
-    @mock.patch.object(timeutils, 'utcnow', autospec=True)
-    def test_target_state_before_check_delay_not_observed(self,
-                                                          mock_utcnow):
-        reboot_time = '2026-01-01T00:00:00'
-        mock_utcnow.return_value = datetime.datetime(
-            2026, 1, 1, 0, 0, 10, tzinfo=datetime.timezone.utc)
+    def test_target_state(self):
         system = mock.Mock()
         system.boot_progress.last_state = (
             sushy.BootProgressStates.OS_RUNNING)
 
         status, last_state = redfish_utils.check_boot_progress(
-            self.node, system, self.target_states,
-            reboot_time=reboot_time, check_delay=60,
-            new_boot_observed=False)
-
-        self.assertEqual(redfish_utils.BootProgressStatus.WAITING, status)
-        self.assertEqual(sushy.BootProgressStates.OS_RUNNING, last_state)
-
-    @mock.patch.object(timeutils, 'utcnow', autospec=True)
-    def test_target_state_after_check_delay(self, mock_utcnow):
-        reboot_time = '2026-01-01T00:00:00'
-        mock_utcnow.return_value = datetime.datetime(
-            2026, 1, 1, 0, 1, 30, tzinfo=datetime.timezone.utc)
-        system = mock.Mock()
-        system.boot_progress.last_state = (
-            sushy.BootProgressStates.OS_RUNNING)
-
-        status, last_state = redfish_utils.check_boot_progress(
-            self.node, system, self.target_states,
-            reboot_time=reboot_time, check_delay=60,
-            new_boot_observed=False)
+            self.node, system, self.target_states)
 
         self.assertEqual(redfish_utils.BootProgressStatus.PASSED, status)
         self.assertEqual(sushy.BootProgressStates.OS_RUNNING, last_state)
-
-    def test_target_state_no_reboot_time_ignores_check_delay(self):
-        system = mock.Mock()
-        system.boot_progress.last_state = (
-            sushy.BootProgressStates.OS_RUNNING)
-
-        status, last_state = redfish_utils.check_boot_progress(
-            self.node, system, self.target_states,
-            reboot_time=None, check_delay=600, new_boot_observed=False)
-
-        self.assertEqual(redfish_utils.BootProgressStatus.PASSED, status)
-        self.assertEqual(
-            sushy.BootProgressStates.OS_RUNNING, last_state)
-
-    @mock.patch.object(timeutils, 'utcnow', autospec=True)
-    def test_non_target_state_before_check_delay(
-            self, mock_utcnow):
-        reboot_time = '2026-01-01T00:00:00'
-        mock_utcnow.return_value = datetime.datetime(
-            2026, 1, 1, 0, 0, 5, tzinfo=datetime.timezone.utc)
-        system = mock.Mock()
-        system.boot_progress.last_state = (
-            sushy.BootProgressStates.PRIMARY_PROCESSOR)
-
-        status, last_state = redfish_utils.check_boot_progress(
-            self.node, system, self.target_states,
-            reboot_time=reboot_time, check_delay=600,
-            new_boot_observed=False)
-
-        self.assertEqual(redfish_utils.BootProgressStatus.WAITING, status)
 
     def test_os_boot_started_not_a_service_target(self):
         system = mock.Mock()
@@ -1038,47 +995,28 @@ class CheckBootProgressTestCase(db_base.DbTestCase):
             sushy.BootProgressStates.OS_BOOT_STARTED, last_state)
 
 
-    @mock.patch.object(timeutils, 'utcnow', autospec=True)
-    def test_target_state_before_check_delay_new_boot_observed(
-            self, mock_utcnow):
-        mock_utcnow.return_value = datetime.datetime(
-            2026, 1, 1, 0, 0, 10, tzinfo=datetime.timezone.utc)
-        system = mock.Mock()
-        system.boot_progress.last_state = sushy.BootProgressStates.OS_RUNNING
-
-        status, last_state = redfish_utils.check_boot_progress(
-            self.node, system, self.target_states,
-            reboot_time='2026-01-01T00:00:00', check_delay=60,
-            new_boot_observed=True)
-
-        self.assertEqual(redfish_utils.BootProgressStatus.PASSED, status)
-        self.assertEqual(sushy.BootProgressStates.OS_RUNNING, last_state)
-
-
 class GetBootObservationTestCase(db_base.DbTestCase):
 
-    def _system(self, boot_progress=True, json=None):
+    def _system(self, boot_progress=True):
         system = mock.Mock(spec=['boot_progress', 'json'])
         if boot_progress:
             system.boot_progress.last_state = (
                 sushy.BootProgressStates.OS_RUNNING)
         else:
             system.boot_progress = None
-        system.json = json if json is not None else {
-            'LastResetTime': '2026-10-01T11:55:00+00:00'}
+        system.json = {'LastResetTime': '2026-10-01T11:55:00+00:00'}
         return system
 
-    def test_all_markers(self):
+    def test_state(self):
         self.assertEqual(
-            {'state': 'OSRunning',
-             'reset_time': '2026-10-01T11:55:00+00:00'},
+            {'state': 'OSRunning'},
             redfish_utils.get_boot_observation(self._system()))
 
-    def test_no_markers(self):
+    def test_no_boot_progress(self):
         self.assertEqual(
-            {'state': None, 'reset_time': None},
+            {'state': None},
             redfish_utils.get_boot_observation(
-                self._system(boot_progress=False, json={})))
+                self._system(boot_progress=False)))
 
     def test_boot_progress_without_state(self):
         system = self._system()
@@ -1091,41 +1029,48 @@ class GetBootObservationTestCase(db_base.DbTestCase):
 
 class BootChangedSinceTestCase(db_base.DbTestCase):
 
-    BEFORE = {'state': 'OSRunning',
-              'reset_time': '2026-10-01T11:55:00+00:00'}
-
-    def _current(self, **changes):
-        current = dict(self.BEFORE)
-        current.update(changes)
-        return current
+    BEFORE = {'state': 'OSRunning'}
 
     def test_unchanged(self):
         self.assertFalse(redfish_utils.boot_changed_since(
-            self.BEFORE, self._current()))
+            self.BEFORE, {'state': 'OSRunning'}))
 
-    def test_state_changed_to_post_state(self):
-        for state in ('MemoryInitializationStarted', 'OEM', 'None'):
+    def test_changed_to_reset_state(self):
+        for state in redfish_utils.BOOT_PROGRESS_RESET_STATES:
             with self.subTest(state=state):
                 self.assertTrue(redfish_utils.boot_changed_since(
-                    self.BEFORE, self._current(state=state)))
+                    self.BEFORE, {'state': state.value}))
 
-    def test_forward_state_change_is_not_reset_evidence(self):
-        before = dict(self.BEFORE, state='OSBootStarted')
+    def test_changed_to_oem_is_not_reset_evidence(self):
+        # Dell iDRAC reports OEM after POST when no boot device is found.
         self.assertFalse(redfish_utils.boot_changed_since(
-            before, self._current(state='OSRunning')))
+            self.BEFORE, {'state': 'OEM'}))
 
-    def test_reset_time_changed(self):
+    def test_changed_to_post_complete_is_not_reset_evidence(self):
+        before = {'state': 'OSBootStarted'}
+        for state in ('SystemHardwareInitializationComplete', 'OSRunning'):
+            with self.subTest(state=state):
+                self.assertFalse(redfish_utils.boot_changed_since(
+                    before, {'state': state}))
+
+    def test_same_reset_state_as_before_proves_nothing(self):
+        # A node powered off before the reboot already reported None.
+        self.assertFalse(redfish_utils.boot_changed_since(
+            {'state': 'None'}, {'state': 'None'}))
         self.assertTrue(redfish_utils.boot_changed_since(
-            self.BEFORE,
-            self._current(reset_time='2026-10-01T12:05:00+00:00')))
+            {'state': 'None'}, {'state': 'MemoryInitializationStarted'}))
 
-    def test_marker_missing_from_one_reading_proves_nothing(self):
+    def test_last_reset_time_is_ignored(self):
         self.assertFalse(redfish_utils.boot_changed_since(
-            {'state': None, 'reset_time': None},
-            self._current(state='SetupEntered')))
+            {'state': 'OSRunning', 'reset_time': '2026-10-01T11:55:00'},
+            {'state': 'OSRunning', 'reset_time': '2026-10-01T11:55:04'}))
+
+    def test_state_missing_from_one_reading_proves_nothing(self):
         self.assertFalse(redfish_utils.boot_changed_since(
-            self.BEFORE, {'state': None, 'reset_time': None}))
+            {'state': None}, {'state': 'SetupEntered'}))
+        self.assertFalse(redfish_utils.boot_changed_since(
+            self.BEFORE, {'state': None}))
 
     def test_no_before(self):
         self.assertFalse(redfish_utils.boot_changed_since(
-            None, self._current(state='SetupEntered')))
+            None, {'state': 'SetupEntered'}))
