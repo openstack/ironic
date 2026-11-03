@@ -3885,6 +3885,69 @@ function upload_dib_image_if_needed {
     fi
 }
 
+# Download and upload an optional partition image fixture. Set
+# IRONIC_PARTITIONED_IMAGE_URL, IRONIC_PARTITIONED_IMAGE_KERNEL_URL, and
+# IRONIC_PARTITIONED_IMAGE_INITRD_URL to opt in. Each URL must have a matching
+# SHA256 file at the URL with ".sha256" appended.
+function upload_partitioned_image_if_needed {
+    if [[ -z "${IRONIC_PARTITIONED_IMAGE_URL:-}" ]]; then
+        return 0
+    fi
+
+    if ! is_service_enabled glance; then
+        die $LINENO "Glance is required to upload the partition image fixture"
+    fi
+
+    if [[ -z "${IRONIC_PARTITIONED_IMAGE_KERNEL_URL:-}" || \
+          -z "${IRONIC_PARTITIONED_IMAGE_INITRD_URL:-}" ]]; then
+        die $LINENO "Set IRONIC_PARTITIONED_IMAGE_KERNEL_URL and IRONIC_PARTITIONED_IMAGE_INITRD_URL with IRONIC_PARTITIONED_IMAGE_URL"
+    fi
+
+    local image_file kernel_file initrd_file
+    local image_url kernel_url initrd_url file url
+    image_url=$IRONIC_PARTITIONED_IMAGE_URL
+    kernel_url=$IRONIC_PARTITIONED_IMAGE_KERNEL_URL
+    initrd_url=$IRONIC_PARTITIONED_IMAGE_INITRD_URL
+    image_file="$FILES/$(basename "$image_url")"
+    kernel_file="$FILES/$(basename "$kernel_url")"
+    initrd_file="$FILES/$(basename "$initrd_url")"
+
+    for url in "$image_url" "$kernel_url" "$initrd_url"; do
+        file="$FILES/$(basename "$url")"
+        download_with_retry "$url" "$file" || \
+            die $LINENO "Failed to download partition image artifact $url"
+        download_with_retry "${url}.sha256" "${file}.sha256" || \
+            die $LINENO "Failed to download checksum for partition image artifact $url"
+        (cd "$FILES" && sha256sum --check "$(basename "$file").sha256") || \
+            die $LINENO "Checksum validation failed for partition image artifact $url"
+    done
+
+    echo_summary "Uploading partition image fixture to Glance"
+
+    local kernel_id initrd_id
+    kernel_id=$(openstack --os-cloud devstack-admin image create \
+        "${IRONIC_PARTITIONED_IMAGE_NAME}-kernel" \
+        --public --disk-format aki --container-format aki \
+        --file "$kernel_file" -f value -c id)
+    die_if_not_set $LINENO kernel_id "Failed to upload partition image kernel"
+
+    initrd_id=$(openstack --os-cloud devstack-admin image create \
+        "${IRONIC_PARTITIONED_IMAGE_NAME}-initrd" \
+        --public --disk-format ari --container-format ari \
+        --file "$initrd_file" -f value -c id)
+    die_if_not_set $LINENO initrd_id "Failed to upload partition image initrd"
+
+    local image_id
+    image_id=$(openstack --os-cloud devstack-admin image create \
+        "$IRONIC_PARTITIONED_IMAGE_NAME" \
+        --public --disk-format qcow2 --container-format bare \
+        --property img_type=partition \
+        --property kernel_id="$kernel_id" \
+        --property ramdisk_id="$initrd_id" \
+        --file "$image_file" -f value -c id)
+    die_if_not_set $LINENO image_id "Failed to upload partition image root image"
+}
+
 # download EFI boot loader image and upload it to glance
 # this function sets ``IRONIC_EFIBOOT_ID``
 function upload_baremetal_ironic_efiboot {
