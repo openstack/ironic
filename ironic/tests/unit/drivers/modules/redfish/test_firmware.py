@@ -3549,11 +3549,16 @@ class RedfishFirmwareVerifyTestCase(db_base.DbTestCase):
     @mock.patch.object(redfish_fw.RedfishFirmware, '_continue_updates',
                        autospec=True)
     @mock.patch.object(redfish_utils, 'get_task_monitor', autospec=True)
-    def test_no_boot_progress_not_checked(self, tm_mock, continue_mock,
-                                          get_system_mock):
+    def test_no_boot_progress_waits(self, tm_mock, continue_mock,
+                                    get_system_mock):
         get_system_mock.return_value = self._system()
         tm_mock.return_value = self._task_monitor()
-        self._poll(self._verify(before={'state': None}))
+        verify = self._verify(seconds_ago=599, before={'state': None})
+        self._poll(verify)
+        continue_mock.assert_not_called()
+        self.assertEqual('the node reports no BootProgress', self.waiting)
+
+        self._poll(self._verify(seconds_ago=601, before={'state': None}))
         continue_mock.assert_called_once()
 
     @mock.patch.object(redfish_fw.RedfishFirmware, '_continue_updates',
@@ -3775,16 +3780,16 @@ class RedfishFirmwareVerifyTestCase(db_base.DbTestCase):
                                                 log_mock, get_system_mock):
         get_system_mock.return_value = self._system()
         tm_mock.side_effect = exception.RedfishResourceNotFound(error='gone')
-        verify = self._verify(before={'state': None})
+        verify = self._verify(seconds_ago=601, before={'state': None})
         self._poll(verify)
         continue_mock.assert_called_once()
         messages = [c[0][0] % c[0][1]
                     for c in log_mock.warning.call_args_list]
         self.assertTrue(any('task is gone' in m for m in messages))
         self.assertIn('Node %s reports no BootProgress, so its boot after '
-                      'the reboot to apply firmware cannot be confirmed. '
-                      'Continuing the firmware update step without boot '
-                      'confirmation.'
+                      'the reboot to apply firmware cannot be confirmed '
+                      'within 600 seconds. Continuing the firmware update '
+                      'step without boot confirmation.'
                       % self.node.uuid, messages)
 
     @mock.patch.object(redfish_fw.RedfishFirmware, '_continue_updates',
@@ -3796,7 +3801,7 @@ class RedfishFirmwareVerifyTestCase(db_base.DbTestCase):
         tm_mock.return_value.get_task.side_effect = (
             sushy.exceptions.ResourceNotFoundError(
                 'GET', '/redfish/v1/TaskService/Tasks/JID_123', mock.Mock()))
-        self._poll(self._verify(before={'state': None}))
+        self._poll(self._verify(seconds_ago=601, before={'state': None}))
         continue_mock.assert_called_once()
 
     @mock.patch.object(redfish_fw.RedfishFirmware, '_continue_updates',

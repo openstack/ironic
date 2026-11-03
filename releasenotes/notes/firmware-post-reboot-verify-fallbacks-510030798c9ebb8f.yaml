@@ -1,0 +1,8 @@
+---
+fixes:
+  - |
+    The verification of Redfish firmware updates after a reboot no longer
+    skips nodes whose BMC reports no ``BootProgress``. Ironic now holds
+    them for ``[redfish]firmware_update_post_reboot_wait`` after the reboot, as
+    nothing else shows when firmware flashed during POST has been
+    applied. Set it above the longest POST expected in the deployment.
