@@ -259,7 +259,10 @@ class RedfishInspectTestCase(db_base.DbTestCase):
                                 'name': 'NIC.Integrated.1-1',
                                 'speed_mbps': 25000,
                                 'vendor': '0x14e4',
-                                'product': '0x16d7'},
+                                'device': '0x16d7',
+                                'product': '0x16d7',
+                                'subsystem': '0x1402',
+                                'subsystem_vendor': '0x14e4'},
                                {'mac_address': '66:77:88:99:aa:bb',
                                 'name': 'NIC.Integrated.2-1',
                                 'speed_mbps': 25000}]
@@ -951,12 +954,16 @@ class RedfishInspectTestCase(db_base.DbTestCase):
         nic1 = next(i for i in interfaces
                     if i['name'] == 'NIC.Integrated.1-1')
         self.assertEqual('0x8086', nic1['vendor'])
+        self.assertEqual('0x1593', nic1['device'])
         self.assertEqual('0x1593', nic1['product'])
+        self.assertEqual('0x000a', nic1['subsystem'])
+        self.assertEqual('0x8086', nic1['subsystem_vendor'])
         self.assertEqual('0000:c1:00.0', nic1['pci_address'])
 
         nic2 = next(i for i in interfaces
                     if i['name'] == 'NIC.Integrated.2-1')
         self.assertNotIn('vendor', nic2)
+        self.assertNotIn('device', nic2)
         self.assertNotIn('product', nic2)
         self.assertNotIn('pci_address', nic2)
 

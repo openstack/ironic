@@ -1,0 +1,11 @@
+---
+features:
+  - |
+    Redfish inspection now discovers ``subsystem`` and ``subsystem_vendor``
+    for network interfaces.
+deprecations:
+  - |
+    When using Redfish inspection, the new ``device`` field should be used
+    instead of ``product`` for network interfaces. The ``product`` field
+    remains available for compatibility with IPA, but will eventually be
+    removed.
