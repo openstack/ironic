@@ -15,6 +15,7 @@
 #    under the License.
 
 import os
+import typing
 
 from oslo_config import cfg
 from oslo_config import types as cfg_types
@@ -207,7 +208,7 @@ opts = [
                        'Neutron will prevent incorrect PXE boot.')),
     cfg.Opt('loader_file_paths',
             type=cfg_types.Dict(cfg_types.String(quotes=True)),
-            default={},
+            default=typing.cast(dict[str, str], {}),
             help=_('Dictionary describing the bootloaders to load into '
                    'conductor PXE/iPXE boot folders values from the host '
                    'operating system. Formatted as key of destination '

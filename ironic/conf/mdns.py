@@ -11,6 +11,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import typing
+
 from oslo_config import cfg
 from oslo_config import types as cfg_types
 
@@ -29,7 +31,7 @@ opts = [
     cfg.Opt('params',
             # This is required for values that contain commas.
             type=cfg_types.Dict(cfg_types.String(quotes=True)),
-            default={},
+            default=typing.cast(dict[str, str], {}),
             help=_('Additional parameters to pass for the registered '
                    'service.')),
     cfg.ListOpt('interfaces',
