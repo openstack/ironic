@@ -1,0 +1,7 @@
+---
+fixes:
+  - |
+    Fixes the node provisioning API rejecting ``service_steps`` that use the
+    ``network`` interface, such as the documented ``reattach_networking``
+    step, with an HTTP 400 error. The API now validates service steps
+    against the interfaces the conductor supports for servicing.
