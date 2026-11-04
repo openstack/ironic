@@ -19,6 +19,28 @@
 # on this module automatically, pointing to the newest/latest version of
 # the object.
 
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    # type checkers cannot see our dynamic imports. Give them a nudge.
+    # This list needs to be kept in sync with the below.
+    from ironic.objects.allocation import *  # noqa
+    from ironic.objects.bios import *  # noqa
+    from ironic.objects.chassis import *  # noqa
+    from ironic.objects.conductor import *  # noqa
+    from ironic.objects.deploy_template import *  # noqa
+    from ironic.objects.deployment import *  # noqa
+    from ironic.objects.firmware import *  # noqa
+    from ironic.objects.inspection_rule import *  # noqa
+    from ironic.objects.node import *  # noqa
+    from ironic.objects.node_history import *  # noqa
+    from ironic.objects.node_inventory import *  # noqa
+    from ironic.objects.port import *  # noqa
+    from ironic.objects.portgroup import *  # noqa
+    from ironic.objects.runbook import *  # noqa
+    from ironic.objects.trait import *  # noqa
+    from ironic.objects.volume_connector import *  # noqa
+    from ironic.objects.volume_target import *  # noqa
 
 def register_all():
     # NOTE(danms): You must make sure your object gets imported in this

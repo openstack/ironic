@@ -279,7 +279,6 @@ module = [
     "ironic.common.mdns",
     "ironic.common.service",
     "ironic.common.trait_based_networking.plan",
-    "ironic.conductor.deployments",
     "ironic.drivers.modules.agent",
     "ironic.drivers.modules.agent_base",
     "ironic.drivers.modules.ipmitool",
