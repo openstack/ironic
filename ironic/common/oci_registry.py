@@ -146,6 +146,32 @@ class RegistrySessionHelper(object):
         request.raise_for_status()
 
     @staticmethod
+    def _is_trusted_cdn_host(hostname):
+        """Check if a hostname is a trusted secure CDN endpoint.
+
+        Matches the host against the [oci]secure_cdn_registries
+        configuration by exact hostname or a proper subdomain of a
+        configured entry. Substring matches, such as
+        ``docker.io.bad.example.com`` matching a ``docker.io`` entry,
+        are explicitly not trusted.
+
+        :param hostname: A hostname with any userinfo and port already
+                         stripped, such as the hostname attribute of a
+                         parsed URL.
+        :returns: True if the hostname is trusted, otherwise False.
+        """
+        if not hostname:
+            return False
+        hostname = hostname.lower()
+        for entry in CONF.oci.secure_cdn_registries:
+            entry = entry.strip().lower()
+            if not entry:
+                continue
+            if hostname == entry or hostname.endswith('.' + entry):
+                return True
+        return False
+
+    @staticmethod
     def check_redirect_trusted(request_response, request_session,
                                stream=True, timeout=60):
         """Check if we've been redirected to a trusted source
@@ -172,11 +198,10 @@ class RegistrySessionHelper(object):
         request_response.close()
         auth_header = request_session.headers.pop('Authorization', None)
         # ok we got a redirect, let's check where we are going
-        secure_cdn = CONF.oci.secure_cdn_registries
         # TODO(TheJulia): Consider breaking the session calls below into
         # a helper method, because as-is, this is basically impossible
         # to unit test the delienation in behavior.
-        if len([h for h in secure_cdn if h in redir_url.netloc]) > 0:
+        if RegistrySessionHelper._is_trusted_cdn_host(redir_url.hostname):
             # we're going to a trusted location, add the header back and
             # return response
             request_session.headers.update({'Authorization': auth_header})
@@ -718,7 +743,19 @@ class OciClient(object):
         return self._get_response_json(index_r)
 
     def _resolve_tag(self, image_url):
-        """Attempts to resolve tags from a container URL."""
+        """Attempts to resolve tags from a container URL.
+
+        Tag list pagination is only followed while the requests remain
+        on the registry being queried, or point to a host matched by
+        the [oci]secure_cdn_registries trust check, because the
+        session may still hold credentials for the registry which
+        must not be disclosed to an arbitrary host.
+
+        :param image_url: A parsed URL of the container image.
+        :raises: InvalidImageRef when a pagination link attempts to
+                 direct the request off of the registry being queried
+                 to a location which is not trusted.
+        """
         LOG.debug('Attempting to resolve tag for: %s',
                   image_url)
         image, tag = self._image_tag_from_url(image_url)
@@ -761,6 +798,29 @@ class OciClient(object):
         tags = tags_r.json()['tags']
         while 'next' in tags_r.links:
             next_url = parse.urljoin(tags_url, tags_r.links['next']['url'])
+            # NOTE: The OCI distribution specification defines the
+            # pagination link as a relative reference, so one which
+            # resolves anywhere other than the registry being queried
+            # is not legitimate. The link must resolve to the same
+            # origin as the tag list request, meaning an identical
+            # scheme and netloc, or to a host trusted by the
+            # [oci]secure_cdn_registries check. Anything else risks
+            # disclosing registry credentials which may still be held
+            # by the session to an arbitrary host.
+            next_parsed = parse.urlparse(next_url)
+            tags_parsed = parse.urlparse(tags_url)
+            if ((next_parsed.scheme, next_parsed.netloc)
+                    != (tags_parsed.scheme, tags_parsed.netloc)
+                    and not RegistrySessionHelper._is_trusted_cdn_host(
+                        next_parsed.hostname)):
+                LOG.error(
+                    'Refusing to follow tag pagination link %s from '
+                    'registry %s to untrusted location %s',
+                    tags_r.links['next']['url'], tags_url, next_url)
+                raise exception.InvalidImageRef(
+                    _("Registry %(registry)s attempted to direct tag "
+                      "pagination to untrusted location %(location)s")
+                    % {'registry': tags_url, 'location': next_url})
             try:
                 try:
                     tags_r = RegistrySessionHelper.get(

@@ -435,6 +435,128 @@ class OciClientRequestTestCase(base.TestCase):
             timeout=60)
         get_mock.assert_has_calls([call_mock, call_mock_2])
 
+    def test__resolve_tag_follows_absolute_link(self, get_mock):
+        # An absolute link which stays on the registry being queried
+        # is legitimate and must be followed.
+        response = mock.Mock()
+        response.json.return_value = {'tags': ['foo', 'bar']}
+        response.status_code = 200
+        response.links = {
+            'next': {'url': 'https://localhost/v2/local/tags/list2'}}
+        response2 = mock.Mock()
+        response2.json.return_value = {'tags': ['zoo']}
+        response2.status_code = 200
+        response2.links = {}
+        get_mock.side_effect = iter([response, response2])
+        res = self.client._resolve_tag(
+            parse.urlparse('oci://localhost/local:zoo'))
+        self.assertDictEqual({'image': '/local', 'tag': 'zoo'}, res)
+        call_mock = mock.call(
+            mock.ANY,
+            'https://localhost/v2/local/tags/list',
+            headers={'Accept': 'application/vnd.oci.image.index.v1+json'},
+            timeout=60)
+        call_mock_2 = mock.call(
+            mock.ANY,
+            'https://localhost/v2/local/tags/list2',
+            headers={'Accept': 'application/vnd.oci.image.index.v1+json'},
+            timeout=60)
+        get_mock.assert_has_calls([call_mock, call_mock_2])
+
+    def test__resolve_tag_follows_next_link_to_trusted_cdn(self, get_mock):
+        # A pagination link to a configured trusted CDN host is
+        # followed, and the session credential accompanies it.
+        CONF.set_override('secure_cdn_registries', ['cdn.example.com'],
+                          group='oci')
+        self.client.session.headers['Authorization'] = 'Bearer zoo'
+        response = mock.Mock()
+        response.json.return_value = {'tags': ['foo', 'bar']}
+        response.status_code = 200
+        response.links = {
+            'next': {'url': 'https://cdn.example.com/v2/local/tags/list2'}}
+        response2 = mock.Mock()
+        response2.json.return_value = {'tags': ['zoo']}
+        response2.status_code = 200
+        response2.links = {}
+        get_mock.side_effect = iter([response, response2])
+        res = self.client._resolve_tag(
+            parse.urlparse('oci://localhost/local:zoo'))
+        self.assertDictEqual({'image': '/local', 'tag': 'zoo'}, res)
+        call_mock = mock.call(
+            mock.ANY,
+            'https://localhost/v2/local/tags/list',
+            headers={'Accept': 'application/vnd.oci.image.index.v1+json'},
+            timeout=60)
+        call_mock_2 = mock.call(
+            mock.ANY,
+            'https://cdn.example.com/v2/local/tags/list2',
+            headers={'Accept': 'application/vnd.oci.image.index.v1+json'},
+            timeout=60)
+        get_mock.assert_has_calls([call_mock, call_mock_2])
+        self.assertEqual('Bearer zoo',
+                         self.client.session.headers.get('Authorization'))
+
+    def test__resolve_tag_rejects_next_link_to_foreign_host(self, get_mock):
+        response = mock.Mock()
+        response.json.return_value = {'tags': ['foo', 'bar']}
+        response.status_code = 200
+        response.links = {
+            'next': {'url': 'https://evil.example.com/v2/local/tags/list2'}}
+        get_mock.return_value = response
+        self.assertRaises(
+            exception.InvalidImageRef,
+            self.client._resolve_tag,
+            parse.urlparse('oci://localhost/local:zoo'))
+        # Only the original tag list request was made; the foreign
+        # host must never be contacted, with or without credentials.
+        get_mock.assert_called_once()
+
+    def test__resolve_tag_rejects_protocol_relative_next_link(
+            self, get_mock):
+        response = mock.Mock()
+        response.json.return_value = {'tags': ['foo', 'bar']}
+        response.status_code = 200
+        response.links = {
+            'next': {'url': '//evil.example.com/v2/local/tags/list2'}}
+        get_mock.return_value = response
+        self.assertRaises(
+            exception.InvalidImageRef,
+            self.client._resolve_tag,
+            parse.urlparse('oci://localhost/local:zoo'))
+        get_mock.assert_called_once()
+
+    def test__resolve_tag_rejects_next_link_scheme_change(self, get_mock):
+        # The trust check compares origins: a link which stays on the
+        # registry host but changes the scheme is a different origin
+        # and must not be followed. This pins the equality check so
+        # the behavior cannot silently weaken to hostname matching.
+        response = mock.Mock()
+        response.json.return_value = {'tags': ['foo', 'bar']}
+        response.status_code = 200
+        response.links = {
+            'next': {'url': 'http://localhost/v2/local/tags/list2'}}
+        get_mock.return_value = response
+        self.assertRaises(
+            exception.InvalidImageRef,
+            self.client._resolve_tag,
+            parse.urlparse('oci://localhost/local:zoo'))
+        get_mock.assert_called_once()
+
+    def test__resolve_tag_rejects_next_link_port_change(self, get_mock):
+        # A link which stays on the registry host but uses a different
+        # port is likewise a different origin.
+        response = mock.Mock()
+        response.json.return_value = {'tags': ['foo', 'bar']}
+        response.status_code = 200
+        response.links = {
+            'next': {'url': 'https://localhost:8443/v2/local/tags/list2'}}
+        get_mock.return_value = response
+        self.assertRaises(
+            exception.InvalidImageRef,
+            self.client._resolve_tag,
+            parse.urlparse('oci://localhost/local:zoo'))
+        get_mock.assert_called_once()
+
     def test__resolve_tag_auth_needed(self, get_mock):
         response = mock.Mock()
         response.json.return_value = {}
@@ -1405,6 +1527,256 @@ class TestRegistrySessionHelper(base.TestCase):
         self.assertEqual(
             requests.auth.HTTPBasicAuth('', cred),
             session.get.call_args.kwargs['auth'])
+
+    def test_is_trusted_cdn_host_exact_match(self):
+        CONF.set_override('secure_cdn_registries',
+                          ['docker.io', 'quay.io'], group='oci')
+        self.assertTrue(
+            oci_registry.RegistrySessionHelper._is_trusted_cdn_host(
+                'docker.io'))
+        self.assertTrue(
+            oci_registry.RegistrySessionHelper._is_trusted_cdn_host(
+                'quay.io'))
+
+    def test_is_trusted_cdn_host_subdomain(self):
+        CONF.set_override('secure_cdn_registries', ['docker.io'],
+                          group='oci')
+        self.assertTrue(
+            oci_registry.RegistrySessionHelper._is_trusted_cdn_host(
+                'cdn.docker.io'))
+        self.assertTrue(
+            oci_registry.RegistrySessionHelper._is_trusted_cdn_host(
+                'a.b.docker.io'))
+
+    def test_is_trusted_cdn_host_lookalike(self):
+        # Entries must not match a host which merely contains the
+        # entry as a substring.
+        CONF.set_override('secure_cdn_registries', ['docker.io'],
+                          group='oci')
+        self.assertFalse(
+            oci_registry.RegistrySessionHelper._is_trusted_cdn_host(
+                'docker.io.bad.example.com'))
+        self.assertFalse(
+            oci_registry.RegistrySessionHelper._is_trusted_cdn_host(
+                'notdocker.io'))
+
+    def test_is_trusted_cdn_host_unlisted(self):
+        CONF.set_override('secure_cdn_registries', ['docker.io'],
+                          group='oci')
+        self.assertFalse(
+            oci_registry.RegistrySessionHelper._is_trusted_cdn_host(
+                'evil.example.com'))
+        self.assertFalse(
+            oci_registry.RegistrySessionHelper._is_trusted_cdn_host(''))
+        self.assertFalse(
+            oci_registry.RegistrySessionHelper._is_trusted_cdn_host(None))
+
+    def test_is_trusted_cdn_host_case_insensitive(self):
+        CONF.set_override('secure_cdn_registries', ['Docker.IO'],
+                          group='oci')
+        self.assertTrue(
+            oci_registry.RegistrySessionHelper._is_trusted_cdn_host(
+                'docker.io'))
+
+    def test_check_redirect_trusted_not_a_redirect(self):
+        session = mock.Mock()
+        session.headers = {'Authorization': 'Bearer zoo'}
+        response = mock.Mock()
+        response.status_code = 200
+        result = oci_registry.RegistrySessionHelper.check_redirect_trusted(
+            response, session, stream=True, timeout=60)
+        self.assertIs(response, result)
+        session.get.assert_not_called()
+
+    def test_check_redirect_trusted_follows_to_secure_cdn(self):
+        CONF.set_override('secure_cdn_registries', ['docker.io'],
+                          group='oci')
+        session = mock.Mock()
+        session.headers = {'Authorization': 'Bearer zoo'}
+        redirect = mock.Mock()
+        redirect.status_code = 302
+        redirect.headers = {'Location': 'https://docker.io/v2/foo'}
+        response = mock.Mock()
+        response.status_code = 200
+        session.get.return_value = response
+        oci_registry.RegistrySessionHelper.check_redirect_trusted(
+            redirect, session, stream=True, timeout=60)
+        session.get.assert_called_once_with(
+            'https://docker.io/v2/foo', stream=True, timeout=60)
+        # The response from the redirect target is the one which gets
+        # checked, and the credential stays on the session.
+        response.raise_for_status.assert_called_once_with()
+        self.assertEqual('utf-8', response.encoding)
+        self.assertEqual('Bearer zoo',
+                         session.headers.get('Authorization'))
+
+    def test_check_redirect_trusted_lookalike_followed(self):
+        # A look-alike of a configured CDN is not trusted. The request
+        # is still made, but without the credential; the connection
+        # error test below pins that handling.
+        CONF.set_override('secure_cdn_registries', ['docker.io'],
+                          group='oci')
+        session = mock.Mock()
+        session.headers = {'Authorization': 'Bearer zoo'}
+        redirect = mock.Mock()
+        redirect.status_code = 302
+        redirect.headers = {
+            'Location': 'https://docker.io.bad.example.com/v2/foo'}
+        response = mock.Mock()
+        response.status_code = 200
+        session.get.return_value = response
+        oci_registry.RegistrySessionHelper.check_redirect_trusted(
+            redirect, session, stream=True, timeout=60)
+        session.get.assert_called_once_with(
+            'https://docker.io.bad.example.com/v2/foo',
+            stream=True, timeout=60)
+        response.raise_for_status.assert_called_once_with()
+        # The credential is restored to the session afterwards.
+        self.assertEqual('Bearer zoo',
+                         session.headers.get('Authorization'))
+
+    def test_check_redirect_trusted_lookalike_connection_error(self):
+        # Fails safe: the credential is not left on the session when
+        # the request to an untrusted host fails before it can be
+        # restored, so a later request re-authenticates instead of the
+        # credential ever being sent to the untrusted host.
+        CONF.set_override('secure_cdn_registries', ['docker.io'],
+                          group='oci')
+        session = mock.Mock()
+        session.headers = {'Authorization': 'Bearer zoo'}
+        redirect = mock.Mock()
+        redirect.status_code = 302
+        redirect.headers = {
+            'Location': 'https://docker.io.bad.example.com/v2/foo'}
+        session.get.side_effect = requests.exceptions.ConnectionError(
+            'no route to host')
+        self.assertRaises(
+            requests.exceptions.ConnectionError,
+            oci_registry.RegistrySessionHelper.check_redirect_trusted,
+            redirect, session, stream=True, timeout=60)
+        session.get.assert_called_once_with(
+            'https://docker.io.bad.example.com/v2/foo',
+            stream=True, timeout=60)
+        self.assertNotIn('Authorization', session.headers)
+
+    def test_check_redirect_trusted_connection_error_to_secure_cdn(self):
+        # The credential is re-attached before the request to the
+        # trusted host is made, so it accompanies the request and is
+        # already back on the session when the request fails.
+        CONF.set_override('secure_cdn_registries', ['docker.io'],
+                          group='oci')
+        session = mock.Mock()
+        session.headers = {'Authorization': 'Bearer zoo'}
+        redirect = mock.Mock()
+        redirect.status_code = 302
+        redirect.headers = {'Location': 'https://docker.io/v2/foo'}
+        session.get.side_effect = requests.exceptions.ConnectionError(
+            'no route to host')
+        self.assertRaises(
+            requests.exceptions.ConnectionError,
+            oci_registry.RegistrySessionHelper.check_redirect_trusted,
+            redirect, session, stream=True, timeout=60)
+        session.get.assert_called_once_with(
+            'https://docker.io/v2/foo', stream=True, timeout=60)
+        self.assertEqual('Bearer zoo',
+                         session.headers.get('Authorization'))
+
+    def test_check_redirect_trusted_userinfo_not_trusted(self):
+        # Userinfo in the redirect netloc must not fake a hostname
+        # match with the configured CDN list.
+        CONF.set_override('secure_cdn_registries', ['docker.io'],
+                          group='oci')
+        session = mock.Mock()
+        session.headers = {'Authorization': 'Bearer zoo'}
+        redirect = mock.Mock()
+        redirect.status_code = 302
+        redirect.headers = {
+            'Location': 'https://docker.io@evil.example.com/v2/foo'}
+        session.get.side_effect = requests.exceptions.ConnectionError(
+            'no route to host')
+        self.assertRaises(
+            requests.exceptions.ConnectionError,
+            oci_registry.RegistrySessionHelper.check_redirect_trusted,
+            redirect, session, stream=True, timeout=60)
+        session.get.assert_called_once_with(
+            'https://docker.io@evil.example.com/v2/foo',
+            stream=True, timeout=60)
+        self.assertNotIn('Authorization', session.headers)
+
+    def test_check_redirect_trusted_401_no_reauth(self):
+        # Without a www-authenticate header there is nothing to
+        # reauthenticate against; the error propagates.
+        CONF.set_override('secure_cdn_registries', ['docker.io'],
+                          group='oci')
+        session = mock.Mock()
+        session.headers = {'Authorization': 'Bearer zoo'}
+        redirect = mock.Mock()
+        redirect.status_code = 302
+        redirect.headers = {'Location': 'https://docker.io/v2/foo'}
+        response = mock.Mock()
+        response.status_code = 401
+        response.headers = {}
+        response.text = 'denied'
+        response.reason = 'Unauthorized'
+        response.raise_for_status.side_effect = (
+            requests.exceptions.HTTPError(response=response))
+        session.get.return_value = response
+        self.assertRaises(
+            requests.exceptions.HTTPError,
+            oci_registry.RegistrySessionHelper.check_redirect_trusted,
+            redirect, session, stream=True, timeout=60)
+        session.get.assert_called_once_with(
+            'https://docker.io/v2/foo', stream=True, timeout=60)
+        session.reauthenticate.assert_not_called()
+
+    def test_check_redirect_trusted_401_reauth(self):
+        CONF.set_override('secure_cdn_registries', ['docker.io'],
+                          group='oci')
+        session = mock.Mock()
+        session.headers = {'Authorization': 'Bearer zoo'}
+        session.auth_args = {}
+        redirect = mock.Mock()
+        redirect.status_code = 302
+        redirect.headers = {'Location': 'https://docker.io/v2/foo'}
+        response = mock.Mock()
+        response.status_code = 401
+        response.headers = {
+            'www-authenticate': 'Bearer realm="https://auth.example.com"'}
+        response.text = 'denied'
+        response.reason = 'Unauthorized'
+        response.raise_for_status.side_effect = (
+            requests.exceptions.HTTPError(response=response))
+        session.get.return_value = response
+        self.assertRaises(
+            requests.exceptions.HTTPError,
+            oci_registry.RegistrySessionHelper.check_redirect_trusted,
+            redirect, session, stream=True, timeout=60)
+        session.get.assert_called_once_with(
+            'https://docker.io/v2/foo', stream=True, timeout=60)
+        session.reauthenticate.assert_called_once_with()
+        self.assertEqual('1', session.headers.get('_ReAuth'))
+
+    def test_check_redirect_trusted_429(self):
+        CONF.set_override('secure_cdn_registries', ['docker.io'],
+                          group='oci')
+        session = mock.Mock()
+        session.headers = {'Authorization': 'Bearer zoo'}
+        redirect = mock.Mock()
+        redirect.status_code = 302
+        redirect.headers = {'Location': 'https://docker.io/v2/foo'}
+        response = mock.Mock()
+        response.status_code = 429
+        response.headers = {}
+        response.text = 'slow down'
+        response.reason = 'Too Many Requests'
+        session.get.return_value = response
+        self.assertRaises(
+            exception.ImageHostRateLimitFailure,
+            oci_registry.RegistrySessionHelper.check_redirect_trusted,
+            redirect, session, stream=True, timeout=60)
+        session.get.assert_called_once_with(
+            'https://docker.io/v2/foo', stream=True, timeout=60)
+        response.raise_for_status.assert_not_called()
 
 
 class MakeSessionTLSTestCase(base.TestCase):
