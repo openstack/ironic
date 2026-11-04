@@ -57,6 +57,23 @@ class FakeVendorInterface(driver_base.VendorInterface):
         pass
 
 
+class SkipsPeriodicsTestCase(base.TestCase):
+
+    def test_default(self):
+        self.assertFalse(driver_base.BaseInterface.skip_periodics)
+        self.assertFalse(driver_base.skips_periodics(fake.FakePower()))
+
+    def test_true(self):
+        iface = fake.FakePower()
+        iface.skip_periodics = True
+        self.assertTrue(driver_base.skips_periodics(iface))
+
+    def test_only_exact_true(self):
+        self.assertFalse(driver_base.skips_periodics(mock.Mock()))
+        self.assertFalse(driver_base.skips_periodics(object()))
+        self.assertFalse(driver_base.skips_periodics(None))
+
+
 class PassthruDecoratorTestCase(base.TestCase):
 
     def setUp(self):

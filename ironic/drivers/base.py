@@ -273,6 +273,18 @@ class ImagePublisherSettings:
     kernel_params: str = ''
 
 
+def skips_periodics(iface: object) -> bool:
+    """Check whether the conductor should skip periodic work for an interface.
+
+    Only the exact value ``True`` of ``skip_periodics`` is honored, so that
+    mocked interfaces, whose attributes are truthy, are not silently skipped.
+
+    :param iface: an interface instance, or any object.
+    :returns: True if periodic work should be skipped for ``iface``.
+    """
+    return getattr(iface, 'skip_periodics', False) is True
+
+
 class BaseInterface(abc.ABC):
     """A base interface implementing common functions for Driver Interfaces."""
 
@@ -285,6 +297,20 @@ class BaseInterface(abc.ABC):
 
     interface_type = 'base'
     """Interface type, used for clean steps and logging."""
+
+    skip_periodics = False
+    """Whether the conductor should skip periodic work for this interface.
+
+    Set to True by interfaces that cannot do any meaningful work (for example
+    the ``deny`` and ``noop`` implementations). The conductor then does not
+    register periodic tasks defined on the interface. For power and
+    management interfaces, it also skips the node in power state sync, power
+    failure recovery and sensor data collection. It only knows which
+    interface a node uses once it has acquired a (shared) lock on the node,
+    so the lock is still taken, but no calls are made to the interface.
+
+    Only the exact value ``True`` is honored, see :func:`skips_periodics`.
+    """
 
     clean_steps: list[CleanStep]
     deploy_steps: list[DeployStep]

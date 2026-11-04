@@ -42,6 +42,7 @@ from ironic.conductor import task_manager
 from ironic.conductor import utils
 from ironic.conf import CONF
 from ironic.db import api as dbapi
+from ironic.drivers import base as driver_base
 from ironic.drivers.modules import deploy_utils
 from ironic import objects
 from ironic.objects import fields as obj_fields
@@ -383,6 +384,10 @@ class BaseConductorManager(object):
             :param obj: the object to collect tasks from.
             :param args: a tuple of arguments to pass to tasks.
             """
+            if driver_base.skips_periodics(obj):
+                # NOTE: interfaces such as noop and deny do no real work, so
+                # there is nothing to run periodically for them.
+                return
             if obj and obj.__class__ not in periodic_task_classes:
                 for name, member in inspect.getmembers(obj):
                     if periodics.is_periodic(member):

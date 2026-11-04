@@ -181,6 +181,35 @@ class StartStopTestCase(mgr_utils.ServiceSetUpMixin, db_base.DbTestCase):
         self.assertTrue(periodics.is_periodic(hw_type.task))
         self.assertNotIn(hw_type.task, tasks)
 
+    @mock.patch.object(base_manager.BaseConductorManager,
+                       '_register_and_validate_hardware_interfaces',
+                       autospec=True)
+    @mock.patch.object(driver_factory, 'all_interfaces', autospec=True)
+    @mock.patch.object(driver_factory, 'hardware_types', autospec=True)
+    def test_start_skips_periodics_of_skip_periodics_interfaces(
+            self, mock_hw_types, mock_ifaces, mock_reg_hw_ifaces):
+        class TestInterface(object):
+            skip_periodics = False
+
+            @periodics.periodic(spacing=100500)
+            def iface(self):
+                pass
+
+        class SkippedInterface(TestInterface):
+            skip_periodics = True
+
+        normal = TestInterface()
+        skipped = SkippedInterface()
+        mock_hw_types.return_value = {}
+        mock_ifaces.return_value = {'power': {'fake1': normal,
+                                              'fake2': skipped}}
+
+        self._start_service(start_periodic_tasks=True)
+
+        tasks = {c[0] for c in self.service._periodic_task_callables}
+        self.assertIn(normal.iface, tasks)
+        self.assertNotIn(skipped.iface, tasks)
+
     @mock.patch.object(driver_factory.HardwareTypesFactory, '__init__',
                        autospec=True)
     def test_start_fails_on_missing_driver(self, mock_df):

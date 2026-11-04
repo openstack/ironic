@@ -5269,6 +5269,7 @@ class SensorsTestCase(mgr_utils.ServiceSetUpMixin, db_base.DbTestCase):
         task.node.maintenance = False
         task.node.driver = 'fake'
         task.node.name = 'fake_node'
+        task.driver.management.skip_periodics = False
         get_sensors_data_mock = task.driver.management.get_sensors_data
         validate_mock = task.driver.management.validate
         get_sensors_data_mock.return_value = 'fake-sensor-data'
@@ -5334,6 +5335,22 @@ class SensorsTestCase(mgr_utils.ServiceSetUpMixin, db_base.DbTestCase):
         self.assertFalse(validate_mock.called)
         self.assertFalse(get_sensors_data_mock.called)
         self.assertTrue(debug_log.called)
+
+    @mock.patch.object(task_manager, 'acquire', autospec=True)
+    def test_send_sensor_task_skip_periodics(self, acquire_mock):
+        nodes = queue.Queue()
+        nodes.put_nowait(('fake_uuid', 'fake-hardware', '', None))
+        self._start_service()
+        CONF.set_override('send_sensor_data', True, group='sensor_data')
+
+        task = acquire_mock.return_value.__enter__.return_value
+        task.node.maintenance = False
+        task.driver.management.skip_periodics = True
+
+        self.service._sensors_nodes_task(self.context, nodes)
+        self.assertTrue(acquire_mock.called)
+        self.assertFalse(task.driver.management.validate.called)
+        self.assertFalse(task.driver.management.get_sensors_data.called)
 
     @mock.patch.object(manager.ConductorManager, '_spawn_worker',
                        autospec=True)
@@ -6576,6 +6593,21 @@ class ManagerSyncPowerStatesTestCase(mgr_utils.CommonMixIn,
                                              shared=True)
         self.assertFalse(sync_mock.called)
 
+    def test_node_power_skip_periodics(self, get_nodeinfo_mock, mapped_mock,
+                                       acquire_mock, sync_mock):
+        get_nodeinfo_mock.return_value = self._get_nodeinfo_list_response()
+        mapped_mock.return_value = True
+        task = self._create_task(node_attrs=dict(uuid=self.node.uuid))
+        task.driver.power.skip_periodics = True
+        acquire_mock.side_effect = self._get_acquire_side_effect(task)
+
+        self.service._sync_power_states(self.context)
+
+        acquire_mock.assert_called_once_with(self.context, self.node.uuid,
+                                             purpose=mock.ANY,
+                                             shared=True)
+        self.assertFalse(sync_mock.called)
+
     def test_node_in_enroll_on_acquire(self, get_nodeinfo_mock, mapped_mock,
                                        acquire_mock, sync_mock):
         get_nodeinfo_mock.return_value = self._get_nodeinfo_list_response()
@@ -6809,6 +6841,7 @@ class ManagerPowerRecoveryTestCase(mgr_utils.CommonMixIn,
         self.service.dbapi = self.dbapi
         self.driver = mock.Mock(spec_set=drivers_base.BareDriver)
         self.power = self.driver.power
+        self.power.skip_periodics = False
         self.task = mock.Mock(spec_set=['context', 'driver', 'node',
                                         'upgrade_lock', 'shared'])
         self.node = self._create_node(maintenance=True,
@@ -6856,6 +6889,21 @@ class ManagerPowerRecoveryTestCase(mgr_utils.CommonMixIn,
                                              purpose=mock.ANY,
                                              shared=True)
         self.assertFalse(self.power.validate.called)
+
+    def test_node_power_skip_periodics(self, get_nodeinfo_mock, mapped_mock,
+                                       acquire_mock):
+        get_nodeinfo_mock.return_value = self._get_nodeinfo_list_response()
+        mapped_mock.return_value = True
+        task = self._create_task(node_attrs=dict(
+            maintenance=True, fault='power failure', uuid=self.node.uuid))
+        task.driver.power.skip_periodics = True
+        acquire_mock.side_effect = self._get_acquire_side_effect(task)
+
+        self.service._power_failure_recovery(self.context)
+
+        self.assertTrue(acquire_mock.called)
+        self.assertFalse(task.driver.power.validate.called)
+        self.assertFalse(task.driver.power.get_power_state.called)
 
     def test_node_locked_on_acquire(self, get_nodeinfo_mock, mapped_mock,
                                     acquire_mock):

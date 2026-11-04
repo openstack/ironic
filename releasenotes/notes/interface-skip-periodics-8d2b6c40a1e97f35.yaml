@@ -1,0 +1,7 @@
+---
+features:
+  - |
+    Hardware interfaces now have a ``skip_periodics`` attribute, ``False`` by
+    default. When it is exactly ``True``, the conductor does not register the
+    interface's periodic tasks and skips the node in the power state sync,
+    power failure recovery and sensor data collection periodic tasks.
