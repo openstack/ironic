@@ -407,10 +407,56 @@ class TestAnsibleMethods(AnsibleDeployTestCaseBase):
 
         self.assertIsNone(python_interpreter)
 
-    def test__get_configdrive_path(self):
+    @mock.patch.object(ansible_deploy.tempfile, 'mkdtemp', autospec=True)
+    def test__create_configdrive_file(self, mkdtemp_mock):
         self.config(tempdir='/path/to/tmpdir')
-        self.assertEqual('/path/to/tmpdir/spam.cndrive',
-                         ansible_deploy._get_configdrive_path('spam'))
+        mkdtemp_mock.return_value = '/path/to/tmpdir/configdrive-xyz'
+        expected = '/path/to/tmpdir/configdrive-xyz/%s.cndrive' % (
+            self.node.uuid)
+        with mock.patch.object(ansible_deploy, 'open', mock.mock_open(),
+                               create=True) as open_mock:
+            location = ansible_deploy._create_configdrive_file(
+                self.node, 'fake-content')
+        self.assertEqual(expected, location)
+        mkdtemp_mock.assert_called_once_with(
+            prefix='configdrive-%s-' % self.node.uuid, dir='/path/to/tmpdir')
+        # The directory is recorded so it can be cleaned up later.
+        self.assertEqual('/path/to/tmpdir/configdrive-xyz',
+                         self.node.driver_internal_info[
+                             'ansible_configdrive_dir'])
+        open_mock.assert_has_calls((
+            mock.call(expected, 'wb'),
+            mock.call().__enter__(),
+            mock.call().write('fake-content'),
+            mock.call().__exit__(None, None, None)))
+
+    @mock.patch.object(com_utils, 'unlink_without_raise', autospec=True)
+    @mock.patch.object(com_utils, 'rmtree_without_raise', autospec=True)
+    def test__clean_up_configdrive(self, rmtree_mock, unlink_mock):
+        self.config(tempdir='/path/to/tmpdir')
+        self.node.set_driver_internal_info(
+            'ansible_configdrive_dir', '/path/to/tmpdir/configdrive-xyz')
+        self.node.save()
+        ansible_deploy._clean_up_configdrive(self.node)
+        rmtree_mock.assert_called_once_with(
+            '/path/to/tmpdir/configdrive-xyz')
+        # The tracking key is removed once the directory is gone.
+        self.assertNotIn('ansible_configdrive_dir',
+                         self.node.driver_internal_info)
+        # Legacy predictable-path file is also removed best-effort.
+        unlink_mock.assert_called_once_with(
+            '/path/to/tmpdir/%s.cndrive' % self.node.uuid)
+
+    @mock.patch.object(com_utils, 'unlink_without_raise', autospec=True)
+    @mock.patch.object(com_utils, 'rmtree_without_raise', autospec=True)
+    def test__clean_up_configdrive_no_dir(self, rmtree_mock, unlink_mock):
+        # No recorded directory (e.g. url configdrive or no configdrive):
+        # only the best-effort legacy unlink runs.
+        self.config(tempdir='/path/to/tmpdir')
+        ansible_deploy._clean_up_configdrive(self.node)
+        self.assertFalse(rmtree_mock.called)
+        unlink_mock.assert_called_once_with(
+            '/path/to/tmpdir/%s.cndrive' % self.node.uuid)
 
     def test__prepare_extra_vars(self):
         host_list = [('fake-uuid', '1.2.3.4', 'spam', 'ham'),
@@ -712,14 +758,16 @@ class TestAnsibleMethods(AnsibleDeployTestCaseBase):
             self.assertEqual(expected,
                              ansible_deploy._prepare_variables(task))
 
-    def test__prepare_variables_configdrive_file(self):
+    @mock.patch.object(ansible_deploy.tempfile, 'mkdtemp', autospec=True)
+    def test__prepare_variables_configdrive_file(self, mkdtemp_mock):
         i_info = self.node.instance_info
         i_info['configdrive'] = 'fake-content'
         self.node.instance_info = i_info
         self.node.save()
-        configdrive_path = ('%(tempdir)s/%(node)s.cndrive' %
-                            {'tempdir': ansible_deploy.CONF.tempdir,
-                             'node': self.node.uuid})
+        mkdtemp_mock.return_value = '%s/configdrive-xyz' % (
+            ansible_deploy.CONF.tempdir)
+        configdrive_path = '%(dir)s/%(node)s.cndrive' % {
+            'dir': mkdtemp_mock.return_value, 'node': self.node.uuid}
         expected = {"image": {"url": "http://image",
                               "validate_certs": "yes",
                               "source": "fake-image",
@@ -734,22 +782,25 @@ class TestAnsibleMethods(AnsibleDeployTestCaseBase):
                 self.assertEqual(expected,
                                  ansible_deploy._prepare_variables(task))
             open_mock.assert_has_calls((
-                mock.call(configdrive_path, 'w'),
+                mock.call(configdrive_path, 'wb'),
                 mock.call().__enter__(),
                 mock.call().write('fake-content'),
                 mock.call().__exit__(None, None, None)))
 
+    @mock.patch.object(ansible_deploy.tempfile, 'mkdtemp', autospec=True)
     @mock.patch('ironic.conductor.configdrive_utils.build_configdrive',
                 autospec=True)
-    def test__prepare_variables_configdrive_json(self, mock_build_configdrive):
+    def test__prepare_variables_configdrive_json(self, mock_build_configdrive,
+                                                 mkdtemp_mock):
         i_info = self.node.instance_info
         i_info['configdrive'] = {'meta_data': {}}
         self.node.instance_info = i_info
         self.node.save()
         mock_build_configdrive.return_value = 'fake-content'
-        configdrive_path = ('%(tempdir)s/%(node)s.cndrive' %
-                            {'tempdir': ansible_deploy.CONF.tempdir,
-                             'node': self.node.uuid})
+        mkdtemp_mock.return_value = '%s/configdrive-xyz' % (
+            ansible_deploy.CONF.tempdir)
+        configdrive_path = '%(dir)s/%(node)s.cndrive' % {
+            'dir': mkdtemp_mock.return_value, 'node': self.node.uuid}
         expected = {"image": {"url": "http://image",
                               "validate_certs": "yes",
                               "source": "fake-image",
@@ -766,7 +817,7 @@ class TestAnsibleMethods(AnsibleDeployTestCaseBase):
                 mock_build_configdrive.assert_called_once_with(
                     task.node, {'meta_data': {}})
             open_mock.assert_has_calls((
-                mock.call(configdrive_path, 'w'),
+                mock.call(configdrive_path, 'wb'),
                 mock.call().__enter__(),
                 mock.call().write('fake-content'),
                 mock.call().__exit__(None, None, None)))
@@ -955,18 +1006,14 @@ class TestAnsibleDeploy(AnsibleDeployTestCaseBase):
         self.node.refresh()
         self.assertEqual('test', self.node.instance_info['test'])
 
-    @mock.patch.object(ansible_deploy, '_get_configdrive_path',
-                       return_value='/path/test', autospec=True)
-    @mock.patch.object(com_utils, 'unlink_without_raise', autospec=True)
+    @mock.patch.object(ansible_deploy, '_clean_up_configdrive', autospec=True)
     @mock.patch.object(pxe.PXEBoot, 'clean_up_ramdisk', autospec=True)
-    def test_clean_up(self, pxe_clean_up_mock, unlink_mock,
-                      get_cfdrive_path_mock):
+    def test_clean_up(self, pxe_clean_up_mock, clean_cfgdrive_mock):
         with task_manager.acquire(
                 self.context, self.node['uuid'], shared=False) as task:
             self.driver.clean_up(task)
             pxe_clean_up_mock.assert_called_once_with(task.driver.boot, task)
-            get_cfdrive_path_mock.assert_called_once_with(self.node['uuid'])
-            unlink_mock.assert_called_once_with('/path/test')
+            clean_cfgdrive_mock.assert_called_once_with(task.node)
 
     @mock.patch.object(ansible_deploy, '_get_clean_steps', autospec=True)
     def test_get_clean_steps(self, get_clean_steps_mock):
