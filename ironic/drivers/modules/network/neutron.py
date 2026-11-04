@@ -19,10 +19,10 @@ from oslo_log import log
 
 from ironic.common import exception
 from ironic.common.i18n import _
+from ironic.common.network import NetType
 from ironic.common import neutron
 from ironic.drivers import base
 from ironic.drivers.modules.network import common
-from ironic.drivers.modules.network.common import NetType
 
 LOG = log.getLogger(__name__)
 
@@ -62,28 +62,22 @@ class NeutronNetwork(common.NeutronVIFPortIDMixin,
 
     def _add_network(self, task, network, security_groups, net_type):
         # If we have left over ports from a previous process, remove them
-        neutron.rollback_ports(task, network)
+        neutron.rollback_ports(task, network, net_type)
         LOG.info('Adding %s network to node %s', net_type, task.node.uuid)
-        vifs = neutron.add_ports_to_network(task, network,
-                                            security_groups=security_groups)
-        for port in task.ports:
-            if port.uuid in vifs:
-                internal_info = port.internal_info
-                internal_info[net_type.vif_key] = vifs[port.uuid]
-                port.internal_info = internal_info
-                port.save()
+        try:
+            vifs = neutron.add_ports_to_network(task, network, net_type,
+                                                security_groups=security_groups)
+        except Exception:
+            # ensure we clean up prior to re-raising
+            neutron.rollback_ports(task, network, net_type)
+            raise
+
         return vifs
 
     def _remove_network(self, task, network, net_type):
         LOG.info('Removing ports from %s network for node %s',
                  net_type, task.node.uuid)
-        neutron.remove_ports_from_network(task, network)
-        for port in task.ports:
-            if net_type.vif_key in port.internal_info:
-                internal_info = port.internal_info
-                del internal_info[net_type.vif_key]
-                port.internal_info = internal_info
-                port.save()
+        neutron.remove_ports_from_network(task, network, net_type)
 
     def add_provisioning_network(self, task):
         """Add the provisioning network to a node.

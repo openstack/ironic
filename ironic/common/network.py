@@ -12,6 +12,8 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
+from enum import Enum
+
 from oslo_log import log
 
 from ironic.common import exception
@@ -27,6 +29,56 @@ SERVICING_NETWORK = 'servicing'
 INSPECTION_NETWORK = 'inspection'
 PROVISIONING_NETWORK = 'provisioning'
 TENANT_NETWORK = 'tenant'
+
+
+class NetType(Enum):
+    CLEANING = "cleaning"
+    PROVISIONING = "provisioning"
+    RESCUING = "rescuing"
+    INSPECTION = "inspection"
+    SERVICING = "servicing"
+    # tenant should always be last to preserve the order of using
+    # the other vifs first
+    TENANT = "tenant"
+
+    def __str__(self):
+        return self.value
+
+    @property
+    def vif_key(self):
+        return f"{self!s}_vif_port_id"
+
+
+def record_vif(ironic_port, net_type: NetType, vif_id: str):
+    """Record a VIF that is attached to a baremetal port.
+
+    :param ironic_port: the baremetal Port object to record the VIF on.
+    :param net_type: the NetType the VIF was attached for; its ``vif_key``
+        is the ``internal_info`` key the ID is recorded under.
+    :param vif_id: ID of the VIF.
+    """
+    internal_info = ironic_port.internal_info
+    internal_info[net_type.vif_key] = vif_id
+    ironic_port.internal_info = internal_info
+    ironic_port.save()
+
+
+def forget_vif(ironic_port, net_type: NetType, vif_id: str) -> bool:
+    """Remove the record of a VIF attached to a baremetal port.
+
+    :param ironic_port: the baremetal Port object to remove the VIF from.
+    :param net_type: the NetType whose ``vif_key`` the VIF is recorded under.
+    :param vif_id: ID of the VIF. The record is only removed if it is the
+        one recorded for ``net_type``.
+    :returns: True if the record matched and was removed, False otherwise.
+    """
+    internal_info = ironic_port.internal_info
+    if internal_info.get(net_type.vif_key) != vif_id:
+        return False
+    del internal_info[net_type.vif_key]
+    ironic_port.internal_info = internal_info
+    ironic_port.save()
+    return True
 
 
 def get_network_type_for_state(provision_state):

@@ -14,7 +14,6 @@
 #    under the License.
 
 import collections
-from enum import Enum
 import random
 import string
 
@@ -26,6 +25,7 @@ from ironic.common import dhcp_factory
 from ironic.common import exception
 from ironic.common.i18n import _
 from ironic.common import network
+from ironic.common.network import NetType
 from ironic.common import neutron
 from ironic.common.pxe_utils import DHCP_CLIENT_ID
 from ironic.common import states
@@ -36,24 +36,6 @@ from ironic import objects
 
 CONF = cfg.CONF
 LOG = log.getLogger(__name__)
-
-
-class NetType(Enum):
-    CLEANING = "cleaning"
-    PROVISIONING = "provisioning"
-    RESCUING = "rescuing"
-    INSPECTION = "inspection"
-    SERVICING = "servicing"
-    # tenant should always be last to preserve the order of using
-    # the other vifs first
-    TENANT = "tenant"
-
-    def __str__(self):
-        return self.value
-
-    @property
-    def vif_key(self):
-        return f"{self!s}_vif_port_id"
 
 
 def _vif_attached(port_like_obj, vif_id):

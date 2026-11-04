@@ -44,6 +44,7 @@ from ironic.common import health_states
 from ironic.common import images
 from ironic.common import indicator_states
 from ironic.common import metrics as ironic_metrics
+from ironic.common.network import NetType
 from ironic.common import nova
 from ironic.common import states
 from ironic.conductor import cleaning
@@ -61,7 +62,6 @@ from ironic.drivers import base as drivers_base
 from ironic.drivers.modules import fake
 from ironic.drivers.modules import image_utils
 from ironic.drivers.modules import inspect_utils
-from ironic.drivers.modules.network.common import NetType
 from ironic.drivers.modules.network import flat as n_flat
 from ironic.drivers.modules.redfish import management as redfish_mgmt
 from ironic import objects

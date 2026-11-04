@@ -19,10 +19,10 @@ from oslo_utils import uuidutils
 
 from ironic.common import exception
 from ironic.common import network
+from ironic.common.network import NetType
 from ironic.common import neutron as neutron_common
 from ironic.common import states
 from ironic.conductor import task_manager
-from ironic.drivers.modules.network.common import NetType
 from ironic.tests.unit.db import base as db_base
 from ironic.tests.unit.db import utils as db_utils
 from ironic.tests.unit.objects import utils as object_utils
@@ -155,6 +155,48 @@ class TestNetwork(db_base.DbTestCase):
         self.assertEqual({}, result['ports'])
         self.assertEqual({}, result['portgroups'])
         self.assertTrue(mock_unp.called)
+
+
+class TestRecordVif(db_base.DbTestCase):
+
+    def test_record_vif(self):
+        node = object_utils.create_test_node(self.context)
+        port = object_utils.create_test_port(
+            self.context, node_id=node.id,
+            internal_info={NetType.TENANT.vif_key: 'tenant-vif'})
+        network.record_vif(port, NetType.CLEANING, 'cleaning-vif')
+        port.refresh()
+        # recorded under the net type's key, leaving other records alone
+        self.assertEqual({NetType.TENANT.vif_key: 'tenant-vif',
+                          NetType.CLEANING.vif_key: 'cleaning-vif'},
+                         port.internal_info)
+
+
+class TestForgetVif(db_base.DbTestCase):
+
+    def setUp(self):
+        super().setUp()
+        node = object_utils.create_test_node(self.context)
+        self.port = object_utils.create_test_port(
+            self.context, node_id=node.id,
+            internal_info={NetType.TENANT.vif_key: 'tenant-vif',
+                           NetType.CLEANING.vif_key: 'cleaning-vif'})
+
+    def test_forget_vif(self):
+        self.assertTrue(
+            network.forget_vif(self.port, NetType.CLEANING, 'cleaning-vif'))
+        self.port.refresh()
+        # only the given net type's record is removed
+        self.assertEqual({NetType.TENANT.vif_key: 'tenant-vif'},
+                         self.port.internal_info)
+
+    @mock.patch.object(object_utils.objects.Port, 'save', autospec=True)
+    def test_forget_vif_different_vif(self, save_mock):
+        self.assertFalse(
+            network.forget_vif(self.port, NetType.CLEANING, 'other-vif'))
+        save_mock.assert_not_called()
+        self.assertEqual('cleaning-vif',
+                         self.port.internal_info[NetType.CLEANING.vif_key])
 
 
 class TestRemoveVifsTestCase(db_base.DbTestCase):

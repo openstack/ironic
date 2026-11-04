@@ -23,10 +23,10 @@ from oslo_utils import uuidutils
 import pycdlib
 
 from ironic.common import exception
+from ironic.common.network import NetType
 from ironic.common import neutron
 from ironic.conductor import configdrive_utils as cd_utils
 from ironic.conductor import task_manager
-from ironic.drivers.modules.network.common import NetType
 from ironic.tests.unit.db import base as db_base
 from ironic.tests.unit.objects import utils as obj_utils
 
