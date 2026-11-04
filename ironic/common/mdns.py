@@ -32,8 +32,8 @@ from ironic.conf import CONF
 LOG = logging.getLogger(__name__)
 
 _MDNS_DOMAIN = '_openstack._tcp.local.'
-_endpoint = collections.namedtuple('Endpoint',
-                                   ['addresses', 'hostname', 'port', 'params'])
+Endpoint = collections.namedtuple(
+    'Endpoint', ['addresses', 'hostname', 'port', 'params'])
 
 
 class Zeroconf(object):
@@ -182,4 +182,4 @@ def _parse_endpoint(endpoint, service_type=None):
     if hostname is not None and not hostname.endswith('.'):
         hostname += '.'
 
-    return _endpoint(addresses, hostname, port, params)
+    return Endpoint(addresses, hostname, port, params)
