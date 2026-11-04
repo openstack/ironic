@@ -14,6 +14,7 @@
             voting: false
             files:
               - ^playbooks/ci/build-partition-image.yaml$
+              - ^playbooks/ci/elements/partition-image-uefi/.*$
               - ^zuul.d/ironic-image-jobs.yaml$
               - ^zuul.d/project.yaml$
         - ironic-tox-mypy

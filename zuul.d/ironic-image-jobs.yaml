@@ -2,7 +2,7 @@
 - job:
     name: ironic-build-partition-image
     parent: publish-openstack-artifacts
-    description: Build and publish the Ironic Ubuntu partition image fixture.
+    description: Build and publish the Ironic Debian partition image fixture.
     timeout: 3600
     run: playbooks/ci/build-partition-image.yaml
     required-projects:
