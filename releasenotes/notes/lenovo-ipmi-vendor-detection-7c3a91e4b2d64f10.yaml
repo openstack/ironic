@@ -1,0 +1,7 @@
+---
+fixes:
+  - |
+    Fixes detection of Lenovo servers managed through IPMI. Some versions of
+    ``ipmitool`` report Lenovo manufacturer ID 19046 as ``Unknown (0x4A66)``
+    instead of a Lenovo name. Ironic now records the vendor as ``lenovo``,
+    so the existing Lenovo UEFI boot workaround runs.

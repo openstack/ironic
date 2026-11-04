@@ -152,6 +152,8 @@ IPMITOOL_RETRYABLE_FAILURES = ['insufficient resources for session',
                                'Out of space',
                                'BMC initialization in progress']
 
+LENOVO_IANA_ID = 19046
+
 # NOTE(lucasagomes): A mapping for the boot devices and their hexadecimal
 # value. For more information about these values see the "Set System Boot
 # Options Command" section 28.13 of the link below (page 392)
@@ -1396,9 +1398,22 @@ class IPMIManagement(base.ManagementInterface):
         """
         driver_info = _parse_driver_info(task.node)
         out, err = _exec_ipmitool(driver_info, "mc info")
-        re_obj = re.search("Manufacturer Name *: (.+)", out)
-        if re_obj:
-            return re_obj.group(1).lower()
+
+        name_match = re.search("Manufacturer Name *: (.+)", out)
+        id_match = re.search(r"Manufacturer ID *: (\d+)", out)
+
+        vendor = name_match.group(1).strip().lower() if name_match else None
+        manufacturer_id = int(id_match.group(1)) if id_match else None
+
+        # Lenovo's IANA number is 19046 (0x4A66). ipmitool 1.8.18 prints
+        # "Unknown (0x4A66)"; a newer ipmitool may print the full company
+        # name. The boot workaround compares against exactly "lenovo".
+        if (manufacturer_id == LENOVO_IANA_ID
+                or (vendor and ('0x4a66' in vendor
+                                or vendor.startswith('lenovo')))):
+            return 'lenovo'
+
+        return vendor
 
     @METRICS.timer('IPMIManagement.get_sensors_data')
     def get_sensors_data(self, task):
