@@ -173,7 +173,10 @@ RUNBOOK_STEP_SCHEMA = {
         'args': {'type': 'object'},
         'interface': {
             'type': 'string',
-            'enum': list(conductor_steps.CLEANING_INTERFACE_PRIORITY)
+            # NOTE: runbooks are used for both cleaning and servicing, so
+            # accept any interface valid for either.
+            'enum': list({**conductor_steps.CLEANING_INTERFACE_PRIORITY,
+                          **conductor_steps.SERVICING_INTERFACE_PRIORITY})
         },
         'step': {'type': 'string', 'minLength': 1},
         'order': {'anyOf': [

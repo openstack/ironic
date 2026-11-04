@@ -1053,6 +1053,17 @@ class TestPost(BaseRunbooksAPITest):
         tdict['steps'][0]['args'] = {'foo': [{'bar': 'baz'}]}
         self._test_create_ok(tdict)
 
+    def test_create_runbook_network_interface_step(self):
+        tdict = test_api_utils.post_get_test_runbook()
+        tdict['steps'][0].update({'interface': 'network',
+                                  'step': 'reattach_networking'})
+        response = self.post_json('/runbooks', tdict,
+                                  headers={api_base.Version.string:
+                                           str(api_v1.max_version()),
+                                           'OpenStack-System-Scope': 'all',
+                                           'X-Roles': 'admin'})
+        self.assertEqual(http_client.CREATED, response.status_int)
+
     def test_create_runbook_system_scope(self):
         tdict = test_api_utils.post_get_test_runbook()
         response = self.post_json('/runbooks', tdict,
