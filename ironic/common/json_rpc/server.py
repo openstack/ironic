@@ -21,6 +21,7 @@ https://www.jsonrpc.org/specification. Main differences:
 
 import json
 import logging
+from typing import TYPE_CHECKING
 
 from keystonemiddleware import auth_token
 from oslo_config import cfg
@@ -34,6 +35,9 @@ from ironic.common import exception
 from ironic.common.i18n import _
 from ironic.common import wsgi_service
 from ironic.conf import json_rpc
+
+if TYPE_CHECKING:
+    from _typeshed.wsgi import WSGIApplication
 
 
 CONF = cfg.CONF
@@ -117,7 +121,7 @@ class WSGIService(wsgi_service.BaseWSGIService):
 
         # Guard against deeply-nested JSON payloads that can crash
         # the process via RecursionError in json.loads().
-        app = json_depth.JsonDepthMiddleware(
+        app: 'WSGIApplication' = json_depth.JsonDepthMiddleware(
             self._application,
             max_depth=CONF.api.max_json_body_depth)
 

@@ -44,13 +44,12 @@ def _get_session(group: str = 'json_rpc'):
     global _SESSIONS
 
     if group not in _SESSIONS:
-        kwargs = {}
         auth_strategy = json_rpc.auth_strategy(group)
         if auth_strategy != 'keystone':
             auth_type = 'none' if auth_strategy == 'noauth' else auth_strategy
             CONF.set_default('auth_type', auth_type, group=group)
 
-        auth = keystone.get_auth(group, **kwargs)
+        auth = keystone.get_auth(group)
 
         session = keystone.get_session(group, auth=auth)
         headers = {
