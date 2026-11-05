@@ -100,16 +100,16 @@ hardware data to show which rules match and what actions would be executed,
 without touching any real node. This helps test and debug inspection rules
 before deploying them to a production environment.
 
-The rules file is always required. The hardware data to
-evaluate the rules against is given either as a single node/inventory file
-pair, or as a directory tree of test cases.
+The rules file is always required and is given with :option:`--rules`. The
+hardware data to evaluate the rules against is given either as a single
+node/inventory file pair, or as a directory tree of test cases.
 
 For a single set of files, the node and inventory data can be captured from
 a real node::
 
   openstack baremetal node show <node> -f json > node.json
   openstack baremetal node inventory save --file inventory.json <node>
-  ironic-manage inspection-rules check rules.yaml \
+  ironic-manage inspection-rules check --rules rules.yaml \
       --node node.json --inventory inventory.json
 
 Alternatively, a whole directory tree of test cases can be checked at once.
@@ -117,7 +117,12 @@ Each subdirectory of the given directory is one test case and must contain a
 node file (``node.yaml`` or ``node.json``) and an inventory file
 (``inventory.yaml`` or ``inventory.json``)::
 
-  ironic-manage inspection-rules check rules.yaml --data-dir <directory>
+  ironic-manage inspection-rules check --rules rules.yaml \
+      --data-dir <directory>
+
+.. option:: --rules <rules file>
+
+  YAML file with the inspection rules to evaluate. Required.
 
 .. option:: --node <node file>
 
@@ -133,6 +138,18 @@ node file (``node.yaml`` or ``node.json``) and an inventory file
   Directory containing test case subdirectories to check. Cannot be
   combined with :option:`--node` and :option:`--inventory`.
 
-The command exits non-zero if any rule fails to evaluate (or, with
-:option:`--data-dir`, if any test case fails), making it suitable for use
-in CI jobs.
+For each rule, the command prints whether it matched (``[MATCH]``) or was
+skipped (``[SKIP]``), the result of each condition, and the arguments of each
+action after variable interpolation. Rules are evaluated in priority order,
+highest first. No changes are made to any node: the actions are only
+reported, never executed. A summary line gives the number of rules matched
+and any errors encountered. With :option:`--data-dir`, each test case is
+reported as ``PASS`` or ``FAIL``, followed by a total.
+
+The command exits with status 0 on success, 1 if any rule fails to load or
+evaluate (or, with :option:`--data-dir`, if any test case fails), and 2 if
+the options are invalid. This makes it suitable for use in CI jobs.
+
+.. seealso::
+
+   :ref:`inspection-rules-testing` in the inspection rules guide.

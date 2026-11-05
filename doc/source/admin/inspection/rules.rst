@@ -396,3 +396,49 @@ level within the structure will be recursively formatted as well:
             cpu_arch: "{inventory[cpu][architecture]}"
             bmc_address: "{inventory[bmc_address]}"
 
+.. _inspection-rules-testing:
+
+Testing rules
+-------------
+
+Rules can be checked before they are loaded into a production deployment with
+the :doc:`ironic-manage </cli/ironic-manage>` utility. The
+``inspection-rules check`` command evaluates a rules file against captured
+node and inventory data, and reports which rules match and what their
+actions would do, without modifying any node. No running ironic services are
+required.
+
+Capture the data from an existing node, then run the check:
+
+.. code-block:: console
+
+    $ openstack baremetal node show <node> -f json > node.json
+    $ openstack baremetal node inventory save --file inventory.json <node>
+    $ ironic-manage inspection-rules check --rules rules.yaml \
+        --node node.json --inventory inventory.json
+
+For each rule the output shows whether it matched, the outcome of every
+condition, and the action arguments after `Variable Interpolation`_ has been
+applied, which makes it easy to spot a replacement field that did not
+resolve. Rules are listed in priority order.
+
+To test a rules file against several kinds of hardware, create one
+subdirectory per case, each holding a ``node`` file and an ``inventory`` file
+(``.yaml`` or ``.json``), and pass the parent directory:
+
+.. code-block:: console
+
+    $ tree cases/
+    cases/
+    ├── dell-r640/
+    │   ├── node.json
+    │   └── inventory.json
+    └── supermicro-x11/
+        ├── node.yaml
+        └── inventory.yaml
+    $ ironic-manage inspection-rules check --rules rules.yaml \
+        --data-dir cases/
+
+The command exits non-zero when a rule cannot be evaluated or a test case
+fails, so it can be used in a CI job to validate changes to a rules file.
+See :doc:`/cli/ironic-manage` for the full list of options.
