@@ -10,6 +10,7 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
+import argparse
 import contextlib
 import io
 from unittest import mock
@@ -139,6 +140,115 @@ class InterfacesOutputTestCase(base.TestCase):
             mock.call('ironic.hardware.interfaces.power',
                       'enabled_power_interfaces', 'Power interfaces'),
         ])
+
+
+class InspectionRuleCommandsTestCase(base.TestCase):
+
+    def setUp(self):
+        super(InspectionRuleCommandsTestCase, self).setUp()
+        self.commands = manage.InspectionRuleCommands()
+
+    def _check(self, node=None, inventory=None, rules='rules.yaml',
+               data_dir=None):
+        conf = mock.Mock()
+        conf.command.node_file = node
+        conf.command.inventory_file = inventory
+        conf.command.rules = rules
+        conf.command.data_dir = data_dir
+        with mock.patch.object(manage, 'CONF', conf):
+            return self.assertRaises(SystemExit, self.commands.check)
+
+    @mock.patch.object(manage.tester, 'check_files', autospec=True)
+    def test_check_single(self, mock_check):
+        mock_check.return_value = 0
+
+        exc = self._check(node='node.yaml', inventory='inventory.yaml')
+
+        self.assertEqual(0, exc.code)
+        mock_check.assert_called_once_with('node.yaml', 'inventory.yaml',
+                                           'rules.yaml')
+
+    @mock.patch.object(manage.tester, 'check_files', autospec=True)
+    def test_check_single_failure(self, mock_check):
+        mock_check.return_value = 1
+
+        exc = self._check(node='node.yaml', inventory='inventory.yaml')
+
+        self.assertEqual(1, exc.code)
+
+    @mock.patch.object(manage.tester, 'run_suite', autospec=True)
+    def test_check_data_dir(self, mock_suite):
+        mock_suite.return_value = 0
+
+        exc = self._check(data_dir='cases')
+
+        self.assertEqual(0, exc.code)
+        mock_suite.assert_called_once_with('cases', 'rules.yaml')
+
+    @mock.patch.object(manage.tester, 'run_suite', autospec=True)
+    @mock.patch.object(manage.tester, 'check_files', autospec=True)
+    def test_check_node_without_inventory(self, mock_check, mock_suite):
+        exc = self._check(node='node.yaml')
+
+        self.assertEqual(2, exc.code)
+        mock_check.assert_not_called()
+        mock_suite.assert_not_called()
+
+    @mock.patch.object(manage.tester, 'run_suite', autospec=True)
+    @mock.patch.object(manage.tester, 'check_files', autospec=True)
+    def test_check_no_data_source(self, mock_check, mock_suite):
+        exc = self._check()
+
+        self.assertEqual(2, exc.code)
+        mock_check.assert_not_called()
+        mock_suite.assert_not_called()
+
+    @mock.patch.object(manage.tester, 'run_suite', autospec=True)
+    @mock.patch.object(manage.tester, 'check_files', autospec=True)
+    def test_check_data_dir_with_node(self, mock_check, mock_suite):
+        exc = self._check(node='node.yaml', inventory='inventory.yaml',
+                          data_dir='cases')
+
+        self.assertEqual(2, exc.code)
+        mock_check.assert_not_called()
+        mock_suite.assert_not_called()
+
+
+class CommandParsersTestCase(base.TestCase):
+
+    def setUp(self):
+        super(CommandParsersTestCase, self).setUp()
+        self.parser = argparse.ArgumentParser()
+        manage.add_command_parsers(self.parser.add_subparsers())
+
+    def _parse(self, argv):
+        stderr = io.StringIO()
+        with contextlib.redirect_stderr(stderr):
+            return self.parser.parse_args(argv)
+
+    def test_inspection_rules_check_single(self):
+        args = self._parse(['inspection-rules', 'check',
+                            '--rules', 'rules.yaml',
+                            '--node', 'node.yaml',
+                            '--inventory', 'inventory.yaml'])
+        self.assertEqual('rules.yaml', args.rules)
+        self.assertEqual('node.yaml', args.node_file)
+        self.assertEqual('inventory.yaml', args.inventory_file)
+        self.assertIsNone(args.data_dir)
+
+    def test_inspection_rules_check_data_dir(self):
+        args = self._parse(['inspection-rules', 'check',
+                            '--rules', 'rules.yaml', '--data-dir', 'cases'])
+        self.assertEqual('rules.yaml', args.rules)
+        self.assertEqual('cases', args.data_dir)
+        self.assertIsNone(args.node_file)
+        self.assertIsNone(args.inventory_file)
+
+    def test_inspection_rules_check_requires_rules(self):
+        exc = self.assertRaises(
+            SystemExit, self._parse,
+            ['inspection-rules', 'check', '--data-dir', 'cases'])
+        self.assertEqual(2, exc.code)
 
 
 class RealEntryPointsTestCase(base.TestCase):

@@ -20,6 +20,7 @@ import sys
 from oslo_config import cfg
 
 from ironic.common.i18n import _
+from ironic.common.inspection_rules import tester
 from ironic.common import service
 from ironic.conf import CONF
 from ironic.drivers import base as driver_base
@@ -94,6 +95,29 @@ def _select_interface_types(requested):
     return list(dict.fromkeys(requested))
 
 
+class InspectionRuleCommands(object):
+
+    def check(self):
+        node = CONF.command.node_file
+        inventory = CONF.command.inventory_file
+
+        if CONF.command.data_dir:
+            if node or inventory:
+                sys.stderr.write(
+                    _('--data-dir cannot be combined with --node or '
+                      '--inventory.\n'))
+                sys.exit(2)
+            sys.exit(tester.run_suite(CONF.command.data_dir,
+                                      CONF.command.rules))
+
+        if not (node and inventory):
+            sys.stderr.write(
+                _('Either --data-dir or both --node and --inventory are '
+                  'required.\n'))
+            sys.exit(2)
+        sys.exit(tester.check_files(node, inventory, CONF.command.rules))
+
+
 class DriverCommands(object):
 
     def hardware_types(self):
@@ -139,6 +163,48 @@ def add_command_parsers(subparsers):
                'all interface types are listed.')
         % ', '.join(sorted(driver_base.ALL_INTERFACES)))
     parser.set_defaults(func=driver_commands.interfaces)
+
+    inspection_rule_commands = InspectionRuleCommands()
+
+    parser = subparsers.add_parser(
+        'inspection-rules',
+        help=_('Work with inspection rules.'))
+    inspection_subparsers = parser.add_subparsers(
+        title='Inspection rules commands',
+        dest='inspection_rules_command')
+    inspection_subparsers.required = True
+
+    parser = inspection_subparsers.add_parser(
+        'check',
+        help=_('Evaluate inspection rules against captured hardware data '
+               'to see which rules match and what actions would be '
+               'executed, without touching any real node. Pass either '
+               '--node and --inventory for a single set of files, or '
+               '--data-dir to run every test case in a directory tree.'))
+    parser.add_argument(
+        '--rules', required=True, metavar='<rules file>',
+        help=_('YAML file with the inspection rules to evaluate.'))
+    # NOTE: the dest is explicit because plain "node" and "inventory"
+    # clash with configuration groups of the same name, which oslo.config
+    # rejects when the sub-command namespace is accessed.
+    parser.add_argument(
+        '--node', dest='node_file', metavar='<node file>',
+        help=_('JSON or YAML file with node data, e.g. from "openstack '
+               'baremetal node show <node> -f json". Requires '
+               '--inventory.'))
+    parser.add_argument(
+        '--inventory', dest='inventory_file', metavar='<inventory file>',
+        help=_('JSON or YAML file with hardware inventory and plugin '
+               'data, e.g. from "openstack baremetal node inventory '
+               'save". Requires --node.'))
+    parser.add_argument(
+        '--data-dir', metavar='<directory>',
+        help=_('Directory containing test case subdirectories. Each '
+               'subdirectory must contain a node file (node.yaml or '
+               'node.json) and an inventory file (inventory.yaml or '
+               'inventory.json). Cannot be combined with --node and '
+               '--inventory.'))
+    parser.set_defaults(func=inspection_rule_commands.check)
 
 
 def main():

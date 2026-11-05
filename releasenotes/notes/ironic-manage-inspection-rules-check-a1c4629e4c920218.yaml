@@ -1,0 +1,14 @@
+---
+features:
+  - |
+    The ``ironic-manage`` utility has a new ``inspection-rules check``
+    command that evaluates inspection rules against captured hardware data,
+    showing which rules match and what actions would be executed without
+    touching any real node. The rules file is passed with ``--rules``, and
+    the hardware data either as a single ``--node``/``--inventory`` file
+    pair or as a directory tree of test cases with ``--data-dir``.
+upgrade:
+  - |
+    The standalone ``tools/inspection_rules/tester.py`` script has been
+    removed. Use the new ``ironic-manage inspection-rules check`` command
+    instead.
