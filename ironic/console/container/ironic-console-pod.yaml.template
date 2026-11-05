@@ -2,7 +2,7 @@ apiVersion: v1
 kind: Secret
 metadata:
   name: "ironic-console-{{ uuid }}"
-  namespace: openstack
+  namespace: {{ namespace }}
   labels:
     app: ironic
     component: ironic-console
@@ -14,7 +14,7 @@ apiVersion: v1
 kind: Pod
 metadata:
   name: "ironic-console-{{ uuid }}"
-  namespace: openstack
+  namespace: {{ namespace }}
   labels:
     app: ironic
     component: ironic-console

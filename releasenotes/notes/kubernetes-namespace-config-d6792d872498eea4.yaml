@@ -1,0 +1,9 @@
+---
+features:
+  - |
+    Adds a new configuration option ``[vnc]kubernetes_namespace`` to allow
+    operators to specify the Kubernetes namespace in which console pods and
+    secrets are created when using the kubernetes console container provider.
+    The default value is ``openstack`` to maintain backward compatibility.
+    This setting only applies when using the default template; custom
+    templates must handle namespace configuration themselves.

@@ -151,6 +151,13 @@ opts = [
                help='For the kubernetes provider, the time (in seconds) to '
                     'wait for the console pod to start.'),
     cfg.StrOpt(
+        'kubernetes_namespace',
+        default='openstack',
+        help='For the kubernetes provider, the namespace in which to create '
+             'console resources (pods and secrets). This setting only applies '
+             'when using the default kubernetes_container_template; custom '
+             'templates must handle namespace configuration themselves.'),
+    cfg.StrOpt(
         'container_executable',
         default='docker',
         help='For the container provider, name or absolute path of the '
