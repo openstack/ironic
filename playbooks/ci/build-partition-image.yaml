@@ -5,6 +5,7 @@
   roles:
     - ensure-pip
   vars:
+    ironic_source: "{{ ansible_user_dir }}/src/opendev.org/openstack/ironic"
     dib_source: "{{ ansible_user_dir }}/src/opendev.org/openstack/diskimage-builder"
     image_dir: "{{ ansible_user_dir }}/ironic-partition-image"
     image_prefix: "ironic-partition-debian-trixie"
@@ -33,14 +34,17 @@
         path: "{{ image_dir }}"
         state: directory
 
-    - name: Build the Debian partition image
+    - name: Build the Debian UEFI partition image
       ansible.builtin.command:
         cmd: >-
-          disk-image-create debian-minimal baremetal dhcp-all-interfaces grub2
+          disk-image-create debian-minimal baremetal dhcp-all-interfaces
+          partition-image-uefi
           -o {{ image_dir }}/{{ image_prefix }}
       environment:
         DIB_RELEASE: trixie
         DIB_IMAGE_SIZE: 4
+        DIB_SKIP_GRUB_PACKAGE_INSTALL: "True"
+        ELEMENTS_PATH: "{{ ironic_source }}/playbooks/ci/elements"
       args:
         creates: "{{ image_dir }}/{{ image_prefix }}.qcow2"
 

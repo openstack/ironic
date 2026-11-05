@@ -1,0 +1,48 @@
+#!/bin/bash
+
+set -eu
+
+# Partition images have no block-device layout for DIB's bootloader element
+# to install onto. Use a temporary FAT filesystem because grub-install rejects
+# a plain directory, then copy the resulting EFI assets into the root image.
+# IPA preserves these assets onto the target's ESP during deployment.
+efi_dir=/boot/efi
+tmp_dir=$(mktemp -d)
+mounted=0
+
+cleanup() {
+    if [ "$mounted" -eq 1 ]; then
+        umount "$efi_dir"
+    fi
+    rm -rf "$tmp_dir"
+}
+trap cleanup EXIT
+
+mkdir -p "$efi_dir"
+mkfs.vfat -C "$tmp_dir/esp.img" 65536
+mount -t vfat -o loop "$tmp_dir/esp.img" "$efi_dir"
+mounted=1
+
+grub-install --target=x86_64-efi \
+    --efi-directory="$efi_dir" \
+    --boot-directory=/boot \
+    --removable \
+    --no-nvram \
+    --recheck \
+    --force \
+    --modules="part_gpt ext2 fat normal configfile search search_label linux"
+
+cp -a "$efi_dir/EFI" "$tmp_dir/"
+umount "$efi_dir"
+mounted=0
+cp -a "$tmp_dir/EFI" "$efi_dir/"
+
+# The loader starts from the ESP; direct it to the root filesystem's GRUB
+# configuration, which IPA refreshes during deployment.
+cat > "$efi_dir/EFI/BOOT/grub.cfg" <<EOF
+search --no-floppy --label ${DIB_ROOT_LABEL:-cloudimg-rootfs} --set=root
+set prefix=(\$root)/boot/grub
+configfile \$prefix/grub.cfg
+EOF
+
+test -s "$efi_dir/EFI/BOOT/BOOTX64.EFI"
