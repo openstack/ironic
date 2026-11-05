@@ -29,7 +29,6 @@ from sqlalchemy import Boolean, Column, DateTime, false, Index, true
 from sqlalchemy import BigInteger, ForeignKey, Integer
 from sqlalchemy import schema, String, Text
 from sqlalchemy import orm
-from sqlalchemy.orm import declarative_base
 from sqlalchemy import types
 
 from ironic.common import exception
@@ -94,11 +93,11 @@ class TruncatedText(types.TypeDecorator):
             return _truncate_event(value, max_bytes=MAX_EVENT_BYTES)
         return value
 
-class IronicBase(models.TimestampMixin,
-                 models.ModelBase):
-
-    metadata = None
-
+class IronicBase(
+    orm.DeclarativeBase,
+    models.TimestampMixin,
+    models.ModelBase
+):
     version = Column(String(15), nullable=True)
 
     def as_dict(self):
@@ -108,10 +107,7 @@ class IronicBase(models.TimestampMixin,
         return d
 
 
-Base = declarative_base(cls=IronicBase)
-
-
-class Chassis(Base):
+class Chassis(IronicBase):
     """Represents a hardware chassis."""
 
     __tablename__ = 'chassis'
@@ -125,7 +121,7 @@ class Chassis(Base):
     description = Column(String(255), nullable=True)
 
 
-class Conductor(Base):
+class Conductor(IronicBase):
     """Represents a conductor service entry."""
 
     __tablename__ = 'conductors'
@@ -141,7 +137,7 @@ class Conductor(Base):
                              server_default='')
 
 
-class ConductorHardwareInterfaces(Base):
+class ConductorHardwareInterfaces(IronicBase):
     """Internal table used to track what is loaded on each conductor."""
 
     __tablename__ = 'conductor_hardware_interfaces'
@@ -161,7 +157,7 @@ class ConductorHardwareInterfaces(Base):
     default = Column(Boolean, default=False, nullable=False)
 
 
-class NodeBase(Base):
+class NodeBase(IronicBase):
     """Represents a base bare metal node."""
 
     __tablename__ = 'nodes'
@@ -293,7 +289,7 @@ class Node(NodeBase):
         lazy="selectin")
 
 
-class Port(Base):
+class Port(IronicBase):
     """Represents a network port of a bare metal node."""
 
     __tablename__ = 'ports'
@@ -330,7 +326,7 @@ class Port(Base):
         "_node_uuid", "uuid", creator=lambda _i: Node(uuid=_i))
 
 
-class Portgroup(Base):
+class Portgroup(IronicBase):
     """Represents a group of network ports of a bare metal node."""
 
     __tablename__ = 'portgroups'
@@ -363,7 +359,7 @@ class Portgroup(Base):
         "_node_uuid", "uuid", creator=lambda _i: Node(uuid=_i))
 
 
-class NodeTag(Base):
+class NodeTag(IronicBase):
     """Represents a tag of a bare metal node."""
 
     __tablename__ = 'node_tags'
@@ -381,7 +377,7 @@ class NodeTag(Base):
     )
 
 
-class VolumeConnector(Base):
+class VolumeConnector(IronicBase):
     """Represents a volume connector of a bare metal node."""
 
     __tablename__ = 'volume_connectors'
@@ -400,7 +396,7 @@ class VolumeConnector(Base):
     extra = Column(db_types.JsonEncodedDict)
 
 
-class VolumeTarget(Base):
+class VolumeTarget(IronicBase):
     """Represents a volume target of a bare metal node."""
 
     __tablename__ = 'volume_targets'
@@ -420,7 +416,7 @@ class VolumeTarget(Base):
     extra = Column(db_types.JsonEncodedDict)
 
 
-class NodeTrait(Base):
+class NodeTrait(IronicBase):
     """Represents a trait of a bare metal node."""
 
     __tablename__ = 'node_traits'
@@ -437,7 +433,7 @@ class NodeTrait(Base):
     )
 
 
-class BIOSSetting(Base):
+class BIOSSetting(IronicBase):
     """Represents a bios setting of a bare metal node."""
 
     __tablename__ = 'bios_settings'
@@ -457,7 +453,7 @@ class BIOSSetting(Base):
     upper_bound = Column(BigInteger, nullable=True)
 
 
-class Allocation(Base):
+class Allocation(IronicBase):
     """Represents an allocation of a node for deployment."""
 
     __tablename__ = 'allocations'
@@ -480,7 +476,7 @@ class Allocation(Base):
     conductor_affinity = Column(Integer, nullable=True)
 
 
-class DeployTemplate(Base):
+class DeployTemplate(IronicBase):
     """Represents a deployment template."""
 
     __tablename__ = 'deploy_templates'
@@ -498,7 +494,7 @@ class DeployTemplate(Base):
         lazy="selectin")
 
 
-class DeployTemplateStep(Base):
+class DeployTemplateStep(IronicBase):
     """Represents a deployment step in a deployment template."""
 
     __tablename__ = 'deploy_template_steps'
@@ -523,7 +519,7 @@ class DeployTemplateStep(Base):
     )
 
 
-class NodeHistory(Base):
+class NodeHistory(IronicBase):
     """Represents a history event of a bare metal node."""
 
     __tablename__ = 'node_history'
@@ -547,7 +543,7 @@ class NodeHistory(Base):
     duration_seconds = Column(Integer, nullable=True)
 
 
-class NodeInventory(Base):
+class NodeInventory(IronicBase):
     """Represents an inventory of a baremetal node."""
     __tablename__ = 'node_inventory'
     __table_args__ = (
@@ -559,7 +555,7 @@ class NodeInventory(Base):
     node_id = Column(Integer, ForeignKey('nodes.id'), nullable=True)
 
 
-class FirmwareComponent(Base):
+class FirmwareComponent(IronicBase):
     """Represents the firmware information of a bare metal node."""
     __tablename__ = "firmware_information"
     __table_args__ = (
@@ -578,7 +574,7 @@ class FirmwareComponent(Base):
     serial_number = Column(String(255), nullable=True)
 
 
-class Runbook(Base):
+class Runbook(IronicBase):
     """Represents a runbook."""
 
     __tablename__ = 'runbooks'
@@ -604,7 +600,7 @@ class Runbook(Base):
         lazy="selectin")
 
 
-class RunbookStep(Base):
+class RunbookStep(IronicBase):
     """Represents a deployment step in a runbook."""
 
     __tablename__ = 'runbook_steps'
@@ -628,7 +624,7 @@ class RunbookStep(Base):
     )
 
 
-class RunbookTrait(Base):
+class RunbookTrait(IronicBase):
     """Represents a trait associated with a runbook."""
 
     __tablename__ = 'runbook_traits'
@@ -646,7 +642,7 @@ class RunbookTrait(Base):
     )
 
 
-class InspectionRule(Base):
+class InspectionRule(IronicBase):
     __tablename__ = 'inspection_rules'
     __table_args__ = (
         schema.UniqueConstraint('uuid', name='uniq_inspection_rules0uuid'),
@@ -673,7 +669,7 @@ def get_class(model_name):
     :returns: the class with the specified name
     :raises: Exception if there is no class associated with the name
     """
-    for model in Base.__subclasses__():
+    for model in IronicBase.__subclasses__():
         if model.__name__ == model_name:
             return model
 

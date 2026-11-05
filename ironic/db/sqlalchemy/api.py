@@ -1961,7 +1961,7 @@ class Connection(api.Connection):
         """
         object_versions = release_mappings.get_object_versions()
         table_missing_ok = False
-        models_to_check = models.Base.__subclasses__()
+        models_to_check = models.IronicBase.__subclasses__()
         # We need to append Node to the list as it is a subclass of
         # NodeBase, which is intentional to delineate excess queries.
         models_to_check.append(models.Node)
@@ -2042,7 +2042,7 @@ class Connection(api.Connection):
         mapping = release_mappings.RELEASE_MAPPING['master']['objects']
         total_to_migrate = 0
         total_migrated = 0
-        all_models = models.Base.__subclasses__()
+        all_models = models.IronicBase.__subclasses__()
         all_models.append(models.Node)
         sql_models = [model for model in all_models
                       if model.__name__ in mapping]

@@ -71,7 +71,7 @@ def create_schema(config=None, engine=None):
         raise db_exc.DBMigrationError("DB schema is already under version"
                                       " control. Use upgrade() instead")
 
-    models.Base.metadata.create_all(engine)
+    models.IronicBase.metadata.create_all(engine)
     stamp('head', config=config)
 
 

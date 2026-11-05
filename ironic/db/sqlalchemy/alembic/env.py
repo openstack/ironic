@@ -15,13 +15,6 @@ from logging import config as log_config
 from alembic import context
 from oslo_db.sqlalchemy import enginefacade
 
-try:
-    # NOTE(whaom): This is to register the DB2 alembic code which
-    # is an optional runtime dependency.
-    from ibm_db_alembic.ibm_db import IbmDbImpl  # noqa
-except ImportError:
-    pass
-
 from ironic.db.sqlalchemy import models
 
 # this is the Alembic Config object, which provides
@@ -30,12 +23,15 @@ config = context.config
 
 # Interpret the config file for Python logging.
 # This line sets up loggers basically.
-log_config.fileConfig(config.config_file_name)
+config_file_name = config.config_file_name
+if config_file_name:
+    # This is always set if called via the CLI
+    log_config.fileConfig(config_file_name)
 
 # add your model's MetaData object here
 # for 'autogenerate' support
 # from myapp import mymodel
-target_metadata = models.Base.metadata
+target_metadata = models.IronicBase.metadata
 
 # other values from the config, defined by the needs of env.py,
 # can be acquired:

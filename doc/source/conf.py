@@ -30,6 +30,7 @@ sys.path.insert(0, os.path.join(os.path.abspath('.'), '_exts'))
 # Add any Sphinx extension module names here, as strings. They can be
 # extensions coming with Sphinx (named 'sphinx.ext.*') or your custom ones.
 extensions = ['sphinx.ext.autodoc',
+              'sphinx.ext.intersphinx',
               'sphinx.ext.autosummary',
               'sphinx.ext.viewcode',
               'sphinx.ext.graphviz',
@@ -58,6 +59,11 @@ apidoc_excluded_paths = [
     'wsgi',
 ]
 apidoc_separate_modules = True
+
+# Resolve references in docstrings inherited from SQLAlchemy's DeclarativeBase.
+intersphinx_mapping = {
+    'sqlalchemy': ('https://docs.sqlalchemy.org/en/20/', None),
+}
 
 autodoc_default_options = {
     'special-members': '__call__',

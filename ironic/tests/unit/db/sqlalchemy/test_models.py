@@ -21,7 +21,7 @@ class TestGetClass(test_base.TestCase):
         ret = models.get_class('Chassis')
         self.assertEqual(models.Chassis, ret)
 
-        for model in models.Base.__subclasses__():
+        for model in models.IronicBase.__subclasses__():
             ret = models.get_class(model.__name__)
             self.assertEqual(model, ret)
 
