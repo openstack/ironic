@@ -208,6 +208,7 @@ devstack = [
 # Ansible-deploy interface
 ansible = [
     "ansible>=2.7", # GPL
+    "pyudev>=0.24.0", # LGPL-2.1-or-later
 ]
 # Standalone Networking Switch drivers
 networking_generic_switch = [
@@ -240,18 +241,17 @@ skip = "AUTHORS,ChangeLog,*.pyc,*.inv,*.svg,*.png,*.sample,./doc/build/*,./api-r
 [tool.mypy]
 # Check against the oldest Python we support (requires-python above), so
 # annotations stay valid across every supported interpreter.
-python_version = "3.10"
-# TEMPORARY: most of our dependencies (oslo.*, sushy, pecan, futurist,
-# stevedore, ...) ship neither inline types nor stubs, so their imports
-# would each be an error. Treating them as Any is the standard first step.
-# Walk back by replacing this with per-module overrides as dependencies
-# gain typing or as types-* stubs are added.
-ignore_missing_imports = true
+python_version = "3.11"
 # TEMPORARY: don't require annotations for module- and class-level
 # variables that mypy cannot fully infer (e.g. "FOO = None" at class
 # scope). Removing this today produces errors across the tree; walk it
 # back once the common patterns are annotated.
 allow_untyped_globals = true
+# A number of our dependencies ship neither inline types nor stubs. This is
+# outside of our control. This is preferred over ignore_missing_imports since
+# it ensures the dependency is still installed and we therefore benefit from
+# types once they are added.
+disable_error_code = ["import-untyped"]
 # NOTE: strict_optional (None-safety) is deliberately left at its default
 # of *enabled*; it is the main property we want out of mypy.
 
