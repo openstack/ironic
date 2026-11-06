@@ -53,7 +53,9 @@
 - job:
     name: ironic-base
     abstract: true
-    description: Base job for devstack/tempest based ironic jobs.
+    description: |
+      Shared DevStack and Tempest parent for Ironic integration jobs. Provides
+      the standard bare-metal test environment and common configuration.
     parent: devstack-tempest
     nodeset: openstack-single-node-noble
     post-run: playbooks/ci-workarounds/get_extra_logging.yaml
@@ -809,14 +811,20 @@
     # NOTE(TheJulia): Compatibility job definition, can be removed
     # once this job name has been removed (or renamed) in other projects.
     name: ironic-tempest-ipa-wholedisk-direct-tinyipa-multinode
-    description: ironic-tempest-ipa-wholedisk-direct-multinode
+    description: |
+      Compatibility alias for ironic-tempest-ipa-wholedisk-direct-multinode.
+      Retained for projects that still reference the legacy TinyIPA job name;
+      use the canonical job name for new references.
     parent: ironic-tempest-ipa-wholedisk-direct-multinode
 
 - job:
     # NOTE(TheJulia): Compatibility job definition, can be removed
     # once this job name has been removed (or renamed) in other projects.
     name: ironic-tempest-ipa-wholedisk-direct-tinyipa-multinode-shard
-    description: ironic-tempest-ipa-wholedisk-direct-multinode-shard
+    description: |
+      Compatibility alias for ironic-tempest-ipa-wholedisk-direct-multinode-shard.
+      Retained for projects that still reference the legacy TinyIPA job name;
+      use the canonical job name for new references.
     parent: ironic-tempest-ipa-wholedisk-direct-multinode-shard
 
 
@@ -828,8 +836,10 @@
     # TODO(JayF) Add a post-run validation to ensure the two n-cpus did not
     #            see each others' nodes
     name: ironic-tempest-ipa-wholedisk-direct-multinode-shard
-    description: ironic-tempest-ipa-wholedisk-direct-multinode-shard
-      with automated cleaning enabled.
+    description: |
+      Run the whole-disk direct-deploy Tempest basic-operations test across
+      multiple Ironic shards on a three-node DevStack setup, with automated
+      cleaning enabled.
     parent: ironic-tempest-ipa-wholedisk-direct-multinode
     nodeset: ironic-three-node-noble
     vars:
@@ -1045,7 +1055,10 @@
 
 - job:
     name: ironic-tempest-standalone-advanced
-    description: ironic-tempest-standalone-advanced test cases
+    description: |
+      Run advanced standalone Tempest scenarios with Redfish virtual-media
+      deployment. Builds CentOS images with DIB and exercises Neutron provider
+      networking.
     parent: ironic-base
     required-projects:
       - opendev.org/openstack/diskimage-builder
@@ -1144,7 +1157,9 @@
 # Used by devstack/ironic/nova/neutron
 - job:
     name: ironic-tempest-bios-ipmi-autodetect
-    description: ironic-tempest-wholedisk-bios-ipmi-direct that also tests cleaning.
+    description: |
+      Test whole-disk deployment in BIOS mode through IPMI with deployment
+      interface autodetection, including automated cleaning.
     parent: ironic-base
     vars:
       tempest_test_regex: test_baremetal_server_ops_wholedisk_image
@@ -1169,7 +1184,9 @@
 
 - job:
     name: ironic-tempest-uefi-redfish-vmedia-4k
-    description: "Build 4k disk artifacts with 4k VMs"
+    description: |
+      Test UEFI Redfish virtual-media deployment using a DIB-built image and
+      virtual disks with 4 KiB logical sectors.
     parent: ironic-tempest-uefi-redfish-vmedia
     vars:
       tempest_test_timeout: 2800

@@ -2,7 +2,7 @@
 - job:
     name: metal3-base
     abstract: true
-    description: Base job for metal3 based ironic jobs.
+    description: Shared abstract parent for Metal3 integration jobs in Ironic CI.
     timeout: 5400
     required-projects:
       - opendev.org/openstack/ironic
@@ -21,7 +21,11 @@
 
 - job:
     name: metal3-integration
-    description: Run metal3 CI on ironic.
+    description: |
+      Build the Metal3 development environment using Ironic from the current
+      checkout. The Metal3 test suite is not run by this job yet; it requires a
+      two-node environment. Details:
+      https://docs.openstack.org/ironic/latest/contributor/metal3-integration.html
     parent: metal3-base
     nodeset: ironic-single-node-noble
     timeout: 7200

@@ -4,28 +4,12 @@
 Jobs description
 ================
 
-The description of each jobs that runs in the CI when you submit a patch for
-``openstack/ironic`` is visible in :ref:`table_jobs_description`.
+Descriptions for Ironic CI jobs are maintained in the ``description`` field of
+each Zuul job definition. They are displayed in the `Ironic jobs in Zuul`_.
 
-.. note:: Ironic CI jobs are now documented using the "description" field
-          in the job definition that they are created in.
+When adding or changing a CI job, update its description in the corresponding
+Zuul YAML file. Describe the job's purpose and what it validates; for image
+jobs, also clarify whether they publish artifacts or only build them for
+validation.
 
-.. _table_jobs_description:
-
-.. list-table:: Table. OpenStack Ironic CI jobs description
-  :widths: 53 47
-  :header-rows: 1
-
-  * - Job name
-    - Description
-  * - bifrost-integration-tinyipa-ubuntu-focal
-    - Tests the integration between Ironic and Bifrost using a tinyipa image.
-  * - bifrost-integration-redfish-vmedia-uefi-centos-9
-    - Tests the integration between Ironic and Bifrost using redfish vmedia and
-      a dib image based on centos stream 9.
-  * - `metal3-integration <contributor/metal3-integration>`_
-    - Tests the integration between Ironic and `Metal3`_ using the
-      `metal3-dev-env`_ environment
-
-.. _Metal3: https://metal3.io/
-.. _metal3-dev-env: https://github.com/metal3-io/metal3-dev-env
+.. _Ironic jobs in Zuul: https://zuul.opendev.org/t/openstack/jobs?project=openstack%2Fironic
