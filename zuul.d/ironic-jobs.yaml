@@ -838,9 +838,23 @@
           IRONIC_SHARD_1_NAME: "subnode"
           IRONIC_NODE_SHARD_NAME: "main-node"
 
+# NOTE: openstack/requirements has no bugfix/* branches, so Zuul falls back
+# to its master branch and the tox role exports TOX_CONSTRAINTS_FILE pointing
+# at that checkout, which overrides the default in tox.ini. Use the
+# constraints from the release this bugfix branch was created from instead.
+- job:
+    name: ironic-tox
+    parent: openstack-tox
+    description: |
+      openstack-tox with requirements checked out from the release this
+      bugfix branch was created from.
+    required-projects:
+      - name: opendev.org/openstack/requirements
+        override-checkout: stable/2026.2
+
 - job:
     name: ironic-tox-unit-with-driver-libs
-    parent: openstack-tox
+    parent: ironic-tox
     description: |
       Run python 3 unit tests with driver dependencies installed.
     vars:
@@ -849,7 +863,7 @@
 # TODO(JayF): We likely no longer need to segregate these.
 - job:
     name: ironic-tox-unit-mysql-migrations
-    parent: openstack-tox
+    parent: ironic-tox
     description: |
       Run MySQL based data model migrations. These are excluded from
       typical unit test runs.
@@ -858,7 +872,7 @@
 
 - job:
     name: ironic-tox-mypy
-    parent: openstack-tox
+    parent: ironic-tox
     description: |
       Run mypy static type checks.
     vars:
@@ -1286,7 +1300,7 @@
     name: ironic-cross-sushy
     nodeset: ubuntu-noble
     description: Ironic unit tests run with Sushy from source
-    parent: openstack-tox
+    parent: ironic-tox
     required-projects:
       - opendev.org/openstack/ironic
       - opendev.org/openstack/sushy
