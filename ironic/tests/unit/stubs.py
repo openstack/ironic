@@ -13,8 +13,10 @@
 #    under the License.
 
 
+from ironic.common.i18n import _
 from openstack.connection import exceptions as openstack_exc
 from oslo_utils import uuidutils
+from sushy.exceptions import OEMExtensionNotFoundError
 
 
 NOW_GLANCE_FORMAT = "2010-10-11T10:30:22"
@@ -277,3 +279,55 @@ class FakeNeutronSecurityGroup(dict):
             self[key] = value
         else:
             raise AttributeError(key)
+
+
+class FakeDellAttributes(object):
+    def __init__(self, identity):
+        self._attributes = {}
+        self._identity = identity
+
+    @property
+    def attributes(self):
+        return self._attributes
+
+    @property
+    def identity(self):
+        return self._identity
+
+
+class FakeDellIdracAttributes(FakeDellAttributes):
+    def __init__(self, idrac_version):
+        super().__init__('iDRAC.Embedded.1')
+
+        model = _("iDrac %(version)s") % {'version': idrac_version}
+
+        self._attributes.update({
+            'Info.1.HWModel': model
+        })
+
+
+class FakeDellManagerExtension(object):
+    def __init__(self, idrac_version):
+        self._attributes = [
+            FakeDellIdracAttributes(idrac_version)
+        ]
+
+    @property
+    def attributes(self):
+        for attribute in self._attributes:
+            yield attribute
+
+    @property
+    def attribute_resources(self):
+        return {resource.identity: resource for resource in self.attributes}
+
+
+def make_fake_get_oem_extension_dell_manager(idrac_version):
+    def fake_get_oem_extension(vendor):
+        if vendor.lower() == 'dell':
+            return FakeDellManagerExtension(idrac_version)
+
+        raise OEMExtensionNotFoundError(
+            resource='manager', name=vendor.lower())
+
+    return fake_get_oem_extension
