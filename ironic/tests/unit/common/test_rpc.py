@@ -12,6 +12,7 @@
 
 from unittest import mock
 
+import fixtures
 from oslo_config import cfg
 import oslo_messaging as messaging
 
@@ -71,9 +72,9 @@ class TestUtils(base.TestCase):
         rpc.NOTIFICATION_TRANSPORT = None
         rpc.SENSORS_NOTIFIER = None
         rpc.VERSIONED_NOTIFIER = None
-        mock_request_serializer = mock.Mock()
+        mock_request_serializer = self.useFixture(fixtures.MockPatchObject(
+            rpc, 'RequestContextSerializer', autospec=True)).mock
         mock_request_serializer.return_value = mock.Mock()
-        rpc.RequestContextSerializer = mock_request_serializer
 
         # Make sure that two separate Notifiers are instantiated: one for the
         # regular RPC transport, one for the notification transport
