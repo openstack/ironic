@@ -17,6 +17,7 @@ import copy
 import datetime
 from http import client as http_client
 import json
+from typing import Any
 import urllib.parse
 
 import jsonschema
@@ -107,6 +108,11 @@ _STEPS_SCHEMA = {
         "additionalProperties": False
     }
 }
+
+_SERVICE_STEPS_SCHEMA: dict[str, Any] = copy.deepcopy(_STEPS_SCHEMA)
+_SERVICE_STEPS_SCHEMA['title'] = 'Service steps schema'
+_SERVICE_STEPS_SCHEMA['items']['properties']['interface']['enum'] = list(
+    conductor_steps.SERVICING_INTERFACE_PRIORITY)
 
 _DEPLOY_STEPS_SCHEMA = {
     "$schema": "http://json-schema.org/schema#",
@@ -1406,7 +1412,7 @@ def _check_service_steps(service_steps):
         service_steps parameter of :func:`NodeStatesController.provision`.
     :raises: InvalidParameterValue if validation of steps fails.
     """
-    _check_steps(service_steps, 'service', _STEPS_SCHEMA)
+    _check_steps(service_steps, 'service', _SERVICE_STEPS_SCHEMA)
 
     disallowed_steps = CONF.api.disallow_service_steps
     if disallowed_steps:
