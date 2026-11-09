@@ -2217,6 +2217,8 @@ class NodeHistoryController(rest.RestController):
         if marker:
             marker_obj = objects.NodeHistory.get_by_uuid(api.request.context,
                                                          marker)
+            if marker_obj.node_id != node.id:
+                raise exception.NodeHistoryNotFound(history=marker)
         limit = api_utils.validate_limit(limit)
         sort_dir = api_utils.validate_sort_dir(sort_dir)
 
@@ -2246,12 +2248,19 @@ class NodeHistoryController(rest.RestController):
     @args.validate(event=args.uuid_or_name)
     def get_one(self, event):
         """Get a node history entry"""
+        # NOTE(TheJulia): The first step in the RBAC check, ensure
+        # the user has rights on the parent.
         node = api_utils.check_node_policy_and_retrieve(
             'baremetal:node:history:get', self.node_ident)
         # TODO(TheJulia): Need to check policy to make sure if policy
         # check fails, that the entry cannot be found.
         event = objects.NodeHistory.get_by_uuid(api.request.context,
                                                 event)
+        if event.node_id != node.id:
+            # Access is always built upon the node itself, but we
+            # must ensure the caller's node matches the requested
+            # event.
+            raise exception.NodeHistoryNotFound(history=event)
         return self._history_event_convert_with_links(
             node.uuid, event, detail=True)
 

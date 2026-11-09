@@ -3995,6 +3995,22 @@ node_history_get_entry_reader:
   headers: *owner_reader_headers
   assert_status: 200
 
+node_history_cannot_be_retrieved_with_other_rights:
+  # a lessee can access their node and verify access, but the event
+  # must match their node.
+  path: '/v1/nodes/{owner_node_ident}/history/{lessee_history_ident}'
+  method: get
+  headers: *owner_reader_headers
+  assert_status: 404
+
+node_history_cannot_use_invalid_marker:
+  # a lessee can access their node and verify access, but the event
+  # must match their node.
+  path: '/v1/nodes/{owner_node_ident}/history?marker={lessee_history_ident}'
+  method: get
+  headers: *owner_reader_headers
+  assert_status: 404
+
 lessee_node_history_get_admin:
   path: '/v1/nodes/{node_ident}/history'
   method: get
