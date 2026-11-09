@@ -1467,12 +1467,12 @@ class ErrorHandlersTestCase(db_base.DbTestCase):
         mock_error_handler.assert_called_once_with(
             self.task,
             logmsg="Cleaning for node 18c95393-b775-4887-a274-c45be47509d5 "
-                   "failed. Timeout reached while cleaning the node. Please "
-                   "check if the ramdisk responsible for the cleaning is "
-                   "running on the node. Failed on step {}.",
-            errmsg="Timeout reached while cleaning the node. Please "
-                   "check if the ramdisk responsible for the cleaning is "
-                   "running on the node. Failed on step {}.",
+                   "failed. Node failed to complete cleaning, timeout "
+                   "reached. Please check if the ramdisk responsible for "
+                   "the cleaning is running on the node. Failed on step {}.",
+            errmsg="Node failed to complete cleaning, timeout reached. "
+                   "Please check if the ramdisk responsible for the cleaning "
+                   "is running on the node. Failed on step {}.",
             set_fail_state=False)
 
     def test_cleanup_cleanwait_timeout(self):
@@ -1481,9 +1481,10 @@ class ErrorHandlersTestCase(db_base.DbTestCase):
         self.node.target_provision_state = target
         self.node.driver_internal_info = {}
         self.node.clean_step = {'key': 'val'}
-        clean_error = ("Timeout reached while cleaning the node. Please "
-                       "check if the ramdisk responsible for the cleaning is "
-                       "running on the node. Failed on step {'key': 'val'}.")
+        clean_error = ("Node failed to complete cleaning, timeout reached. "
+                       "Please check if the ramdisk responsible for the "
+                       "cleaning is running on the node. Failed on step "
+                       "{'key': 'val'}.")
         self.node.set_driver_internal_info('cleaning_reboot', True)
         self.node.set_driver_internal_info('clean_step_index', 0)
         conductor_utils.cleanup_cleanwait_timeout(self.task)
@@ -1505,12 +1506,12 @@ class ErrorHandlersTestCase(db_base.DbTestCase):
         mock_error_handler.assert_called_once_with(
             self.task,
             logmsg="Servicing for node 18c95393-b775-4887-a274-c45be47509d5 "
-                   "failed. Timeout reached while servicing the node. Please "
-                   "check if the ramdisk responsible for the servicing is "
-                   "running on the node. Failed on step {}.",
-            errmsg="Timeout reached while servicing the node. Please "
-                   "check if the ramdisk responsible for the servicing is "
-                   "running on the node. Failed on step {}.",
+                   "failed. Node failed to complete servicing, timeout "
+                   "reached. Please check if the ramdisk responsible for "
+                   "the servicing is running on the node. Failed on step {}.",
+            errmsg="Node failed to complete servicing, timeout reached. "
+                   "Please check if the ramdisk responsible for the "
+                   "servicing is running on the node. Failed on step {}.",
             set_fail_state=False)
 
     def test_cleanup_servicewait_timeout(self):
@@ -1519,10 +1520,10 @@ class ErrorHandlersTestCase(db_base.DbTestCase):
         self.node.target_provision_state = target
         self.node.driver_internal_info = {}
         self.node.service_step = {'key': 'val'}
-        service_error = ("Timeout reached while servicing the node. Please "
-                         "check if the ramdisk responsible for the servicing "
-                         "is running on the node. Failed on step "
-                         "{'key': 'val'}.")
+        service_error = ("Node failed to complete servicing, timeout "
+                         "reached. Please check if the ramdisk responsible "
+                         "for the servicing is running on the node. Failed "
+                         "on step {'key': 'val'}.")
         self.node.set_driver_internal_info('servicing_reboot', True)
         self.node.set_driver_internal_info('service_step_index', 0)
         conductor_utils.cleanup_servicewait_timeout(self.task)
@@ -1735,7 +1736,8 @@ class ErrorHandlersTestCase(db_base.DbTestCase):
         self.assertTrue(log_mock.error.called)
         node_power_mock.assert_called_once_with(mock.ANY, states.POWER_OFF)
         self.task.driver.rescue.clean_up.assert_called_once_with(self.task)
-        self.assertIn('Timeout reached', self.node.last_error)
+        self.assertIn('Node failed to callback for the rescue ramdisk',
+                      self.node.last_error)
         self.node.save.assert_called_once_with()
 
     @mock.patch.object(conductor_utils, 'LOG', autospec=True)
@@ -2013,12 +2015,12 @@ class InspectingErrorHandlerTestCase(db_base.DbTestCase):
         mock_error_handler.assert_called_once_with(
             mock.ANY,
             logmsg="Inspection for node %s "
-                   "failed. Timeout reached while inspecting the node. "
+                   "failed. Node failed to complete inspection, timeout "
+                   "reached. Please check if the ramdisk responsible for "
+                   "the inspection is running on the node." % self.node.uuid,
+            errmsg="Node failed to complete inspection, timeout reached. "
                    "Please check if the ramdisk responsible for the "
-                   "inspection is running on the node." % self.node.uuid,
-            errmsg="Timeout reached while inspecting the node. Please check "
-                   "if the ramdisk responsible for the inspection is running "
-                   "on the node.")
+                   "inspection is running on the node.")
 
 
 class ValidatePortPhysnetTestCase(db_base.DbTestCase):
