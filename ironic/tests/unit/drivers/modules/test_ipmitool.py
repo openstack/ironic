@@ -3689,6 +3689,24 @@ class IPMIToolDriverTestCase(Base):
             mock_exec.assert_called_once_with(driver_info, 'mc info')
             self.assertEqual('lolcatmeow', vendor)
 
+    @mock.patch.object(ipmi, '_exec_ipmitool', autospec=True)
+    def test_detect_vendor_lenovo_unknown_name(self, mock_exec):
+        mc_info = MC_INFO.replace('1234', '19046').format(
+            vendor='Unknown (0x4A66)')
+        mock_exec.return_value = (mc_info, None)
+        with task_manager.acquire(self.context, self.node.uuid) as task:
+            vendor = self.management.detect_vendor(task)
+            self.assertEqual('lenovo', vendor)
+
+    @mock.patch.object(ipmi, '_exec_ipmitool', autospec=True)
+    def test_detect_vendor_lenovo_full_name(self, mock_exec):
+        mc_info = MC_INFO.replace('1234', '19046').format(
+            vendor='Lenovo Enterprise Business Group')
+        mock_exec.return_value = (mc_info, None)
+        with task_manager.acquire(self.context, self.node.uuid) as task:
+            vendor = self.management.detect_vendor(task)
+            self.assertEqual('lenovo', vendor)
+
     def test__parse_ipmi_sensor_data_ok(self):
         fake_sensors_data = """
                             Sensor ID              : Temp (0x1)
