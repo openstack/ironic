@@ -1548,6 +1548,85 @@ class TestNeutronVifPortIDMixin(db_base.DbTestCase):
             self.assertEqual(second_port.portgroup_id, saved_pg.id)
 
 
+    @mock.patch.object(common.VIFPortIDMixin, '_save_vif_to_port_like_obj',
+                       autospec=True)
+    @mock.patch.object(common, 'get_free_port_like_object', autospec=True)
+    @mock.patch.object(neutron_common, 'get_client', autospec=True)
+    @mock.patch.object(neutron_common, 'update_port_address', autospec=True)
+    @mock.patch.object(neutron_common, 'get_physnets_by_port_uuid',
+                       autospec=True)
+    def test_vif_attach_tbn_dynamic_portgroup_mode_properties(
+            self, mock_gpbpi, mock_upa, mock_client, mock_gfp, mock_save):
+        # Trait will match TBN trait defined below.
+        self.node.set_instance_info('traits', ['CUSTOM_TRAIT_NAME'])
+        self.node.save()
+
+        # Vendor matches filter expression below.
+        self.port.vendor = 'dynamic'
+        self.port.internal_info = {}
+        self.port.available_for_dynamic_portgroup = True
+        self.port.save()
+
+        second_port = obj_utils.create_test_port(
+                self.context, node_id=self.node.id,
+                uuid=uuidutils.generate_uuid(),
+                address='52:54:00:cf:2d:33',
+                vendor='dynamic',
+                internal_info={},
+                available_for_dynamic_portgroup=True)
+        second_port.save()
+
+        vif_info = {'id': 'fake_vif_id'}
+
+        # This should create a dynamic portgroup with the two existing test
+        # ports and attach it to the available network.
+        contents = ("CUSTOM_TRAIT_NAME:\n"
+                    "  actions:\n"
+                    "    - action: group_and_attach_ports\n"
+                    "      filter: port.vendor == 'dynamic' \n"
+                    "      min_count: 2\n"
+                    "      params:\n"
+                    "        mode: 802.3ad\n"
+                    "        properties:\n"
+                    "          miimon: 100\n"
+                    "          xmit_hash_policy: layer2+3\n")
+        self.tmpdir = tempfile.TemporaryDirectory()
+
+        with tempfile.NamedTemporaryFile(mode='w', dir=self.tmpdir.name,
+                                         delete=False) as tmpfile:
+            tmpfile.write(contents)
+            tmpfile.close()
+
+            # Enable TBN through conductor configuration
+            self.config(enable_trait_based_networking=True, group='conductor')
+            self.config(trait_based_networking_config_file=tmpfile.name,
+                        group='conductor')
+
+            with task_manager.acquire(self.context, self.node.id) as task:
+                self.interface.vif_attach(task, vif_info)
+
+            self.assertFalse(mock_gpbpi.called)
+            self.assertFalse(mock_gfp.called)
+
+            # Make sure the new portgroup was attached to the network.
+            self.assertTrue(mock_save.called)
+            self.assertEqual(len(mock_save.call_args_list), 1)
+
+            saved_pg = mock_save.call_args_list[0][0][0]
+            self.assertTrue(saved_pg.name.startswith('tbn_dyn_portgroup_'))
+            self.assertEqual('802.3ad', saved_pg.mode)
+            self.assertEqual({'miimon': '100',
+                              'xmit_hash_policy': 'layer2+3'},
+                             saved_pg.properties)
+            self.assertEqual(mock_save.call_args_list[0][0][1], vif_info['id'])
+
+            # Make sure the selected ports are now part of the dynamic
+            # portgroup.
+            self.port.refresh()
+            self.assertEqual(self.port.portgroup_id, saved_pg.id)
+            second_port.refresh()
+            self.assertEqual(second_port.portgroup_id, saved_pg.id)
+
     @mock.patch.object(common.VIFPortIDMixin, '_clear_vif_from_port_like_obj',
                        autospec=True)
     @mock.patch.object(neutron_common, 'unbind_neutron_port', autospec=True)

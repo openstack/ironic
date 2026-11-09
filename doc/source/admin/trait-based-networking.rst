@@ -104,6 +104,9 @@ and the following optional keys:
   There is no default maximum.
 * ``min_count`` - The minimum number of objects that *must* match before this
   action applies. The default minimum is effectively 1.
+* ``params`` - A mapping of options specific to the action. Each action
+  defines which keys it accepts, and unrecognized keys are rejected. See
+  `Portgroup Mode and Properties`_ for the ``group_and_attach_ports`` params.
 
 Available Actions
 ~~~~~~~~~~~~~~~~~
@@ -120,10 +123,55 @@ The following actions are currently available:
   portgroup comprised of the set of ports. Then attach the newly created
   dynamic portgroup to a suitable network. This action must set a
   ``min_count`` of at least 2. Also note that all ports selected for the
-  portgroup must have the same ``physical_network``.
+  portgroup must have the same ``physical_network``. The portgroup's ``mode``
+  and ``properties`` can optionally be set using ``params``, see
+  `Portgroup Mode and Properties`_.
 
 Future actions are planned. This document will be updated as they become
 available.
+
+Portgroup Mode and Properties
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+The ``group_and_attach_ports`` action accepts ``mode`` and ``properties``
+under its ``params`` key, which set those fields on the dynamic portgroup it
+creates. These are the same ``mode`` and
+``properties`` fields as on a regular portgroup, which are described in
+:doc:`/admin/portgroups`. They are applied when the dynamic portgroup is
+created.
+
+``mode`` must be one of ``802.3ad``, ``balance-rr``, ``active-backup``,
+``balance-xor``, ``broadcast``, ``balance-tlb`` or ``balance-alb``. If
+``mode`` is not set, the portgroup uses the default portgroup mode, which is
+controlled by the :oslo.config:option:`DEFAULT.default_portgroup_mode`
+configuration option.
+
+``properties`` is a mapping of key/value pairs, equivalent to repeating
+``--property key=value`` when running ``baremetal port group create``. Keys
+and values are stored as strings, so ``miimon: 100`` is stored as ``'100'``.
+``properties`` may be set without ``mode``. See the
+`kernel documentation on bonding`_ for the values the kernel accepts.
+
+.. code-block:: yaml
+
+    CUSTOM_BOND_WITH_LACP:
+      actions:
+        - action: group_and_attach_ports
+          filter: port.vendor == 'purple'
+          min_count: 2
+          params:
+            mode: 802.3ad
+            properties:
+              miimon: 100
+              xmit_hash_policy: layer2+3
+
+.. note::
+    ``params`` is only valid for actions which define params, currently only
+    ``group_and_attach_ports``. Configuration files which set ``params`` on
+    other actions, or which use unrecognized params keys or modes, are
+    rejected during validation.
+
+.. _kernel documentation on bonding: https://www.kernel.org/doc/Documentation/networking/bonding.txt
 
 Example Configuration File
 ~~~~~~~~~~~~~~~~~~~~~~~~~~

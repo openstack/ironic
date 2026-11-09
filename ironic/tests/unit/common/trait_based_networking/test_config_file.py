@@ -160,6 +160,80 @@ class TraitBasedNetworkingConfigFileTestCase(base.TestCase):
                   f"{tbn_base.DEFAULT_GROUP_AND_ATTACH_MIN_COUNT} "
                   "or greater. Got '0'.")],
             ),
+            SubTestCase(
+                "Valid - group_and_attach_ports with mode and properties",
+                ("CUSTOM_TRAIT_NAME:\n"
+                 "  actions:\n"
+                 "    - action: group_and_attach_ports\n"
+                 "      filter: port.vendor == 'vendor_string'\n"
+                 "      min_count: 2\n"
+                 "      params:\n"
+                 "        mode: 802.3ad\n"
+                 "        properties:\n"
+                 "          miimon: 100\n"
+                 "          xmit_hash_policy: layer2+3\n"),
+                True,
+                [],
+            ),
+            SubTestCase(
+                "Invalid - group_and_attach_ports has unknown mode",
+                ("CUSTOM_TRAIT_NAME:\n"
+                 "  actions:\n"
+                 "    - action: group_and_attach_ports\n"
+                 "      filter: port.vendor == 'vendor_string'\n"
+                 "      min_count: 2\n"
+                 "      params:\n"
+                 "        mode: bogus\n"),
+                False,
+                [("'CUSTOM_TRAIT_NAME' has an invalid "
+                  "'group_and_attach_ports': group_and_attach_ports has an "
+                  "unrecognized mode 'bogus'. Valid modes are: "
+                  f"{', '.join(tbn_base.PORTGROUP_MODES)}.")],
+            ),
+            SubTestCase(
+                "Invalid - group_and_attach_ports properties not a mapping",
+                ("CUSTOM_TRAIT_NAME:\n"
+                 "  actions:\n"
+                 "    - action: group_and_attach_ports\n"
+                 "      filter: port.vendor == 'vendor_string'\n"
+                 "      min_count: 2\n"
+                 "      params:\n"
+                 "        properties:\n"
+                 "          - miimon\n"),
+                False,
+                [("'CUSTOM_TRAIT_NAME' has an invalid "
+                  "'group_and_attach_ports': group_and_attach_ports "
+                  "properties must be a mapping of string keys to string "
+                  "values.")],
+            ),
+            SubTestCase(
+                "Invalid - mode on an action that does not support it",
+                ("CUSTOM_TRAIT_NAME:\n"
+                 "  actions:\n"
+                 "    - action: attach_port\n"
+                 "      filter: port.vendor == 'vendor_string'\n"
+                 "      params:\n"
+                 "        mode: 802.3ad\n"),
+                False,
+                [("'CUSTOM_TRAIT_NAME' has an invalid 'attach_port': "
+                  "attach_port has unrecognized params: mode. This action "
+                  "does not take any params.")],
+            ),
+            SubTestCase(
+                "Invalid - group_and_attach_ports has unknown param",
+                ("CUSTOM_TRAIT_NAME:\n"
+                 "  actions:\n"
+                 "    - action: group_and_attach_ports\n"
+                 "      filter: port.vendor == 'vendor_string'\n"
+                 "      min_count: 2\n"
+                 "      params:\n"
+                 "        moed: 802.3ad\n"),
+                False,
+                [("'CUSTOM_TRAIT_NAME' has an invalid "
+                  "'group_and_attach_ports': group_and_attach_ports has "
+                  "unrecognized params: moed. Valid params are: mode, "
+                  "properties.")],
+            ),
         ]
 
         for subtest in subtests:
@@ -174,6 +248,35 @@ class TraitBasedNetworkingConfigFileTestCase(base.TestCase):
                     valid, reasons = config_file.validate()
                     self.assertEqual(subtest.expected_valid, valid)
                     self.assertCountEqual(subtest.expected_reasons, reasons)
+
+    def test_parse_group_and_attach_ports_mode_and_properties(self):
+        contents = (
+            "CUSTOM_TRAIT_NAME:\n"
+            "  actions:\n"
+            "    - action: group_and_attach_ports\n"
+            "      filter: port.vendor == 'vendor_string'\n"
+            "      min_count: 2\n"
+            "      params:\n"
+            "        mode: 802.3ad\n"
+            "        properties:\n"
+            "          miimon: 100\n"
+            "          xmit_hash_policy: layer2+3\n")
+
+        with tempfile.NamedTemporaryFile(
+                mode='w',
+                dir=self.tmpdir.name,
+                delete=False) as tmpfile:
+            tmpfile.write(contents)
+            tmpfile.close()
+            config_file = cf.ConfigFile(tmpfile.name)
+            self.assertTrue(config_file.validate()[0])
+            config_file.parse()
+
+        action = config_file.traits()[0].actions[0]
+        self.assertEqual('802.3ad', action.params['mode'])
+        # Integer YAML values are converted to strings.
+        self.assertEqual({'miimon': '100', 'xmit_hash_policy': 'layer2+3'},
+                         action.params['properties'])
 
     def test_parse(self):
         contents = (

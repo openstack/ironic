@@ -15,6 +15,7 @@ from dataclasses import dataclass
 from dataclasses import fields
 from dataclasses import MISSING
 import enum
+from typing import Any
 from typing import ClassVar
 
 import ironic.common.exception as exc
@@ -353,6 +354,22 @@ class FilterExpression(object):
 
 DEFAULT_GROUP_AND_ATTACH_MIN_COUNT: int = 2
 
+# Keys accepted in the params of a group_and_attach_ports action.
+GROUP_AND_ATTACH_PORTS_PARAMS: tuple[str, ...] = ("mode", "properties")
+
+# Portgroup modes accepted by group_and_attach_ports. These are the same
+# values allowed for bond_mode in ironic/api/controllers/v1/
+# network-data-schema.json, which is enforced by a unit test.
+PORTGROUP_MODES: tuple[str, ...] = (
+    "802.3ad",
+    "balance-rr",
+    "active-backup",
+    "balance-xor",
+    "broadcast",
+    "balance-tlb",
+    "balance-alb",
+)
+
 
 @dataclass(frozen=True)
 class TraitAction:
@@ -369,6 +386,7 @@ class TraitAction:
     filter: 'FilterExpression'
     min_count: int | None = None
     max_count: int | None = None
+    params: dict[str, Any] | None = None
 
     def matches(self, portlike, network, vif):
         """Check if filter expression matches the port, network, vif."""
@@ -391,9 +409,40 @@ class TraitAction:
                               "greater or equal to it's min_count. min_count "
                               f"is '{self.min_count}' while max_count is "
                               f"'{self.max_count}'."))
+                return self._validate_params(GROUP_AND_ATTACH_PORTS_PARAMS)
             case _:
-                return (True, "")
+                return self._validate_params(())
 
+    def _validate_params(self, allowed):
+        """Check that params only has keys allowed for this action."""
+        if self.params is None:
+            return (True, "")
+        if not isinstance(self.params, dict):
+            return (False,
+                    _(f"{self.action.value} params must be a mapping."))
+        unknown = sorted(str(k) for k in self.params if k not in allowed)
+        if unknown:
+            if allowed:
+                valid = _(f"Valid params are: {', '.join(allowed)}.")
+            else:
+                valid = _("This action does not take any params.")
+            return (False,
+                    _(f"{self.action.value} has unrecognized params: "
+                      f"{', '.join(unknown)}. {valid}"))
+        mode = self.params.get('mode')
+        if mode is not None and mode not in PORTGROUP_MODES:
+            return (False,
+                    _(f"{self.action.value} has an unrecognized "
+                      f"mode '{mode}'. Valid modes are: "
+                      f"{', '.join(PORTGROUP_MODES)}."))
+        properties = self.params.get('properties')
+        if properties is not None:
+            if not isinstance(properties, dict) or not all(
+                    isinstance(k, str) and isinstance(v, str)
+                    for k, v in properties.items()):
+                return (False,
+                        _(f"{self.action.value} properties must be a "
+                          "mapping of string keys to string values."))
         return (True, "")
 
 
@@ -654,9 +703,16 @@ class GroupAndAttachPorts(RenderedAction):
     network_id: str
 
     def __str__(self):
-        return _(f"Assemble node '{self.node_uuid}' ports into a dynamic "
-                 f"portgroup and attach it to network '{self.network_id}'. "
-                 f"Selected Port UUIDs: {self.port_uuids}.")
+        msg = _(f"Assemble node '{self.node_uuid}' ports into a dynamic "
+                f"portgroup and attach it to network '{self.network_id}'. "
+                f"Selected Port UUIDs: {self.port_uuids}.")
+        params = self.trait_action.params or {}
+        if params.get('mode') is not None:
+            msg += _(f" Portgroup mode: '{params['mode']}'.")
+        if params.get('properties'):
+            msg += _(" Portgroup properties: "
+                     f"{params['properties']}.")
+        return msg
 
 @dataclass(frozen=True)
 class NoMatch(RenderedAction):

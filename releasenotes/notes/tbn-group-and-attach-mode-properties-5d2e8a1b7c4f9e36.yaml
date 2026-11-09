@@ -1,0 +1,13 @@
+---
+features:
+  - |
+    The Trait Based Networking actions now accept an optional ``params``
+    mapping for action specific options. The ``group_and_attach_ports`` action
+    accepts ``mode`` and ``properties`` in ``params``, which are set on the
+    dynamic portgroup it creates. ``mode`` accepts the same values as a
+    portgroup's mode, and ``properties`` is a mapping of bonding properties
+    such as ``miimon`` and ``xmit_hash_policy``. The keys are validated when
+    the configuration file is loaded, and are shown in the plan output of
+    ``tools/trait_based_networking/simulator.py``. Documentation can be found
+    in `Ironic's administrator documentation
+    <https://docs.openstack.org/ironic/latest/admin/trait-based-networking.html>`_.

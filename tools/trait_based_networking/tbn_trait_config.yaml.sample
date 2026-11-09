@@ -9,6 +9,11 @@ CUSTOM_BOND_PURPLE_BY_2:
   - action: group_and_attach_ports
     filter: port.vendor == 'purple'
     max_count: 2
+    params:
+      mode: 802.3ad
+      properties:
+        miimon: 100
+        xmit_hash_policy: layer2+3
 CUSTOM_BOND_GREEN_STORAGE_TO_STORAGE_BY_2:
   - action: group_and_attach_ports
     filter: port.vendor == 'green' && port.category == 'storage'

@@ -17,6 +17,24 @@ import ironic.common.trait_based_networking.base as base
 import yaml
 
 
+def _normalize_params(params):
+    """Stringify scalar portgroup property values in an action's params
+
+    YAML reads ``miimon: 100`` as an integer, but portgroup properties are
+    strings. Anything that isn't a mapping of scalars is returned untouched so
+    that validation can reject it.
+    """
+    if not isinstance(params, dict):
+        return params
+    properties = params.get('properties')
+    if not isinstance(properties, dict):
+        return params
+    return {**params,
+            'properties': {k: str(v) if isinstance(v, (int, float))
+                           and not isinstance(v, bool) else v
+                           for k, v in properties.items()}}
+
+
 class ConfigFile(object):
     """Provides functionality to read TBN configuration files
 
@@ -124,7 +142,9 @@ class ConfigFile(object):
                         base.Actions(trait_action['action']),
                         base.FilterExpression.parse(trait_action['filter']),
                         min_count=min_count,
-                        max_count=max_count)
+                        max_count=max_count,
+                        params=_normalize_params(
+                            trait_action.get('params')))
 
                     validated, reason = action_obj.validate()
                     if not validated:
@@ -155,7 +175,8 @@ class ConfigFile(object):
                     base.Actions(action['action']),
                     base.FilterExpression.parse(action['filter']),
                     min_count=min_count,
-                    max_count=max_count))
+                    max_count=max_count,
+                    params=_normalize_params(action.get('params'))))
             order = trait_members.get('order', 1)
             self._traits.append(base.NetworkTrait(trait_name, parsed_actions,
                                                   order))

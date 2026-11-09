@@ -10,6 +10,7 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
+import ironic.api.controllers.v1
 import ironic.common.exception as exc
 import ironic.common.trait_based_networking.base as tbn
 
@@ -18,11 +19,14 @@ from ironic.tests import base
 import ironic.tests.unit.common.trait_based_networking.utils as tbn_test_utils
 from ironic.tests.unit.objects import utils as obj_utils
 
+from ddt import data
 from ddt import ddt
 from ddt import named_data
 from ddt import unpack
 
 import itertools
+import json
+import os
 
 
 def _named(enum_cls):
@@ -637,6 +641,90 @@ class TraitBasedNetworkingBaseTestCase(base.TestCase):
                          "greater or equal to it's min_count. min_count "
                          f"is '{gaps.min_count}' while max_count is "
                          f"'{gaps.max_count}'.")
+
+    def test_portgroup_modes_match_network_data_schema(self):
+        schema_path = os.path.join(
+            os.path.dirname(ironic.api.controllers.v1.__file__),
+            'network-data-schema.json')
+        with open(schema_path) as f:
+            schema = json.load(f)
+        schema_modes = schema['definitions']['l2_bond']['properties'][
+            'bond_mode']['enum']
+        self.assertCountEqual(schema_modes, tbn.PORTGROUP_MODES)
+
+    @data(*tbn.PORTGROUP_MODES)
+    def test_trait_action_validate_mode_and_properties(self, mode):
+        action = tbn.TraitAction(
+            "CUSTOM_TRAIT", tbn.Actions.GROUP_AND_ATTACH_PORTS,
+            tbn.FilterExpression.parse("port.vendor == 'cogwork'"), 2, 2,
+            params={'mode': mode,
+                    'properties': {'miimon': '100',
+                                   'xmit_hash_policy': 'layer2+3'}})
+        self.assertEqual((True, ""), action.validate())
+
+    def test_trait_action_validate_properties_without_mode(self):
+        filt = tbn.FilterExpression.parse("port.vendor == 'cogwork'")
+        action = tbn.TraitAction(
+            "CUSTOM_TRAIT", tbn.Actions.GROUP_AND_ATTACH_PORTS, filt, 2,
+            params={'properties': {'miimon': '100'}})
+        self.assertEqual((True, ""), action.validate())
+
+    def test_trait_action_validate_bad_mode(self):
+        action = tbn.TraitAction(
+            "CUSTOM_TRAIT", tbn.Actions.GROUP_AND_ATTACH_PORTS,
+            tbn.FilterExpression.parse("port.vendor == 'cogwork'"), 2,
+            params={'mode': 'bogus'})
+        valid, reason = action.validate()
+        self.assertFalse(valid)
+        self.assertIn("unrecognized mode 'bogus'", reason)
+
+    @data(['miimon'], {'miimon': 100}, {1: '100'})
+    def test_trait_action_validate_bad_properties(self, properties):
+        action = tbn.TraitAction(
+            "CUSTOM_TRAIT", tbn.Actions.GROUP_AND_ATTACH_PORTS,
+            tbn.FilterExpression.parse("port.vendor == 'cogwork'"), 2,
+            params={'properties': properties})
+        valid, reason = action.validate()
+        self.assertFalse(valid)
+        self.assertIn("mapping of string keys to string values", reason)
+
+    @data({'mode': '802.3ad'}, {'properties': {'a': 'b'}})
+    def test_trait_action_validate_mode_on_other_action(self, params):
+        action = tbn.TraitAction(
+            "CUSTOM_TRAIT", tbn.Actions.ATTACH_PORT,
+            tbn.FilterExpression.parse("port.vendor == 'cogwork'"),
+            params=params)
+        valid, reason = action.validate()
+        self.assertFalse(valid)
+        self.assertIn("does not take any params", reason)
+
+    def test_trait_action_validate_unknown_param(self):
+        action = tbn.TraitAction(
+            "CUSTOM_TRAIT", tbn.Actions.GROUP_AND_ATTACH_PORTS,
+            tbn.FilterExpression.parse("port.vendor == 'cogwork'"), 2,
+            params={'moed': '802.3ad'})
+        valid, reason = action.validate()
+        self.assertFalse(valid)
+        self.assertIn("unrecognized params: moed", reason)
+
+    def test_trait_action_validate_params_not_a_mapping(self):
+        action = tbn.TraitAction(
+            "CUSTOM_TRAIT", tbn.Actions.GROUP_AND_ATTACH_PORTS,
+            tbn.FilterExpression.parse("port.vendor == 'cogwork'"), 2,
+            params=['mode'])
+        valid, reason = action.validate()
+        self.assertFalse(valid)
+        self.assertIn("params must be a mapping", reason)
+
+    def test_group_and_attach_ports_str_mode_and_properties(self):
+        trait_action = tbn.TraitAction(
+            "CUSTOM_TRAIT", tbn.Actions.GROUP_AND_ATTACH_PORTS,
+            tbn.FilterExpression.parse("port.vendor == 'cogwork'"), 2, 2,
+            params={'mode': '802.3ad', 'properties': {'miimon': '100'}})
+        action = tbn.GroupAndAttachPorts(
+            trait_action, "fake_node_uuid", ['port1', 'port2'], "net_id")
+        self.assertIn("mode: '802.3ad'", str(action))
+        self.assertIn("{'miimon': '100'}", str(action))
 
     def test_actions_to_str(self):
         trait_action = tbn.TraitAction(
