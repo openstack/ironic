@@ -32,6 +32,7 @@ from ironic.drivers.modules.redfish import utils as redfish_utils
 from ironic.tests.unit.db import base as db_base
 from ironic.tests.unit.db import utils as db_utils
 from ironic.tests.unit.objects import utils as obj_utils
+from ironic.tests.unit.stubs import make_fake_get_oem_extension_dell_manager
 
 INFO_DICT = db_utils.get_test_redfish_info()
 
@@ -464,8 +465,10 @@ class RedfishVirtualMediaBootTestCase(db_base.DbTestCase):
             task.driver.boot.validate(task)
 
     def test__validate_vendor_incompatible_with_idrac(self):
+        get_oem_extension = make_fake_get_oem_extension_dell_manager(9)
         managers = [mock.Mock(firmware_version='5.10.30.00',
-                              manager_type=sushy.MANAGER_TYPE_BMC)]
+                              manager_type=sushy.MANAGER_TYPE_BMC,
+                              get_oem_extension=get_oem_extension)]
         with task_manager.acquire(self.context, self.node.uuid,
                                   shared=True) as task:
             task.node.instance_info.update(
@@ -487,8 +490,10 @@ class RedfishVirtualMediaBootTestCase(db_base.DbTestCase):
                 task.driver.boot._validate_vendor, task, managers)
 
     def test__validate_vendor_compatible_with_idrac9_v6(self):
+        get_oem_extension = make_fake_get_oem_extension_dell_manager(9)
         managers = [mock.Mock(firmware_version='6.00.00.00',
-                              manager_type=sushy.MANAGER_TYPE_BMC)]
+                              manager_type=sushy.MANAGER_TYPE_BMC,
+                              get_oem_extension=get_oem_extension)]
         with task_manager.acquire(self.context, self.node.uuid,
                                   shared=True) as task:
             task.node.instance_info.update(
@@ -508,8 +513,33 @@ class RedfishVirtualMediaBootTestCase(db_base.DbTestCase):
             task.driver.boot._validate_vendor(task, managers)
 
     def test__validate_vendor_compatible_with_idrac9_v7(self):
+        get_oem_extension = make_fake_get_oem_extension_dell_manager(9)
         managers = [mock.Mock(firmware_version='7.00.00.00',
-                              manager_type=sushy.MANAGER_TYPE_BMC)]
+                              manager_type=sushy.MANAGER_TYPE_BMC,
+                              get_oem_extension=get_oem_extension)]
+        with task_manager.acquire(self.context, self.node.uuid,
+                                  shared=True) as task:
+            task.node.instance_info.update(
+                {'kernel': 'kernel',
+                 'ramdisk': 'ramdisk',
+                 'image_source': 'http://image/source'}
+            )
+
+            task.node.driver_info.update(
+                {'deploy_kernel': 'kernel',
+                 'deploy_ramdisk': 'ramdisk',
+                 'bootloader': 'bootloader'}
+            )
+
+            task.node.properties['vendor'] = "Dell Inc."
+
+            task.driver.boot._validate_vendor(task, managers)
+
+    def test__validate_vendor_compatible_with_idrac10(self):
+        get_oem_extension = make_fake_get_oem_extension_dell_manager(10)
+        managers = [mock.Mock(firmware_version='5.10.30.00',
+                              manager_type=sushy.MANAGER_TYPE_BMC,
+                              get_oem_extension=get_oem_extension)]
         with task_manager.acquire(self.context, self.node.uuid,
                                   shared=True) as task:
             task.node.instance_info.update(
