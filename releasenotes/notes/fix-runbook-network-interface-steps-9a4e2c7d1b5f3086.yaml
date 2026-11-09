@@ -1,0 +1,9 @@
+---
+fixes:
+  - |
+    Fixes runbook creation and updates rejecting steps that use the
+    ``network`` interface, such as the ``reattach_networking`` service step,
+    with an HTTP 400 error. Runbooks can be used for both cleaning and
+    servicing, so the API now accepts any interface that is valid for
+    either. A runbook containing a ``network`` step can only be used for
+    servicing, as no cleaning steps are provided by the network interface.
