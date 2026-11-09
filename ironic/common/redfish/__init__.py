@@ -52,6 +52,7 @@ Example usage::
 from ironic.common.redfish.auth import AsyncBasicAuth
 from ironic.common.redfish.auth import AsyncSessionAuth
 from ironic.common.redfish.auth import AsyncSessionOrBasicAuth
+from ironic.common.redfish.client import AsyncRedfishClient
 from ironic.common.redfish.connector import AsyncConnector
 from ironic.common.redfish import exceptions
 from ironic.common.redfish.resource import AsyncResource
@@ -59,6 +60,7 @@ from ironic.common.redfish.resource import AsyncResourceCollection
 from ironic.common.redfish.taskmonitor import AsyncTaskMonitor
 
 __all__ = [
+    'AsyncRedfishClient',
     'AsyncConnector',
     'AsyncBasicAuth',
     'AsyncSessionAuth',
