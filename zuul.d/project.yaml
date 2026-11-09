@@ -65,6 +65,7 @@
         ###############################################################
         # CI Jobs Below this line may be *removed* on Stable Branches #
         ###############################################################
+        - ironic-standalone-anaconda
         # NOTE(TheJulia): At present, metal3 doesn't leverage
         # stable branches, and as far as we are aware this job
         # can be removed once this branch is made stable.
@@ -83,8 +84,6 @@
         - ironic-standalone-aarch64:
             voting: false
         - ironic-tempest-ipa-wholedisk-bios-ipmi-direct-dib:
-            voting: false
-        - ironic-standalone-anaconda:
             voting: false
         - bifrost-integration-on-ubuntu-noble:
             voting: false
@@ -117,6 +116,7 @@
         - openstacksdk-functional-devstack:
             files:
               - ^ironic/api/.*$
+        - ironic-standalone-anaconda
         # NOTE(rpittau): Currently broken because of an issue with parted
         # NOTE(TheJulia): At present, metal3 doesn't leverage
         # stable branches, and as far as we are aware these jobs
