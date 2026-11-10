@@ -1,0 +1,14 @@
+---
+security:
+  - |
+    Previously a user with access rights to a node to leverage the node
+    history feature could request other node's history events if they
+    happened to have access to the UUID of the other node's history events.
+    The history event retrieval API will now only permit events to be
+    retrieved which matches the node utilized to access the event in the API
+    request path.
+fixes:
+  - |
+    Fixes a security issue where a node's history event retrieval API did not
+    validate that the submitted event ID matched the node used to request the
+    entry. These values must now match.
