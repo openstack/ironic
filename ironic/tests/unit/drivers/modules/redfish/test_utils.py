@@ -240,7 +240,7 @@ class RedfishUtilsTestCase(db_base.DbTestCase):
         redfish_utils._get_connection.side_effect =\
             sushy.exceptions.ResourceNotFoundError('GET', uri, mock.Mock())
 
-        self.assertRaises(exception.RedfishError,
+        self.assertRaises(exception.RedfishResourceNotFound,
                           redfish_utils.get_task_monitor, self.node, uri)
 
     def test_get_update_service(self):
@@ -325,7 +325,7 @@ class RedfishUtilsTestCase(db_base.DbTestCase):
                                                    '/',
                                                    requests.Response())
 
-        self.assertRaises(exception.RedfishError,
+        self.assertRaises(exception.RedfishResourceNotFound,
                           redfish_utils.get_system_collection, self.node)
 
 
