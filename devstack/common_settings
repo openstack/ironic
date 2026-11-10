@@ -41,7 +41,15 @@ add_image_link http://download.cirros-cloud.net/${CIRROS_VERSION}/cirros-${CIRRO
 add_image_link http://download.cirros-cloud.net/${CIRROS_VERSION}/cirros-${CIRROS_VERSION}-${IRONIC_HW_ARCH}-disk.img
 
 export IRONIC_WHOLEDISK_IMAGE_NAME=${IRONIC_WHOLEDISK_IMAGE_NAME:-${IRONIC_IMAGE_NAME/-uec/-disk}}
-export IRONIC_PARTITIONED_IMAGE_NAME=${IRONIC_PARTITIONED_IMAGE_NAME:-${IRONIC_IMAGE_NAME/-disk/-uec}}
+# When all fixture URLs are supplied, the DevStack plugin imports the custom
+# image instead of relying on the CirrOS UEC image for partition tests.
+if [[ -n "${IRONIC_PARTITIONED_IMAGE_URL:-}" ]]; then
+    # A custom image must not inherit the CirrOS name, as Tempest uses the
+    # name to determine whether local boot is supported.
+    export IRONIC_PARTITIONED_IMAGE_NAME=${IRONIC_PARTITIONED_IMAGE_NAME:-ironic-partition-image}
+else
+    export IRONIC_PARTITIONED_IMAGE_NAME=${IRONIC_PARTITIONED_IMAGE_NAME:-${IRONIC_IMAGE_NAME/-disk/-uec}}
+fi
 
 # These parameters describe which image will be used to provision a node in
 # tempest tests

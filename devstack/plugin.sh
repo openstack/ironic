@@ -104,6 +104,7 @@ if is_service_enabled ir-api ir-cond ir-novnc; then
         # or any other test environments
             if is_service_enabled tempest && [[ "$IRONIC_CONFIGURE_TEMPEST" == "True" ]]; then
                 echo_summary "Configuring Tempest for Ironic needs"
+                upload_partitioned_image_if_needed
                 ironic_configure_tempest
             fi
         fi
