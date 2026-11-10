@@ -1,0 +1,5 @@
+---
+fixes:
+  - |
+    redfish-virtual-media boot no longer fails due to missing
+    attribute_resources on Dell BMCs.

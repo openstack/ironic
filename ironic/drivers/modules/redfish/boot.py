@@ -889,7 +889,10 @@ class RedfishVirtualMediaBoot(base.BootInterface):
                            if m.manager_type == sushy.MANAGER_TYPE_BMC]
             if bmc_manager:
                 oem = bmc_manager[0].get_oem_extension('Dell')
-                idrac = oem.attribute_resources.get('iDRAC.Embedded.1')
+                attribute_resources = {
+                    resource.identity: resource for resource in oem.attributes
+                }
+                idrac = attribute_resources.get('iDRAC.Embedded.1')
                 model = idrac.attributes.get('Info.1.HWModel')
                 idrac_version = re.search(r'\d+', model)[0]
                 if int(idrac_version) >= 10:

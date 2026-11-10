@@ -317,10 +317,6 @@ class FakeDellManagerExtension(object):
         for attribute in self._attributes:
             yield attribute
 
-    @property
-    def attribute_resources(self):
-        return {resource.identity: resource for resource in self.attributes}
-
 
 def make_fake_get_oem_extension_dell_manager(idrac_version):
     def fake_get_oem_extension(vendor):
