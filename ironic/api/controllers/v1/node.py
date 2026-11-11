@@ -1017,7 +1017,8 @@ class NodeStatesController(rest.RestController):
 
         rpc_runbook = api_utils.check_runbook_policy_and_retrieve(
             policy_name='baremetal:runbook:use',
-            runbook_ident=runbook)
+            runbook_ident=runbook,
+            public_runbook_ok=True)
 
         traits = objects.TraitList.get_by_node_id(api.request.context,
                                                   rpc_node.id)
