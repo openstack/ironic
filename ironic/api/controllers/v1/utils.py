@@ -34,6 +34,7 @@ from pecan import rest
 from ironic import api
 from ironic.api.controllers import link
 from ironic.api.controllers.v1 import versions
+from ironic.api.schemas import common
 from ironic.common import args
 from ironic.common import exception
 from ironic.common import faults
@@ -103,7 +104,7 @@ TRAITS_SCHEMA = {
 # vtep-logical-switch has been removed as of API version 1.105,
 # but is still permitted on the API surface in the version range
 # so we don't break overall API interaction compatibility.
-LOCAL_LINK_BASE_SCHEMA = {
+LOCAL_LINK_BASE_SCHEMA: common.Schema = {
     'type': 'object',
     'properties': {
         'port_id': {'type': 'string'},

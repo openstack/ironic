@@ -10,8 +10,10 @@
 # License for the specific language governing permissions and limitations
 # under the License.
 
+from ironic.api.schemas import common
 
-index_request_query = {
+
+index_request_query: common.Schema = {
     'type': 'object',
     'properties': {
         'fields': {
@@ -59,7 +61,7 @@ _firmware_response_body = {
     'additionalProperties': False,
 }
 
-index_response_body = {
+index_response_body: common.Schema = {
     'type': 'object',
     'properties': {
         'firmware': {
