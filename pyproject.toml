@@ -287,7 +287,6 @@ module = [
     "ironic.drivers.modules.redfish.firmware",
     "ironic.drivers.modules.redfish.management",
     "ironic.drivers.modules.redfish.raid",
-    "ironic.objects.portgroup",
 ]
 ignore_errors = true
 
