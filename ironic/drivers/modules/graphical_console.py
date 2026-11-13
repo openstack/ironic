@@ -86,9 +86,23 @@ class GraphicalConsole(base.ConsoleInterface):
         :returns: True if the console was stopped
         """
         node = task.node
-        LOG.debug('Checking graphical console session for node: %s', node.uuid)
+        provider = console_factory.ConsoleContainerFactory().provider
+        LOG.debug('Checking graphical console session for node: %s with '
+                  'provider %s', node.uuid, provider.provider_name)
         if vnc_utils.token_valid_until(node) < timeutils.utcnow():
             LOG.info('Graphical console session has expired for %s, closing.',
                      node.uuid)
+            self.stop_console(task)
+            return True
+
+        try:
+            stopped = provider.is_stopped(task)
+        except Exception:
+            LOG.exception('Could not determine the console container state '
+                          'for node %s', node.uuid)
+            return False
+        if stopped:
+            LOG.warning('Console container for node %s is no longer running, '
+                        'stopping the console session.', node.uuid)
             self.stop_console(task)
             return True

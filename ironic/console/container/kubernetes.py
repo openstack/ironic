@@ -225,6 +225,26 @@ class KubernetesConsoleContainer(base.BaseConsoleContainer):
             if not kind or data.get("kind") == kind:
                 yield data
 
+    def _get_pod_status(self, pod_name, namespace):
+        try:
+            out, _ = utils.execute(
+                "kubectl",
+                "get",
+                "pod",
+                pod_name,
+                "-n",
+                namespace,
+                "-o",
+                "jsonpath={.status.phase}",
+                "--ignore-not-found=true",
+            )
+            return out.strip()
+        except processutils.ProcessExecutionError as e:
+            LOG.exception("Problem getting pod status for %s", pod_name)
+            raise exception.ConsoleContainerError(
+                provider="kubernetes", reason=e
+            )
+
     def start_container(self, task, app_name, app_info):
         """Start a console container for a node.
 
@@ -308,3 +328,29 @@ class KubernetesConsoleContainer(base.BaseConsoleContainer):
             labels = resource["metadata"]["labels"]
             selector = self._labels_to_selector(labels)
             self._delete(kind, namespace, selector=selector)
+
+    def is_stopped(self, task):
+        """Check whether the console container for this node has stopped.
+
+        :param task: A TaskManager instance.
+        :returns: True if the container is definitively stopped (exited,
+            succeeded, or deleted), False if it is running or still
+            starting.
+        :raises: ConsoleContainerError
+        """
+        node = task.node
+        uuid = node.uuid
+        rendered = self._render_template(uuid)
+
+        LOG.debug("Checking console container status for node %s", uuid)
+
+        pod = list(self._get_resources_from_yaml(rendered, kind="Pod"))[0]
+        pod_name = pod["metadata"]["name"]
+        namespace = pod["metadata"]["namespace"]
+
+        # Succeeded and Failed are the terminal pod phases. A deleted pod
+        # yields an empty phase because of --ignore-not-found. A Pending
+        # pod (not yet scheduled, or still downloading its image) is not
+        # stopped, and must not end the console session.
+        phase = self._get_pod_status(pod_name, namespace)
+        return not phase or phase in ("Succeeded", "Failed")

@@ -284,6 +284,16 @@ The ``start_container`` method must return the IP and port of the resulting
 running VNC server, which in most scenarios would mean blocking until the
 container is running.
 
+The ``is_stopped`` method must report whether the node's console container
+has definitively stopped. It must return ``True`` only when the container
+has stopped, exited or been deleted, ``False`` when it is running or still
+starting (for example a kubernetes pod in the ``Pending`` phase), and raise
+``ConsoleContainerError`` when the state cannot be determined: the
+periodic task which reconciles console sessions leaves the session alone
+unless the container is definitively stopped, so a container which is
+slow to start, or a transient failure of the check, never stops a healthy
+console.
+
 Networking requirements
 -----------------------
 

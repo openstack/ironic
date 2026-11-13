@@ -17,6 +17,8 @@ from unittest import mock
 from oslo_config import cfg
 from oslo_utils import timeutils
 
+from ironic.common import console_factory
+from ironic.common import exception
 from ironic.drivers.modules import fake
 from ironic.tests.unit.db import base as db_base
 from ironic.tests.unit.objects import utils as obj_utils
@@ -81,3 +83,60 @@ class TestGraphicalConsole(db_base.DbTestCase):
         self.assertTrue(self.console._expire_console_sessions(self.task))
         self.assertNotIn('novnc_secret_token', dii)
         self.assertFalse(self.node.console_enabled)
+
+    @mock.patch.object(console_factory, 'ConsoleContainerFactory',
+                       autospec=True)
+    def test__expire_console_sessions_container_stopped(
+            self, mock_console_factory):
+        provider = mock_console_factory.return_value.provider
+        provider.start_container.return_value = ('192.0.2.1', 5900)
+        provider.is_stopped.return_value = True
+
+        self.console.start_console(self.task)
+        dii = self.node.driver_internal_info
+
+        # container stopped out-of-band: the session is stopped
+        self.assertTrue(self.console._expire_console_sessions(self.task))
+        self.assertFalse(self.node.console_enabled)
+        self.assertNotIn('vnc_host', dii)
+        self.assertNotIn('novnc_secret_token', dii)
+        provider.is_stopped.assert_called_once_with(self.task)
+        provider.stop_container.assert_called_once_with(self.task)
+
+    @mock.patch.object(console_factory, 'ConsoleContainerFactory',
+                       autospec=True)
+    def test__expire_console_sessions_container_not_stopped(
+            self, mock_console_factory):
+        provider = mock_console_factory.return_value.provider
+        provider.start_container.return_value = ('192.0.2.1', 5900)
+        provider.is_stopped.return_value = False
+
+        self.console.start_console(self.task)
+
+        # container still running: the session is left alone
+        self.assertFalse(self.console._expire_console_sessions(self.task))
+        self.assertTrue(self.node.console_enabled)
+        self.assertIn('novnc_secret_token',
+                      self.node.driver_internal_info)
+        provider.is_stopped.assert_called_once_with(self.task)
+        provider.stop_container.assert_not_called()
+
+    @mock.patch.object(console_factory, 'ConsoleContainerFactory',
+                       autospec=True)
+    def test__expire_console_sessions_provider_error(
+            self, mock_console_factory):
+        provider = mock_console_factory.return_value.provider
+        provider.start_container.return_value = ('192.0.2.1', 5900)
+        provider.is_stopped.side_effect = exception.ConsoleContainerError(
+            provider='fake', reason='ouch')
+
+        self.console.start_console(self.task)
+
+        # container state undetermined: the session is left alone and
+        # the error does not propagate to the periodic task
+        self.assertFalse(self.console._expire_console_sessions(self.task))
+        self.assertTrue(self.node.console_enabled)
+        self.assertIn('novnc_secret_token',
+                      self.node.driver_internal_info)
+        provider.is_stopped.assert_called_once_with(self.task)
+        provider.stop_container.assert_not_called()

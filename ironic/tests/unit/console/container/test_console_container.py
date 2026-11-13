@@ -68,6 +68,15 @@ class TestConsoleContainerFactory(base.TestCase):
         self.assertEqual(1, str(error).count('Console container error'))
 
 
+class TestFakeConsoleContainer(base.TestCase):
+
+    def test_is_stopped(self):
+        provider = fake.FakeConsoleContainer()
+        task = mock.Mock(node=mock.Mock(uuid='1234'))
+
+        self.assertFalse(provider.is_stopped(task))
+
+
 class TestSystemdConsoleContainer(base.TestCase):
 
     def setUp(self):
@@ -486,6 +495,35 @@ WantedBy=default.target""", f.read())
         mock_exec.reset_mock()
         self.provider.stop_all_containers()
         mock_exec.assert_not_called()
+
+    @mock.patch.object(utils, 'execute', autospec=True)
+    def test_is_stopped(self, mock_exec):
+        task = mock.Mock(node=mock.Mock(uuid='1234'))
+        mock_exec.return_value = ('active\n', None)
+
+        self.assertFalse(self.provider.is_stopped(task))
+
+        mock_exec.assert_called_once_with(
+            'systemctl', '--user', 'is-active', 'ironic-console-1234.service',
+            check_exit_code=False)
+
+    @mock.patch.object(utils, 'execute', autospec=True)
+    def test_is_stopped_inactive(self, mock_exec):
+        task = mock.Mock(node=mock.Mock(uuid='1234'))
+
+        for state in ('inactive', 'failed'):
+            mock_exec.return_value = (f'{state}\n', None)
+            self.assertTrue(self.provider.is_stopped(task))
+
+    @mock.patch.object(utils, 'execute', autospec=True)
+    def test_is_stopped_activating(self, mock_exec):
+        task = mock.Mock(node=mock.Mock(uuid='1234'))
+
+        # a unit which is still starting up, stopping, or reloading is
+        # not stopped, so the console session is left alone
+        for state in ('activating', 'deactivating', 'reloading'):
+            mock_exec.return_value = (f'{state}\n', None)
+            self.assertFalse(self.provider.is_stopped(task))
 
 
 class TestKubernetesConsoleContainer(base.TestCase):
@@ -1255,6 +1293,147 @@ metadata:
             ]
         )
 
+    @mock.patch.object(
+        kubernetes.KubernetesConsoleContainer, "_get_pod_status", autospec=True
+    )
+    @mock.patch.object(
+        kubernetes.KubernetesConsoleContainer,
+        "_get_resources_from_yaml",
+        autospec=True,
+    )
+    @mock.patch.object(
+        kubernetes.KubernetesConsoleContainer,
+        "_render_template",
+        autospec=True,
+    )
+    def test_is_stopped(self, mock_render, mock_get_resources,
+                        mock_get_status):
+        task = mock.Mock(node=mock.Mock(uuid="1234"))
+        mock_render.return_value = "fake-manifest"
+        mock_get_resources.return_value = [
+            {
+                "kind": "Pod",
+                "metadata": {
+                    "name": "ironic-console-1234",
+                    "namespace": "test-namespace",
+                },
+            }
+        ]
+        mock_get_status.return_value = "Running"
+
+        self.assertFalse(self.provider.is_stopped(task))
+
+        mock_render.assert_called_once_with(self.provider, "1234")
+        mock_get_resources.assert_called_once_with(
+            self.provider, "fake-manifest", kind="Pod"
+        )
+        mock_get_status.assert_called_once_with(
+            self.provider, "ironic-console-1234", "test-namespace"
+        )
+
+    @mock.patch.object(
+        kubernetes.KubernetesConsoleContainer, "_get_pod_status", autospec=True
+    )
+    @mock.patch.object(
+        kubernetes.KubernetesConsoleContainer,
+        "_get_resources_from_yaml",
+        autospec=True,
+    )
+    @mock.patch.object(
+        kubernetes.KubernetesConsoleContainer,
+        "_render_template",
+        autospec=True,
+    )
+    def test_is_stopped_not(self, mock_render, mock_get_resources,
+                            mock_get_status):
+        task = mock.Mock(node=mock.Mock(uuid="1234"))
+        mock_render.return_value = "fake-manifest"
+        mock_get_resources.return_value = [
+            {
+                "kind": "Pod",
+                "metadata": {
+                    "name": "ironic-console-1234",
+                    "namespace": "test-namespace",
+                },
+            }
+        ]
+
+        # a pod which is running, or not yet started (Pending: not yet
+        # scheduled, or still downloading its image), is not stopped, so
+        # the console session is left alone
+        for phase in ("Running", "Pending", "Unknown"):
+            mock_get_status.return_value = phase
+            self.assertFalse(self.provider.is_stopped(task))
+
+    @mock.patch.object(
+        kubernetes.KubernetesConsoleContainer, "_get_pod_status", autospec=True
+    )
+    @mock.patch.object(
+        kubernetes.KubernetesConsoleContainer,
+        "_get_resources_from_yaml",
+        autospec=True,
+    )
+    @mock.patch.object(
+        kubernetes.KubernetesConsoleContainer,
+        "_render_template",
+        autospec=True,
+    )
+    def test_is_stopped_terminal(self, mock_render, mock_get_resources,
+                                 mock_get_status):
+        task = mock.Mock(node=mock.Mock(uuid="1234"))
+        mock_render.return_value = "fake-manifest"
+        mock_get_resources.return_value = [
+            {
+                "kind": "Pod",
+                "metadata": {
+                    "name": "ironic-console-1234",
+                    "namespace": "test-namespace",
+                },
+            }
+        ]
+
+        # Succeeded and Failed are terminal phases; a deleted pod yields
+        # an empty phase because of --ignore-not-found
+        for phase in ("Succeeded", "Failed", ""):
+            mock_get_status.return_value = phase
+            self.assertTrue(self.provider.is_stopped(task))
+
+    @mock.patch.object(
+        kubernetes.KubernetesConsoleContainer,
+        "_get_pod_status",
+        autospec=True,
+        side_effect=exception.ConsoleContainerError(reason="ouch"),
+    )
+    @mock.patch.object(
+        kubernetes.KubernetesConsoleContainer,
+        "_get_resources_from_yaml",
+        autospec=True,
+    )
+    @mock.patch.object(
+        kubernetes.KubernetesConsoleContainer,
+        "_render_template",
+        autospec=True,
+    )
+    def test_is_stopped_failed(self, mock_render, mock_get_resources,
+                               mock_get_status):
+        task = mock.Mock(node=mock.Mock(uuid="1234"))
+        mock_render.return_value = "fake-manifest"
+        mock_get_resources.return_value = [
+            {
+                "kind": "Pod",
+                "metadata": {
+                    "name": "ironic-console-1234",
+                    "namespace": "test-namespace",
+                },
+            }
+        ]
+
+        self.assertRaises(
+            exception.ConsoleContainerError,
+            self.provider.is_stopped,
+            task,
+        )
+
 
 class TestContainerConsoleContainer(base.TestCase):
 
@@ -1595,3 +1774,31 @@ class TestContainerConsoleContainer(base.TestCase):
         self.assertRaisesRegex(
             exception.ConsoleContainerError, 'ouch',
             self.provider.stop_all_containers)
+
+    @mock.patch.object(utils, 'execute', autospec=True)
+    def test_is_stopped(self, mock_exec):
+        task = mock.Mock(node=mock.Mock(uuid='1234'))
+        mock_exec.return_value = ('abc123\n', None)
+
+        self.assertFalse(self.provider.is_stopped(task))
+
+        mock_exec.assert_called_once_with(
+            'docker', 'ps', '--quiet', '--filter',
+            'label=org.openstack.ironic.node=1234')
+
+    @mock.patch.object(utils, 'execute', autospec=True)
+    def test_is_stopped_not(self, mock_exec):
+        task = mock.Mock(node=mock.Mock(uuid='1234'))
+        mock_exec.return_value = ('', None)
+
+        self.assertTrue(self.provider.is_stopped(task))
+
+    @mock.patch.object(utils, 'execute', autospec=True)
+    def test_is_stopped_failed(self, mock_exec):
+        task = mock.Mock(node=mock.Mock(uuid='1234'))
+        mock_exec.side_effect = processutils.ProcessExecutionError(
+            stderr='ouch'
+        )
+        self.assertRaisesRegex(
+            exception.ConsoleContainerError, 'ouch',
+            self.provider.is_stopped, task)
