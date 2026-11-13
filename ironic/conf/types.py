@@ -105,3 +105,35 @@ class KernelParameterString(types.ConfigType):
 
     def _formatter(self, value):
         return self.quote_trailing_and_leading_space(value)
+
+
+class SwitchPortConfigString(types.ConfigType):
+    """A string using valid switch port configuration syntax."""
+
+    TYPE_NAME = 'switchport_config_string'
+
+    def __init__(self):
+        super().__init__(type_name=self.TYPE_NAME)
+
+    def __call__(self, value):
+        value = str(value)
+        if not value:
+            return value
+
+        # Import lazily to avoid loading networking utilities while the
+        # configuration modules are being initialized.
+        from ironic.drivers.modules.network import switchport_config
+
+        try:
+            switchport_config.SwitchPortConfig.from_string(
+                value, network_type='configured')
+        except exception.InvalidParameterValue as e:
+            raise ValueError(str(e)) from e
+
+        return value
+
+    def __repr__(self):
+        return self.TYPE_NAME
+
+    def _formatter(self, value):
+        return self.quote_trailing_and_leading_space(value)
