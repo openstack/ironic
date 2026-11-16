@@ -1153,11 +1153,13 @@ class TBNComparatorCollectionTypeMismatch(TraitBasedNetworkingException):
 
 class TBNNoTraitsApplicableToNode(TraitBasedNetworkingException):
     """If no traits apply to a node, then nothing can be done."""
+    code = http_client.BAD_REQUEST
     _msg_fmt = _("No Trait Based Networking traits were found which could "
                  "apply to the node %(node)s.")
 
 class TBNNoPortMatchesFound(TraitBasedNetworkingException):
     """No matching ports were found when planning the network for this node"""
+    code = http_client.BAD_REQUEST
     _msg_fmt = _("No matching ports where found when planning the networking "
                  "for node %(node)s and network %(vif_id)s")
 

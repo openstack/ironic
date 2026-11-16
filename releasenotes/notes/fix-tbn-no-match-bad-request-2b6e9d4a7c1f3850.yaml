@@ -1,0 +1,7 @@
+---
+fixes:
+  - |
+    A VIF attach request for which Trait Based Networking finds no
+    applicable trait, or no matching port or portgroup, now fails with a
+    ``400 Bad Request``. Previously these errors were not expected by the
+    conductor and were returned as a ``500 Internal Server Error``.
