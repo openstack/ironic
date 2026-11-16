@@ -228,6 +228,38 @@ class RunSuiteTestCase(BaseTesterTestCase):
         self.assertIn('Results: 0 passed, 2 failed', output)
         self.assertIn('Failed tests:', output)
 
+    def test_per_case_rules(self):
+        passing = self._write_case('case-pass')
+        self._write('rules.yaml', [MATCHING_RULE], directory=passing)
+        failing = self._write_case('case-fail')
+        self._write('rules.json', [BROKEN_RULE], directory=failing)
+
+        rc, output = _capture(tester.run_suite, self.temp_dir)
+
+        self.assertEqual(1, rc)
+        self.assertIn('PASS: case-pass', output)
+        self.assertIn('FAIL: case-fail', output)
+        self.assertIn('Results: 1 passed, 1 failed', output)
+
+    def test_rules_file_overrides_per_case_rules(self):
+        case_dir = self._write_case('case-override')
+        self._write('rules.yaml', [BROKEN_RULE], directory=case_dir)
+
+        rc, output = _capture(tester.run_suite, self.temp_dir,
+                              self.rules_file)
+
+        self.assertEqual(0, rc)
+        self.assertIn('PASS: case-override', output)
+
+    def test_missing_rules_file(self):
+        self._write_case('case-no-rules')
+
+        rc, output = _capture(tester.run_suite, self.temp_dir)
+
+        self.assertEqual(1, rc)
+        self.assertIn('FAIL: case-no-rules - missing rules.yaml or '
+                      'rules.json', output)
+
     def test_missing_node_file(self):
         self._write_case('case-incomplete', node=None)
 

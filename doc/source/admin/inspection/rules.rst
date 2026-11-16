@@ -422,9 +422,9 @@ condition, and the action arguments after `Variable Interpolation`_ has been
 applied, which makes it easy to spot a replacement field that did not
 resolve. Rules are listed in priority order.
 
-To test a rules file against several kinds of hardware, create one
-subdirectory per case, each holding a ``node`` file and an ``inventory`` file
-(``.yaml`` or ``.json``), and pass the parent directory:
+To test several rules files or several kinds of hardware, create one
+subdirectory per case, each holding a ``node`` file, an ``inventory`` file and
+a ``rules`` file (``.yaml`` or ``.json``), and pass the parent directory:
 
 .. code-block:: console
 
@@ -432,12 +432,16 @@ subdirectory per case, each holding a ``node`` file and an ``inventory`` file
     cases/
     ├── dell-r640/
     │   ├── node.json
-    │   └── inventory.json
+    │   ├── inventory.json
+    │   └── rules.yaml
     └── supermicro-x11/
         ├── node.yaml
-        └── inventory.yaml
-    $ ironic-manage inspection-rules check --rules rules.yaml \
-        --data-dir cases/
+        ├── inventory.yaml
+        └── rules.yaml
+    $ ironic-manage inspection-rules check --data-dir cases/
+
+Each case is evaluated against its own rules file. To evaluate one rules file
+against every case instead, pass it with ``--rules``.
 
 The command exits non-zero when a rule cannot be evaluated or a test case
 fails, so it can be used in a CI job to validate changes to a rules file.

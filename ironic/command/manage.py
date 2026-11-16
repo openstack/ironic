@@ -115,6 +115,10 @@ class InspectionRuleCommands(object):
                 _('Either --data-dir or both --node and --inventory are '
                   'required.\n'))
             sys.exit(2)
+        if not CONF.command.rules:
+            sys.stderr.write(
+                _('--rules is required with --node and --inventory.\n'))
+            sys.exit(2)
         sys.exit(tester.check_files(node, inventory, CONF.command.rules))
 
 
@@ -182,8 +186,11 @@ def add_command_parsers(subparsers):
                '--node and --inventory for a single set of files, or '
                '--data-dir to run every test case in a directory tree.'))
     parser.add_argument(
-        '--rules', required=True, metavar='<rules file>',
-        help=_('YAML file with the inspection rules to evaluate.'))
+        '--rules', metavar='<rules file>',
+        help=_('YAML file with the inspection rules to evaluate. Required '
+               'with --node and --inventory. With --data-dir it overrides '
+               'the rules file (rules.yaml or rules.json) that each test '
+               'case directory otherwise provides.'))
     # NOTE: the dest is explicit because plain "node" and "inventory"
     # clash with configuration groups of the same name, which oslo.config
     # rejects when the sub-command namespace is accessed.
@@ -202,8 +209,9 @@ def add_command_parsers(subparsers):
         help=_('Directory containing test case subdirectories. Each '
                'subdirectory must contain a node file (node.yaml or '
                'node.json) and an inventory file (inventory.yaml or '
-               'inventory.json). Cannot be combined with --node and '
-               '--inventory.'))
+               'inventory.json), and unless --rules is given, a rules file '
+               '(rules.yaml or rules.json). Cannot be combined with --node '
+               'and --inventory.'))
     parser.set_defaults(func=inspection_rule_commands.check)
 
 

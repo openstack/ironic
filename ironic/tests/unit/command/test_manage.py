@@ -186,6 +186,23 @@ class InspectionRuleCommandsTestCase(base.TestCase):
         mock_suite.assert_called_once_with('cases', 'rules.yaml')
 
     @mock.patch.object(manage.tester, 'run_suite', autospec=True)
+    def test_check_data_dir_without_rules(self, mock_suite):
+        mock_suite.return_value = 0
+
+        exc = self._check(data_dir='cases', rules=None)
+
+        self.assertEqual(0, exc.code)
+        mock_suite.assert_called_once_with('cases', None)
+
+    @mock.patch.object(manage.tester, 'check_files', autospec=True)
+    def test_check_single_without_rules(self, mock_check):
+        exc = self._check(node='node.yaml', inventory='inventory.yaml',
+                          rules=None)
+
+        self.assertEqual(2, exc.code)
+        mock_check.assert_not_called()
+
+    @mock.patch.object(manage.tester, 'run_suite', autospec=True)
     @mock.patch.object(manage.tester, 'check_files', autospec=True)
     def test_check_node_without_inventory(self, mock_check, mock_suite):
         exc = self._check(node='node.yaml')
@@ -244,11 +261,11 @@ class CommandParsersTestCase(base.TestCase):
         self.assertIsNone(args.node_file)
         self.assertIsNone(args.inventory_file)
 
-    def test_inspection_rules_check_requires_rules(self):
-        exc = self.assertRaises(
-            SystemExit, self._parse,
-            ['inspection-rules', 'check', '--data-dir', 'cases'])
-        self.assertEqual(2, exc.code)
+    def test_inspection_rules_check_data_dir_without_rules(self):
+        args = self._parse(['inspection-rules', 'check',
+                            '--data-dir', 'cases'])
+        self.assertIsNone(args.rules)
+        self.assertEqual('cases', args.data_dir)
 
 
 class RealEntryPointsTestCase(base.TestCase):
