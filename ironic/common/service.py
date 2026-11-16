@@ -19,7 +19,7 @@ try:
     from oslo_reports import guru_meditation_report as gmr
     from oslo_reports import opts as gmr_opts
 except ImportError:
-    gmr = None
+    gmr = None  # type: ignore[assignment]
 from oslo_service import opts as oslo_service_opts
 from oslo_service import service
 

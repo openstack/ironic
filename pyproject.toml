@@ -274,9 +274,6 @@ ignore_errors = true
 # They are parsed but their errors are suppressed. Remove entries from this
 # list as the modules are fixed; do not add new ones.
 module = [
-    "ironic.common.mdns",
-    "ironic.common.service",
-    "ironic.common.trait_based_networking.plan",
     "ironic.drivers.modules.agent",
     "ironic.drivers.modules.agent_base",
     "ironic.drivers.modules.ipmitool",

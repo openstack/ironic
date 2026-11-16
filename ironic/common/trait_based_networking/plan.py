@@ -11,16 +11,16 @@
 #    under the License.
 
 
-from ironic.common.i18n import _
-from ironic.common.trait_based_networking import base
-from ironic.conductor.task_manager import TaskManager
-from ironic.objects.node import Node
-from ironic.objects.port import Port
-from ironic.objects.portgroup import Portgroup
-
-
 from collections.abc import Callable
 import itertools
+from typing import cast
+
+from ironic.common.i18n import _
+from ironic.common.trait_based_networking import base
+from ironic.conductor import task_manager
+from ironic.objects import node as node_obj
+from ironic.objects import port as port_obj
+from ironic.objects import portgroup as portgroup_obj
 
 
 def filter_out_attached_portlikes(
@@ -49,12 +49,13 @@ def filter_out_grouped_ports(
 
 
 def plan_network(
-        network_trait: base.NetworkTrait,
-        node_uuid: str,
-        node_ports: list[base.Port],
-        node_portgroups: list[base.Portgroup],
-        node_networks: list[base.Network],
-        vif: base.Vif) -> list[base.RenderedAction]:
+    network_trait: base.NetworkTrait,
+    node_uuid: str,
+    node_ports: list[port_obj.Port],
+    node_portgroups: list[portgroup_obj.Portgroup],
+    node_networks: list[base.Network],
+    vif: base.Vif
+) -> list[base.RenderedAction]:
     """Plan the network of a node based on TBN traits
 
     :param network_trait: A single NetworkTrait to consider for planning.
@@ -88,8 +89,9 @@ def plan_network(
                         base.AttachPort(*action_args))
 
                 if not is_no_match_list(new_actions):
-                    portlikes = filter_out_attached_portlikes(portlikes,
-                                                              new_actions)
+                    # The planner returns only attach actions or NoMatch.
+                    portlikes = filter_out_attached_portlikes(
+                        portlikes, cast(list[base.AttachAction], new_actions))
             case base.Actions.ATTACH_PORTGROUP:
                 new_actions = _plan_attach_portlike(
                     trait_action, node_uuid, portgrouplikes,
@@ -100,7 +102,7 @@ def plan_network(
                 if not is_no_match_list(new_actions):
                     portgrouplikes = filter_out_attached_portlikes(
                             portgrouplikes,
-                            new_actions)
+                            cast(list[base.AttachAction], new_actions))
 
             case base.Actions.GROUP_AND_ATTACH_PORTS:
                 new_actions = _plan_group_and_attach_ports(
@@ -109,7 +111,7 @@ def plan_network(
                 if not is_no_match_list(new_actions):
                     portlikes = filter_out_grouped_ports(
                             portlikes,
-                            new_actions)
+                            cast(list[base.GroupAndAttachPorts], new_actions))
 
             # TODO(clif): Support bond_ports?
             case _:
@@ -124,15 +126,15 @@ def plan_network(
 
 
 def _plan_attach_portlike(
-        trait_action: base.NetworkTrait,
-        node_uuid: str,
-        node_portlikes: list[base.PrimordialPort],
-        node_networks: list[base.Network],
-        vif: base.Vif,
-        type_name: str,
-        action_func: Callable[[base.NetworkTrait, str, str, str],
-                              base.RenderedAction]
-        ) -> list[base.RenderedAction]:
+    trait_action: base.TraitAction,
+    node_uuid: str,
+    node_portlikes: list[base.PrimordialPort],
+    node_networks: list[base.Network],
+    vif: base.Vif,
+    type_name: str,
+    action_func: Callable[[tuple[base.TraitAction, str, str, str]],
+                          base.RenderedAction]
+) -> list[base.RenderedAction]:
     """Mainly called by plan_netwrok to determine which portlikes to attach"""
     actions = []
     for (portlike, network) in itertools.product(node_portlikes,
@@ -203,7 +205,11 @@ def _plan_group_and_attach_ports(
             if len(matched_ports) == trait_action.max_count:
                 break
 
-    if len(matched_ports) < trait_action.min_count:
+    # Configuration validation guarantees a non-None minimum for this action.
+    if (
+        trait_action.min_count is not None
+        and len(matched_ports) < trait_action.min_count
+    ):
         return [base.NoMatch(trait_action,
                              node_uuid,
                              _("Couldn't match enough ports to form a "
@@ -243,15 +249,19 @@ def order_traits(traits: list[base.NetworkTrait]) -> list[base.NetworkTrait]:
 # dependency. Maybe there's a common spot to lift this out to?
 TENANT_VIF_KEY = 'tenant_vif_port_id'
 
-def is_portlike_attached(portlike: Port | Portgroup) -> bool:
+def is_portlike_attached(
+    portlike: port_obj.Port | portgroup_obj.Portgroup
+) -> bool:
     """Check if a portlike is attached or not"""
     return (portlike.internal_info is not None
             and portlike.internal_info.get(TENANT_VIF_KEY) is not None)
 
 
-def plan_vif_attach(traits: list[base.NetworkTrait],
-                    task: TaskManager,
-                    vif_info: dict) -> list[base.RenderedAction]:
+def plan_vif_attach(
+    traits: list[base.NetworkTrait],
+    task: task_manager.TaskManager,
+    vif_info: dict
+) -> list[base.RenderedAction]:
     """Main entry point of TBN from _vif_attach_tbn in NeutronVIFPortIDMixIn
 
     :param traits: A list of NetworkTraits that apply to the node being
@@ -302,9 +312,14 @@ def plan_vif_attach(traits: list[base.NetworkTrait],
           "trait."))]
 
 
-def filter_traits_for_node(node: Node,
-                           traits: list[base.NetworkTrait]
-                           ) -> list[base.NetworkTrait]:
+def filter_traits_for_node(
+    node: node_obj.Node,
+    traits: list[base.NetworkTrait]
+) -> list[base.NetworkTrait]:
     """Return a list of NetworkTraits that apply to a node"""
-    instance_traits = node.instance_info.get('traits') or []
+    # Nodes considered for VIF attachment have initialized instance_info.
+    instance_info = node.instance_info
+    if instance_info is None:
+        return []
+    instance_traits = instance_info.get('traits') or []
     return [trait for trait in traits if trait.name in set(instance_traits)]
