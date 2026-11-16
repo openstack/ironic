@@ -1,0 +1,7 @@
+---
+fixes:
+  - |
+    Fixes the periodic stale conductor cleanup task failing with
+    ``can't compare offset-naive and offset-aware datetimes`` on
+    non-SQLite databases, which prevented stale conductor records from
+    ever being removed.
