@@ -7834,6 +7834,26 @@ ORHMKeXMO8fcK0By7CiMKwHSXCoEQgfQhWwpMdSsO8LgHCjh87DQc= """
             mock.ANY, mock.ANY, node=mock.ANY)
 
 
+class TestCheckServiceSteps(db_base.DbTestCase):
+    def test__check_service_steps_network_interface(self):
+        service_steps = [{"interface": "network",
+                          "step": "reattach_networking"}]
+        api_node._check_service_steps(service_steps)
+
+    def test__check_service_steps_invalid_interface(self):
+        service_steps = [{"interface": "bogus", "step": "foo"}]
+        self.assertRaisesRegex(exception.InvalidParameterValue,
+                               "'bogus' is not one of",
+                               api_node._check_service_steps, service_steps)
+
+    def test__check_clean_steps_network_interface_rejected(self):
+        clean_steps = [{"interface": "network",
+                        "step": "reattach_networking"}]
+        self.assertRaisesRegex(exception.InvalidParameterValue,
+                               "'network' is not one of",
+                               api_node._check_clean_steps, clean_steps)
+
+
 class TestCheckCleanSteps(db_base.DbTestCase):
     def test__check_clean_steps_not_list(self):
         clean_steps = {"step": "upgrade_firmware", "interface": "deploy"}
