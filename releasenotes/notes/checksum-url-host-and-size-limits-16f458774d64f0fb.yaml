@@ -1,0 +1,26 @@
+---
+fixes:
+  - |
+    When an image checksum is supplied as an HTTP(S) URL, Ironic now requires
+    the host of the checksum URL to match the host of the image source URL
+    before the checksum is used, controlled by the new
+    ``[conductor]checksum_require_matching_host`` option (default ``True``).
+    This is enforced both on the conductor caching path and before a checksum
+    URL is forwarded to the ``ironic-python-agent`` for a direct download.
+    The comparison only applies when the image source is itself an HTTP(S)
+    URL. Setting the option to ``False`` restores the prior behavior of using
+    a checksum from any supplied host.
+  - |
+    The size of a remote checksum file retrieved via an HTTP(S) URL is now
+    capped by the new ``[conductor]checksum_max_size`` option, which defaults
+    to 32 KiB (32768 bytes). A value of ``0`` disables the limit.
+security:
+  - |
+    Addresses `bug 2169436
+    <https://bugs.launchpad.net/ironic/+bug/2169436>`_. A user-supplied image
+    checksum URL could direct the conductor to retrieve content from a host
+    unrelated to the image source, and the response was read into memory
+    without a size limit. By default the conductor now requires the checksum
+    URL host to match the image source host
+    (``[conductor]checksum_require_matching_host``) and caps the size of the
+    retrieved checksum file (``[conductor]checksum_max_size``).

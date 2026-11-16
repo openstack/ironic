@@ -2759,6 +2759,54 @@ class TestBuildInstanceInfoForDeploy(db_base.DbTestCase):
     @mock.patch.object(utils, 'cache_instance_image', autospec=True)
     @mock.patch.object(image_service.HttpImageService, 'validate_href',
                        autospec=True)
+    def test_build_instance_info_for_deploy_checksum_url_host_mismatch(
+            self, validate_href_mock, mock_cache_image):
+        # A checksum URL pointing at a host other than the image source is
+        # rejected on the direct-to-agent passthrough path, before the
+        # checksum (or any credentials) can be forwarded.
+        validate_href_mock.return_value.url = 'http://image-ref'
+        i_info = self.node.instance_info
+        driver_internal_info = self.node.driver_internal_info
+        i_info['image_source'] = 'http://image-ref/image'
+        i_info['image_checksum'] = 'http://other-host/SHA256SUMS'
+        i_info['root_gb'] = 10
+        driver_internal_info['is_whole_disk_image'] = True
+        self.node.instance_info = i_info
+        self.node.driver_internal_info = driver_internal_info
+        self.node.save()
+
+        with task_manager.acquire(
+                self.context, self.node.uuid, shared=False) as task:
+            self.assertRaises(exception.ImageChecksumURLHostMismatch,
+                              utils.build_instance_info_for_deploy, task)
+        mock_cache_image.assert_not_called()
+
+    @mock.patch.object(utils, 'cache_instance_image', autospec=True)
+    @mock.patch.object(image_service.HttpImageService, 'validate_href',
+                       autospec=True)
+    def test_build_instance_info_for_deploy_checksum_url_host_match(
+            self, validate_href_mock, mock_cache_image):
+        # A checksum URL sharing the image source host is permitted.
+        validate_href_mock.return_value.url = 'http://image-ref'
+        i_info = self.node.instance_info
+        driver_internal_info = self.node.driver_internal_info
+        i_info['image_source'] = 'http://image-ref/image'
+        i_info['image_checksum'] = 'http://image-ref/SHA256SUMS'
+        i_info['root_gb'] = 10
+        driver_internal_info['is_whole_disk_image'] = True
+        self.node.instance_info = i_info
+        self.node.driver_internal_info = driver_internal_info
+        self.node.save()
+
+        with task_manager.acquire(
+                self.context, self.node.uuid, shared=False) as task:
+            # A matching host must not raise.
+            info = utils.build_instance_info_for_deploy(task)
+        self.assertEqual('http://image-ref', info['image_url'])
+
+    @mock.patch.object(utils, 'cache_instance_image', autospec=True)
+    @mock.patch.object(image_service.HttpImageService, 'validate_href',
+                       autospec=True)
     def test_build_instance_info_for_deploy_nonglance_image_fmt_checked(
             self, validate_href_mock, mock_cache_image):
         cfg.CONF.set_override('conductor_always_validates_images', True,
@@ -3437,7 +3485,7 @@ class TestBuildInstanceInfoForHttpProvisioning(db_base.DbTestCase):
         i_info = self.node.instance_info
         driver_internal_info = self.node.driver_internal_info
         i_info['image_source'] = 'http://image-ref'
-        i_info['image_checksum'] = 'http://image-checksum'
+        i_info['image_checksum'] = 'http://image-ref/checksum'
         i_info['root_gb'] = 10
         i_info['image_disk_format'] = 'qcow2'
         driver_internal_info['is_whole_disk_image'] = True
@@ -3463,7 +3511,9 @@ class TestBuildInstanceInfoForHttpProvisioning(db_base.DbTestCase):
                 self.fake_path, algorithm='sha256')
             validate_href_mock.assert_called_once_with(
                 mock.ANY, expected_url, False)
-            get_mock.assert_called_once_with('http://image-checksum')
+            get_mock.assert_called_once_with(
+                'http://image-ref/checksum',
+                max_request_size=cfg.CONF.conductor.checksum_max_size)
 
     @mock.patch.object(image_service.HttpImageService, 'get',
                        autospec=True)
@@ -3479,7 +3529,7 @@ class TestBuildInstanceInfoForHttpProvisioning(db_base.DbTestCase):
         i_info = self.node.instance_info
         driver_internal_info = self.node.driver_internal_info
         i_info['image_source'] = 'https://image-ref'
-        i_info['image_checksum'] = 'https://image-checksum'
+        i_info['image_checksum'] = 'https://image-ref/checksum'
         i_info['root_gb'] = 10
         i_info['image_disk_format'] = 'qcow2'
         driver_internal_info['is_whole_disk_image'] = True
@@ -3505,7 +3555,9 @@ class TestBuildInstanceInfoForHttpProvisioning(db_base.DbTestCase):
                 self.fake_path, algorithm='sha256')
             validate_href_mock.assert_called_once_with(
                 mock.ANY, expected_url, False)
-            get_mock.assert_called_once_with('https://image-checksum')
+            get_mock.assert_called_once_with(
+                'https://image-ref/checksum',
+                max_request_size=cfg.CONF.conductor.checksum_max_size)
 
     @mock.patch.object(image_service.HttpImageService, 'get',
                        autospec=True)
@@ -3521,7 +3573,7 @@ class TestBuildInstanceInfoForHttpProvisioning(db_base.DbTestCase):
         i_info = self.node.instance_info
         driver_internal_info = self.node.driver_internal_info
         i_info['image_source'] = 'https://image-ref'
-        i_info['image_checksum'] = 'https://image-checksum'
+        i_info['image_checksum'] = 'https://image-ref/checksum'
         i_info['root_gb'] = 10
         i_info['image_disk_format'] = 'qcow2'
         driver_internal_info['is_whole_disk_image'] = True
@@ -3547,7 +3599,9 @@ class TestBuildInstanceInfoForHttpProvisioning(db_base.DbTestCase):
                 self.fake_path, algorithm='sha256')
             validate_href_mock.assert_called_once_with(
                 mock.ANY, expected_url, False)
-            get_mock.assert_called_once_with('https://image-checksum')
+            get_mock.assert_called_once_with(
+                'https://image-ref/checksum',
+                max_request_size=cfg.CONF.conductor.checksum_max_size)
 
     @mock.patch.object(checksum_utils, 'get_checksum_from_url',
                        autospec=True)

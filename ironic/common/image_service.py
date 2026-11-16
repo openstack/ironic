@@ -127,10 +127,10 @@ def is_host_auth_permitted(image_href):
     behavior depends on
     ``[deploy]image_server_auth_permit_unknown_hosts``:
 
-    * ``True`` (default): credentials are sent to all hosts, preserving
-      backwards-compatible behavior.
-    * ``False``: credentials are not sent to any host unless it is
-      listed in ``image_server_auth_hosts``.
+    * ``True``: credentials are sent to all hosts, preserving the
+      prior backwards-compatible behavior.
+    * ``False`` (default): credentials are not sent to any host unless
+      it is listed in ``image_server_auth_hosts``.
 
     Schemes which do not transmit credentials to a remote host, such
     as ``file://`` and bare references without a scheme (e.g. a Glance
@@ -432,15 +432,20 @@ class HttpImageService(BaseImageService):
         }
 
     @staticmethod
-    def get(image_href):
+    def get(image_href, max_request_size=None):
         """Downloads content and returns the response text.
 
         :param image_href: Image reference.
+        :param max_request_size: Optional maximum size, in bytes, of the
+            response body. When set to a value greater than zero, the response
+            is read incrementally and an exception is raised if the content
+            exceeds this size. A value of ``None`` or ``0`` disables the limit.
         :raises: exception.ImageRefValidationFailed if GET request returned
             response code not equal to 200.
         :raises: exception.ImageDownloadFailed if:
             * IOError happened during file write;
-            * GET request failed.
+            * GET request failed;
+            * the response exceeds ``max_request_size``.
         """
 
         try:
@@ -454,7 +459,7 @@ class HttpImageService(BaseImageService):
             auth = HttpImageService.gen_auth_from_conf_user_pass(image_href)
             session = _build_webserver_session()
             response = session.get(
-                image_href, stream=False, verify=verify,
+                image_href, stream=bool(max_request_size), verify=verify,
                 timeout=CONF.webserver_connection_timeout,
                 auth=auth)
             if response.status_code != http_client.OK:
@@ -462,6 +467,19 @@ class HttpImageService(BaseImageService):
                     image_href=image_href,
                     reason=_("Got HTTP code %s instead of 200 in response "
                              "to GET request.") % response.status_code)
+
+            if max_request_size:
+                content = bytearray()
+                for chunk in response.iter_content(chunk_size=8192):
+                    content.extend(chunk)
+                    if len(content) > max_request_size:
+                        response.close()
+                        raise exception.ImageDownloadFailed(
+                            image_href=image_href,
+                            reason=_("Response exceeds the maximum permitted "
+                                     "size of %s bytes.") % max_request_size)
+                encoding = response.encoding or 'utf-8'
+                return content.decode(encoding, errors='replace')
 
             return response.text
 

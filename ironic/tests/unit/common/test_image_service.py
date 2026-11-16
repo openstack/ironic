@@ -667,6 +667,30 @@ class HttpImageServiceTestCase(base.TestCase):
                                              timeout=60,
                                              auth=None)
 
+    @mock.patch.object(requests.Session, 'get', autospec=True)
+    def test_get_max_request_size_under_limit(self, req_get_mock):
+        response_mock = req_get_mock.return_value
+        response_mock.status_code = http_client.OK
+        response_mock.encoding = 'utf-8'
+        response_mock.iter_content.return_value = [b'va', b'lue']
+        self.assertEqual('value',
+                         self.service.get('http://url', max_request_size=1024))
+        req_get_mock.assert_called_once_with(mock.ANY, 'http://url',
+                                             stream=True,
+                                             verify=True,
+                                             timeout=60,
+                                             auth=None)
+
+    @mock.patch.object(requests.Session, 'get', autospec=True)
+    def test_get_max_request_size_exceeded(self, req_get_mock):
+        response_mock = req_get_mock.return_value
+        response_mock.status_code = http_client.OK
+        response_mock.encoding = 'utf-8'
+        response_mock.iter_content.return_value = [b'a' * 8, b'b' * 8]
+        self.assertRaises(exception.ImageDownloadFailed,
+                          self.service.get, 'http://url', max_request_size=10)
+        response_mock.close.assert_called_once_with()
+
 
 class IsHostAuthPermittedTestCase(base.TestCase):
 
