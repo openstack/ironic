@@ -1821,7 +1821,9 @@ class ConductorManager(base_manager.BaseConductorManager):
                             or task.node.maintenance
                             or task.node.target_power_state
                             or task.node.reservation
-                            or has_fw_update):
+                            or has_fw_update
+                            or drivers_base.skips_periodics(
+                                task.driver.power)):
                         continue
                     count = do_sync_power_state(
                         task, self.power_state_sync_count[node_uuid])
@@ -1898,7 +1900,8 @@ class ConductorManager(base_manager.BaseConductorManager):
                 or not task.node.maintenance
                 or task.node.fault != faults.POWER_FAILURE
                 or task.node.target_power_state
-                or task.node.reservation):
+                or task.node.reservation
+                or drivers_base.skips_periodics(task.driver.power)):
             return
 
         try:
@@ -3006,6 +3009,12 @@ class ConductorManager(base_manager.BaseConductorManager):
                     if task.node.maintenance:
                         LOG.debug('Skipping sending sensors data for node '
                                   '%s as it is in maintenance mode',
+                                  task.node.uuid)
+                        continue
+                    if drivers_base.skips_periodics(task.driver.management):
+                        LOG.debug('Skipping sending sensors data for node '
+                                  '%s as its management interface does not '
+                                  'support periodic polling',
                                   task.node.uuid)
                         continue
                     # Add the node name, as the name would be hand for other

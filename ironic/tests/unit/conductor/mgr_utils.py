@@ -60,6 +60,8 @@ class CommonMixIn(object):
                                    'spawn_after', 'process_event',
                                    'driver', 'context'])
         task.node = node
+        task.driver.power.skip_periodics = False
+        task.driver.management.skip_periodics = False
         return task
 
     def _get_nodeinfo_list_response(self, nodes=None):
