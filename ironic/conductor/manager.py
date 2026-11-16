@@ -3662,7 +3662,9 @@ class ConductorManager(base_manager.BaseConductorManager):
                                    exception.NoFreePhysicalPorts,
                                    exception.PortgroupPhysnetInconsistent,
                                    exception.VifInvalidForAttach,
-                                   exception.InvalidParameterValue)
+                                   exception.InvalidParameterValue,
+                                   exception.TBNNoTraitsApplicableToNode,
+                                   exception.TBNNoPortMatchesFound)
     def vif_attach(self, context, node_id, vif_info):
         """Attach a VIF to a node
 
