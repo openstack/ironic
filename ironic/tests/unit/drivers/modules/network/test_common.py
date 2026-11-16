@@ -1312,9 +1312,10 @@ class TestNeutronVifPortIDMixin(db_base.DbTestCase):
             # VIF can only be bound once.
             self.assertEqual(len(mock_save.call_args_list), 1)
 
-            # Make sure save was called with the expected parameters.
+            # Make sure save was called with the expected parameters. The
+            # oldest matching port is considered first.
             self.assertEqual(mock_save.call_args_list[0][0][0].id,
-                             second_port.id)
+                             self.port.id)
             self.assertEqual(mock_save.call_args_list[0][0][1], vif_info['id'])
 
     @mock.patch.object(common.VIFPortIDMixin, '_save_vif_to_port_like_obj',
