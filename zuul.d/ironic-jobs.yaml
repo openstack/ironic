@@ -886,6 +886,22 @@
       tox_envlist: mypy
 
 - job:
+    name: ironic-tox-inspection-rules
+    parent: openstack-tox
+    description: |
+      Run "ironic-manage inspection-rules check" against all test cases in
+      tools/inspection_rules/tests/. Each subdirectory must contain a node
+      file (node.yaml or node.json), an inventory file (inventory.yaml or
+      inventory.json) and a rules file (rules.yaml or rules.json) which is
+      evaluated against that test case.
+    vars:
+      tox_envlist: inspection-rules
+    files:
+      - ^tools/inspection_rules/.*$
+      - ^ironic/command/manage.py$
+      - ^ironic/common/inspection_rules/.*$
+
+- job:
     name: ironic-tempest-ipa-partition-uefi-pxe-grub2
     description: Ironic tempest scenario test utilizing PXE (NOT iPXE),
       UEFI, and grub2. If this job fails alone, it indicates grub2 network

@@ -1,0 +1,111 @@
+uuid: 00000000-0000-4000-8000-000000000001
+created_at: '2025-07-16T17:59:54+00:00'
+updated_at: '2026-11-03T20:07:54+00:00'
+automated_clean: null
+bios_interface: idrac-redfish
+boot_interface: http-ipxe
+boot_mode: uefi
+clean_step: {}
+conductor_group: ''
+console_enabled: false
+console_interface: redfish-graphical
+disable_power_off: false
+deploy_interface: direct
+deploy_step: {}
+description: null
+driver: idrac
+driver_info:
+  redfish_address: https://192.0.2.10
+  redfish_password: '******'
+  redfish_username: admin
+  redfish_verify_ca: false
+driver_internal_info:
+  agent_cached_clean_steps_refreshed: '2026-11-03T20:07:07.077750'
+  agent_cached_deploy_steps_refreshed: '2026-11-03T19:12:01.949297'
+  agent_continue_if_ata_erase_failed: false
+  agent_continue_if_secure_erase_failed: false
+  agent_enable_ata_secure_erase: true
+  agent_enable_nvme_secure_erase: true
+  agent_erase_devices_iterations: 1
+  agent_erase_devices_zeroize: true
+  agent_erase_skip_read_only: false
+  agent_last_heartbeat: '2026-11-03T20:07:17.731365'
+  agent_version: 11.6.0.dev30
+  clean_steps: null
+  deploy_steps: null
+  disk_erasure_concurrency: 4
+  hardware_manager_version:
+    generic_hardware_manager: '1.2'
+  inspector_manage_boot: true
+  last_power_state_change: '2026-11-03T20:07:21.324893'
+  lookup_bmc_addresses:
+  - 192.0.2.10
+  service_steps: null
+extra: {}
+fault: null
+firmware_interface: redfish
+health: Critical
+inspection_finished_at: '2026-05-20T22:29:37+00:00'
+inspection_started_at: null
+inspect_interface: idrac-redfish
+instance_info: {}
+instance_name: null
+instance_uuid: null
+last_error: null
+lessee: null
+maintenance: false
+maintenance_reason: null
+management_interface: idrac-redfish
+name: Dell-A1BCD01
+network_data: {}
+network_interface: neutron
+owner: null
+parent_node: null
+power_interface: idrac-redfish
+power_state: power off
+properties:
+  capabilities: boot_mode:uefi
+  cpu_arch: x86_64
+  cpus: 32
+  local_gb: 445
+  memory_mb: 98304
+  vendor: Dell Inc.
+protected: false
+protected_reason: null
+provision_state: available
+provision_updated_at: '2026-11-03T20:07:54+00:00'
+raid_config:
+  last_updated: '2025-07-16 18:05:46.686070'
+  logical_disks:
+  - controller: RAID.SL.1-1
+    id: Disk.Virtual.239:RAID.SL.1-1
+    name: Virtual Disk239
+    raid_level: '1'
+    size_gb: 446
+raid_interface: idrac-redfish
+rescue_interface: no-rescue
+reservation: null
+resource_class: dell
+retired: false
+retired_reason: null
+secure_boot: false
+service_step: {}
+shard: null
+storage_interface: noop
+target_power_state: null
+target_provision_state: null
+target_raid_config:
+  logical_disks:
+  - controller: RAID.SL.1-1
+    is_root_volume: true
+    physical_disks:
+    - Disk.Bay.0:Enclosure.Internal.0-1:RAID.SL.1-1
+    - Disk.Bay.1:Enclosure.Internal.0-1:RAID.SL.1-1
+    raid_level: '1'
+    size_gb: MAX
+traits:
+- CUSTOM_CHASSIS_DELL_POWEREDGE_R7615
+vendor_interface: idrac-redfish
+conductor: conductor-example
+allocation_uuid: null
+chassis_uuid: null

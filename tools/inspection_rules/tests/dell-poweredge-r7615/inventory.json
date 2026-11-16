@@ -1,0 +1,578 @@
+{
+  "inventory": {
+    "memory": {
+      "physical_mb": 98304
+    },
+    "cpu": {
+      "count": 32,
+      "architecture": "x86_64",
+      "model_name": "AMD EPYC 9124 16-Core Processor",
+      "frequency": 4400
+    },
+    "disks": [
+      {
+        "name": "Solid State Disk 0:1:0",
+        "size": 479559942144
+      },
+      {
+        "name": "Solid State Disk 0:1:1",
+        "size": 479559942144
+      }
+    ],
+    "storage_controllers": [
+      {
+        "id": "RAID.SL.1-1",
+        "name": "PERC H755 Front",
+        "storage_controllers": [
+          {
+            "member_id": "0",
+            "name": "PERC H755 Front",
+            "raid_types": [
+              "RAID0",
+              "RAID1",
+              "RAID5",
+              "RAID6",
+              "RAID10",
+              "RAID50",
+              "RAID60"
+            ],
+            "speed_gbps": 12.0,
+            "controller_protocols": [
+              "PCIe"
+            ],
+            "device_protocols": [
+              "SAS",
+              "SATA"
+            ],
+            "status": {
+              "state": "Enabled"
+            }
+          }
+        ],
+        "drives": [
+          {
+            "name": "Solid State Disk 0:1:0",
+            "size": 479559942144,
+            "id": "Disk.Bay.0:Enclosure.Internal.0-1:RAID.SL.1-1",
+            "media_type": "SSD",
+            "serial_number": "DISKSERIAL0001",
+            "manufacturer": "SAMSUNG",
+            "model": "MZ7L3480HCHQAD3",
+            "revision": "HJ53",
+            "protocol": "SATA",
+            "status": {
+              "state": "Enabled"
+            }
+          },
+          {
+            "name": "Solid State Disk 0:1:1",
+            "size": 479559942144,
+            "id": "Disk.Bay.1:Enclosure.Internal.0-1:RAID.SL.1-1",
+            "media_type": "SSD",
+            "serial_number": "DISKSERIAL0002",
+            "manufacturer": "MICRON",
+            "model": "MTFDDAK480TGA-1B",
+            "revision": "D4DK003",
+            "protocol": "SATA",
+            "status": {
+              "state": "Enabled"
+            }
+          }
+        ]
+      },
+      {
+        "id": "AHCI.Embedded.1-1",
+        "name": "FCH SATA Controller [AHCI mode]",
+        "storage_controllers": [
+          {
+            "member_id": "0",
+            "name": "FCH SATA Controller [AHCI mode]",
+            "raid_types": [],
+            "speed_gbps": null,
+            "controller_protocols": [
+              "PCIe"
+            ],
+            "device_protocols": [],
+            "status": {
+              "state": "Enabled"
+            }
+          }
+        ],
+        "drives": []
+      },
+      {
+        "id": "CPU.1",
+        "name": "CPU.1",
+        "storage_controllers": [],
+        "drives": []
+      }
+    ],
+    "interfaces": [
+      {
+        "mac_address": "02:00:00:00:00:01",
+        "name": "NIC.Integrated.1-2",
+        "speed_mbps": 0
+      },
+      {
+        "mac_address": "02:00:00:00:00:02",
+        "name": "NIC.Integrated.1-1",
+        "speed_mbps": 0
+      },
+      {
+        "mac_address": "02:00:00:00:00:03",
+        "name": "NIC.Embedded.1-1-1",
+        "speed_mbps": 0
+      },
+      {
+        "mac_address": "02:00:00:00:00:04",
+        "name": "NIC.Embedded.2-1-1",
+        "speed_mbps": 0
+      },
+      {
+        "mac_address": "02:00:00:00:00:05",
+        "name": "NIC.Slot.1-2",
+        "speed_mbps": 0
+      },
+      {
+        "mac_address": "02:00:00:00:00:06",
+        "name": "NIC.Slot.1-1",
+        "speed_mbps": 0
+      }
+    ],
+    "pci_devices": [
+      {
+        "class": "NetworkController",
+        "product_id": "0x16d7",
+        "vendor_id": "0x14e4",
+        "subsystem_id": "0x4146",
+        "subsystem_vendor_id": "0x14e4",
+        "revision": "0x01"
+      },
+      {
+        "class": "NetworkController",
+        "product_id": "0x16d7",
+        "vendor_id": "0x14e4",
+        "subsystem_id": "0x4146",
+        "subsystem_vendor_id": "0x14e4",
+        "revision": "0x01"
+      },
+      {
+        "class": "NetworkController",
+        "product_id": "0x165f",
+        "vendor_id": "0x14e4",
+        "subsystem_id": "0x0a6b",
+        "subsystem_vendor_id": "0x1028",
+        "revision": "0x00"
+      },
+      {
+        "class": "NetworkController",
+        "product_id": "0x165f",
+        "vendor_id": "0x14e4",
+        "subsystem_id": "0x0a6b",
+        "subsystem_vendor_id": "0x1028",
+        "revision": "0x00"
+      },
+      {
+        "class": "Bridge",
+        "product_id": "0x14a7",
+        "vendor_id": "0x1022",
+        "subsystem_id": "0x14a4",
+        "subsystem_vendor_id": "0x1022",
+        "revision": "0x01"
+      },
+      {
+        "class": "Bridge",
+        "product_id": "0x14a7",
+        "vendor_id": "0x1022",
+        "subsystem_id": "0x14a4",
+        "subsystem_vendor_id": "0x1022",
+        "revision": "0x01"
+      },
+      {
+        "class": "Bridge",
+        "product_id": "0x149f",
+        "vendor_id": "0x1022",
+        "subsystem_id": "0x0000",
+        "subsystem_vendor_id": "0x0000",
+        "revision": "0x01"
+      },
+      {
+        "class": "Bridge",
+        "product_id": "0x149f",
+        "vendor_id": "0x1022",
+        "subsystem_id": "0x0000",
+        "subsystem_vendor_id": "0x0000",
+        "revision": "0x01"
+      },
+      {
+        "class": "Bridge",
+        "product_id": "0x149f",
+        "vendor_id": "0x1022",
+        "subsystem_id": "0x0000",
+        "subsystem_vendor_id": "0x0000",
+        "revision": "0x01"
+      },
+      {
+        "class": "DisplayController",
+        "product_id": "0x0536",
+        "vendor_id": "0x102b",
+        "subsystem_id": "0x0000",
+        "subsystem_vendor_id": "0x0000",
+        "revision": "0x04"
+      },
+      {
+        "class": "Bridge",
+        "product_id": "0x14a4",
+        "vendor_id": "0x1022",
+        "subsystem_id": "0x14a4",
+        "subsystem_vendor_id": "0x1022",
+        "revision": "0x01"
+      },
+      {
+        "class": "Bridge",
+        "product_id": "0x149f",
+        "vendor_id": "0x1022",
+        "subsystem_id": "0x0000",
+        "subsystem_vendor_id": "0x0000",
+        "revision": "0x01"
+      },
+      {
+        "class": "Bridge",
+        "product_id": "0x149f",
+        "vendor_id": "0x1022",
+        "subsystem_id": "0x0000",
+        "subsystem_vendor_id": "0x0000",
+        "revision": "0x01"
+      },
+      {
+        "class": "MassStorageController",
+        "product_id": "0x7901",
+        "vendor_id": "0x1022",
+        "subsystem_id": "0x0af7",
+        "subsystem_vendor_id": "0x1028",
+        "revision": "0x91"
+      },
+      {
+        "class": "MassStorageController",
+        "product_id": "0x10e2",
+        "vendor_id": "0x1000",
+        "subsystem_id": "0x1ae1",
+        "subsystem_vendor_id": "0x1028",
+        "revision": "0x00"
+      },
+      {
+        "class": "Bridge",
+        "product_id": "0x14a7",
+        "vendor_id": "0x1022",
+        "subsystem_id": "0x14a4",
+        "subsystem_vendor_id": "0x1022",
+        "revision": "0x01"
+      },
+      {
+        "class": "Bridge",
+        "product_id": "0x149f",
+        "vendor_id": "0x1022",
+        "subsystem_id": "0x0000",
+        "subsystem_vendor_id": "0x0000",
+        "revision": "0x01"
+      },
+      {
+        "class": "Bridge",
+        "product_id": "0x149f",
+        "vendor_id": "0x1022",
+        "subsystem_id": "0x0000",
+        "subsystem_vendor_id": "0x0000",
+        "revision": "0x01"
+      },
+      {
+        "class": "Bridge",
+        "product_id": "0x149f",
+        "vendor_id": "0x1022",
+        "subsystem_id": "0x0000",
+        "subsystem_vendor_id": "0x0000",
+        "revision": "0x01"
+      },
+      {
+        "class": "Bridge",
+        "product_id": "0x149f",
+        "vendor_id": "0x1022",
+        "subsystem_id": "0x0000",
+        "subsystem_vendor_id": "0x0000",
+        "revision": "0x01"
+      },
+      {
+        "class": "Bridge",
+        "product_id": "0x149f",
+        "vendor_id": "0x1022",
+        "subsystem_id": "0x0000",
+        "subsystem_vendor_id": "0x0000",
+        "revision": "0x01"
+      },
+      {
+        "class": "Bridge",
+        "product_id": "0x14ab",
+        "vendor_id": "0x1022",
+        "subsystem_id": "0x0af7",
+        "subsystem_vendor_id": "0x1028",
+        "revision": "0x01"
+      },
+      {
+        "class": "Bridge",
+        "product_id": "0x149f",
+        "vendor_id": "0x1022",
+        "subsystem_id": "0x0000",
+        "subsystem_vendor_id": "0x0000",
+        "revision": "0x01"
+      },
+      {
+        "class": "Bridge",
+        "product_id": "0x149f",
+        "vendor_id": "0x1022",
+        "subsystem_id": "0x0000",
+        "subsystem_vendor_id": "0x0000",
+        "revision": "0x01"
+      },
+      {
+        "class": "Bridge",
+        "product_id": "0x149f",
+        "vendor_id": "0x1022",
+        "subsystem_id": "0x0000",
+        "subsystem_vendor_id": "0x0000",
+        "revision": "0x01"
+      },
+      {
+        "class": "Bridge",
+        "product_id": "0x149f",
+        "vendor_id": "0x1022",
+        "subsystem_id": "0x0000",
+        "subsystem_vendor_id": "0x0000",
+        "revision": "0x01"
+      },
+      {
+        "class": "Bridge",
+        "product_id": "0x14a7",
+        "vendor_id": "0x1022",
+        "subsystem_id": "0x14a4",
+        "subsystem_vendor_id": "0x1022",
+        "revision": "0x01"
+      },
+      {
+        "class": "Bridge",
+        "product_id": "0x790e",
+        "vendor_id": "0x1022",
+        "subsystem_id": "0x0af7",
+        "subsystem_vendor_id": "0x1028",
+        "revision": "0x51"
+      },
+      {
+        "class": "SerialBusController",
+        "product_id": "0x790b",
+        "vendor_id": "0x1022",
+        "subsystem_id": "0x0af7",
+        "subsystem_vendor_id": "0x1028",
+        "revision": "0x71"
+      },
+      {
+        "class": "Bridge",
+        "product_id": "0x149f",
+        "vendor_id": "0x1022",
+        "subsystem_id": "0x0000",
+        "subsystem_vendor_id": "0x0000",
+        "revision": "0x01"
+      },
+      {
+        "class": "NetworkController",
+        "product_id": "0x16d7",
+        "vendor_id": "0x14e4",
+        "subsystem_id": "0x1402",
+        "subsystem_vendor_id": "0x14e4",
+        "revision": "0x01"
+      },
+      {
+        "class": "NetworkController",
+        "product_id": "0x16d7",
+        "vendor_id": "0x14e4",
+        "subsystem_id": "0x1402",
+        "subsystem_vendor_id": "0x14e4",
+        "revision": "0x01"
+      },
+      {
+        "class": "Bridge",
+        "product_id": "0x14a7",
+        "vendor_id": "0x1022",
+        "subsystem_id": "0x14a4",
+        "subsystem_vendor_id": "0x1022",
+        "revision": "0x01"
+      },
+      {
+        "class": "Bridge",
+        "product_id": "0x149f",
+        "vendor_id": "0x1022",
+        "subsystem_id": "0x0000",
+        "subsystem_vendor_id": "0x0000",
+        "revision": "0x01"
+      },
+      {
+        "class": "Bridge",
+        "product_id": "0x149f",
+        "vendor_id": "0x1022",
+        "subsystem_id": "0x0000",
+        "subsystem_vendor_id": "0x0000",
+        "revision": "0x01"
+      },
+      {
+        "class": "Bridge",
+        "product_id": "0x149f",
+        "vendor_id": "0x1022",
+        "subsystem_id": "0x0000",
+        "subsystem_vendor_id": "0x0000",
+        "revision": "0x01"
+      },
+      {
+        "class": "Bridge",
+        "product_id": "0x149f",
+        "vendor_id": "0x1022",
+        "subsystem_id": "0x0000",
+        "subsystem_vendor_id": "0x0000",
+        "revision": "0x01"
+      },
+      {
+        "class": "Bridge",
+        "product_id": "0x149f",
+        "vendor_id": "0x1022",
+        "subsystem_id": "0x0000",
+        "subsystem_vendor_id": "0x0000",
+        "revision": "0x01"
+      }
+    ],
+    "system_vendor": {
+      "product_name": "PowerEdge R7615",
+      "serial_number": "A1BCD01",
+      "manufacturer": "Dell Inc.",
+      "system_uuid": "00000000-0000-4000-8000-0000000000aa"
+    },
+    "boot": {
+      "current_boot_mode": "uefi"
+    }
+  },
+  "plugin_data": {
+    "parsed_lldp": {
+      "iDRAC.Embedded.1": {
+        "switch_chassis_id": "02:00:00:00:00:07",
+        "switch_port_id": "Gi1/0/8"
+      },
+      "NIC.Slot.1-1-1": {
+        "switch_chassis_id": "02:00:00:00:00:08",
+        "switch_port_id": "Ethernet1/8"
+      },
+      "NIC.Slot.1-2-1": {
+        "switch_chassis_id": "02:00:00:00:00:09",
+        "switch_port_id": "Ethernet1/8"
+      },
+      "NIC.Integrated.1-1-1": {
+        "switch_chassis_id": "02:00:00:00:00:0a",
+        "switch_port_id": "Ethernet1/8"
+      },
+      "NIC.Integrated.1-2-1": {
+        "switch_chassis_id": "02:00:00:00:00:0b",
+        "switch_port_id": "Ethernet1/8"
+      }
+    },
+    "all_interfaces": {
+      "NIC.Integrated.1-2": {
+        "mac_address": "02:00:00:00:00:01",
+        "name": "NIC.Integrated.1-2",
+        "speed_mbps": 0,
+        "pxe_enabled": false,
+        "ipv6_address": null
+      },
+      "NIC.Integrated.1-1": {
+        "mac_address": "02:00:00:00:00:02",
+        "name": "NIC.Integrated.1-1",
+        "speed_mbps": 0,
+        "pxe_enabled": false,
+        "ipv6_address": null
+      },
+      "NIC.Embedded.1-1-1": {
+        "mac_address": "02:00:00:00:00:03",
+        "name": "NIC.Embedded.1-1-1",
+        "speed_mbps": 0,
+        "pxe_enabled": false,
+        "ipv6_address": null
+      },
+      "NIC.Embedded.2-1-1": {
+        "mac_address": "02:00:00:00:00:04",
+        "name": "NIC.Embedded.2-1-1",
+        "speed_mbps": 0,
+        "pxe_enabled": false,
+        "ipv6_address": null
+      },
+      "NIC.Slot.1-2": {
+        "mac_address": "02:00:00:00:00:05",
+        "name": "NIC.Slot.1-2",
+        "speed_mbps": 0,
+        "pxe_enabled": false,
+        "ipv6_address": null
+      },
+      "NIC.Slot.1-1": {
+        "mac_address": "02:00:00:00:00:06",
+        "name": "NIC.Slot.1-1",
+        "speed_mbps": 0,
+        "pxe_enabled": false,
+        "ipv6_address": null
+      }
+    },
+    "valid_interfaces": {
+      "NIC.Integrated.1-2": {
+        "mac_address": "02:00:00:00:00:01",
+        "name": "NIC.Integrated.1-2",
+        "speed_mbps": 0,
+        "pxe_enabled": false,
+        "ipv6_address": null
+      },
+      "NIC.Integrated.1-1": {
+        "mac_address": "02:00:00:00:00:02",
+        "name": "NIC.Integrated.1-1",
+        "speed_mbps": 0,
+        "pxe_enabled": false,
+        "ipv6_address": null
+      },
+      "NIC.Embedded.1-1-1": {
+        "mac_address": "02:00:00:00:00:03",
+        "name": "NIC.Embedded.1-1-1",
+        "speed_mbps": 0,
+        "pxe_enabled": false,
+        "ipv6_address": null
+      },
+      "NIC.Embedded.2-1-1": {
+        "mac_address": "02:00:00:00:00:04",
+        "name": "NIC.Embedded.2-1-1",
+        "speed_mbps": 0,
+        "pxe_enabled": false,
+        "ipv6_address": null
+      },
+      "NIC.Slot.1-2": {
+        "mac_address": "02:00:00:00:00:05",
+        "name": "NIC.Slot.1-2",
+        "speed_mbps": 0,
+        "pxe_enabled": false,
+        "ipv6_address": null
+      },
+      "NIC.Slot.1-1": {
+        "mac_address": "02:00:00:00:00:06",
+        "name": "NIC.Slot.1-1",
+        "speed_mbps": 0,
+        "pxe_enabled": false,
+        "ipv6_address": null
+      }
+    },
+    "macs": [
+      "02:00:00:00:00:01",
+      "02:00:00:00:00:02",
+      "02:00:00:00:00:03",
+      "02:00:00:00:00:04",
+      "02:00:00:00:00:05",
+      "02:00:00:00:00:06"
+    ]
+  }
+}
