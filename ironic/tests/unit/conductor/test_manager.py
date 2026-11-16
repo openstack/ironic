@@ -5680,6 +5680,33 @@ class VifTestCase(mgr_utils.ServiceSetUpMixin, db_base.DbTestCase):
         mock_attach.assert_called_once_with(mock.ANY, mock.ANY, self.vif)
 
     @mock.patch.object(n_flat.FlatNetwork, 'vif_attach', autospec=True)
+    def test_vif_attach_raises_tbn_no_traits_applicable(self, mock_attach,
+                                                        mock_valid):
+        mock_attach.side_effect = exception.TBNNoTraitsApplicableToNode(
+            node='fake-node')
+        node = obj_utils.create_test_node(self.context, driver='fake-hardware')
+        exc = self.assertRaises(messaging.rpc.ExpectedException,
+                                self.service.vif_attach,
+                                self.context, node.uuid, self.vif)
+        # Compare true exception hidden by @messaging.expected_exceptions
+        self.assertEqual(exception.TBNNoTraitsApplicableToNode,
+                         exc.exc_info[0])
+        self.assertEqual(400, exc.exc_info[1].code)
+
+    @mock.patch.object(n_flat.FlatNetwork, 'vif_attach', autospec=True)
+    def test_vif_attach_raises_tbn_no_port_matches(self, mock_attach,
+                                                   mock_valid):
+        mock_attach.side_effect = exception.TBNNoPortMatchesFound(
+            node='fake-node', vif_id='fake-vif')
+        node = obj_utils.create_test_node(self.context, driver='fake-hardware')
+        exc = self.assertRaises(messaging.rpc.ExpectedException,
+                                self.service.vif_attach,
+                                self.context, node.uuid, self.vif)
+        # Compare true exception hidden by @messaging.expected_exceptions
+        self.assertEqual(exception.TBNNoPortMatchesFound, exc.exc_info[0])
+        self.assertEqual(400, exc.exc_info[1].code)
+
+    @mock.patch.object(n_flat.FlatNetwork, 'vif_attach', autospec=True)
     def test_vif_attach_raises_portgroup_physnet_inconsistent(
             self, mock_attach, mock_valid):
         mock_valid.side_effect = exception.PortgroupPhysnetInconsistent(
