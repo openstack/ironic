@@ -1,0 +1,8 @@
+---
+upgrade:
+  - |
+    The following options have been removed. These have had no effect since
+    26.0.0 release and were formally deprecated in 34.0.0 .
+
+    - ``[drac] config_job_max_retries``
+    - ``[drac] bios_factory_reset_timeout``
