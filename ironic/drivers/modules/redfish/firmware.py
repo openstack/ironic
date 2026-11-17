@@ -791,7 +791,7 @@ class RedfishFirmware(base.FirmwareInterface):
 
                 if consecutive_successes >= required_successes:
                     LOG.info('All tested Redfish resources stable and '
-                             ' available for node %(node)s',
+                             'available for node %(node)s',
                              {'node': node.uuid})
                     return
 
