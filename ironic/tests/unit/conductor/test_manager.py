@@ -10402,7 +10402,8 @@ class ConductorCleanupTestCase(mgr_utils.ServiceSetUpMixin,
             with mock.patch.object(objects.Conductor, 'get_by_hostname',
                                    autospec=True) as mock_get:
                 mock_get.side_effect = lambda ctxt, hostname, online=None: (
-                    mock.Mock(updated_at=old if hostname == 'conductor-old'
+                    mock.Mock(spec=objects.Conductor,
+                              updated_at=old if hostname == 'conductor-old'
                               else timeutils.utcnow(with_timezone=True)))
                 self.service._cleanup_stale_conductors(self.context)
 
