@@ -1105,7 +1105,7 @@ class DoNodeServiceAbortTestCase(db_base.DbTestCase):
         node = obj_utils.create_test_node(
             self.context, driver='fake-hardware',
             provision_state=states.SERVICEWAIT,
-            target_provision_state=states.AVAILABLE,
+            target_provision_state=states.ACTIVE,
             service_step=service_step,
             driver_internal_info={
                 'agent_url': 'some url',
@@ -1207,7 +1207,7 @@ class DoNodeServiceAbortTestCase(db_base.DbTestCase):
         node = obj_utils.create_test_node(
             self.context, driver='fake-hardware',
             provision_state=states.SERVICEWAIT,
-            target_provision_state=states.AVAILABLE,
+            target_provision_state=states.ACTIVE,
             driver_internal_info={
                 'agent_start_attempted': True,
                 'service_step_index': 2})
@@ -1229,7 +1229,7 @@ class DoNodeServiceAbortTestCase(db_base.DbTestCase):
         node = obj_utils.create_test_node(
             self.context, driver='fake-hardware',
             provision_state=states.SERVICEWAIT,
-            target_provision_state=states.AVAILABLE,
+            target_provision_state=states.ACTIVE,
             driver_internal_info={
                 'service_step_index': 2})
 
