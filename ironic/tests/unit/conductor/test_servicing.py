@@ -77,6 +77,83 @@ class DoNodeServiceTestCase(db_base.DbTestCase):
         self.__do_node_service_validate_fail(mock_validate,
                                              service_steps=service_steps)
 
+    @mock.patch.object(n_flat.FlatNetwork, 'validate', autospec=True)
+    @mock.patch.object(fake.FakeDeploy, 'switch_interface', autospec=True)
+    def test__do_node_service_switches_interface(self, mock_switch,
+                                                 mock_net_validate):
+        """Test the deploy interface gets to switch before servicing."""
+        node = obj_utils.create_test_node(
+            self.context, driver='fake-hardware',
+            provision_state=states.SERVICING,
+            target_provision_state=states.ACTIVE)
+        with task_manager.acquire(
+                self.context, node.uuid, shared=False) as task:
+            servicing.do_node_service(task, service_steps=[])
+            mock_switch.assert_called_once_with(task.driver.deploy, task)
+
+    @mock.patch.object(fake.FakeDeploy, 'tear_down_service', autospec=True)
+    @mock.patch.object(fake.FakeDeploy, 'switch_interface', autospec=True)
+    def test__do_node_service_switch_interface_fail(self, mock_switch,
+                                                    mock_tear_down):
+        """Test a failure to resolve an interface fails servicing.
+
+        Nothing has been prepared at that point, so there must be no
+        attempt to tear anything down.
+        """
+        mock_switch.side_effect = exception.InvalidParameterValue('error')
+        node = obj_utils.create_test_node(
+            self.context, driver='fake-hardware',
+            provision_state=states.SERVICING,
+            target_provision_state=states.ACTIVE)
+        with task_manager.acquire(
+                self.context, node.uuid, shared=False) as task:
+            servicing.do_node_service(task, service_steps=[])
+        node.refresh()
+        self.assertEqual(states.SERVICEFAIL, node.provision_state)
+        self.assertIn('Failed to select a deploy interface',
+                      node.last_error)
+        self.assertFalse(mock_tear_down.called)
+
+    @mock.patch.object(fake.FakeDeploy, 'restore_interface', autospec=True)
+    @mock.patch.object(n_flat.FlatNetwork, 'validate', autospec=True)
+    def test__do_node_service_restores_interface(self, mock_net_validate,
+                                                 mock_restore):
+        """Test the deploy interface is restored after servicing.
+
+        do_node_service() switches the interface for us, so completing
+        must switch it back, otherwise the next deployment would skip
+        autodetection entirely.
+        """
+        node = obj_utils.create_test_node(
+            self.context, driver='fake-hardware',
+            provision_state=states.SERVICING,
+            target_provision_state=states.ACTIVE)
+        with task_manager.acquire(
+                self.context, node.uuid, shared=False) as task:
+            servicing.do_node_service(task, service_steps=[])
+            mock_restore.assert_called_once_with(task.driver.deploy, task)
+        node.refresh()
+        self.assertEqual(states.ACTIVE, node.provision_state)
+
+    @mock.patch.object(fake.FakeDeploy, 'restore_interface', autospec=True)
+    @mock.patch.object(fake.FakeDeploy, 'tear_down_service', autospec=True)
+    @mock.patch.object(n_flat.FlatNetwork, 'validate', autospec=True)
+    def test__do_node_service_restores_interface_on_failure(
+            self, mock_net_validate, mock_tear_down, mock_restore):
+        """Test the deploy interface is restored when servicing fails."""
+        mock_net_validate.side_effect = exception.InvalidParameterValue(
+            'error')
+        node = obj_utils.create_test_node(
+            self.context, driver='fake-hardware',
+            provision_state=states.SERVICING,
+            target_provision_state=states.ACTIVE)
+        with task_manager.acquire(
+                self.context, node.uuid, shared=False) as task:
+            servicing.do_node_service(task, service_steps=[])
+            mock_restore.assert_called_once_with(task.driver.deploy, task)
+        node.refresh()
+        self.assertEqual(states.SERVICEFAIL, node.provision_state)
+
     @mock.patch('ironic.drivers.modules.fake.FakePower.validate',
                 autospec=True)
     def test__do_node_service_automated_power_validate_fail(self,
@@ -1063,6 +1140,24 @@ class DoNodeServiceAbortTestCase(db_base.DbTestCase):
 
     def test_do_node_service_abort_early(self):
         self._test_do_node_service_abort(None)
+
+    @mock.patch.object(fake.FakeDeploy, 'restore_interface', autospec=True)
+    @mock.patch.object(fake.FakeDeploy, 'tear_down_service', autospec=True)
+    def test_do_node_service_abort_restores_interface(self, tear_mock,
+                                                      restore_mock):
+        """Test the deploy interface is restored after an aborted service.
+
+        do_node_service() switches the interface for us, so aborting must
+        switch it back like the success and failure paths do.
+        """
+        node = obj_utils.create_test_node(
+            self.context, driver='fake-hardware',
+            provision_state=states.SERVICEWAIT,
+            target_provision_state=states.ACTIVE)
+
+        with task_manager.acquire(self.context, node.uuid) as task:
+            servicing.do_node_service_abort(task)
+            restore_mock.assert_called_once_with(task.driver.deploy, task)
 
     def test_do_node_service_abort_with_step(self):
         self._test_do_node_service_abort({'step': 'foo', 'interface': 'deploy',

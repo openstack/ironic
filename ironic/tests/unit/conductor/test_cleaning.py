@@ -73,6 +73,48 @@ class DoNodeCleanTestCase(db_base.DbTestCase):
         self.__do_node_clean_validate_fail(mock_validate,
                                            clean_steps=clean_steps)
 
+    @mock.patch.object(n_flat.FlatNetwork, 'validate', autospec=True)
+    @mock.patch.object(fake.FakeDeploy, 'switch_interface', autospec=True)
+    def test__do_node_clean_switches_interface(self, mock_switch,
+                                               mock_net_validate):
+        """Test the deploy interface gets to switch before cleaning.
+
+        Without this, a node whose deploy interface is 'autodetect' has no
+        concrete interface to prepare the ramdisk with, and cleaning is
+        silently skipped.
+        """
+        node = obj_utils.create_test_node(
+            self.context, driver='fake-hardware',
+            provision_state=states.CLEANING,
+            target_provision_state=states.AVAILABLE)
+        with task_manager.acquire(
+                self.context, node.uuid, shared=False) as task:
+            cleaning.do_node_clean(task)
+            mock_switch.assert_called_once_with(task.driver.deploy, task)
+
+    @mock.patch.object(fake.FakeDeploy, 'tear_down_cleaning', autospec=True)
+    @mock.patch.object(fake.FakeDeploy, 'switch_interface', autospec=True)
+    def test__do_node_clean_switch_interface_fail(self, mock_switch,
+                                                  mock_tear_down):
+        """Test a failure to resolve an interface fails the clean.
+
+        Nothing has been prepared at that point, so there must be no
+        attempt to tear anything down.
+        """
+        mock_switch.side_effect = exception.InvalidParameterValue('error')
+        node = obj_utils.create_test_node(
+            self.context, driver='fake-hardware',
+            provision_state=states.CLEANING,
+            target_provision_state=states.AVAILABLE)
+        with task_manager.acquire(
+                self.context, node.uuid, shared=False) as task:
+            cleaning.do_node_clean(task)
+        node.refresh()
+        self.assertEqual(states.CLEANFAIL, node.provision_state)
+        self.assertIn('Failed to select a deploy interface',
+                      node.last_error)
+        self.assertFalse(mock_tear_down.called)
+
     @mock.patch('ironic.drivers.modules.fake.FakePower.validate',
                 autospec=True)
     def test__do_node_clean_automated_power_validate_fail(self, mock_validate):
@@ -1361,6 +1403,24 @@ class DoNodeCleanAbortTestCase(db_base.DbTestCase):
 
     def test_do_node_clean_abort_early(self):
         self._test_do_node_clean_abort(None)
+
+    @mock.patch.object(fake.FakeDeploy, 'restore_interface', autospec=True)
+    @mock.patch.object(fake.FakeDeploy, 'tear_down_cleaning', autospec=True)
+    def test_do_node_clean_abort_restores_interface(self, tear_mock,
+                                                    restore_mock):
+        """Test the deploy interface is restored after an aborted clean.
+
+        do_node_clean() switches the interface for us, so aborting must
+        switch it back like the success and failure paths do.
+        """
+        node = obj_utils.create_test_node(
+            self.context, driver='fake-hardware',
+            provision_state=states.CLEANWAIT,
+            target_provision_state=states.AVAILABLE)
+
+        with task_manager.acquire(self.context, node.uuid) as task:
+            cleaning.do_node_clean_abort(task)
+            restore_mock.assert_called_once_with(task.driver.deploy, task)
 
     def test_do_node_clean_abort_with_step(self):
         self._test_do_node_clean_abort({'step': 'foo', 'interface': 'deploy',
