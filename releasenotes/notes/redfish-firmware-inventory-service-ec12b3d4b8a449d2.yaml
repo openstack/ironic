@@ -1,0 +1,9 @@
+---
+features:
+  - |
+    The Redfish firmware interface now exposes ``cache_firmware_components``
+    as a clean and service step. Operators can refresh BIOS, BMC and NIC firmware
+    inventory on active nodes using servicing with ``--disable-ramdisk``,
+    without inspection, rebooting the server, or installing firmware.
+    The step can also be explicitly requested during manual cleaning without
+    a ramdisk; it is disabled by default for automated cleaning.

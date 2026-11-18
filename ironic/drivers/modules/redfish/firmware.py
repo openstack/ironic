@@ -88,12 +88,14 @@ class RedfishFirmware(base.FirmwareInterface):
         redfish_utils.parse_driver_info(task.node)
 
     @METRICS.timer('RedfishFirmware.cache_firmware_components')
+    @base.clean_step(priority=0, requires_ramdisk=False)
+    @base.service_step(priority=0, requires_ramdisk=False)
     def cache_firmware_components(self, task):
         """Store or update Firmware Components on the given node.
 
         This method stores Firmware Components to the firmware_information
-        table during 'cleaning' operation. It will also update the timestamp
-        of each Firmware Component.
+        table, including when explicitly requested as a clean or service step.
+        It reads Redfish without installing firmware or changing power state.
 
         :param task: a TaskManager instance.
         :raises: UnsupportedDriverExtension, if the node's driver doesn't

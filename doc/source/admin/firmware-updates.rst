@@ -27,6 +27,34 @@ specified, then this is equivalent to ``wait 0``, meaning that it will not
 wait and immediately proceed with the next firmware update if there is one,
 or complete the step if not.
 
+Refreshing inventory on active nodes
+------------------------------------
+
+With the ``redfish`` firmware interface, refresh the cached inventory of an
+active node without inspection by running the ``cache_firmware_components``
+service step::
+
+    openstack baremetal node service <node> \
+      --disable-ramdisk --service-steps \
+      '[{"interface": "firmware", "step": "cache_firmware_components"}]'
+
+This step reads firmware versions from Redfish and updates Ironic's cached
+inventory for BIOS, BMC and NICs. It does not install firmware, boot a ramdisk,
+or reboot the server. The node temporarily enters ``servicing`` and returns to
+``active`` after successful completion. Once it is active again, view the
+refreshed inventory::
+
+    openstack baremetal node firmware list <node>
+
+The step uses the existing inventory collection behavior: unavailable optional
+resources are logged and skipped, and old rows are not deleted. Check conductor
+logs if an expected component is missing. An unhandled collection error fails
+servicing and is reported in the node's ``last_error``.
+
+The same step is available for :ref:`manual_cleaning` on manageable nodes,
+without requiring a ramdisk. Its priority is zero, so it does not run during
+automated cleaning by default.
+
 How it works
 ------------
 
