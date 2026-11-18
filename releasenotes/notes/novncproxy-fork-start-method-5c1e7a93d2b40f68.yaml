@@ -1,0 +1,9 @@
+---
+fixes:
+  - |
+    Fixes ``ironic-novncproxy`` silently dropping every connection when run
+    on Python 3.14 or later. Python 3.14 changed the default
+    ``multiprocessing`` start method on Linux from ``fork`` to ``forkserver``,
+    which cannot hand the accepted client socket to the per-connection
+    handler process used by websockify. The service now explicitly uses the
+    ``fork`` start method.

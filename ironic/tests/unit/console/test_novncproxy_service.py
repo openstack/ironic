@@ -25,6 +25,40 @@ class TestNoVNCProxyService(tests_base.TestCase):
 
     @mock.patch.object(novncproxy_service, 'websocketproxy',
                        autospec=True)
+    @mock.patch.object(novncproxy_service.multiprocessing,
+                       'set_start_method', autospec=True)
+    @mock.patch.object(novncproxy_service.multiprocessing,
+                       'get_all_start_methods', autospec=True)
+    def test_real_start_forces_fork(self, mock_methods, mock_set,
+                                    mock_wsproxy):
+        mock_methods.return_value = ['fork', 'spawn', 'forkserver']
+        CONF.set_override('novnc_web', '/tmp/novnc', group='vnc')
+        with mock.patch('os.path.exists', return_value=True,
+                        autospec=True):
+            novncproxy_service.NoVNCProxyService()._real_start()
+
+        mock_set.assert_called_once_with('fork', force=True)
+        mock_wsproxy.IronicWebSocketProxy.return_value.start_server\
+            .assert_called_once_with()
+
+    @mock.patch.object(novncproxy_service, 'websocketproxy',
+                       autospec=True)
+    @mock.patch.object(novncproxy_service.multiprocessing,
+                       'set_start_method', autospec=True)
+    @mock.patch.object(novncproxy_service.multiprocessing,
+                       'get_all_start_methods', autospec=True)
+    def test_real_start_no_fork_support(self, mock_methods, mock_set,
+                                        mock_wsproxy):
+        mock_methods.return_value = ['spawn']
+        CONF.set_override('novnc_web', '/tmp/novnc', group='vnc')
+        with mock.patch('os.path.exists', return_value=True,
+                        autospec=True):
+            novncproxy_service.NoVNCProxyService()._real_start()
+
+        mock_set.assert_not_called()
+
+    @mock.patch.object(novncproxy_service, 'websocketproxy',
+                       autospec=True)
     def test_real_start_no_ssl(self, mock_wsproxy):
         CONF.set_override('novnc_web', '/tmp/novnc',
                           group='vnc')
