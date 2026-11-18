@@ -37,7 +37,7 @@
     - name: Build the Debian UEFI partition image
       ansible.builtin.command:
         cmd: >-
-          disk-image-create debian-minimal baremetal dhcp-all-interfaces
+          disk-image-create debian baremetal dhcp-all-interfaces
           partition-image-uefi
           -o {{ image_dir }}/{{ image_prefix }}
       environment:
