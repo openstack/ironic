@@ -369,7 +369,7 @@ class GenericSwitchDriver(SwitchDriverBase):
         :param switch_ids: List of switch identifiers.
         :param lag_name: Name of the LAG.
         :param description: Description for the LAG.
-        :param mode: switchport mode ('access' or 'trunk').
+        :param mode: switchport mode ('access', 'trunk', or 'hybrid').
         :param native_vlan: VLAN ID to be set for the LAG.
         :param aggregation_mode: Aggregation mode (e.g., 'lacp', 'static').
         :param allowed_vlans: List of allowed VLAN IDs to be added (optional).
