@@ -19,6 +19,7 @@ from unittest import mock
 from urllib import parse as urlparse
 
 from oslo_config import cfg
+from oslo_utils import fixture as utils_fixture
 from oslo_utils import timeutils
 from oslo_utils import uuidutils
 from testtools.matchers import HasLength
@@ -1308,11 +1309,10 @@ class TestPost(test_api_base.BaseApiTest):
 
     @mock.patch.object(notification_utils, '_emit_api_notification',
                        autospec=True)
-    @mock.patch.object(timeutils, 'utcnow', autospec=True)
-    def test_create_portgroup(self, mock_utcnow, mock_notify):
+    def test_create_portgroup(self, mock_notify):
         pdict = apiutils.post_get_test_portgroup()
         test_time = datetime.datetime(2000, 1, 1, 0, 0)
-        mock_utcnow.return_value = test_time
+        self.useFixture(utils_fixture.TimeFixture(test_time))
         response = self.post_json('/portgroups', pdict,
                                   headers=self.headers)
         self.assertEqual(http_client.CREATED, response.status_int)
@@ -1337,11 +1337,10 @@ class TestPost(test_api_base.BaseApiTest):
                                       obj_fields.NotificationStatus.END,
                                       node_uuid=self.node.uuid)])
 
-    @mock.patch.object(timeutils, 'utcnow', autospec=True)
-    def test_create_portgroup_v123(self, mock_utcnow):
+    def test_create_portgroup_v123(self):
         pdict = apiutils.post_get_test_portgroup()
         test_time = datetime.datetime(2000, 1, 1, 0, 0)
-        mock_utcnow.return_value = test_time
+        self.useFixture(utils_fixture.TimeFixture(test_time))
         headers = {api_base.Version.string: "1.23"}
         response = self.post_json('/portgroups', pdict,
                                   headers=headers)

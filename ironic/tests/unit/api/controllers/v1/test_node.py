@@ -24,6 +24,7 @@ import uuid
 
 import fixtures
 from oslo_config import cfg
+from oslo_utils import fixture as utils_fixture
 from oslo_utils import timeutils
 from oslo_utils import uuidutils
 from testtools import matchers
@@ -4668,15 +4669,14 @@ class TestPost(test_api_base.BaseApiTest):
         self.mock_gtf.return_value = 'test-topic'
         self.addCleanup(p.stop)
 
-    @mock.patch.object(timeutils, 'utcnow', autospec=True)
-    def _test_create_node(self, mock_utcnow, headers=None,
+    def _test_create_node(self, headers=None,
                           remove_chassis_uuid=False, **kwargs):
         headers = headers or {}
         ndict = test_api_utils.post_get_test_node(**kwargs)
         if remove_chassis_uuid:
             del ndict['chassis_uuid']
         test_time = datetime.datetime(2000, 1, 1, 0, 0)
-        mock_utcnow.return_value = test_time
+        self.useFixture(utils_fixture.TimeFixture(test_time))
         response = self.post_json('/nodes', ndict,
                                   headers=headers)
         self.assertEqual(http_client.CREATED, response.status_int)

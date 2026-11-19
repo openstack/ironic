@@ -19,6 +19,7 @@ from unittest import mock
 from urllib import parse as urlparse
 
 from oslo_config import cfg
+from oslo_utils import fixture as utils_fixture
 from oslo_utils import timeutils
 from oslo_utils import uuidutils
 from testtools import matchers
@@ -1980,11 +1981,10 @@ class TestPost(test_api_base.BaseApiTest):
 
     @mock.patch.object(notification_utils, '_emit_api_notification',
                        autospec=True)
-    @mock.patch.object(timeutils, 'utcnow', autospec=True)
-    def test_create_port(self, mock_utcnow, mock_notify, mock_create):
+    def test_create_port(self, mock_notify, mock_create):
         pdict = post_get_test_port()
         test_time = datetime.datetime(2000, 1, 1, 0, 0)
-        mock_utcnow.return_value = test_time
+        self.useFixture(utils_fixture.TimeFixture(test_time))
         response = self.post_json('/ports', pdict, headers=self.headers)
         self.assertEqual(http_client.CREATED, response.status_int)
         result = self.get_json('/ports/%s' % pdict['uuid'],

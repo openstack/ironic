@@ -16,6 +16,7 @@ import datetime
 from http import client as http_client
 from unittest import mock
 
+from oslo_utils import fixture as utils_fixture
 from oslo_utils import timeutils
 from oslo_utils import uuidutils
 
@@ -147,11 +148,10 @@ class TestListInspectionRules(BaseInspectionRulesAPITest):
 
 
 class TestPost(BaseInspectionRulesAPITest):
-    @mock.patch.object(timeutils, 'utcnow', autospec=True)
-    def test_create_rule(self, mock_utcnow):
+    def test_create_rule(self):
         idict = test_api_utils.post_get_test_inspection_rule()
         test_time = datetime.datetime(2024, 8, 27, 0, 0)
-        mock_utcnow.return_value = test_time
+        self.useFixture(utils_fixture.TimeFixture(test_time))
 
         response = self.post_json('/inspection_rules', idict,
                                   headers=self.headers)
