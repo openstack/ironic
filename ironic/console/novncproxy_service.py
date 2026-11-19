@@ -12,6 +12,7 @@
 # License for the specific language governing permissions and limitations
 # under the License.
 
+import multiprocessing
 import os
 
 from oslo_config import cfg
@@ -69,6 +70,15 @@ class NoVNCProxyService(service.Service):
         if CONF.vnc.novnc_web and not os.path.exists(CONF.vnc.novnc_web):
             raise exception.ConfigInvalid(
                 "Can not find html/js files at %s." % CONF.vnc.novnc_web)
+
+        # websockify hands every accepted connection to a
+        # multiprocessing.Process, relying on the child inheriting the
+        # socket. Python 3.14 changed the default start method on Linux from
+        # 'fork' to 'forkserver', which has to pickle the socket and fails,
+        # so every connection is silently dropped. Restore 'fork'.
+        # See https://github.com/novnc/websockify/issues/643
+        if 'fork' in multiprocessing.get_all_start_methods():
+            multiprocessing.set_start_method('fork', force=True)
 
         # Create and start the IronicWebSockets proxy
         websocketproxy.IronicWebSocketProxy(**kwargs).start_server()
