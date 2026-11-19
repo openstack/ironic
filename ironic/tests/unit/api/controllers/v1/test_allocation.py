@@ -22,6 +22,7 @@ from urllib import parse as urlparse
 import fixtures
 from keystonemiddleware import auth_token
 from oslo_config import cfg
+from oslo_utils import fixture as utils_fixture
 from oslo_utils import timeutils
 from oslo_utils import uuidutils
 
@@ -634,11 +635,10 @@ class TestPatch(test_api_base.BaseApiTest):
 
     @mock.patch.object(notification_utils, '_emit_api_notification',
                        autospec=True)
-    @mock.patch.object(timeutils, 'utcnow', autospec=True)
-    def test_replace_singular(self, mock_utcnow, mock_notify):
+    def test_replace_singular(self, mock_notify):
         test_time = datetime.datetime(2000, 1, 1, 0, 0)
 
-        mock_utcnow.return_value = test_time
+        self.useFixture(utils_fixture.TimeFixture(test_time))
         response = self.patch_json('/allocations/%s' % self.allocation.uuid,
                                    [{'path': '/name',
                                      'value': 'test', 'op': 'replace'}],
@@ -803,11 +803,10 @@ class TestPost(test_api_base.BaseApiTest):
 
     @mock.patch.object(notification_utils, '_emit_api_notification',
                        autospec=True)
-    @mock.patch.object(timeutils, 'utcnow', autospec=True)
-    def test_create_allocation(self, mock_utcnow, mock_notify):
+    def test_create_allocation(self, mock_notify):
         adict = apiutils.allocation_post_data()
         test_time = datetime.datetime(2000, 1, 1, 0, 0)
-        mock_utcnow.return_value = test_time
+        self.useFixture(utils_fixture.TimeFixture(test_time))
         response = self.post_json('/allocations', adict,
                                   headers=self.headers)
         self.assertEqual(http_client.CREATED, response.status_int)
