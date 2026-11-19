@@ -4606,7 +4606,9 @@ def do_sync_power_state(task, count):
     max_retries = CONF.conductor.power_state_sync_max_retries
 
     def _clear_last_error_if_needed(node, reason):
-        if CONF.conductor.node_history and node.last_error:
+        # A power interface that cannot sync power has confirmed nothing.
+        if (CONF.conductor.node_history and node.last_error
+                and task.driver.power.supports_power_sync(task)):
             LOG.info("Clearing last_error for node %(node)s after %(reason)s.",
                      {'node': node.uuid, 'reason': reason})
             node.last_error = None

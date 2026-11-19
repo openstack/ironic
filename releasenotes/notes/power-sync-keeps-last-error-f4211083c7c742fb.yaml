@@ -1,0 +1,10 @@
+---
+fixes:
+  - |
+    The periodic power state sync no longer clears a node's ``last_error``
+    when the node's power interface does not support power sync, that is,
+    when its ``supports_power_sync()`` returns ``False``. For such a node a
+    power state match confirms nothing, so errors recorded by other
+    interfaces were cleared within one
+    ``[conductor]sync_power_state_interval``. See `bug 2175085
+    <https://bugs.launchpad.net/ironic/+bug/2175085>`_ for details.

@@ -6487,6 +6487,15 @@ class ManagerDoSyncPowerStateTestCase(db_base.DbTestCase):
         self._do_sync_power_state(states.POWER_ON, states.POWER_ON)
         self.assertIsNone(self.node.last_error)
 
+    def test_last_error_not_cleared_when_power_sync_not_supported(
+            self, node_power_action):
+        self.config(group='conductor', node_history=True)
+        self.power.supports_power_sync.return_value = False
+        self.node.last_error = 'HA peer connection not up'
+        self._do_sync_power_state(None, None)
+        self.assertEqual('HA peer connection not up', self.node.last_error)
+        self.power.supports_power_sync.assert_called_once_with(self.task)
+
     def test_last_error_not_cleared_when_node_history_disabled(
             self, node_power_action):
         self.config(group='conductor', node_history=False)
