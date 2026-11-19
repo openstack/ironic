@@ -106,6 +106,14 @@ class RedfishFirmwareTestCase(db_base.DbTestCase):
             task.driver.firmware.validate(task)
             mock_parse_driver_info.assert_called_once_with(task.node)
 
+    def test_update_clean_step_does_not_require_ramdisk(self):
+        with task_manager.acquire(self.context, self.node.uuid,
+                                  shared=True) as task:
+            steps = task.driver.firmware.get_clean_steps(task)
+        update = [step for step in steps if step['step'] == 'update']
+        self.assertEqual(1, len(update))
+        self.assertFalse(update[0]['requires_ramdisk'])
+
     @mock.patch.object(redfish_fw, 'LOG', autospec=True)
     @mock.patch.object(redfish_utils, 'get_system', autospec=True)
     @mock.patch.object(redfish_utils, 'get_manager', autospec=True)

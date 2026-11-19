@@ -1,0 +1,6 @@
+---
+features:
+  - |
+    The Redfish firmware clean step can run without a ramdisk, matching the
+    existing service step. Operators updating NIC firmware must still ensure
+    any platform-specific running-OS requirement is satisfied.

@@ -343,3 +343,12 @@ In the following example, the JSON is specified directly on the command line:
    Warning: Removing power from a server while it is in the process of updating
    firmware may result in devices in the server, or the server itself becoming
    inoperable.
+
+
+Out-of-band cleaning
+====================
+
+The firmware clean step can execute without booting a ramdisk. The service
+step already supports out-of-band updates. Some NIC updates require a running
+OS for Redfish inventory visibility; satisfy that platform prerequisite
+before requesting those components.

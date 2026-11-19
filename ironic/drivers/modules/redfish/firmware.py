@@ -265,7 +265,7 @@ class RedfishFirmware(base.FirmwareInterface):
                       argsinfo=_FW_SETTINGS_ARGSINFO)
     @base.clean_step(priority=0, abortable=False,
                      argsinfo=_FW_SETTINGS_ARGSINFO,
-                     requires_ramdisk=True)
+                     requires_ramdisk=False)
     @base.service_step(priority=0, abortable=False,
                        argsinfo=_FW_SETTINGS_ARGSINFO,
                        requires_ramdisk=False)
