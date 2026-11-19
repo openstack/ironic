@@ -29,6 +29,7 @@ import futurist
 from futurist import waiters
 from oslo_config import cfg
 import oslo_messaging as messaging
+from oslo_utils import timeutils
 from oslo_utils import uuidutils
 from oslo_versionedobjects import base as ovo_base
 from oslo_versionedobjects import fields
@@ -46,6 +47,7 @@ from ironic.common import indicator_states
 from ironic.common import metrics as ironic_metrics
 from ironic.common import nova
 from ironic.common import states
+from ironic.common import utils as common_utils
 from ironic.conductor import cleaning
 from ironic.conductor import deployments
 from ironic.conductor import inspection
@@ -10124,6 +10126,38 @@ class ConductorCleanupTestCase(mgr_utils.ServiceSetUpMixin,
 
         conductor2 = self.dbapi.get_conductor('conductor-2')
         self.assertEqual('conductor-2', conductor2.hostname)
+
+    @mock.patch.object(common_utils, 'is_ironic_using_sqlite', autospec=True)
+    def test_cleanup_stale_conductors_non_sqlite(self, mock_sqlite):
+        """Test the timestamp comparison used for non-SQLite databases."""
+        mock_sqlite.return_value = False
+        self._start_service()
+
+        for hostname in ('conductor-old', 'conductor-new'):
+            self.dbapi.register_conductor({
+                'hostname': hostname,
+                'drivers': ['fake'],
+                'conductor_group': 'group1'
+            })
+            self.dbapi.touch_conductor(hostname, online=False)
+
+        old = (timeutils.utcnow(with_timezone=True)
+               - datetime.timedelta(days=30))
+        with mock.patch.object(self.dbapi, 'get_offline_conductors',
+                               return_value=['conductor-old',
+                                             'conductor-new'],
+                               autospec=True):
+            with mock.patch.object(objects.Conductor, 'get_by_hostname',
+                                   autospec=True) as mock_get:
+                mock_get.side_effect = lambda ctxt, hostname, online=None: (
+                    mock.Mock(updated_at=old if hostname == 'conductor-old'
+                              else timeutils.utcnow(with_timezone=True)))
+                self.service._cleanup_stale_conductors(self.context)
+
+        self.assertRaises(exception.ConductorNotFound,
+                          self.dbapi.get_conductor, 'conductor-old',
+                          online=None)
+        self.dbapi.get_conductor('conductor-new', online=None)
 
     def test_cleanup_stale_conductors_disabled(self):
         """Test that cleanup is disabled when configured to do so."""
