@@ -535,7 +535,8 @@ def get_system_collection(node):
 
     :param node: an Ironic node object
     :raises: RedfishConnectionError when it fails to connect to Redfish
-    :raises: RedfishError if the System is not registered in Redfish
+    :raises: RedfishResourceNotFound if the Systems collection is not
+        available in Redfish
     """
     driver_info = parse_driver_info(node)
     system_id = driver_info['system_id']
@@ -550,7 +551,7 @@ def get_system_collection(node):
                   ' for node %(node)s. Error %(error)s',
                   {'system': system_id or '<default>',
                    'node': node.uuid, 'error': e})
-        raise exception.RedfishError(error=e)
+        raise exception.RedfishResourceNotFound(error=e)
 
 
 def get_task_monitor(node, uri):
@@ -559,7 +560,9 @@ def get_task_monitor(node, uri):
     :param node: an Ironic node object
     :param uri: the URI of a TaskMonitor
     :raises: RedfishConnectionError when it fails to connect to Redfish
-    :raises: RedfishError when the TaskMonitor is not available in Redfish
+    :raises: RedfishResourceNotFound when the TaskMonitor is not available
+        in Redfish
+    :raises: RedfishError on other Redfish errors
     """
 
     try:
@@ -568,7 +571,7 @@ def get_task_monitor(node, uri):
         LOG.error('The Redfish TaskMonitor "%(uri)s" was not found for '
                   'node %(node)s. Error %(error)s',
                   {'uri': uri, 'node': node.uuid, 'error': e})
-        raise exception.RedfishError(error=e)
+        raise exception.RedfishResourceNotFound(error=e)
 
 
 def _get_connection(node, lambda_fun, *args):
