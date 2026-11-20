@@ -81,6 +81,7 @@ reviewers.
   :maxdepth: 2
 
   Releasing Ironic Projects <releasing>
+  Bugfix Branches <bugfix-branches>
   Ironic Governance Structure <governance>
 
 Writing Drivers

@@ -198,94 +198,10 @@ releases website at https://releases.openstack.org/.
 Bugfix branches
 ===============
 
-The following projects have ``bugfix/X.Y`` branches in addition to standard
-openstack ``stable/NAME`` branches:
-
-* ironic
-* ironic-python-agent
-
-These projects receive releases every six months as part of the coordinated
-OpenStack release that happens semi-annually. These releases can be
-found in a ``stable/NAME`` branch.
-
-They are also evaluated for additional bugfix releases between scheduled
-stable releases at the two and four month milestone between stable releases
-(roughly every 2 months). These releases can be found in a ``bugfix/X.Y``
-branch. A bugfix release is only created if there are significant
-beneficial changes and a known downstream operator or distributor will consume
-the release.
-
-A bugfix branch is supported for 6 months after its creation date.
-
-To leave some version space for releases from these branches, releases of these
-projects from the master branch always increase either the major or the minor
-version.
-
-Currently retirement of bugfix branches cannot be automated and
-must be done by the ironic team manually as explained below.
-
-There are usually 3 bugfix branches present at all time, the latest 2 are
-actively maintained, while the third one is considered unmaintained.
-After creating a new bugfix branch, the oldest bugfix branch
-should be tagged as EoL and deleted.
-
-Only members of the ironic-core or ironic-release groups can delete branches,
-please refer to this procedure to remove the oldest bugfix branch after
-the creation of a new one:
-
-* checkout locally the bugfix branch to move to EoL, if it does not exist
-  locally it's possible to checkout it from remote and switch to it using
-  ``git checkout -t``, for example for bugfix/24.0 use:
-
-.. code-block:: bash
-
-   git checkout -t origin/bugfix/24.0
-
-* fast forward to latest change using:
-
-.. code-block:: bash
-
-   git pull --ff-only
-
-* add a signed tag to the latest commit of the bugfix branch named ``bugfix-X.Y-eol``
-  and add "EOL bugfix/X.Y" as description, for example
-  for bugfix/24.0 add the tag bugfix-24.0-eol; use the ``git tag``
-  command for that, for example for bugfix/24.0 the syntax would be:
-
-.. code-block:: bash
-
-   git tag -s bugfix-24.0-eol -m "EOL bugfix/24.0"
-
-* push the new tag to gerrit using ``git push gerrit TAG_NAME``, for example
-  for bugfix/24.0 use:
-
-.. code-block:: bash
-
-   git push gerrit bugfix-24.0-eol
-
-* delete the bugfix branch on gerrit using ``git push gerrit --delete BUGFIX_BRANCH_NAME``,
-  again for bugfix/24.0 would be:
-
-.. code-block:: bash
-
-   git push gerrit --delete bugfix/24.0
-
-After the creation of a bugfix branch it is highly recommended to update
-the upper-constraints link for the tests in the tox.ini file, plus override
-the branch for the requirements project to be sure to use the correct
-upper-constraints from the branch creation time; for example see the
-following change:
-
-https://review.opendev.org/c/openstack/ironic/+/938660
-
-It is also mandatory to comment out or remove the metal3 integration job as it
-is not supposed to run in stable or bugfix branches, and also comment out or
-remove the tox codespell job to avoid failures due to version changes, spelling
-is fixed in master and most recent stable branches only and backported "as is".
-
-The remaining metal3 jobs can be left on stable and bugfix branches but they
-need to be updated once the metal3 community follows up with its releases. See
-the comments in the job definitions for instructions.
+Some Ironic deliverables also use short-lived ``bugfix/X.Y`` branches between
+coordinated OpenStack releases. The projects, cadence, eligibility criteria,
+branching procedure, and maintenance instructions are documented in
+:doc:`bugfix-branches`.
 
 Things to do before releasing
 =============================
@@ -378,9 +294,9 @@ following the next steps:
   The ``--stable-branch argument`` is used only for branching in the end of a
   cycle, independent projects are not branched this way though.
 
-  The ``--intermediate-branch`` option is used to create an intermediate
-  bugfix branch following the
-  `new release model for Ironic projects <https://specs.openstack.org/openstack/ironic-specs/specs/approved/new-release-model.html>`_.
+  To create an intermediate bugfix branch, use the
+  ``--intermediate-branch`` option. See :doc:`bugfix-branches` for the project
+  list and branch-specific instructions.
 
   To propose the release, use the script to update the deliverable file, then
   commit the change, and propose it for review.
@@ -485,23 +401,6 @@ We need to submit patches for changes on master to:
     and remove the corresponding code from Ironic. (These migration scripts
     are used to migrate from an old release to this latest release; they
     shouldn't be needed after that.)
-
-When a release is done that results in a bugfix branch
-------------------------------------------------------
-
-In this case the release management only creates a change to point
-``.gitreview`` at the branch, ``tox.ini`` is not modified.
-
-After the release:
-
-* update the Tempest microversions as explained above.
-
-* the CI needs additional configuration, so that Zuul knows which branch to
-  take jobs definitions from. See the following examples:
-
-  * `ironic 18.1 <https://review.opendev.org/c/openstack/ironic/+/801876>`_
-  * `ironic-python-agent 8.1
-    <https://review.opendev.org/c/openstack/ironic-python-agent/+/801898>`_
 
 Ironic Tempest plugin
 ~~~~~~~~~~~~~~~~~~~~~
