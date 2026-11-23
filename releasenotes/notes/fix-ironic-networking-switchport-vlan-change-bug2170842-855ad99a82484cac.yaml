@@ -1,0 +1,20 @@
+---
+fixes:
+  - |
+    Fixes `bug 2170842
+    <https://bugs.launchpad.net/ironic/+bug/2170842>`_ in the
+    ``ironic-networking`` network interface. Changing an existing port's
+    ``extra/switchport`` configuration to a different ``native_vlan`` (for
+    example moving a port from VLAN 1203 to VLAN 100) now removes the old
+    configuration before plugging the new one: an access to access change
+    passes the previous VLAN to the switch driver as the VLAN to remove,
+    and any change involving a trunk or hybrid port resets the port first
+    so the old allowed VLANs are cleared too. If applying the new
+    configuration fails after such a reset, the previous configuration is
+    restored on a best-effort basis rather than leaving the port on the
+    idle network, and the port is not touched at all when the new
+    configuration is incomplete for its mode. Access
+    ports on switches such as SONiC can only be an untagged member of a
+    single VLAN at a time, so previously the plug of the new VLAN was
+    silently rejected by the switch while Ironic still reported the port
+    as configured on the new VLAN.

@@ -600,8 +600,18 @@ class IronicNetworkingPortChangedTestCase(
             default_vlan=None, mtu=None)
 
     @mock.patch.object(networking_api, 'update_port', autospec=True)
-    def test_port_changed_updated_case(self, mock_update_port):
-        """Test port_changed when switchport config is updated."""
+    @mock.patch.object(networking_api, 'reset_port', autospec=True)
+    def test_port_changed_updated_case(self, mock_reset_port,
+                                       mock_update_port):
+        """Test port_changed when switchport config is updated.
+
+        Regression test for bug #2170842: changing a port's native_vlan
+        (e.g. 100 -> 200) on the same local_link_connection must tell the
+        switch driver to remove the OLD VLAN (passed as default_vlan)
+        before plugging the new one. Otherwise access-mode switches
+        (e.g. SONiC) reject the plug because the port is still an
+        untagged member of the old VLAN.
+        """
         mock_update_port.return_value = {'status': 'updated'}
 
         # Original port with access switchport config
@@ -629,10 +639,294 @@ class IronicNetworkingPortChangedTestCase(
             task.ports = [original_port]
             self.interface.port_changed(task, current_port)
 
+        # One update: plug 200, removing the old VLAN (100) first.
+        mock_reset_port.assert_not_called()
         mock_update_port.assert_called_once_with(
             task.context, '00:11:22:33:44:55', 'GigE1/0/1',
             'Ironic Port ' + str(current_port.uuid), 'access', 200,
+            allowed_vlans=None, lag_name=None, default_vlan=100, mtu=None)
+
+    @mock.patch.object(networking_api, 'update_port', autospec=True)
+    @mock.patch.object(networking_api, 'reset_port', autospec=True)
+    def _assert_mode_change_resets_first(self, old_sp, new_sp,
+                                         mock_reset_port, mock_update_port):
+        calls = []
+        mock_reset_port.side_effect = (
+            lambda *a, **k: calls.append('reset') or {'status': 'reset'})
+        mock_update_port.side_effect = (
+            lambda *a, **k: calls.append('update') or {'status': 'updated'})
+        # Trunk switchports are only allowed on non-PXE ports.
+        original_port = self._create_test_port(
+            extra={'switchport': old_sp}, pxe_enabled=False)
+        current_port = self._create_port_copy(
+            original_port, extra={'switchport': new_sp})
+
+        with task_manager.acquire(self.context, self.node.uuid) as task:
+            task.ports = [original_port]
+            self.interface.port_changed(task, current_port)
+
+        self.assertEqual(['reset', 'update'], calls)
+        mock_reset_port.assert_called_once_with(
+            task.context, '00:11:22:33:44:55', 'GigE1/0/1',
+            old_sp['native_vlan'],
+            allowed_vlans=old_sp.get('allowed_vlans'), default_vlan=None,
+            mtu=None)
+        # After the reset the port is on the idle network again.
+        self.assertIsNone(mock_update_port.call_args.kwargs['default_vlan'])
+
+    def test_port_changed_trunk_to_access_resets_first(self):
+        self._assert_mode_change_resets_first(
+            {'mode': 'trunk', 'native_vlan': 100,
+             'allowed_vlans': [100, 200]},
+            {'mode': 'access', 'native_vlan': 300})
+
+    def test_port_changed_access_to_trunk_resets_first(self):
+        self._assert_mode_change_resets_first(
+            {'mode': 'access', 'native_vlan': 100},
+            {'mode': 'trunk', 'native_vlan': 300,
+             'allowed_vlans': [300, 400]})
+
+    def test_port_changed_trunk_to_trunk_resets_first(self):
+        self._assert_mode_change_resets_first(
+            {'mode': 'trunk', 'native_vlan': 100,
+             'allowed_vlans': [100, 200]},
+            {'mode': 'trunk', 'native_vlan': 100,
+             'allowed_vlans': [100, 300]})
+
+    @mock.patch.object(networking_api, 'update_port', autospec=True)
+    @mock.patch.object(networking_api, 'reset_port', autospec=True)
+    def test_port_changed_manager_invalid_does_not_reset(
+            self, mock_reset_port, mock_update_port):
+        original_port = self._create_test_port(
+            extra={'switchport': {'mode': 'access', 'native_vlan': 100}},
+            pxe_enabled=False)
+        for switchport in (
+                {'mode': 'hybrid', 'native_vlan': 200,
+                 'allowed_vlans': [200, 300]},
+                {'mode': 'trunk', 'allowed_vlans': [200, 300]}):
+            current_port = self._create_port_copy(
+                original_port, extra={'switchport': switchport})
+            with task_manager.acquire(self.context, self.node.uuid) as task:
+                task.ports = [original_port]
+                self.assertRaises(exception.InvalidParameterValue,
+                                  self.interface.port_changed,
+                                  task, current_port)
+        mock_reset_port.assert_not_called()
+        mock_update_port.assert_not_called()
+
+    def _run_trunk_change_with_failing_update(self, mock_reset_port,
+                                              mock_update_port):
+        mock_reset_port.return_value = {'status': 'reset'}
+        old_sp = {'mode': 'trunk', 'native_vlan': 100,
+                  'allowed_vlans': [100, 200], 'lag_name': 'po1'}
+        original_port = self._create_test_port(
+            extra={'switchport': old_sp}, pxe_enabled=False)
+        current_port = self._create_port_copy(
+            original_port,
+            extra={'switchport': {'mode': 'access', 'native_vlan': 300}})
+
+        with task_manager.acquire(self.context, self.node.uuid) as task:
+            task.ports = [original_port]
+            exc = self.assertRaises(exception.NetworkError,
+                                    self.interface.port_changed,
+                                    task, current_port)
+        mock_reset_port.assert_called_once()
+        return task, current_port, exc
+
+    @mock.patch.object(networking_api, 'update_port', autospec=True)
+    @mock.patch.object(networking_api, 'reset_port', autospec=True)
+    def test_port_changed_reset_then_update_fails_restores(
+            self, mock_reset_port, mock_update_port):
+        """A failed update after a reset restores the old configuration.
+
+        Otherwise the port would be left reset onto the idle network.
+        """
+        mock_update_port.side_effect = [
+            exception.NetworkError('plug failed'), {'status': 'updated'}]
+
+        task, current_port, exc = self._run_trunk_change_with_failing_update(
+            mock_reset_port, mock_update_port)
+
+        self.assertIn('plug failed', str(exc))
+        self.assertEqual(2, mock_update_port.call_count)
+        mock_update_port.assert_called_with(
+            task.context, '00:11:22:33:44:55', 'GigE1/0/1',
+            'Ironic Port ' + str(current_port.uuid), 'trunk', 100,
+            allowed_vlans=[100, 200], lag_name='po1', default_vlan=None,
+            mtu=None)
+
+    @mock.patch.object(networking_api, 'update_port', autospec=True)
+    @mock.patch.object(networking_api, 'reset_port', autospec=True)
+    def test_port_changed_reset_then_update_and_restore_fail(
+            self, mock_reset_port, mock_update_port):
+        """A failed restore is logged; the original error is raised."""
+        mock_update_port.side_effect = [
+            exception.NetworkError('plug failed'),
+            exception.NetworkError('restore failed')]
+
+        _, _, exc = self._run_trunk_change_with_failing_update(
+            mock_reset_port, mock_update_port)
+
+        self.assertIn('plug failed', str(exc))
+        self.assertEqual(2, mock_update_port.call_count)
+
+    @mock.patch.object(networking_api, 'update_port', autospec=True)
+    @mock.patch.object(networking_api, 'reset_port', autospec=True)
+    def test_port_changed_access_update_fails_no_restore(
+            self, mock_reset_port, mock_update_port):
+        """Without a reset there is nothing to restore."""
+        mock_update_port.side_effect = exception.NetworkError('plug failed')
+        original_port = self._create_test_port(
+            extra={'switchport': {'mode': 'access', 'native_vlan': 100}})
+        current_port = self._create_port_copy(
+            original_port,
+            extra={'switchport': {'mode': 'access', 'native_vlan': 200}})
+
+        with task_manager.acquire(self.context, self.node.uuid) as task:
+            task.ports = [original_port]
+            self.assertRaises(exception.NetworkError,
+                              self.interface.port_changed,
+                              task, current_port)
+
+        mock_reset_port.assert_not_called()
+        mock_update_port.assert_called_once()
+
+    @mock.patch.object(networking_api, 'update_port', autospec=True)
+    @mock.patch.object(networking_api, 'reset_port', autospec=True)
+    def test_port_changed_invalid_new_config_does_not_reset(
+            self, mock_reset_port, mock_update_port):
+        """An unusable new configuration leaves the port untouched.
+
+        Resetting first would leave the port on the idle network, since
+        there is nothing valid to plug back in afterwards.
+        """
+        original_port = self._create_test_port(
+            extra={'switchport': {'mode': 'trunk', 'native_vlan': 100,
+                                  'allowed_vlans': [100, 200]}},
+            pxe_enabled=False)
+        # Schema-valid, but a trunk port without allowed_vlans is not.
+        current_port = self._create_port_copy(
+            original_port,
+            extra={'switchport': {'mode': 'trunk', 'native_vlan': 100}})
+
+        with task_manager.acquire(self.context, self.node.uuid) as task:
+            task.ports = [original_port]
+            self.interface.port_changed(task, current_port)
+
+        mock_reset_port.assert_not_called()
+        mock_update_port.assert_not_called()
+
+    @mock.patch.object(networking_api, 'update_port', autospec=True)
+    @mock.patch.object(networking_api, 'reset_port', autospec=True)
+    def test_port_changed_updated_case_old_vlan_is_default(
+            self, mock_reset_port, mock_update_port):
+        """A VLAN change passes the old VLAN, not idle, as default_vlan."""
+        mock_update_port.return_value = {'status': 'updated'}
+        self.config(idle_network='access/native_vlan=102',
+                    group='ironic_networking')
+
+        original_port = self._create_test_port(
+            extra={'switchport': {'mode': 'access', 'native_vlan': 1203}}
+        )
+        current_port = self._create_port_copy(
+            original_port,
+            extra={'switchport': {'mode': 'access', 'native_vlan': 100}}
+        )
+
+        with task_manager.acquire(self.context, self.node.uuid) as task:
+            task.ports = [original_port]
+            self.interface.port_changed(task, current_port)
+
+        mock_reset_port.assert_not_called()
+        mock_update_port.assert_called_once_with(
+            task.context, '00:11:22:33:44:55', 'GigE1/0/1',
+            'Ironic Port ' + str(current_port.uuid), 'access', 100,
+            allowed_vlans=None, lag_name=None, default_vlan=1203, mtu=None)
+
+    @mock.patch.object(networking_api, 'update_port', autospec=True)
+    @mock.patch.object(networking_api, 'reset_port', autospec=True)
+    def test_port_changed_added_case_does_not_reset(
+            self, mock_reset_port, mock_update_port):
+        """Adding switchport config for the first time must not reset.
+
+        There is no previous VLAN to remove when switchport configuration
+        is newly added to a port that did not have one before.
+        """
+        mock_update_port.return_value = {'status': 'updated'}
+
+        original_port = self._create_test_port(extra={})
+        current_port = self._create_port_copy(
+            original_port,
+            extra={'switchport': {'mode': 'access', 'native_vlan': 100}}
+        )
+
+        with task_manager.acquire(self.context, self.node.uuid) as task:
+            task.ports = [original_port]
+            self.interface.port_changed(task, current_port)
+
+        mock_reset_port.assert_not_called()
+        mock_update_port.assert_called_once_with(
+            task.context, '00:11:22:33:44:55', 'GigE1/0/1',
+            'Ironic Port ' + str(current_port.uuid), 'access', 100,
             allowed_vlans=None, lag_name=None, default_vlan=None, mtu=None)
+
+    @mock.patch.object(networking_api, 'update_port', autospec=True)
+    @mock.patch.object(networking_api, 'reset_port', autospec=True)
+    def test_port_changed_handles_local_link_change_no_double_reset(
+            self, mock_reset_port, mock_update_port):
+        """local_link_connection change resets exactly once, not twice.
+
+        _handle_local_link_change() already resets the old switch port
+        when local_link_connection changes; _handle_switchport_update()
+        must not reset it again for the same change.
+        """
+        mock_reset_port.return_value = {'status': 'reset'}
+        mock_update_port.return_value = {'status': 'updated'}
+        original_port = self._create_test_port(
+            extra={'switchport': {'mode': 'access', 'native_vlan': 100}}
+        )
+        current_port = self._create_port_copy(
+            original_port,
+            local_link_connection={
+                'switch_id': '00:11:22:33:44:66',
+                'port_id': 'GigE1/0/2'
+            }
+        )
+        with task_manager.acquire(self.context, self.node.uuid) as task:
+            task.ports = [original_port]
+            self.interface.port_changed(task, current_port)
+        # Only _handle_local_link_change()'s reset, not a second one.
+        mock_reset_port.assert_called_once_with(
+            task.context, '00:11:22:33:44:55', 'GigE1/0/1', 100,
+            allowed_vlans=None, default_vlan=None, mtu=None)
+        mock_update_port.assert_called_once_with(
+            task.context, '00:11:22:33:44:66', 'GigE1/0/2',
+            'Ironic Port ' + str(current_port.uuid), 'access', 100,
+            allowed_vlans=None, lag_name=None, default_vlan=None, mtu=None)
+
+    @mock.patch.object(networking_api, 'update_port', autospec=True)
+    def test_port_changed_local_link_change_no_switchport_no_crash(
+            self, mock_update_port):
+        """local_link_connection change on a port without switchport.
+
+        Regression test: current_switchport is None/empty in this case,
+        so _handle_switchport_update() must not crash trying to read
+        'lag_name' off it (bug #2170842 NoneType crash note).
+        """
+        original_port = self._create_test_port(extra={})
+        current_port = self._create_port_copy(
+            original_port,
+            local_link_connection={
+                'switch_id': '00:11:22:33:44:66',
+                'port_id': 'GigE1/0/2'
+            }
+        )
+        with task_manager.acquire(self.context, self.node.uuid) as task:
+            task.ports = [original_port]
+            # Should not raise AttributeError: 'NoneType' object has no
+            # attribute 'get'.
+            self.interface.port_changed(task, current_port)
+        mock_update_port.assert_not_called()
 
     def test_port_changed_no_change(self):
         """Test port_changed when no switchport config changes."""
