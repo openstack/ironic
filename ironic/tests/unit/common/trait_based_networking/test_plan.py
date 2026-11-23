@@ -264,6 +264,43 @@ class TraitBasedNetworkingPlanningTestCase(base.TestCase):
             action_funcs[type_name])
         self.assertEqual(expected_actions, result_actions)
 
+    def _test_plan_network_oldest_first(self, action, portlikes_arg):
+        trait_action = tbn_base.TraitAction(
+            "CUSTOM_TRAIT", action,
+            tbn_base.FilterExpression.parse("port.category == 'cogwork'"))
+        # Deliberately not in ID order.
+        portlikes = [
+            utils.FauxPortLikeObject(id=2, uuid="uuid2", category="cogwork"),
+            utils.FauxPortLikeObject(id=3, uuid="uuid3", category="cogwork"),
+            utils.FauxPortLikeObject(id=1, uuid="uuid1", category="cogwork"),
+        ]
+        original_order = list(portlikes)
+        args = {'node_ports': [], 'node_portgroups': []}
+        args[portlikes_arg] = portlikes
+
+        result_actions = tbn_plan.plan_network(
+            tbn_base.NetworkTrait("CUSTOM_TRAIT", [trait_action]),
+            "fake_node_uuid",
+            node_networks=[tbn_base.Network("fake_net_id", "network_name",
+                                            frozenset())],
+            vif=utils.FauxVif(),
+            **args)
+
+        # The oldest (lowest ID) portlike is matched first, like the non-TBN
+        # port selection logic.
+        self.assertEqual(1, len(result_actions))
+        self.assertEqual("uuid1", result_actions[0].portlike_uuid())
+        # The caller's list is not reordered.
+        self.assertEqual(original_order, portlikes)
+
+    def test_plan_network_considers_oldest_port_first(self):
+        self._test_plan_network_oldest_first(
+            tbn_base.Actions.ATTACH_PORT, 'node_ports')
+
+    def test_plan_network_considers_oldest_portgroup_first(self):
+        self._test_plan_network_oldest_first(
+            tbn_base.Actions.ATTACH_PORTGROUP, 'node_portgroups')
+
     @data(
         annotate(
             "Attach one port",

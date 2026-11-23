@@ -70,9 +70,13 @@ def plan_network(
     """
     rendered_actions = []
 
-    # Order ports and portgroups by ID, newest first.
-    node_ports.sort(key=lambda port: port.id, reverse=True)
-    node_portgroups.sort(key=lambda portgroup: portgroup.id, reverse=True)
+    # Order ports and portgroups by ID, oldest first. This matches the
+    # non-TBN port selection logic, which considers ports and portgroups in
+    # the order they were created. Sort copies so the caller's lists are
+    # left untouched.
+    node_ports = sorted(node_ports, key=lambda port: port.id)
+    node_portgroups = sorted(node_portgroups,
+                             key=lambda portgroup: portgroup.id)
 
     portlikes = [base.Port.from_ironic_port(port) for port in node_ports]
     portgrouplikes = [base.Portgroup.from_ironic_portgroup(portgroup)

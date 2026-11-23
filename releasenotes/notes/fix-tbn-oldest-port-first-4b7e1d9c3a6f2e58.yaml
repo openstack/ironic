@@ -1,0 +1,9 @@
+---
+fixes:
+  - |
+    Fixed Trait Based Networking (TBN) considering a node's newest ports and
+    portgroups first when planning a VIF attachment. When several ports or
+    portgroups matched an action equally, the most recently created one was
+    selected, while port selection without TBN selects the oldest. TBN now
+    considers ports and portgroups oldest first, so the same port or
+    portgroup is selected with and without TBN.
