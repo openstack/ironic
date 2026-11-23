@@ -292,6 +292,15 @@ class TestRBACProjectScoped(TestACLBase):
             provision_state='manageable')
         db_utils.create_test_node_traits(
             node_id=runbook_node['id'], traits=['CUSTOM_TRAIT1'])
+        # Node without a reservation, in a state where servicing can be
+        # requested, so the request is validated rather than rejected for
+        # the state of the node. It is owned by, and leased to, projects of
+        # its own so it is not visible in other node queries.
+        active_leased_node = db_utils.create_test_node(
+            uuid='8c4f2a6d-3b1e-4d7a-9f5c-2e0a6b8d1c47',
+            owner='3e8b1f6a-5c2d-4e7f-9a0b-6d4c2e1f8a35',
+            lessee='b7d2a9c4-1f3e-4b6a-8c5d-0e9f7a2b4c61',
+            provision_state='active')
         owned_node_port = db_utils.create_test_port(
             uuid='ebe30f19-358d-41e1-8d28-fd7357a0164c',
             node_id=owned_node['id'],
@@ -370,6 +379,7 @@ class TestRBACProjectScoped(TestACLBase):
             'node_ident': unowned_node['uuid'],
             'owner_node_ident': owner_node_ident,
             'runbook_node_ident': runbook_node['uuid'],
+            'active_leased_node_ident': active_leased_node['uuid'],
             'lessee_node_ident': lessee_node_ident,
             'allocated_node_ident': lessee_node_ident,
             'volume_target_ident': fake_db_volume_target['uuid'],
