@@ -185,7 +185,7 @@ def verify_checksum(node, checksum, file_path):
     :param node: Node for which file to verify checksum
     :param checksum: Expected checksum value
     :param file_path: File path for which to verify checksum
-    :raises RedfishError: When checksum does not match
+    :raises ironic.common.exception.RedfishError: When checksum does not match
     """
     if len(checksum) <= 41:
         # SHA1: 40 bytes long
@@ -221,7 +221,8 @@ def stage(node, source, temp_file):
     :param temp_file: File path of temporary file to stage
     :returns: Tuple of staged URL and source (http or swift) that needs
         cleanup of staged files afterwards.
-    :raises RedfishError: If staging to HTTP server has failed.
+    :raises ironic.common.exception.RedfishError: If staging to HTTP server
+        has failed.
     """
     staged_url = None
     filename = os.path.basename(temp_file)
