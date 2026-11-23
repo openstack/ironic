@@ -1483,27 +1483,24 @@ lessee_member_cannot_set_provision_state_clean:
   body: *provision_body_clean_steps
   assert_status: 403
 
-# The servicing tests use a node which can be serviced, so that the request
-# is validated, where a request rejected for the state of the node would
-# look the same whatever its body was.
-# NOTE: That reveals the body below to be wrong, as it carries clean steps
-# rather than service steps, so the request is rejected as invalid with a
-# 400 rather than getting to the mocked RPC API. Being rejected for the
-# request, and not with a 403, still demonstrates we're past API RBAC policy
-# checking.
+# The servicing tests use a node which can be serviced, so that a valid
+# request gets all the way to the mocked RPC API, which returns 503. That
+# demonstrates we're past both the API RBAC policy checking and the
+# validation of the request, where a request rejected for the state of the
+# node would look the same whatever its body was.
 owner_member_can_set_provision_state_service:
   path: '/v1/nodes/{active_leased_node_ident}/states/provision'
   method: put
   headers: *active_leased_node_owner_member_headers
   body: &provision_body_service_steps
     target: service
-    clean_steps:
+    service_steps:
       - interface: deploy
         step: update_firmware
         args:
           foo: bar
         priority: 99
-  assert_status: 400
+  assert_status: 503
 
 owner_reader_cannot_set_provision_state_service:
   path: '/v1/nodes/{active_leased_node_ident}/states/provision'
@@ -1517,7 +1514,7 @@ lessee_admin_can_set_provision_state_service:
   method: put
   headers: *active_leased_node_lessee_admin_headers
   body: *provision_body_service_steps
-  assert_status: 400
+  assert_status: 503
 
 lessee_member_cannot_set_provision_state_service:
   path: '/v1/nodes/{active_leased_node_ident}/states/provision'
@@ -1525,6 +1522,22 @@ lessee_member_cannot_set_provision_state_service:
   headers: *active_leased_node_lessee_member_headers
   body: *provision_body_service_steps
   assert_status: 403
+
+# A request to service a node which does not carry service steps is
+# rejected as invalid, rather than passing for the wrong reason.
+owner_member_cannot_set_provision_state_service_with_clean_steps:
+  path: '/v1/nodes/{active_leased_node_ident}/states/provision'
+  method: put
+  headers: *active_leased_node_owner_member_headers
+  body:
+    target: service
+    clean_steps:
+      - interface: deploy
+        step: update_firmware
+        args:
+          foo: bar
+        priority: 99
+  assert_status: 400
 
 # Raid configuration
 
