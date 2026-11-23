@@ -175,18 +175,18 @@ pci_devices:
   - vendor_id: "1002"
     device_id: "738c"
     type: GPU
-    device_info: AMD Instinct MI210
-    trait: CUSTOM_GPU_AMD_MI210
+    device_info: AMD Instinct MI100
+    trait: CUSTOM_GPU_AMD_MI100
   - vendor_id: "1002"
     device_id: "738e"
     type: GPU
-    device_info: AMD Instinct MI250X
-    trait: CUSTOM_GPU_AMD_MI250X
+    device_info: AMD Instinct MI100
+    trait: CUSTOM_GPU_AMD_MI100
   - vendor_id: "1002"
     device_id: "740c"
     type: GPU
-    device_info: AMD Instinct MI300A
-    trait: CUSTOM_GPU_AMD_MI300A
+    device_info: AMD Instinct MI250X
+    trait: CUSTOM_GPU_AMD_MI250X
   - vendor_id: "1002"
     device_id: "740f"
     type: GPU
@@ -197,6 +197,11 @@ pci_devices:
     type: GPU
     device_info: AMD Instinct MI250X
     trait: CUSTOM_GPU_AMD_MI250X
+  - vendor_id: "1002"
+    device_id: "74a0"
+    type: GPU
+    device_info: AMD Instinct MI300A
+    trait: CUSTOM_GPU_AMD_MI300A
   - vendor_id: "1002"
     device_id: "74a1"
     type: GPU
@@ -213,6 +218,11 @@ pci_devices:
     device_info: AMD Instinct MI350X
     trait: CUSTOM_GPU_AMD_MI350X
   - vendor_id: "1002"
+    device_id: "75a3"
+    type: GPU
+    device_info: AMD Instinct MI355X
+    trait: CUSTOM_GPU_AMD_MI355X
+  - vendor_id: "1002"
     device_id: "75a8"
     type: GPU
     device_info: AMD Instinct MI350P
@@ -221,28 +231,33 @@ pci_devices:
   - vendor_id: "8086"
     device_id: "56c0"
     type: GPU
-    device_info: Intel Data Center GPU Max 1550
-    trait: CUSTOM_GPU_INTEL_MAX_1550
-  - vendor_id: "8086"
-    device_id: "56c1"
-    type: GPU
-    device_info: Intel Data Center GPU Max 1100
-    trait: CUSTOM_GPU_INTEL_MAX_1100
-  - vendor_id: "8086"
-    device_id: "0bd5"
-    type: GPU
     device_info: Intel Data Center GPU Flex 170
     trait: CUSTOM_GPU_INTEL_FLEX_170
   - vendor_id: "8086"
-    device_id: "0bd6"
+    device_id: "56c1"
     type: GPU
     device_info: Intel Data Center GPU Flex 140
     trait: CUSTOM_GPU_INTEL_FLEX_140
+  - vendor_id: "8086"
+    device_id: "0bd5"
+    type: GPU
+    device_info: Intel Data Center GPU Max 1550
+    trait: CUSTOM_GPU_INTEL_MAX_1550
+  - vendor_id: "8086"
+    device_id: "0bd6"
+    type: GPU
+    device_info: Intel Data Center GPU Max 1550
+    trait: CUSTOM_GPU_INTEL_MAX_1550
+  - vendor_id: "8086"
+    device_id: "0bd9"
+    type: GPU
+    device_info: Intel Data Center GPU Max 1100
+    trait: CUSTOM_GPU_INTEL_MAX_1100
   # Intel FPGAs
   - vendor_id: "8086"
     device_id: "0b2b"
     type: FPGA
-    device_info: Intel Stratix 10 FPGA
+    device_info: Intel FPGA PAC D5005 (Stratix 10 SX)
     trait: CUSTOM_FPGA_INTEL_STRATIX10
   # Xilinx FPGAs
   - vendor_id: "10ee"
