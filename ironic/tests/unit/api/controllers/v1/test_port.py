@@ -1486,6 +1486,75 @@ class TestPatch(test_api_base.BaseApiTest):
         self.assertEqual('application/json', response.content_type)
         self.assertEqual(http_client.OK, response.status_code)
 
+    def test_replace_portgroup_uuid_different_node(self, mock_upd):
+        other_node = obj_utils.create_test_node(
+            self.context, id=42, uuid=uuidutils.generate_uuid(),
+            name='other-node')
+        pg = obj_utils.create_test_portgroup(self.context,
+                                             node_id=other_node.id,
+                                             uuid=uuidutils.generate_uuid(),
+                                             address='bb:bb:bb:bb:bb:bb',
+                                             name='bar')
+        headers = {api_base.Version.string: '1.24'}
+        response = self.patch_json('/ports/%s' % self.port.uuid,
+                                   [{'path': '/portgroup_uuid',
+                                     'value': pg.uuid,
+                                     'op': 'replace'}],
+                                   headers=headers, expect_errors=True)
+        self.assertEqual('application/json', response.content_type)
+        self.assertEqual(http_client.BAD_REQUEST, response.status_code)
+        self.assertIn('Invalid portgroup', response.json['error_message'])
+        self.assertNotIn(other_node.uuid, response.json['error_message'])
+        self.assertFalse(mock_upd.called)
+
+    def test_replace_node_uuid_keeps_portgroup_on_old_node(self, mock_upd):
+        pg = obj_utils.create_test_portgroup(self.context,
+                                             node_id=self.node.id,
+                                             uuid=uuidutils.generate_uuid(),
+                                             address='bb:bb:bb:bb:bb:bb',
+                                             name='bar')
+        self.port.portgroup_id = pg.id
+        self.port.save()
+        other_node = obj_utils.create_test_node(
+            self.context, id=42, uuid=uuidutils.generate_uuid(),
+            name='other-node')
+        headers = {api_base.Version.string: '1.24'}
+        response = self.patch_json('/ports/%s' % self.port.uuid,
+                                   [{'path': '/node_uuid',
+                                     'value': other_node.uuid,
+                                     'op': 'replace'}],
+                                   headers=headers, expect_errors=True)
+        self.assertEqual('application/json', response.content_type)
+        self.assertEqual(http_client.BAD_REQUEST, response.status_code)
+        self.assertIn('Invalid portgroup', response.json['error_message'])
+        self.assertFalse(mock_upd.called)
+
+    def test_replace_node_uuid_and_portgroup_uuid(self, mock_upd):
+        other_node = obj_utils.create_test_node(
+            self.context, id=42, uuid=uuidutils.generate_uuid(),
+            name='other-node')
+        pg = obj_utils.create_test_portgroup(self.context,
+                                             node_id=other_node.id,
+                                             uuid=uuidutils.generate_uuid(),
+                                             address='bb:bb:bb:bb:bb:bb',
+                                             name='bar')
+        # The conductor is mocked; only verify what the API hands it.
+        mock_upd.side_effect = None
+        mock_upd.return_value = self.port
+        headers = {api_base.Version.string: '1.24'}
+        response = self.patch_json('/ports/%s' % self.port.uuid,
+                                   [{'path': '/portgroup_uuid',
+                                     'value': pg.uuid,
+                                     'op': 'replace'},
+                                    {'path': '/node_uuid',
+                                     'value': other_node.uuid,
+                                     'op': 'replace'}],
+                                   headers=headers)
+        self.assertEqual('application/json', response.content_type)
+        self.assertEqual(http_client.OK, response.status_code)
+        self.assertEqual(other_node.id, mock_upd.call_args[0][2].node_id)
+        self.assertEqual(pg.id, mock_upd.call_args[0][2].portgroup_id)
+
     def test_replace_portgroup_uuid_remove(self, mock_upd):
         pg = obj_utils.create_test_portgroup(self.context,
                                              node_id=self.node.id,
