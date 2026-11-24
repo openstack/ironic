@@ -1,0 +1,10 @@
+---
+fixes:
+  - |
+    Fixes an issue where updating a port via ``PATCH /v1/ports/{port_id}``
+    could associate it with a portgroup belonging to a different node,
+    either by changing ``portgroup_uuid`` or by changing ``node_uuid`` while
+    leaving the port in its existing portgroup. The API now rejects such
+    requests with HTTP 400 (Bad Request), matching the existing check on port
+    creation. See `bug 2173778
+    <https://bugs.launchpad.net/ironic/+bug/2173778>`_ for details.

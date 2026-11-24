@@ -784,6 +784,13 @@ class PortsController(rest.RestController):
             e.code = http_client.BAD_REQUEST  # BadRequest
             raise
 
+        # A port may only be a member of a portgroup on its own node. Check
+        # the resulting association whether the PATCH changed the portgroup,
+        # the node, or both.
+        if portgroup is not None and portgroup.node_id != rpc_node.id:
+            raise exception.BadRequest(
+                _('Invalid portgroup %s.') % port_dict['portgroup_uuid'])
+
         api_utils.patched_validate_with_schema(
             port_dict, PORT_PATCH_SCHEMA, PORT_PATCH_VALIDATOR)
 
