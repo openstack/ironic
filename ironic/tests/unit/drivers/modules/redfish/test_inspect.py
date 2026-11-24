@@ -61,6 +61,7 @@ class RedfishInspectTestCase(db_base.DbTestCase):
         mock_processor = mock.Mock(
             spec=sushy.resources.system.processor.Processor)
         mock_processor.model = 'test'
+        mock_processor.processor_type = sushy.ProcessorType.CPU
         mock_processor.processor_architecture = sushy.PROCESSOR_ARCH_x86
         mock_processor.instruction_set = sushy.InstructionSet.X86_64
         mock_processor.max_speed_mhz = 1234
@@ -270,7 +271,8 @@ class RedfishInspectTestCase(db_base.DbTestCase):
                          inventory['inventory']['interfaces'])
 
         expected_cpu = {'count': 8, 'model_name': 'test',
-                        'frequency': '1234', 'architecture': 'x86_64'}
+                        'frequency': '1234', 'architecture': 'x86_64',
+                        'socket_count': 1}
         self.assertEqual(expected_cpu,
                          inventory['inventory']['cpu'])
 
@@ -413,6 +415,66 @@ class RedfishInspectTestCase(db_base.DbTestCase):
                                                       self.context)
         self.assertIn('architecture', inventory['inventory']['cpu'])
         self.assertEqual('', inventory['inventory']['cpu']['architecture'])
+
+    @mock.patch.object(redfish_utils, 'get_enabled_macs', autospec=True)
+    @mock.patch.object(redfish_utils, 'get_system', autospec=True)
+    def test_inspect_hardware_cpu_listed_after_accelerator(
+            self, mock_get_system, mock_get_enabled_macs):
+        system_mock = self.init_system_mock(mock_get_system.return_value)
+        mock_cpu = system_mock.processors.get_members.return_value[0]
+        mock_accelerator = mock.Mock(
+            spec=sushy.resources.system.processor.Processor)
+        mock_accelerator.model = 'accelerator'
+        mock_accelerator.processor_type = sushy.ProcessorType.ACCELERATOR
+        mock_accelerator.processor_architecture = None
+        mock_accelerator.instruction_set = None
+        mock_accelerator.max_speed_mhz = None
+        mock_accelerator.total_threads = 16
+        mock_cpu2 = mock.Mock(
+            spec=sushy.resources.system.processor.Processor)
+        mock_cpu2.model = 'test2'
+        mock_cpu2.processor_type = sushy.ProcessorType.CPU
+        mock_cpu2.total_threads = 8
+        system_mock.processors.get_members.return_value = [
+            mock_accelerator, mock_cpu, mock_accelerator, mock_cpu2]
+
+        expected_properties = {
+            'capabilities': 'boot_mode:uefi',
+            'cpu_arch': 'x86_64',
+            'local_gb': 3, 'memory_mb': 2048
+        }
+
+        with task_manager.acquire(self.context, self.node.uuid,
+                                  shared=True) as task:
+            task.driver.inspect.inspect_hardware(task)
+
+        self.node.refresh()
+        self.assertEqual(expected_properties, self.node.properties)
+
+        inventory = inspect_utils.get_inspection_data(self.node,
+                                                      self.context)
+        expected_cpu = {'count': 16, 'model_name': 'test',
+                        'frequency': '1234', 'architecture': 'x86_64',
+                        'socket_count': 2}
+        self.assertEqual(expected_cpu, inventory['inventory']['cpu'])
+
+    @mock.patch.object(redfish_utils, 'get_enabled_macs', autospec=True)
+    @mock.patch.object(redfish_utils, 'get_system', autospec=True)
+    def test_inspect_hardware_missing_cpu_processor_type(
+            self, mock_get_system, mock_get_enabled_macs):
+        system_mock = self.init_system_mock(mock_get_system.return_value)
+        mock_processor = system_mock.processors.get_members.return_value[0]
+        mock_processor.processor_type = None
+
+        with task_manager.acquire(self.context, self.node.uuid,
+                                  shared=True) as task:
+            task.driver.inspect.inspect_hardware(task)
+
+        inventory = inspect_utils.get_inspection_data(self.node,
+                                                      self.context)
+        expected_cpu = {'count': 8, 'model_name': 'test',
+                        'frequency': '1234', 'architecture': 'x86_64'}
+        self.assertEqual(expected_cpu, inventory['inventory']['cpu'])
 
     @mock.patch.object(redfish_utils, 'get_enabled_macs', autospec=True)
     @mock.patch.object(redfish_utils, 'get_system', autospec=True)

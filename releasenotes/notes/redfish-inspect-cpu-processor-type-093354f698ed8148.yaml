@@ -1,0 +1,12 @@
+---
+fixes:
+  - |
+    Fixes Redfish inspection reporting an accelerator (such as a GPU) as
+    the node's CPU when the BMC lists accelerators ahead of CPUs in the
+    Processors collection. The CPU model, frequency and architecture are
+    now taken from the first processor whose ``ProcessorType`` is ``CPU``,
+    and the CPU count only includes the threads of those processors.
+    Redfish inspection now also reports ``socket_count``, matching the
+    agent inspection inventory.
+    If no processor reports a ``ProcessorType`` of ``CPU``, the previous
+    behavior of using the whole Processors collection is kept.
