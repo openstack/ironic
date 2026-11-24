@@ -1629,7 +1629,8 @@ class RedfishFirmware(base.FirmwareInterface):
         * BootProgress shows the node booted past POST since the reboot,
           to OSRunning while servicing. If that is not seen within
           ``[redfish]firmware_update_post_reboot_wait``, the update continues
-          with a warning, since not every BMC shows it.
+          with a warning, since not every BMC shows it. A node that
+          reports no BootProgress waits that long.
 
         A task or Lifecycle Controller job still in progress is only
         bounded by ``[redfish]firmware_update_overall_timeout``.
@@ -1831,7 +1832,8 @@ class RedfishFirmware(base.FirmwareInterface):
         since the reboot, as until then BootProgress may still describe
         the boot before it. If that is not seen within
         ``[redfish]firmware_update_post_reboot_wait`` of the reboot, the gate
-        passes with a warning: not every BMC shows it.
+        passes with a warning: not every BMC shows it. A node that
+        reports no BootProgress is held for that long.
 
         :param node: an Ironic node object.
         :param system: the sushy System read in this poll.
@@ -1840,6 +1842,7 @@ class RedfishFirmware(base.FirmwareInterface):
             still awaited.
         """
         targets = redfish_utils.get_boot_progress_targets(node)
+        unsupported = False
         try:
             status, last_state = redfish_utils.check_boot_progress(
                 node, system, targets)
@@ -1863,18 +1866,23 @@ class RedfishFirmware(base.FirmwareInterface):
         elif status == redfish_utils.BootProgressStatus.UNAVAILABLE:
             if (verify[VERIFY_BEFORE] or {}).get('state') is None:
                 # Nothing says when POST, and any firmware flashed during
-                # it, is over.
-                LOG.warning('Node %(node)s reports no BootProgress, so its '
-                            'boot after the reboot to apply firmware '
-                            'cannot be confirmed. Continuing the firmware '
-                            'update step without boot confirmation.',
-                            {'node': node.uuid})
-                return None
-            # It was reported before the reboot, so this is a gap.
-            waiting = _('BootProgress is not reported')
+                # it, is over, so only the wait protects it.
+                unsupported = True
+                waiting = _('the node reports no BootProgress')
+            else:
+                # It was reported before the reboot, so this is a gap.
+                waiting = _('BootProgress is not reported')
 
         wait = CONF.redfish.firmware_update_post_reboot_wait
-        if self._since_reboot(verify) >= wait:
+        if self._since_reboot(verify) < wait:
+            return waiting
+        if unsupported:
+            LOG.warning('Node %(node)s reports no BootProgress, so its boot '
+                        'after the reboot to apply firmware cannot be '
+                        'confirmed within %(wait)s seconds. Continuing the '
+                        'firmware update step without boot confirmation.',
+                        {'node': node.uuid, 'wait': wait})
+        else:
             LOG.warning('Node %(node)s did not show that it booted past '
                         'POST within %(wait)s seconds of the reboot to '
                         'apply firmware: %(reason)s. Not every BMC shows '
@@ -1882,8 +1890,7 @@ class RedfishFirmware(base.FirmwareInterface):
                         'boot confirmation.',
                         {'node': node.uuid, 'wait': wait,
                          'reason': waiting})
-            return None
-        return waiting
+        return None
 
     def _handle_firmware_update_task(self, task, node, current_update,
                                      update_service, settings):
