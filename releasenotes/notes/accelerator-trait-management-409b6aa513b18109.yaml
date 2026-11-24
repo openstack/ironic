@@ -1,0 +1,19 @@
+---
+features:
+  - |
+    The ``accelerators`` inspection hook now supports automatic trait
+    management based on detected accelerator devices. This behavior is
+    enabled by default: the hook will automatically add ``CUSTOM_*``
+    traits to nodes when matching accelerator devices (GPUs, FPGAs, NPUs,
+    TPUs) are detected during inspection, and remove those traits when
+    the devices are no longer present. Operators who do not want traits
+    to be managed automatically can set the new
+    ``[inspector]auto_set_accelerator_traits`` option to ``False``.
+
+    The ``known_accelerators.yaml`` configuration file has been enhanced
+    to support a ``trait`` field for each PCI device entry, and all
+    shipped device entries now have suggested traits. Traits must follow
+    the ``CUSTOM_*`` naming convention. Devices without a defined trait
+    are still recorded in the node's ``accelerators`` property, and a
+    warning is logged so operators can add a trait to their
+    configuration file if desired.

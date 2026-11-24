@@ -127,6 +127,17 @@ opts = [
                help=_('Path to the file which contains the known accelerator '
                       'devices, to be used by the "accelerators" inspection '
                       'hook.')),
+    cfg.BoolOpt('auto_set_accelerator_traits',
+                default=True,
+                mutable=True,
+                help=_('Whether to automatically set traits on nodes based '
+                       'on accelerator devices found during inspection. '
+                       'Enabled by default: the "accelerators" inspection '
+                       'hook will set traits defined in the '
+                       'known_accelerators configuration file when matching '
+                       'devices are detected, and remove those traits when '
+                       'the devices are no longer present. Traits must '
+                       'follow the CUSTOM_* naming convention.')),
     cfg.DictOpt('cpu_capabilities',
                 default=DEFAULT_CPU_FLAGS_MAPPING,
                 help='Mapping between a CPU flag and a node capability to set '
