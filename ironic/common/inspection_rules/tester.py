@@ -263,16 +263,19 @@ def _find_case_file(test_dir, base):
     return None
 
 
-def run_suite(data_dir, rules_file):
+def run_suite(data_dir, rules_file=None):
     """Run the inspection rules tester against all test cases in a tree.
 
     Each subdirectory of ``data_dir`` is one test case and must contain
     a node file (``node.yaml`` or ``node.json``) and an inventory file
-    (``inventory.yaml`` or ``inventory.json``). The rules in
-    ``rules_file`` are evaluated against every test case.
+    (``inventory.yaml`` or ``inventory.json``). Unless ``rules_file`` is
+    given, it must also contain a rules file (``rules.yaml`` or
+    ``rules.json``) so that each test case exercises its own rules.
 
     :param data_dir: directory containing test case subdirectories.
-    :param rules_file: YAML file with the inspection rules to evaluate.
+    :param rules_file: optional YAML file with the inspection rules to
+        evaluate against every test case, instead of the rules file in
+        each test case directory.
     :returns: an exit code, 0 when all test cases pass.
     """
     if not os.path.isdir(data_dir):
@@ -303,8 +306,14 @@ def run_suite(data_dir, rules_file):
             failed.append(test_name)
             continue
 
+        case_rules_file = rules_file or _find_case_file(test_dir, "rules")
+        if case_rules_file is None:
+            print(f"FAIL: {test_name} - missing rules.yaml or rules.json")
+            failed.append(test_name)
+            continue
+
         print(f"Running: {test_name}")
-        if check_files(node_file, inventory_file, rules_file) == 0:
+        if check_files(node_file, inventory_file, case_rules_file) == 0:
             print(f"PASS: {test_name}")
             passed += 1
         else:

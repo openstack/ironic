@@ -100,9 +100,10 @@ hardware data to show which rules match and what actions would be executed,
 without touching any real node. This helps test and debug inspection rules
 before deploying them to a production environment.
 
-The rules file is always required and is given with :option:`--rules`. The
-hardware data to evaluate the rules against is given either as a single
-node/inventory file pair, or as a directory tree of test cases.
+The hardware data to evaluate the rules against is given either as a single
+node/inventory file pair, or as a directory tree of test cases. The rules
+are given with :option:`--rules`, or, for a directory tree of test cases,
+can be provided by each test case.
 
 For a single set of files, the node and inventory data can be captured from
 a real node::
@@ -114,15 +115,18 @@ a real node::
 
 Alternatively, a whole directory tree of test cases can be checked at once.
 Each subdirectory of the given directory is one test case and must contain a
-node file (``node.yaml`` or ``node.json``) and an inventory file
-(``inventory.yaml`` or ``inventory.json``)::
+node file (``node.yaml`` or ``node.json``), an inventory file
+(``inventory.yaml`` or ``inventory.json``) and a rules file (``rules.yaml`` or
+``rules.json``), so every test case is evaluated against its own rules::
 
-  ironic-manage inspection-rules check --rules rules.yaml \
-      --data-dir <directory>
+  ironic-manage inspection-rules check --data-dir <directory>
 
 .. option:: --rules <rules file>
 
-  YAML file with the inspection rules to evaluate. Required.
+  YAML file with the inspection rules to evaluate. Required with
+  :option:`--node` and :option:`--inventory`. With :option:`--data-dir` it is
+  optional, and when given is used for every test case instead of the rules
+  file in the test case directory.
 
 .. option:: --node <node file>
 
