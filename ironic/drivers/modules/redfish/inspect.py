@@ -317,10 +317,23 @@ class RedfishInspect(base.InspectInterface):
         if not system.processors:
             return cpu
 
-        if system.processors.summary:
-            cpu['count'], _ = system.processors.summary
-
-        processor = system.processors.get_members()[0]
+        # NOTE(cardoe): The Processors collection can also contain GPUs,
+        #               FPGAs and other accelerators, and they are not
+        #               guaranteed to be listed after the CPUs. Only use
+        #               the CPUs for the count and details, falling back
+        #               to the whole collection for BMCs that do not
+        #               report ProcessorType.
+        processors = system.processors.get_members()
+        cpus = [proc for proc in processors
+                if proc.processor_type == sushy.ProcessorType.CPU]
+        if cpus:
+            cpu['count'] = sum(proc.total_threads or 0 for proc in cpus)
+            cpu['socket_count'] = len(cpus)
+            processor = cpus[0]
+        else:
+            if system.processors.summary:
+                cpu['count'], _ = system.processors.summary
+            processor = processors[0]
 
         if processor.model is not None:
             cpu['model_name'] = str(processor.model)
