@@ -1,0 +1,46 @@
+# Inspection rules evaluated against the node and inventory in this directory.
+
+- uuid: 3d5a4b2e-6b5e-4e0b-9f0a-7a8f6a1c0001
+  description: "Mark Dell servers"
+  priority: 100
+  phase: main
+  conditions:
+    - op: contains
+      args:
+        value: "{inventory[system_vendor][manufacturer]}"
+        regex: "(?i)dell"
+  actions:
+    - op: add-trait
+      args:
+        name: "CUSTOM_VENDOR_DELL"
+    - op: log
+      args:
+        msg: "Detected Dell server"
+        level: info
+
+- uuid: 3d5a4b2e-6b5e-4e0b-9f0a-7a8f6a1c0002
+  description: "Add trait for nodes managed by the idrac hardware type"
+  priority: 90
+  phase: main
+  conditions:
+    - op: eq
+      args:
+        values: ["{node.driver}", "idrac"]
+  actions:
+    - op: add-trait
+      args:
+        name: "CUSTOM_MANAGED_BY_IDRAC"
+
+- uuid: 3d5a4b2e-6b5e-4e0b-9f0a-7a8f6a1c0003
+  description: "Set UEFI boot mode capability"
+  priority: 60
+  phase: main
+  conditions:
+    - op: eq
+      args:
+        values: ["{inventory[boot][current_boot_mode]}", "uefi"]
+  actions:
+    - op: set-capability
+      args:
+        name: "boot_mode"
+        value: "uefi"

@@ -18,6 +18,7 @@
               - ^zuul.d/ironic-image-jobs.yaml$
               - ^zuul.d/project.yaml$
         - ironic-tox-mypy
+        - ironic-tox-inspection-rules
         - ironic-tox-unit-mysql-migrations
         - ironic-tox-unit-with-driver-libs
         - ironic-cross-sushy:
@@ -92,6 +93,7 @@
     gate:
       jobs:
         - ironic-tox-mypy
+        - ironic-tox-inspection-rules
         - ironic-tox-unit-mysql-migrations
         - ironic-tox-unit-with-driver-libs
         - ironic-tempest-functional-python3
