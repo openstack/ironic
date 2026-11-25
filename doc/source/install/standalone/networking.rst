@@ -18,6 +18,10 @@ and trunk ports.
              port will be re-visited and likely converted to use a more formal
              API structure.
 
+.. Warning:: Operators planning to use this network interface in a
+             multi-tenant environment where users directly access the Ironic
+             API should review :ref:`standalone-networking-tenant-isolation`.
+
 .. Note:: The expected starting condition before a node is enrolled is that its
           switch ports are configured onto the "idle" VLAN.  The "idle" VLAN
           can be considered as the default VLAN for a port.  The networking
@@ -660,6 +664,24 @@ Switch Access Control
 * Enable audit logging on switches for Ironic service account actions
 * Regularly rotate switch credentials
 
+.. _standalone-networking-tenant-isolation:
+
+Tenant Isolation
+----------------
+
+Configuration for the ``ironic-networking`` interface comes directly from
+Ironic port metadata (the port's ``extra`` field), which can be edited by a
+node owner, if one is set.  There is no way to prevent another node's owner,
+in a different project, from utilizing the same VLAN.
+
+This is only a concern when users interact with the Ironic API directly.  When
+access to the Ironic API is mediated by another layer (for example, Metal3),
+that layer controls which port configuration is applied.
+
+Operators planning on using this network interface in a multi-tenant
+environment where users are directly contacting the Ironic API should
+carefully consider their threat models.
+
 Migration from Neutron
 ======================
 
@@ -692,6 +714,8 @@ Current Limitations
   ironic-networking service restart.
 * Running multiple instances of ironic-networking for high-availability is not
   supported.
+* Tenant VLAN assignments are not enforced when users have direct access to
+  the Ironic API.  See :ref:`standalone-networking-tenant-isolation`.
 
 References
 ==========

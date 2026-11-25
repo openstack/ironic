@@ -118,7 +118,8 @@ the Ironic service:
   This driver has different configuration requirements and doesn't follow
   the VIF attachment flow or other related workflows described in this
   document.  Instead, see :doc:`/install/standalone/networking` for more
-  details.
+  details.  If users access the Ironic API directly in a multi-tenant
+  environment, see :ref:`standalone-networking-tenant-isolation`.
 
 To use these interfaces, they need to be enabled in *ironic.conf* utilizing
 the :oslo.config:option:`enabled_network_interfaces` setting.
