@@ -79,6 +79,24 @@ values:
     X-Auth-Token: 'runbook-node-owner-manager-token'
     X-Project-Id: 9f6c1d7e-2b4a-4c35-8d9e-7a1b0c3d5e21
     X-Roles: manager,member,reader
+  # Projects which only own, and only lease, the node used for servicing
+  # tests.
+  active_leased_node_owner_member_headers: &active_leased_node_owner_member_headers
+    X-Auth-Token: 'active-node-owner-member-token'
+    X-Project-Id: 3e8b1f6a-5c2d-4e7f-9a0b-6d4c2e1f8a35
+    X-Roles: member,reader
+  active_leased_node_owner_reader_headers: &active_leased_node_owner_reader_headers
+    X-Auth-Token: 'active-node-owner-reader-token'
+    X-Project-Id: 3e8b1f6a-5c2d-4e7f-9a0b-6d4c2e1f8a35
+    X-Roles: reader
+  active_leased_node_lessee_admin_headers: &active_leased_node_lessee_admin_headers
+    X-Auth-Token: 'active-node-lessee-admin-token'
+    X-Project-Id: b7d2a9c4-1f3e-4b6a-8c5d-0e9f7a2b4c61
+    X-Roles: admin,manager,member,reader
+  active_leased_node_lessee_member_headers: &active_leased_node_lessee_member_headers
+    X-Auth-Token: 'active-node-lessee-member-token'
+    X-Project-Id: b7d2a9c4-1f3e-4b6a-8c5d-0e9f7a2b4c61
+    X-Roles: member,reader
   service_headers: &service_headers
     X-Auth-Token: 'service-token'
     X-Project-Id: ae64129e-b188-4662-b014-4127f4366ee6
@@ -1465,10 +1483,18 @@ lessee_member_cannot_set_provision_state_clean:
   body: *provision_body_clean_steps
   assert_status: 403
 
+# The servicing tests use a node which can be serviced, so that the request
+# is validated, where a request rejected for the state of the node would
+# look the same whatever its body was.
+# NOTE: That reveals the body below to be wrong, as it carries clean steps
+# rather than service steps, so the request is rejected as invalid with a
+# 400 rather than getting to the mocked RPC API. Being rejected for the
+# request, and not with a 403, still demonstrates we're past API RBAC policy
+# checking.
 owner_member_can_set_provision_state_service:
-  path: '/v1/nodes/{owner_node_ident}/states/provision'
+  path: '/v1/nodes/{active_leased_node_ident}/states/provision'
   method: put
-  headers: *owner_member_headers
+  headers: *active_leased_node_owner_member_headers
   body: &provision_body_service_steps
     target: service
     clean_steps:
@@ -1477,26 +1503,26 @@ owner_member_can_set_provision_state_service:
         args:
           foo: bar
         priority: 99
-  assert_status: 409
+  assert_status: 400
 
 owner_reader_cannot_set_provision_state_service:
-  path: '/v1/nodes/{owner_node_ident}/states/provision'
+  path: '/v1/nodes/{active_leased_node_ident}/states/provision'
   method: put
-  headers: *owner_reader_headers
+  headers: *active_leased_node_owner_reader_headers
   body: *provision_body_service_steps
   assert_status: 403
 
 lessee_admin_can_set_provision_state_service:
-  path: '/v1/nodes/{lessee_node_ident}/states/provision'
+  path: '/v1/nodes/{active_leased_node_ident}/states/provision'
   method: put
-  headers: *lessee_admin_headers
+  headers: *active_leased_node_lessee_admin_headers
   body: *provision_body_service_steps
-  assert_status: 409
+  assert_status: 400
 
 lessee_member_cannot_set_provision_state_service:
-  path: '/v1/nodes/{lessee_node_ident}/states/provision'
+  path: '/v1/nodes/{active_leased_node_ident}/states/provision'
   method: put
-  headers: *lessee_member_headers
+  headers: *active_leased_node_lessee_member_headers
   body: *provision_body_service_steps
   assert_status: 403
 
